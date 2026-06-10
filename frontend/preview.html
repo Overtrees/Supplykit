@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SupplyChain V1 Preview</title>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.25.6/babel.min.js"></script>
+  <style>
+    *{box-sizing:border-box} body{margin:0;background:#f3f6fb;font-family:system-ui,sans-serif;color:#0f172a}
+    .wrap{max-width:1280px;margin:0 auto;padding:20px}.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.grid2{display:grid;grid-template-columns:1.3fr 1fr;gap:16px}.grid22{display:grid;grid-template-columns:1fr 1fr;gap:16px}.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+    .card{background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:16px;box-shadow:0 6px 18px rgba(15,23,42,.04)}.muted{color:#64748b}.small{font-size:12px}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+    .pill{display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600}.warning{background:#fffbeb;color:#b45309}.success{background:#ecfdf5;color:#059669}.danger{background:#fff1f2;color:#e11d48}.info{background:#eff6ff;color:#1d4ed8}
+    table{width:100%;border-collapse:collapse} th{text-align:left;font-size:12px;color:#64748b;border-bottom:1px solid #e5e7eb;padding:8px 0} td{padding:8px 0;border-bottom:1px solid #f1f5f9;vertical-align:top}
+    .header{background:linear-gradient(135deg,#0f172a,#1d4ed8);color:#fff}.header .muted{color:#cbd5e1}
+    .section-title{font-weight:700;margin-bottom:12px;font-size:15px}
+    @media(max-width:900px){.grid4,.grid2,.grid22,.grid3{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useEffect, useMemo, useRef, useState } = React
+    const API = 'http://127.0.0.1:8000'
+    const WS = 'ws://127.0.0.1:8000/ws/events'
+
+    function Card({ title, value, sub, badge }) {
+      return <div className="card"><div style={{display:'flex',justifyContent:'space-between',gap:8}}><div className="small muted">{title}</div>{badge || null}</div><div style={{fontSize:28,fontWeight:700,marginTop:6}}>{value}</div>{sub ? <div className="small muted" style={{marginTop:4}}>{sub}</div> : null}</div>
+    }
+
+    function Chart({ option, height=260 }) {
+      const ref = useRef(null)
+      useEffect(() => {
+        if (!ref.current || !window.echarts) return
+        const chart = echarts.init(ref.current)
+        chart.setOption(option)
+        const onResize = () => chart.resize()
+        window.addEventListener('resize', onResize)
+        return () => { window.removeEventListener('resize', onResize); chart.dispose() }
+      }, [option])
+      return <div ref={ref} style={{width:'100%',height}} />
+    }
+
+    function levelClass(level) {
+      if (level === 'error') return 'danger'
+      if (level === 'warning') return 'warning'
+      if (level === 'success') return 'success'
+      return 'info'
+    }
+
+    function App() {
+      const [dashboard, setDashboard] = useState(null)
+      const [orders, setOrders] = useState([])
+      const [inventory, setInventory] = useState([])
+      const [qualityLogs, setQualityLogs] = useState([])
+      const [alerts, setAlerts] = useState([])
+      const [events, setEvents] = useState([])
+      const [syncTasks, setSyncTasks] = useState([])
+      const [wsStatus, setWsStatus] = useState('idle')
+      const [logs, setLogs] = useState([])
+      const [busy, setBusy] = useState('')
+
+      const loadAll = async () => {
+        const [d, o, i, q, a, e, s] = await Promise.all([
+          fetch(API + '/api/dashboard/summary').then(r => r.json()),
+          fetch(API + '/api/orders').then(r => r.json()),
+          fetch(API + '/api/inventory').then(r => r.json()),
+          fetch(API + '/api/quality-logs').then(r => r.json()),
+          fetch(API + '/api/alerts').then(r => r.json()),
+          fetch(API + '/api/events').then(r => r.json()),
+          fetch(API + '/api/sync-tasks').then(r => r.json()),
+        ])
+        setDashboard(d); setOrders(o); setInventory(i); setQualityLogs(q); setAlerts(a); setEvents(e); setSyncTasks(s)
+      }
+
+      useEffect(() => {
+        loadAll()
+        const ws = new WebSocket(WS)
+        ws.onopen = () => { setWsStatus('connected'); ws.send('ping') }
+        ws.onclose = () => setWsStatus('closed')
+        ws.onerror = () => setWsStatus('error')
+        ws.onmessage = async (e) => {
+          try {
+            const data = JSON.parse(e.data)
+            if (data.type === 'orders.imported' || data.type === 'inventory.imported') {
+              setLogs(prev => [data, ...prev].slice(0, 20))
+              await loadAll()
+            }
+          } catch (_) {}
+        }
+        return () => ws.close()
+      }, [])
+
+      const upload = async (type, file) => {
+        if (!file) return
+        const form = new FormData(); form.append('file', file)
+        setBusy(type)
+        try {
+          await fetch(API + (type === 'orders' ? '/api/orders/import' : '/api/inventory/import'), { method:'POST', body:form })
+        } finally { setBusy('') }
+      }
+
+      const trendOption = useMemo(() => ({
+        tooltip:{trigger:'axis'}, xAxis:{type:'category',data:dashboard?.trend?.map(i => i['日期']) || []}, yAxis:{type:'value'},
+        series:[{type:'line',smooth:true,areaStyle:{opacity:.15},data:dashboard?.trend?.map(i => i['GMV']) || [],color:'#1d4ed8'}], grid:{left:40,right:20,top:30,bottom:30}
+      }), [dashboard])
+
+      const storeOption = useMemo(() => ({
+        tooltip:{trigger:'axis'}, xAxis:{type:'category',data:dashboard?.stores?.map(i => i.name) || []}, yAxis:{type:'value'},
+        series:[{type:'bar',data:dashboard?.stores?.map(i => i.gmv) || [],itemStyle:{color:'#0f766e',borderRadius:[6,6,0,0]}}], grid:{left:40,right:20,top:30,bottom:30}
+      }), [dashboard])
+
+      return <div>
+        <div className="header" style={{padding:'18px 20px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <div><div style={{fontSize:24,fontWeight:800}}>SupplyChain V1 Preview</div><div className="small muted">支持 CSV / XLSX 导入、事件流、同步任务、低库存告警</div></div>
+          <div className="small" style={{color:wsStatus === 'connected' ? '#86efac' : '#fcd34d'}}>WS: {wsStatus}</div>
+        </div>
+        <div className="wrap">
+          <div className="grid4" style={{marginBottom:16}}>
+            <Card title="已完成 GMV" value={`¥${Number(dashboard?.summary?.gmv || 0).toLocaleString()}`} />
+            <Card title="待发货" value={dashboard?.summary?.pending_count || 0} />
+            <Card title="退款申请" value={dashboard?.summary?.refund_count || 0} />
+            <Card title="低库存 SKU" value={dashboard?.summary?.low_stock_count || 0} badge={<span className="pill warning">自动告警</span>} />
+          </div>
+
+          <div className="grid2" style={{marginBottom:16}}>
+            <div className="card"><div className="section-title">GMV 每日趋势</div><Chart option={trendOption} /></div>
+            <div className="card"><div className="section-title">店铺 GMV</div><Chart option={storeOption} /></div>
+          </div>
+
+          <div className="card" style={{marginBottom:16}}>
+            <div className="section-title">导入与实时刷新</div>
+            <div className="grid22" style={{marginBottom:12}}>
+              <label style={{border:'1px dashed #cbd5e1',borderRadius:12,padding:16,cursor:'pointer'}}>
+                <div style={{fontSize:14,fontWeight:700,marginBottom:6}}>导入订单 CSV / XLSX</div>
+                <div className="small muted">{busy === 'orders' ? '上传中...' : '支持中文列名与英文字段名'}</div>
+                <input type="file" accept=".csv,.xlsx" style={{display:'none'}} onChange={(e) => upload('orders', e.target.files?.[0])} />
+              </label>
+              <label style={{border:'1px dashed #cbd5e1',borderRadius:12,padding:16,cursor:'pointer'}}>
+                <div style={{fontSize:14,fontWeight:700,marginBottom:6}}>导入库存 CSV / XLSX</div>
+                <div className="small muted">{busy === 'inventory' ? '上传中...' : '导入后自动重建低库存告警'}</div>
+                <input type="file" accept=".csv,.xlsx" style={{display:'none'}} onChange={(e) => upload('inventory', e.target.files?.[0])} />
+              </label>
+            </div>
+            <div><div style={{fontSize:13,fontWeight:700,marginBottom:8}}>实时导入日志</div>{logs.length === 0 ? <div className="small muted">暂无日志</div> : logs.map((x, idx) => <div key={idx} style={{fontSize:12,background:'#f8fafc',border:'1px solid #e5e7eb',borderRadius:10,padding:'8px 10px',marginBottom:8}}><div style={{fontWeight:700}}>{x.type}</div><div className="muted">{JSON.stringify(x.payload)}</div></div>)}</div>
+          </div>
+
+          <div className="grid3" style={{marginBottom:16}}>
+            <div className="card"><div className="section-title">低库存告警</div>{alerts.length === 0 ? <div className="small muted">暂无告警</div> : alerts.slice(0,8).map(x => <div key={x.id} style={{padding:'10px 0',borderBottom:'1px solid #f1f5f9'}}><div style={{display:'flex',justifyContent:'space-between',gap:8}}><div style={{fontWeight:700,fontSize:13}}>{x.title}</div><span className={`pill ${levelClass(x.level)}`}>{x.level}</span></div><div className="small muted" style={{marginTop:4}}>{x.content}</div></div>)}</div>
+            <div className="card"><div className="section-title">最近同步任务</div>{syncTasks.length === 0 ? <div className="small muted">暂无任务</div> : syncTasks.slice(0,8).map(x => <div key={x.id} style={{padding:'10px 0',borderBottom:'1px solid #f1f5f9'}}><div style={{display:'flex',justifyContent:'space-between',gap:8}}><div style={{fontWeight:700,fontSize:13}}>{x.task_type}</div><span className={`pill ${x.status === 'success' ? 'success' : 'danger'}`}>{x.status}</span></div><div className="small muted" style={{marginTop:4}}>{x.message}</div><div className="small mono muted" style={{marginTop:4}}>success={x.success_count} failed={x.failed_count}</div></div>)}</div>
+            <div className="card"><div className="section-title">最近事件流</div>{events.length === 0 ? <div className="small muted">暂无事件</div> : events.slice(0,8).map(x => <div key={x.id} style={{padding:'10px 0',borderBottom:'1px solid #f1f5f9'}}><div style={{display:'flex',justifyContent:'space-between',gap:8}}><div style={{fontWeight:700,fontSize:13}}>{x.event_type}</div><span className={`pill ${levelClass(x.level)}`}>{x.level}</span></div><div className="small muted" style={{marginTop:4}}>{x.title}</div><div className="small mono muted" style={{marginTop:4}}>{JSON.stringify(x.payload)}</div></div>)}</div>
+          </div>
+
+          <div className="grid22" style={{marginBottom:16}}>
+            <div className="card"><div className="section-title">订单</div><div style={{overflowX:'auto'}}><table><thead><tr>{['订单号','店铺','商品','金额','状态','日期'].map(h => <th key={h}>{h}</th>)}</tr></thead><tbody>{orders.map(x => <tr key={x.id}><td className="mono" style={{fontSize:12}}>{x.order_no}</td><td>{x.store}</td><td>{x.product_name}</td><td>¥{Number(x.total_amount).toLocaleString()}</td><td>{x.order_status}</td><td>{x.ordered_at}</td></tr>)}</tbody></table></div></div>
+            <div className="card"><div className="section-title">库存</div><div style={{overflowX:'auto'}}><table><thead><tr>{['店铺','SKU','商品','可用','锁定','在途','安全线'].map(h => <th key={h}>{h}</th>)}</tr></thead><tbody>{inventory.map(x => <tr key={x.id}><td>{x.store}</td><td className="mono" style={{fontSize:12}}>{x.sku}</td><td>{x.product_name}</td><td>{x.available_qty}</td><td>{x.locked_qty}</td><td>{x.in_transit_qty}</td><td>{x.safety_qty}</td></tr>)}</tbody></table></div></div>
+          </div>
+
+          <div className="card"><div className="section-title">数据质量日志</div>{qualityLogs.length === 0 ? <div className="small muted">暂无异常</div> : <table><thead><tr>{['类型','字段','消息','级别','时间'].map(h => <th key={h}>{h}</th>)}</tr></thead><tbody>{qualityLogs.map(x => <tr key={x.id}><td>{x.issue_type}</td><td>{x.field_name || '-'}</td><td>{x.issue_message}</td><td><span className={`pill ${levelClass(x.severity)}`}>{x.severity}</span></td><td className="small mono">{x.created_at || '-'}</td></tr>)}</tbody></table>}</div>
+        </div>
+      </div>
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />)
+  </script>
+</body>
+</html>

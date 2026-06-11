@@ -70,6 +70,80 @@ def get_purchase_suggestions(db: Session = Depends(get_db)):
 
     return {'suggestions': result, 'suppliers': len(suppliers)}
 
+# ─── 滞销预警 ────────────────────────────────────────────────────────────────
+
+@router.get('/slow-moving')
+def get_slow_moving_products(db: Session = Depends(get_db)):
+    """找出长时间未下单的商品"""
+    from datetime import datetime, timedelta
+    import math
+
+    orders = db.query(Order).all()
+    products_map = {p.sku: p for p in db.query(Product).all()}
+    inventory_map = {i.sku: i for i in db.query(Inventory).all()}
+
+    # 每个 SKU 最近下单日期
+    last_order = {}
+    for o in orders:
+        sku = o.sku
+        if not sku:
+            continue
+        date_str = str(o.ordered_at or '')
+        # 取日期部分
+        d = date_str[:10]
+        if sku not in last_order or d > last_order[sku]:
+            last_order[sku] = d
+
+    now = datetime.utcnow()
+    result = []
+
+    # 合并所有商品（从 products 表 + orders 表 + inventory 表）
+    all_skus = set()
+    for p in products_map:
+        all_skus.add(p)
+    for o in orders:
+        if o.sku:
+            all_skus.add(o.sku)
+    for i in inventory_map:
+        all_skus.add(i)
+
+    for sku in all_skus:
+        p = products_map.get(sku)
+        inv = inventory_map.get(sku)
+
+        last_date = last_order.get(sku, '')
+        days = 999
+        if last_date:
+            try:
+                dt = datetime.strptime(last_date[:10], '%Y-%m-%d')
+                days = (now - dt).days
+            except:
+                days = 999
+
+        # 阈值分级
+        if days >= 90:
+            level = '滞销'
+        elif days >= 30:
+            level = '冷淡'
+        elif days >= 14:
+            level = '观望'
+        else:
+            level = '正常'
+
+        result.append({
+            'sku': sku,
+            'product_name': (p.product_name if p else inv.product_name if inv else ''),
+            'store': (p.store if p else inv.store if inv else ''),
+            'category': p.category if p else '',
+            'last_order_date': last_date[:10] if last_date else '从未下单',
+            'days_since_last_order': days,
+            'level': level,
+            'available_qty': inv.available_qty if inv else 0,
+        })
+
+    result.sort(key=lambda x: (x['level'] != '滞销', x['level'] != '冷淡', -x['days_since_last_order']))
+    return result
+
 # ─── 库存变动统计 ─────────────────────────────────────────────────────────────
 
 @router.get('/summary')
@@ -82,12 +156,18 @@ def get_insight_summary(db: Session = Depends(get_db)):
     replen = get_replenishment_suggestions(db)
     urgent = len([x for x in replen if x['urgency'] == '紧急'])
 
+    slow = get_slow_moving_products(db)
+    slow_count = len([x for x in slow if x['level'] == '滞销'])
+    cold_count = len([x for x in slow if x['level'] == '冷淡'])
+
     return {
         'total_products': total,
         'low_stock': low_stock,
         'out_of_stock': out_of_stock,
         'urgent_replenish': urgent,
         'suggestions_count': len(replen),
+        'slow_moving': slow_count,
+        'cold_count': cold_count,
     }
 
 # ─── 自动库存联动 ────────────────────────────────────────────────────────────

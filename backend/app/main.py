@@ -1,3 +1,17 @@
+import os
+import sys
+
+# ─── 务必最先：加载 .env 文件，使 database.py 导入时能读到 DATABASE_URL ───
+_env_path = os.path.join(os.path.dirname(__file__), '.env')
+if os.path.exists(_env_path):
+    with open(_env_path) as _f:
+        for _line in _f:
+            _line = _line.strip()
+            if _line and not _line.startswith('#') and '=' in _line:
+                _k, _v = _line.split('=', 1)
+                os.environ.setdefault(_k.strip(), _v.strip())
+
+# ─── 导入 ──────────────────────────────────────────────────────────────────
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.database import Base, engine, SessionLocal
@@ -15,17 +29,6 @@ from app.api.routes.suppliers import router as suppliers_router
 from app.api.routes.insights import router as insights_router
 from app.services.dashboard_service import seed_data, seed_products, seed_suppliers
 from app.services.event_service import rebuild_low_stock_alerts
-import os
-
-# 自动加载 .env 文件（PythonAnywhere 上设置 DATABASE_URL 用）
-_env_path = os.path.join(os.path.dirname(__file__), '.env')
-if os.path.exists(_env_path):
-    with open(_env_path) as _f:
-        for _line in _f:
-            _line = _line.strip()
-            if _line and not _line.startswith('#') and '=' in _line:
-                _k, _v = _line.split('=', 1)
-                os.environ.setdefault(_k.strip(), _v.strip())
 
 app = FastAPI(title="SupplyChain V1")
 origins = [x.strip() for x in os.getenv("CORS_ORIGINS", "*").split(",") if x.strip()]
@@ -41,11 +44,8 @@ Base.metadata.create_all(bind=engine)
 db = SessionLocal()
 if os.getenv("APP_ENV", "development") != "production":
     seed_data(db)
-if os.getenv("APP_ENV", "development") != "production":
     seed_products(db)
-if os.getenv("APP_ENV", "development") != "production":
     seed_suppliers(db)
-if os.getenv("APP_ENV", "development") != "production":
     rebuild_low_stock_alerts(db)
 db.commit()
 db.close()

@@ -86,6 +86,35 @@ class SyncTask(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+class Product(Base):
+    __tablename__ = "products"
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(String, default="demo")
+    sku = Column(String, unique=True, index=True)
+    product_name = Column(String)
+    store = Column(String, default="")
+    category = Column(String, default="")
+    unit = Column(String, default="件")
+    price = Column(Float, default=0)
+    status = Column(String, default="active")
+    raw_data = Column(Text, default="{}")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class Supplier(Base):
+    __tablename__ = "suppliers"
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(String, default="demo")
+    supplier_code = Column(String, unique=True, index=True)
+    supplier_name = Column(String)
+    contact_person = Column(String, default="")
+    contact_phone = Column(String, default="")
+    score = Column(Integer, default=0)
+    status = Column(String, default="active")
+    raw_data = Column(Text, default="{}")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 class Alert(Base):
     __tablename__ = "alerts"
     id = Column(Integer, primary_key=True, index=True)

@@ -68,6 +68,8 @@
 
     const NAV = [
       { id:'dash',    label:'总览',     icon:'📊' },
+      { id:'products',label:'商品',     icon:'🏷️' },
+      { id:'suppliers',label:'供应商',  icon:'🏭' },
       { id:'orders',  label:'订单',     icon:'📋' },
       { id:'inv',     label:'库存',     icon:'📦' },
       { id:'cleansing',label:'清洗',   icon:'🧹' },
@@ -364,6 +366,26 @@
       </div>
     }
 
+    // ─── 商品页面 ───────────────────────────────────────────────────────────
+    function ProductPage() {
+      const [list, setList] = useState([]); const [loading, setLoading] = useState(true)
+      useEffect(() => { fetch(API+'/api/products').then(r=>r.json()).then(d=>{setList(d);setLoading(false)}).catch(()=>setLoading(false)) }, [])
+      if (loading) return <div className="card"><div className="muted">加载中...</div></div>
+      return <div className="card"><div className="section-title">商品管理 <span className="small muted" style={{marginLeft:8}}>共 {list.length} 个</span></div>
+        <div style={{overflowX:'auto'}}><table><thead><tr>{['SKU','名称','店铺','分类','单价','状态'].map(h=><th key={h}>{h}</th>)}</tr></thead>
+        <tbody>{list.length===0?<tr><td colSpan={6} style={{textAlign:'center',color:'#94a3b8',padding:20}}>暂无商品</td></tr>:list.map(x=><tr key={x.id}><td className="mono" style={{fontSize:12}}>{x.sku}</td><td>{x.product_name}</td><td>{x.store}</td><td>{x.category}</td><td>¥{x.price}</td><td><span className={`pill ${x.status==='active'?'success':'warning'}`}>{x.status}</span></td></tr>)}</tbody></table></div></div>
+    }
+
+    // ─── 供应商页面 ─────────────────────────────────────────────────────────
+    function SupplierPage() {
+      const [list, setList] = useState([]); const [loading, setLoading] = useState(true)
+      useEffect(() => { fetch(API+'/api/suppliers').then(r=>r.json()).then(d=>{setList(d);setLoading(false)}).catch(()=>setLoading(false)) }, [])
+      if (loading) return <div className="card"><div className="muted">加载中...</div></div>
+      return <div className="card"><div className="section-title">供应商管理 <span className="small muted" style={{marginLeft:8}}>共 {list.length} 个</span></div>
+        <div style={{overflowX:'auto'}}><table><thead><tr>{['编码','名称','联系人','电话','评分','状态'].map(h=><th key={h}>{h}</th>)}</tr></thead>
+        <tbody>{list.length===0?<tr><td colSpan={6} style={{textAlign:'center',color:'#94a3b8',padding:20}}>暂无供应商</td></tr>:list.map(x=><tr key={x.id}><td className="mono" style={{fontSize:12}}>{x.supplier_code}</td><td>{x.supplier_name}</td><td>{x.contact_person}</td><td>{x.contact_phone||'-'}</td><td><span className={`pill ${x.score>=80?'success':x.score>=60?'warning':'danger'}`}>{x.score}</span></td><td><span className={`pill ${x.status==='active'?'success':'warning'}`}>{x.status}</span></td></tr>)}</tbody></table></div></div>
+    }
+
     // ─── 主应用 ─────────────────────────────────────────────────────────────
     function App() {
       const [page, setPage] = useState('dash')
@@ -469,6 +491,8 @@
                 <div className="card"><div className="section-title">最近事件流</div>{events.length===0?<div className="small muted">暂无事件</div>:events.slice(0,8).map(x=><div key={x.id} style={{padding:'10px 0',borderBottom:'1px solid #f1f5f9'}}><div style={{display:'flex',justifyContent:'space-between',gap:8}}><div style={{fontWeight:700,fontSize:13}}>{x.event_type}</div><span className={`pill ${levelClass(x.level)}`}>{x.level}</span></div><div className="small muted" style={{marginTop:4}}>{x.title}</div></div>)}</div>
               </div>
             </>}
+            {page === 'products' && <ProductPage />}
+            {page === 'suppliers' && <SupplierPage />}
             {page === 'orders' && <div className="card"><div className="section-title">订单</div><div style={{overflowX:'auto'}}><table><thead><tr>{['订单号','店铺','商品','金额','状态','日期'].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{orders.map(x=><tr key={x.id}><td className="mono" style={{fontSize:12}}>{x.order_no}</td><td>{x.store}</td><td>{x.product_name}</td><td>¥{Number(x.total_amount).toLocaleString()}</td><td>{x.order_status}</td><td>{x.ordered_at}</td></tr>)}</tbody></table></div></div>}
             {page === 'inv' && <div className="card"><div className="section-title">库存</div><div style={{overflowX:'auto'}}><table><thead><tr>{['店铺','SKU','商品','可用','锁定','在途','安全线'].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{inventory.map(x=><tr key={x.id}><td>{x.store}</td><td className="mono" style={{fontSize:12}}>{x.sku}</td><td>{x.product_name}</td><td>{x.available_qty}</td><td>{x.locked_qty}</td><td>{x.in_transit_qty}</td><td>{x.safety_qty}</td></tr>)}</tbody></table></div></div>}
             {page === 'cleansing' && <CleansingPage />}

@@ -1,7 +1,7 @@
 import json
 from collections import defaultdict
 from sqlalchemy.orm import Session
-from app.models.entities import Order, Inventory
+from app.models.entities import Order, Inventory, Product, Supplier
 
 SEED_ORDERS = [
   {"order_no":"JD2401001","store":"数码旗舰店","sku":"SKU-001","product_name":"蓝牙耳机 Pro","quantity":2,"unit_price":299,"total_amount":598,"order_status":"已完成","ordered_at":"2024-01-15"},
@@ -64,3 +64,36 @@ def get_dashboard(db: Session):
         "trend": trend,
         "stores": store_rows,
     }
+
+def seed_products(db):
+    from app.models.entities import Product
+    if db.query(Product).count() > 0:
+        return
+    items = [
+        {"sku":"SKU-001","product_name":"蓝牙耳机 Pro","store":"数码旗舰店","category":"耳机","price":299},
+        {"sku":"SKU-002","product_name":"充电宝 20000mAh","store":"数码旗舰店","category":"配件","price":159},
+        {"sku":"SKU-003","product_name":"主动降噪耳机","store":"数码旗舰店","category":"耳机","price":599},
+        {"sku":"SKU-004","product_name":"运动蓝牙耳机","store":"数码旗舰店","category":"耳机","price":449},
+        {"sku":"SKU-005","product_name":"智能手表 S3","store":"家电专卖店","category":"手表","price":899},
+        {"sku":"SKU-006","product_name":"无线充电器 15W","store":"家电专卖店","category":"充电","price":199},
+        {"sku":"SKU-007","product_name":"桌面风扇","store":"家电专卖店","category":"风扇","price":349},
+        {"sku":"SKU-008","product_name":"手机壳 iPhone15","store":"配件专营店","category":"手机壳","price":39},
+        {"sku":"SKU-009","product_name":"数据线 3合1","store":"配件专营店","category":"数据线","price":29},
+        {"sku":"SKU-010","product_name":"钢化膜通用款","store":"配件专营店","category":"贴膜","price":15},
+    ]
+    for item in items:
+        db.add(Product(**item, raw_data=json.dumps(item, ensure_ascii=False)))
+    db.commit()
+
+def seed_suppliers(db):
+    from app.models.entities import Supplier
+    if db.query(Supplier).count() > 0:
+        return
+    items = [
+        {"supplier_code":"gzscymy","supplier_name":"广东三乘云网络科技有限公司","contact_person":"李春虹","score":85},
+        {"supplier_code":"szdzkj","supplier_name":"深圳电子科技有限公司","contact_person":"张明","score":92},
+        {"supplier_code":"shpjkj","supplier_name":"上海配件科技有限公司","contact_person":"王芳","score":78},
+    ]
+    for item in items:
+        db.add(Supplier(**item, raw_data=json.dumps(item, ensure_ascii=False)))
+    db.commit()

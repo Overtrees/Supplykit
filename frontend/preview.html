@@ -94,6 +94,8 @@
             return
           }
           if (!window.echarts) return
+          var existing = echarts.getInstanceByDom(el)
+          if (existing) existing.dispose()
           inst = echarts.init(el)
           setTimeout(function() { inst.setOption(option) }, 0)
           inst._rz = function() { inst.resize() }

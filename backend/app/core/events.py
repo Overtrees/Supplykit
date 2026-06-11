@@ -19,6 +19,7 @@ def register_core_handlers():
     """Register core event handlers at startup.
     Called once from main.py. Handlers use lazy imports to avoid circular deps.
     """
+    from app.core.dashboard_cache import invalidate as invalidate_dashboard
 
     # ─── order.created ──────────────────────────────────────────────
     def _handle_inventory_adjust(data):
@@ -50,6 +51,7 @@ def register_core_handlers():
     bus.on('order.created', _handle_inventory_adjust)
     bus.on('order.created', _handle_event_log)
     bus.on('order.created', _handle_broadcast)
+    bus.on('order.created', lambda _: invalidate_dashboard())
 
     # ─── inventory.changed ──────────────────────────────────────────
     def _handle_inventory_alert(data):
@@ -115,6 +117,7 @@ def register_core_handlers():
                 }).execute()
 
     bus.on('inventory.changed', _handle_replenishment_check)
+    bus.on('inventory.changed', lambda _: invalidate_dashboard())
 
     # ─── data.cleaned ───────────────────────────────────────────────
     def _handle_cleansed_event(data):
@@ -128,3 +131,4 @@ def register_core_handlers():
 
     bus.on('data.cleaned', _handle_cleansed_event)
     bus.on('data.cleaned', _handle_broadcast)
+    bus.on('data.cleaned', lambda _: invalidate_dashboard())

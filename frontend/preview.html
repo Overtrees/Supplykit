@@ -510,7 +510,7 @@
     // ─── 商品页面 ───────────────────────────────────────────────────────────
     function ProductPage() {
       const [list, setList] = useState([]); const [loading, setLoading] = useState(true)
-      useEffect(() => { fetch(API+'/api/products').then(r=>r.json()).then(d=>{setList(d);setLoading(false)}).catch(()=>setLoading(false)) }, [])
+      useEffect(() => { fetch(API+'/api/products').then(r=>r.json()).then(d=>{setList(d.items||d);setLoading(false)}).catch(()=>setLoading(false)) }, [])
       if (loading) return <div className="card"><div className="muted">加载中...</div></div>
       return <div className="card"><div className="section-title">商品管理 <span className="small muted" style={{marginLeft:8}}>共 {list.length} 个</span></div>
         <div style={{overflowX:'auto'}}><table><thead><tr>{['SKU','名称','店铺','分类','单价','状态'].map(h=><th key={h}>{h}</th>)}</tr></thead>
@@ -520,7 +520,7 @@
     // ─── 供应商页面 ─────────────────────────────────────────────────────────
     function SupplierPage() {
       const [list, setList] = useState([]); const [loading, setLoading] = useState(true)
-      useEffect(() => { fetch(API+'/api/suppliers').then(r=>r.json()).then(d=>{setList(d);setLoading(false)}).catch(()=>setLoading(false)) }, [])
+      useEffect(() => { fetch(API+'/api/suppliers').then(r=>r.json()).then(d=>{setList(d.items||d);setLoading(false)}).catch(()=>setLoading(false)) }, [])
       if (loading) return <div className="card"><div className="muted">加载中...</div></div>
       return <div className="card"><div className="section-title">供应商管理 <span className="small muted" style={{marginLeft:8}}>共 {list.length} 个</span></div>
         <div style={{overflowX:'auto'}}><table><thead><tr>{['编码','名称','联系人','电话','评分','状态'].map(h=><th key={h}>{h}</th>)}</tr></thead>
@@ -532,7 +532,7 @@
       const [page, setPage] = useState('dash')
       const [sidebarOpen, setSidebarOpen] = useState(false)
       const [dashboard, setDashboard] = useState(null)
-      const [orders, setOrders] = useState([])
+      const [orders, setOrders] = useState([]); const [orderTotal, setOrderTotal] = useState(0); const [orderPage, setOrderPage] = useState(1)
       const [inventory, setInventory] = useState([])
       const [qualityLogs, setQualityLogs] = useState([])
       const [alerts, setAlerts] = useState([])
@@ -546,14 +546,22 @@
         try {
           const [d, o, i, q, a, e, s] = await Promise.all([
             fetch(API+'/api/dashboard/summary').then(r=>r.json()),
-            fetch(API+'/api/orders').then(r=>r.json()),
+            fetch(API+'/api/orders?page='+orderPage+'&page_size=8').then(r=>r.json()),
             fetch(API+'/api/inventory').then(r=>r.json()),
             fetch(API+'/api/quality-logs').then(r=>r.json()),
             fetch(API+'/api/alerts').then(r=>r.json()),
             fetch(API+'/api/events').then(r=>r.json()),
             fetch(API+'/api/sync-tasks').then(r=>r.json()),
           ])
-          setDashboard(d); setOrders(o.items||o); setInventory(i.items||i); setQualityLogs(q); setAlerts(a); setEvents(e); setSyncTasks(s)
+          setOrders(o.items||o);
+          setOrderTotal(o.total||(o||[]).length);
+          setOrderPage(o.page||1);
+          setDashboard(d);
+          setInventory(i.items||i);
+          setQualityLogs(q);
+          setAlerts(a);
+          setEvents(e);
+          setSyncTasks(s)
         } catch(e) { console.error(e) }
       }
 
@@ -647,7 +655,16 @@
             {page === 'insights' && <InsightsPage />}
             {page === 'products' && <ProductPage />}
             {page === 'suppliers' && <SupplierPage />}
-            {page === 'orders' && <div className="card"><div className="section-title">订单</div><div style={{overflowX:'auto'}}><table><thead><tr>{['订单号','店铺','商品','金额','状态','日期'].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{orders.map(x=><tr key={x.id}><td className="mono" style={{fontSize:12}}>{x.order_no}</td><td>{x.store}</td><td>{x.product_name}</td><td>¥{Number(x.total_amount).toLocaleString()}</td><td>{x.order_status}</td><td>{x.ordered_at}</td></tr>)}</tbody></table></div></div>}
+            {page === 'orders' && <div className="card"><div className="section-title" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <span>订单 <span className="small muted">共 {orderTotal} 条</span></span>
+              <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                <button onClick={()=>{setOrderPage(Math.max(1,orderPage-1));setTimeout(loadAll,0)}} disabled={orderPage<=1}
+                  style={{fontSize:11,padding:'4px 10px',border:'1px solid #e2e8f0',borderRadius:6,background:orderPage<=1?'#f1f5f9':'#fff',cursor:orderPage<=1?'not-allowed':'pointer'}}>‹ 上一页</button>
+                <span className="small muted" style={{fontSize:12}}>{orderPage}</span>
+                <button onClick={()=>{setOrderPage(orderPage+1);setTimeout(loadAll,0)}}
+                  style={{fontSize:11,padding:'4px 10px',border:'1px solid #e2e8f0',borderRadius:6,background:'#fff',cursor:'pointer'}}>下一页 ›</button>
+              </div>
+            </div><div style={{overflowX:'auto'}}><table><thead><tr>{['订单号','店铺','商品','金额','状态','日期'].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{orders.map(x=><tr key={x.id}><td className="mono" style={{fontSize:12}}>{x.order_no}</td><td>{x.store}</td><td>{x.product_name}</td><td>¥{Number(x.total_amount).toLocaleString()}</td><td>{x.order_status}</td><td>{x.ordered_at}</td></tr>)}</tbody></table></div></div>}
             {page === 'inv' && <div className="card"><div className="section-title">库存</div><div style={{overflowX:'auto'}}><table><thead><tr>{['店铺','SKU','商品','可用','锁定','在途','安全线'].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{inventory.map(x=><tr key={x.id}><td>{x.store}</td><td className="mono" style={{fontSize:12}}>{x.sku}</td><td>{x.product_name}</td><td>{x.available_qty}</td><td>{x.locked_qty}</td><td>{x.in_transit_qty}</td><td>{x.safety_qty}</td></tr>)}</tbody></table></div></div>}
             {page === 'cleansing' && <CleansingPage />}
             {page === 'import' && <div className="card" style={{marginBottom:16}}>

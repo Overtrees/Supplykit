@@ -170,7 +170,7 @@ export default function App() {
   const [page, setPage] = useState('dash')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [periodTab, setPeriodTab] = useState('month')
-  const { dashboard, orders, inventory, qualityLogs, alerts, startPolling, stopPolling, wsStatus } = useAppStore()
+  const { dashboard, orders, orderTotal, orderPage, inventory, qualityLogs, alerts, startPolling, stopPolling, setOrderPage, wsStatus } = useAppStore()
 
   useEffect(() => { startPolling(); return () => stopPolling() }, [])
 
@@ -328,7 +328,14 @@ export default function App() {
           {page === 'orders' && (
             <div className="card">
               <div className="section-title" style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                <span>订单 <span className="small muted">共 {orders.length} 条</span></span>
+                <span>订单 <span className="small muted">共 {orderTotal} 条</span></span>
+                <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                  <button onClick={() => setOrderPage(Math.max(1, orderPage - 1))} disabled={orderPage <= 1}
+                    style={{ fontSize:11, padding:'4px 10px', border:'1px solid #e2e8f0', borderRadius:6, background: orderPage <= 1 ? '#f1f5f9' : '#fff', cursor: orderPage <= 1 ? 'not-allowed' : 'pointer' }}>‹ 上一页</button>
+                  <span className="small muted" style={{ fontSize:12 }}>{orderPage}</span>
+                  <button onClick={() => setOrderPage(orderPage + 1)}
+                    style={{ fontSize:11, padding:'4px 10px', border:'1px solid #e2e8f0', borderRadius:6, background:'#fff', cursor:'pointer' }}>下一页 ›</button>
+                </div>
               </div>
               <div style={{ overflowX:'auto' }}>
                 <table>

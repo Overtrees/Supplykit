@@ -326,13 +326,23 @@ export default function App() {
           {page === 'suppliers' && <SupplierPage />}
 
           {page === 'orders' && (
-            <div style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:16, padding:16 }}>
-              <div style={{ fontWeight:600, marginBottom:12 }}>订单</div>
+            <div className="card">
+              <div className="section-title" style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                <span>订单 <span className="small muted">共 {orders.length} 条</span></span>
+              </div>
               <div style={{ overflowX:'auto' }}>
-                <table style={{ width:'100%', borderCollapse:'collapse' }}>
-                  <thead><tr>{['订单号','店铺','商品','金额','状态','日期'].map(h => <th key={h} style={{ textAlign:'left', fontSize:12, color:'#64748b', borderBottom:'1px solid #e5e7eb', padding:'8px 0' }}>{h}</th>)}</tr></thead>
+                <table>
+                  <thead><tr>{['订单号','店铺','仓库','商品','金额','状态','日期'].map(h => <th key={h}>{h}</th>)}</tr></thead>
                   <tbody>
-                    {orders.map(x => <tr key={x.id}><td style={{ padding:'8px 0', fontFamily:'monospace', fontSize:12 }}>{x.order_no}</td><td>{x.store}</td><td>{x.product_name}</td><td>¥{Number(x.total_amount).toLocaleString()}</td><td>{x.order_status}</td><td>{x.ordered_at}</td></tr>)}
+                    {orders.map(x => <tr key={x.id}>
+                      <td className="mono" style={{ fontSize:12 }}>{x.order_no}</td>
+                      <td>{x.store || '-'}</td>
+                      <td>{x.warehouse || '-'}</td>
+                      <td>{x.product_name}</td>
+                      <td>¥{Number(x.total_amount).toLocaleString()}</td>
+                      <td>{x.order_status}</td>
+                      <td>{x.ordered_at}</td>
+                    </tr>)}
                   </tbody>
                 </table>
               </div>
@@ -340,13 +350,22 @@ export default function App() {
           )}
 
           {page === 'inv' && (
-            <div style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:16, padding:16 }}>
-              <div style={{ fontWeight:600, marginBottom:12 }}>库存</div>
+            <div className="card">
+              <div className="section-title">库存</div>
               <div style={{ overflowX:'auto' }}>
-                <table style={{ width:'100%', borderCollapse:'collapse' }}>
-                  <thead><tr>{['店铺','SKU','商品','可用','锁定','在途','安全线'].map(h => <th key={h} style={{ textAlign:'left', fontSize:12, color:'#64748b', borderBottom:'1px solid #e5e7eb', padding:'8px 0' }}>{h}</th>)}</tr></thead>
+                <table>
+                  <thead><tr>{['店铺','仓库','SKU','商品','可用','锁定','在途','安全线'].map(h => <th key={h}>{h}</th>)}</tr></thead>
                   <tbody>
-                    {inventory.map(x => <tr key={x.id}><td>{x.store}</td><td style={{ fontFamily:'monospace', fontSize:12 }}>{x.sku}</td><td>{x.product_name}</td><td>{x.available_qty}</td><td>{x.locked_qty}</td><td>{x.in_transit_qty}</td><td>{x.safety_qty}</td></tr>)}
+                    {inventory.map(x => <tr key={x.id}>
+                      <td>{x.store || '-'}</td>
+                      <td>{x.warehouse || '-'}</td>
+                      <td className="mono" style={{ fontSize:12 }}>{x.sku}</td>
+                      <td>{x.product_name}</td>
+                      <td>{x.available_qty}</td>
+                      <td>{x.locked_qty}</td>
+                      <td>{x.in_transit_qty}</td>
+                      <td>{x.safety_qty}</td>
+                    </tr>)}
                   </tbody>
                 </table>
               </div>
@@ -358,11 +377,24 @@ export default function App() {
           {page === 'cleansing' && <CleansingPage />}
 
           {page === 'quality' && (
-            <div style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:16, padding:16 }}>
-              <div style={{ fontWeight:600, marginBottom:12 }}>数据质量日志</div>
-              {qualityLogs.length === 0 ? <div style={{ color:'#94a3b8', fontSize:14 }}>暂无异常</div> : (
-                <ul>{qualityLogs.map(x => <li key={x.id}>{x.issue_type} - {x.issue_message}</li>)}</ul>
-              )}
+            <div className="card">
+              <div className="section-title">数据质量日志</div>
+              {qualityLogs.length === 0
+                ? <div className="small muted">暂无异常</div>
+                : <div style={{ overflowX:'auto' }}>
+                    <table>
+                      <thead><tr>{['类型','字段','消息','级别','时间'].map(h => <th key={h}>{h}</th>)}</tr></thead>
+                      <tbody>
+                        {qualityLogs.map(x => <tr key={x.id}>
+                          <td>{x.issue_type}</td>
+                          <td>{x.field_name || '-'}</td>
+                          <td>{x.issue_message}</td>
+                          <td><span className={`pill ${x.severity === 'error' ? 'danger' : x.severity === 'warning' ? 'warning' : 'info'}`}>{x.severity}</span></td>
+                          <td className="small mono">{x.created_at || '-'}</td>
+                        </tr>)}
+                      </tbody>
+                    </table>
+                  </div>}
             </div>
           )}
         </div>

@@ -19,10 +19,17 @@
 Supplykit-react/
 ├── frontend/                    # Vite + React 前端
 │   ├── src/
-│   │   ├── App.jsx             # 主应用（总览/订单/库存/导入/异常）
+│   │   ├── App.jsx             # 主应用（导航 + 9 个页面路由）
 │   │   ├── main.jsx
-│   │   └── api/client.js       # API 客户端
-│   ├── preview.html            # 独立预览页（CDN React + Babel）
+│   │   ├── app.css             # 全局样式
+│   │   ├── api/client.js       # API 客户端
+│   │   ├── store/useAppStore.js # Zustand 状态管理
+│   │   └── pages/
+│   │       ├── ProductPage.jsx   # 商品管理
+│   │       ├── SupplierPage.jsx  # 供应商管理
+│   │       ├── InsightsPage.jsx  # 建议中心（补货/采购/滞销/回溯）
+│   │       └── CleansingPage.jsx # 数据清洗（4 步向导）
+│   ├── preview.html            # 独立预览页（Babel standalone，本地 Safari 测试用）
 │   ├── index.html
 │   ├── vite.config.js
 │   └── package.json
@@ -106,21 +113,29 @@ Supplykit-react/
 4. 部署后自动 HTTPS
 
 ## 种子样例数据
-- 22 笔订单（3 个店铺 + 1 个仓库）
+- 22 笔订单（3 个店铺 + 1 个仓库维度）
 - 10 个商品（耳机/充电宝/配件等）
 - 3 个供应商
 - 8 条库存记录（含低库存预警样例）
 - 4 条数据质量日志
 
-## 本地开发
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env   # 编辑 Supabase 凭证
-uvicorn app.main:app --reload --port 8000
+## 事件总线（Event Bus）
+订单/库存变更时自动触发事件，驱动下游处理：
 ```
+订单导入 ──→ order.created ──→ 库存扣减 + 看板缓存失效 + 补货规则评估
+库存变动 ──→ inventory.changed ──→ 预警生成 + 看板缓存失效
+```
+
+## 前端修复记录
+- **Chart 二次渲染崩溃**：`echarts.init()` 前先 `getInstanceByDom().dispose()` 清理旧实例
+- **loadAll 容错**：`Promise.all` → `Promise.allSettled`，任一 API 失败不影响其他
+- **闭包过期**：`useRef` 存储最新函数引用，轮询始终调用最新版本
+
+## 开发工作流
+1. 编辑 `frontend/src/` 源码（唯一准源）
+2. 同步改动到 `frontend/preview.html`（Babel standalone，本地 Safari 预览）
+3. 预览测试通过后 `git push`
+4. Vercel 自动检测 main 并构建部署
 
 ## 免费版限制
 - PythonAnywhere 免费实例每天 6 小时停机（可通过 Always-On 付费解决）

@@ -1,7 +1,7 @@
 import json
 from collections import defaultdict
 from sqlalchemy.orm import Session
-from app.models.entities import Order, Inventory, Product, Supplier
+from app.models.entities import Order, Inventory, Product, Supplier, Alert
 
 SEED_ORDERS = [
   {"order_no":"JD2401001","store":"数码旗舰店","sku":"SKU-001","product_name":"蓝牙耳机 Pro","quantity":2,"unit_price":299,"total_amount":598,"order_status":"已完成","ordered_at":"2024-01-15"},
@@ -30,6 +30,10 @@ def seed_data(db: Session):
 def get_dashboard(db: Session):
     orders = db.query(Order).all()
     inv = db.query(Inventory).all()
+    products = db.query(Product).all()
+    suppliers = db.query(Supplier).all()
+    alerts = db.query(Alert).filter(Alert.status == 'active').all()
+
     gmv = sum(float(x.total_amount or 0) for x in orders if x.order_status == "已完成")
     pending = len([x for x in orders if x.order_status == "待发货"])
     refund = len([x for x in orders if x.order_status == "申请退款"])
@@ -54,15 +58,32 @@ def get_dashboard(db: Session):
             "orders": len(so),
             "low_stock": len([x for x in si if int(x.available_qty or 0) < int(x.safety_qty or 0)])
         })
+
+    # 订单状态分布
+    status_dist = defaultdict(int)
+    for x in orders:
+        status_dist[x.order_status or '未知'] += 1
+
+    # 商品分类分布
+    cat_dist = defaultdict(int)
+    for p in products:
+        cat_dist[p.category or '未分类'] += 1
+
     return {
         "summary": {
             "gmv": gmv,
             "pending_count": pending,
             "refund_count": refund,
             "low_stock_count": low_stock,
+            "total_orders": len(orders),
+            "total_products": len(products),
+            "total_suppliers": len(suppliers),
+            "active_alerts": len(alerts),
         },
         "trend": trend,
         "stores": store_rows,
+        "status_distribution": [{"name": k, "value": v} for k, v in sorted(status_dist.items())],
+        "category_distribution": [{"name": k, "value": v} for k, v in sorted(cat_dist.items(), key=lambda x: -x[1])],
     }
 
 def seed_products(db):

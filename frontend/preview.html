@@ -567,20 +567,32 @@
           </div>
           <div className="wrap">
             {page === 'dash' && <>
+              {/* KPI 行 */}
               <div className="grid4" style={{marginBottom:16}}>
-                <Card title="已完成 GMV" value={`¥${Number(dashboard?.summary?.gmv||0).toLocaleString()}`} />
-                <Card title="待发货" value={dashboard?.summary?.pending_count||0} />
-                <Card title="退款申请" value={dashboard?.summary?.refund_count||0} />
-                <Card title="低库存 SKU" value={dashboard?.summary?.low_stock_count||0} badge={<span className="pill warning">自动告警</span>} />
+                <Card title="已完成 GMV" value={`¥${Number(dashboard?.summary?.gmv||0).toLocaleString()}`} sub={`${dashboard?.summary?.total_orders||0} 笔订单`} />
+                <Card title="待发货" value={dashboard?.summary?.pending_count||0} badge={dashboard?.summary?.pending_count>3?<span className="pill danger">积压</span>:null} />
+                <Card title="低库存 SKU" value={dashboard?.summary?.low_stock_count||0} badge={<span className="pill warning">{dashboard?.summary?.active_alerts||0} 告警</span>} />
+                <Card title="商品/供应商" value={`${dashboard?.summary?.total_products||0} / ${dashboard?.summary?.total_suppliers||0}`} sub="商品 / 供应商" />
               </div>
+              {/* 图表行 */}
               <div className="grid2" style={{marginBottom:16}}>
-                <div className="card"><div className="section-title">GMV 每日趋势</div><Chart option={trendOption} /></div>
-                <div className="card"><div className="section-title">店铺 GMV</div><Chart option={storeOption} /></div>
+                <div className="card"><div className="section-title">GMV 每日趋势</div><Chart option={trendOption} height={180} /></div>
+                <div className="card"><div className="section-title">店铺 GMV</div><Chart option={storeOption} height={180} /></div>
               </div>
+              {/* 分布 + 告警 */}
               <div className="grid3" style={{marginBottom:16}}>
-                <div className="card"><div className="section-title">低库存告警</div>{alerts.length===0?<div className="small muted">暂无告警</div>:alerts.slice(0,8).map(x=><div key={x.id} style={{padding:'10px 0',borderBottom:'1px solid #f1f5f9'}}><div style={{display:'flex',justifyContent:'space-between',gap:8}}><div style={{fontWeight:700,fontSize:13}}>{x.title}</div><span className={`pill ${levelClass(x.level)}`}>{x.level}</span></div><div className="small muted" style={{marginTop:4}}>{x.content}</div></div>)}</div>
-                <div className="card"><div className="section-title">最近同步任务</div>{syncTasks.length===0?<div className="small muted">暂无任务</div>:syncTasks.slice(0,8).map(x=><div key={x.id} style={{padding:'10px 0',borderBottom:'1px solid #f1f5f9'}}><div style={{display:'flex',justifyContent:'space-between',gap:8}}><div style={{fontWeight:700,fontSize:13}}>{x.task_type}</div><span className={`pill ${x.status==='success'?'success':'danger'}`}>{x.status}</span></div><div className="small muted" style={{marginTop:4}}>{x.message}</div></div>)}</div>
-                <div className="card"><div className="section-title">最近事件流</div>{events.length===0?<div className="small muted">暂无事件</div>:events.slice(0,8).map(x=><div key={x.id} style={{padding:'10px 0',borderBottom:'1px solid #f1f5f9'}}><div style={{display:'flex',justifyContent:'space-between',gap:8}}><div style={{fontWeight:700,fontSize:13}}>{x.event_type}</div><span className={`pill ${levelClass(x.level)}`}>{x.level}</span></div><div className="small muted" style={{marginTop:4}}>{x.title}</div></div>)}</div>
+                <div className="card"><div className="section-title">订单状态分布</div>
+                  {dashboard?.status_distribution ? <Chart option={{tooltip:{trigger:'item'},series:[{type:'pie',radius:['40%','70%'],data:dashboard.status_distribution,label:{fontSize:11}}]}} height={170} /> : <div className="small muted">暂无数据</div>}
+                </div>
+                <div className="card"><div className="section-title">商品分类分布</div>
+                  {dashboard?.category_distribution ? <Chart option={{tooltip:{trigger:'item'},series:[{type:'pie',radius:['40%','70%'],data:dashboard.category_distribution,label:{fontSize:11}}]}} height={170} /> : <div className="small muted">暂无数据</div>}
+                </div>
+                <div className="card"><div className="section-title">低库存告警</div>
+                  {alerts.length===0?<div className="small muted" style={{padding:12,textAlign:'center'}}>暂无告警</div>:alerts.slice(0,8).map(x=><div key={x.id} style={{padding:'8px 0',borderBottom:'1px solid #f1f5f9',fontSize:13}}>
+                    <div style={{display:'flex',justifyContent:'space-between',gap:8}}><span style={{fontWeight:600}}>{x.title}</span><span className={`pill ${levelClass(x.level)}`}>{x.level}</span></div>
+                    <div className="small muted">{x.content}</div>
+                  </div>)}
+                </div>
               </div>
             </>}
             {page === 'insights' && <InsightsPage />}

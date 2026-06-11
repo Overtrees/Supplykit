@@ -8,6 +8,7 @@ export const useAppStore = create((set, get) => ({
   orders: [],
   inventory: [],
   qualityLogs: [],
+  alerts: [],
   wsStatus: 'polling',
   importLogs: [],
   poller: null,
@@ -18,8 +19,9 @@ export const useAppStore = create((set, get) => ({
         api.get('/api/orders'),
         api.get('/api/inventory'),
         api.get('/api/quality-logs'),
+        api.get('/api/alerts'),
       ])
-      const [dashboard, orders, inventory, qualityLogs] = results.map(r =>
+      const [dashboard, orders, inventory, qualityLogs, alerts] = results.map(r =>
         r.status === 'fulfilled' ? r.value : { data: null }
       )
       set({
@@ -27,6 +29,7 @@ export const useAppStore = create((set, get) => ({
         orders: orders.data?.items || orders.data || [],
         inventory: inventory.data?.items || inventory.data || [],
         qualityLogs: qualityLogs.data || [],
+        alerts: alerts.data || [],
       })
     } catch (e) {
       console.error('loadAll failed:', e)

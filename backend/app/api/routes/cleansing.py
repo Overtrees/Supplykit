@@ -30,7 +30,8 @@ Base.metadata.create_all(bind=engine)
 SYSTEM_FIELDS = {
     'order': [
         {'key':'order_no',       'label':'订单号',     'type':'string'},
-        {'key':'store',          'label':'店铺/仓库',  'type':'string'},
+        {'key':'store',          'label':'店铺',       'type':'string'},
+        {'key':'warehouse',      'label':'仓库',       'type':'string'},
         {'key':'sku',            'label':'商品编号',   'type':'string'},
         {'key':'product_name',   'label':'商品名称',   'type':'string'},
         {'key':'quantity',       'label':'数量',       'type':'number'},
@@ -42,7 +43,8 @@ SYSTEM_FIELDS = {
         {'key':'remark',         'label':'备注',       'type':'string'},
     ],
     'inventory': [
-        {'key':'store',          'label':'店铺/仓库',  'type':'string'},
+        {'key':'store',          'label':'店铺',       'type':'string'},
+        {'key':'warehouse',      'label':'仓库',       'type':'string'},
         {'key':'sku',            'label':'商品编号',   'type':'string'},
         {'key':'product_name',   'label':'商品名称',   'type':'string'},
         {'key':'available_qty',  'label':'可用库存',   'type':'number'},
@@ -51,6 +53,25 @@ SYSTEM_FIELDS = {
         {'key':'safety_qty',     'label':'安全库存',   'type':'number'},
     ],
 }
+
+# ─── 自定义字段存储 ────────────────────────────────────────────────────────────
+# 存储为 JSON 文件，因为字段结构简单且需要频繁修改
+
+CUSTOM_FIELDS_PATH = '/home/Overtrees/Supplykit/backend/custom_fields.json'
+import os
+
+def load_custom_fields():
+    if os.path.exists(CUSTOM_FIELDS_PATH):
+        try:
+            with open(CUSTOM_FIELDS_PATH) as f:
+                return json.load(f)
+        except: pass
+    return {'order': [], 'inventory': []}
+
+def save_custom_fields(data):
+    os.makedirs(os.path.dirname(CUSTOM_FIELDS_PATH), exist_ok=True)
+    with open(CUSTOM_FIELDS_PATH, 'w') as f:
+        json.dump(data, f, ensure_ascii=False)
 
 # ─── 文件解析 ────────────────────────────────────────────────────────────────
 
@@ -234,10 +255,40 @@ def delete_template(template_id: int, db: Session = Depends(get_db)):
 
 @router.get('/fields/{target}')
 def get_fields(target: str):
-    fields = SYSTEM_FIELDS.get(target)
-    if not fields:
+    system = SYSTEM_FIELDS.get(target)
+    if not system:
         raise HTTPException(status_code=404, detail=f'目标 {target} 不存在')
-    return fields
+    custom = load_custom_fields().get(target, [])
+    return {'system': system, 'custom': custom, 'all': system + custom}
+
+@router.get('/custom-fields/{target}')
+def list_custom_fields(target: str):
+    data = load_custom_fields()
+    return data.get(target, [])
+
+@router.post('/custom-fields/{target}')
+def add_custom_field(target: str, data: dict, db: Session = Depends(get_db)):
+    if target not in ('order', 'inventory'):
+        raise HTTPException(status_code=400, detail='目标必须是 order 或 inventory')
+    key = str(data.get('key', '')).strip()
+    label = str(data.get('label', key)).strip()
+    ftype = str(data.get('type', 'string')).strip()
+    if not key:
+        raise HTTPException(status_code=400, detail='字段名不能为空')
+    cf = load_custom_fields()
+    # 去重
+    existing = [f for f in cf.get(target, []) if f['key'] == key]
+    if not existing:
+        cf[target].append({'key': key, 'label': label, 'type': ftype})
+        save_custom_fields(cf)
+    return {'ok': True, 'fields': cf[target]}
+
+@router.delete('/custom-fields/{target}/{field_key}')
+def remove_custom_field(target: str, field_key: str):
+    cf = load_custom_fields()
+    cf[target] = [f for f in cf.get(target, []) if f['key'] != field_key]
+    save_custom_fields(cf)
+    return {'ok': True}
 
 # ─── 清洗工具函数 ────────────────────────────────────────────────────────────
 

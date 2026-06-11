@@ -9,6 +9,7 @@ class Order(Base):
     order_no = Column(String, unique=True, index=True)
     parent_order_no = Column(String, nullable=True)
     store = Column(String, index=True)
+    warehouse = Column(String, default="")
     sku = Column(String, index=True)
     product_name = Column(String)
     quantity = Column(Integer, default=0)

@@ -168,7 +168,7 @@
             // 加载系统字段
             const sysRes = await fetch(API+'/api/cleansing/fields/'+targetType)
             const sysData = await sysRes.json()
-            setSystemFields(sysData)
+            setSystemFields(sysData.all || sysData)
             // 加载已有模板
             await loadTemplates()
             setStep(1)
@@ -190,7 +190,7 @@
         setTargetType(t)
         const res = await fetch(API+'/api/cleansing/fields/'+t)
         const data = await res.json()
-        setSystemFields(data)
+        setSystemFields(data.all || data)
       }
 
       // 更新映射
@@ -279,6 +279,20 @@
                   <option value="order">订单</option>
                   <option value="inventory">库存</option>
                 </select>
+                <button onClick={() => {
+                  const name = prompt('新字段名(key):', 'my_field');
+                  if (!name) return;
+                  const label = prompt('显示名称(label):', name);
+                  if (!label) return;
+                  const type = prompt('类型(string/number/date):', 'string') || 'string';
+                  fetch(API+'/api/cleansing/custom-fields/'+targetType, {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({key:name, label, type})
+                  }).then(r=>r.json()).then(() => switchTarget(targetType));
+                }} style={{
+                  fontSize:11, border:'1px solid #e2e8f0', borderRadius:8, padding:'5px 10px',
+                  background:'#fff', cursor:'pointer', color:'#1d4ed8', whiteSpace:'nowrap'
+                }}>＋自定义字段</button>
                 {templates.length > 0 && <select onChange={e => { const t = templates.find(t => t.name === e.target.value); if (t) applyTemplate(t) }}
                   style={{fontSize:12,border:'1px solid #e2e8f0',borderRadius:8,padding:'5px 10px'}}>
                   <option value="">套用模板...</option>

@@ -28,7 +28,9 @@ function Card({ title, value, sub }) {
 function Chart({ option, height=260 }) {
   const ref = React.useRef(null)
   useEffect(() => {
-    if (!ref.current) return
+    if (!ref.current || !window.echarts) return
+    const existing = echarts.getInstanceByDom(ref.current)
+    if (existing) existing.dispose()
     const chart = echarts.init(ref.current)
     chart.setOption(option)
     const onResize = () => chart.resize()

@@ -83,16 +83,22 @@
         return <div className="card"><div style={{display:'flex',justifyContent:'space-between',gap:8}}><div className="small muted">{title}</div>{badge || null}</div><div style={{fontSize:28,fontWeight:700,marginTop:6}}>{value}</div>{sub ? <div className="small muted" style={{marginTop:4}}>{sub}</div> : null}</div>
       }
       function Chart({ option, height=260 }) {
-        const ref = useRef(null)
-        useEffect(() => {
-          if (!ref.current || !window.echarts) return
-          const chart = echarts.init(ref.current)
-          chart.setOption(option)
-          const onResize = () => chart.resize()
-          window.addEventListener('resize', onResize)
-          return () => { window.removeEventListener('resize', onResize); chart.dispose() }
-        }, [option])
-        return <div ref={ref} style={{width:'100%',height}} />
+        var inst = null
+        var bind = function(el) {
+          if (!el) {
+            if (inst) {
+              window.removeEventListener('resize', inst._rz)
+              inst.dispose()
+              inst = null
+            }
+            return
+          }
+          if (!window.echarts) return
+          inst = echarts.init(el)
+          inst._rz = function() { inst.resize() }
+          window.addEventListener('resize', inst._rz)
+        }
+        return <div ref={bind} style={{width:'100%',height}} />
       }
       function levelClass(level) {
         if (level === 'error') return 'danger'
@@ -570,8 +576,12 @@
         } catch(e) { console.error(e) }
       }
 
+      const loadAllRef = useRef(loadAll)
+      loadAllRef.current = loadAll
+      const loadLatest = () => loadAllRef.current()
+
       useEffect(() => {
-        loadAll()
+        loadLatest()
         const ws = new WebSocket('wss://overtrees.pythonanywhere.com/ws/events')
         ws.onopen = () => { setWsStatus('polling'); ws.send('ping') }
         ws.onclose = () => setWsStatus('closed')
@@ -581,11 +591,11 @@
             const data = JSON.parse(e.data)
             if (data.type === 'orders.imported' || data.type === 'inventory.imported') {
               setLogs(prev => [data, ...prev].slice(0, 20))
-              await loadAll()
+              await loadLatest()
             }
           } catch (_) {}
         }
-        const poll = setInterval(loadAll, 20000)
+        const poll = setInterval(loadLatest, 20000)
         return () => { ws.close(); clearInterval(poll) }
       }, [])
 
@@ -708,10 +718,10 @@
             {page === 'orders' && <div className="card"><div className="section-title" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
               <span>订单 <span className="small muted">共 {orderTotal} 条</span></span>
               <div style={{display:'flex',gap:6,alignItems:'center'}}>
-                <button onClick={()=>{setOrderPage(Math.max(1,orderPage-1));setTimeout(loadAll,0)}} disabled={orderPage<=1}
+                <button onClick={()=>{setOrderPage(Math.max(1,orderPage-1));setTimeout(loadLatest,0)}} disabled={orderPage<=1}
                   style={{fontSize:11,padding:'4px 10px',border:'1px solid #e2e8f0',borderRadius:6,background:orderPage<=1?'#f1f5f9':'#fff',cursor:orderPage<=1?'not-allowed':'pointer'}}>‹ 上一页</button>
                 <span className="small muted" style={{fontSize:12}}>{orderPage}</span>
-                <button onClick={()=>{setOrderPage(orderPage+1);setTimeout(loadAll,0)}}
+                <button onClick={()=>{setOrderPage(orderPage+1);setTimeout(loadLatest,0)}}
                   style={{fontSize:11,padding:'4px 10px',border:'1px solid #e2e8f0',borderRadius:6,background:'#fff',cursor:'pointer'}}>下一页 ›</button>
               </div>
             </div><div style={{overflowX:'auto'}}><table><thead><tr>{['订单号','店铺','仓库','商品','金额','状态','日期'].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{orders.map(x=><tr key={x.id}><td className="mono" style={{fontSize:12}}>{x.order_no}</td><td>{x.store||'-'}</td><td>{x.warehouse||'-'}</td><td>{x.product_name}</td><td>¥{Number(x.total_amount).toLocaleString()}</td><td>{x.order_status}</td><td>{x.ordered_at}</td></tr>)}</tbody></table></div></div>}

@@ -156,9 +156,9 @@ function Sidebar({ open, onClose, page, onNavigate, lowStock, errCount }) {
 export default function App() {
   const [page, setPage] = useState('dash')
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const { dashboard, orders, inventory, qualityLogs, loadAll, startPolling, stopPolling, wsStatus } = useAppStore()
+  const { dashboard, orders, inventory, qualityLogs, startPolling, stopPolling, wsStatus } = useAppStore()
 
-  useEffect(() => { loadAll(); startPolling(); return () => stopPolling() }, [])
+  useEffect(() => { startPolling(); return () => stopPolling() }, [])
 
   const trendOption = useMemo(() => ({
     tooltip: { trigger: 'axis' },

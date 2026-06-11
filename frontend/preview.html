@@ -167,12 +167,19 @@
             const sysData = await sysRes.json()
             setSystemFields(sysData)
             // 加载已有模板
-            const tplRes = await fetch(API+'/api/cleansing/templates')
-            const tplData = await tplRes.json()
-            setTemplates(tplData)
+            await loadTemplates()
             setStep(1)
           }
         } finally { setBusy('') }
+      }
+
+      // 加载模板列表
+      const loadTemplates = async () => {
+        try {
+          const res = await fetch(API+'/api/cleansing/templates')
+          const data = await res.json()
+          setTemplates(data)
+        } catch(e) {}
       }
 
       // 切换目标类型时刷新字段
@@ -224,7 +231,7 @@
         try {
           const res = await fetch(API+'/api/cleansing/execute', { method:'POST', body:form })
           const data = await res.json()
-          if (data.ok) { setResult(data); setStep(3) }
+          if (data.ok) { setResult(data); await loadTemplates(); setStep(3) }
         } finally { setBusy('') }
       }
 

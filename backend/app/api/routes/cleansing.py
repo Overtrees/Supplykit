@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
+from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime
 import json, csv, io, re
@@ -87,7 +87,7 @@ async def detect_columns(file: UploadFile = File(...)):
 # ─── 预览接口：按映射配置预览结果 ───────────────────────────────────────────
 
 @router.post('/preview')
-async def preview_cleansing(file: UploadFile = File(...), mapping: str = ''):
+async def preview_cleansing(file: UploadFile = File(...), mapping: str = Form('')):
     content = await file.read()
     rows = parse_file(content, file.filename)
     if not rows:
@@ -115,7 +115,7 @@ async def preview_cleansing(file: UploadFile = File(...), mapping: str = ''):
 # ─── 执行清洗 ────────────────────────────────────────────────────────────────
 
 @router.post('/execute')
-async def execute_cleansing(file: UploadFile = File(...), mapping: str = '', target: str = 'order', template_name: str = ''):
+async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''), target: str = Form('order'), template_name: str = Form('')):
     content = await file.read()
     rows = parse_file(content, file.filename)
     if not rows:

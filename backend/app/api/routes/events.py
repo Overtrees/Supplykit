@@ -6,8 +6,11 @@ router = APIRouter(prefix="/api/events", tags=["events"])
 
 @router.get("")
 def list_events(supabase: Client = Depends(get_supabase)):
-    data = supabase.table("events").select("*").order("id", desc=True).execute().data
-    return data
+    try:
+        data = supabase.table("events").select("*").order("id", desc=True).execute().data
+        return data
+    except Exception:
+        return []
 
 def create_event(supabase: Client, event_type: str, entity_type: str,
                   entity_id: str, title: str, payload: dict, level: str = "info"):

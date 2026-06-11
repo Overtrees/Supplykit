@@ -2,15 +2,23 @@ import React, { useEffect, useMemo, useState } from 'react'
 import * as echarts from 'echarts'
 import { useAppStore } from './store/useAppStore'
 import { api } from './api/client'
+import ProductPage from './pages/ProductPage'
+import SupplierPage from './pages/SupplierPage'
+import InsightsPage from './pages/InsightsPage'
+import CleansingPage from './pages/CleansingPage'
 
 // ─── 导航配置 ────────────────────────────────────────────────────────────────
 
 const NAV = [
-  { id:'dash',   label:'总览',     icon:'📊' },
-  { id:'orders', label:'订单',     icon:'📋' },
-  { id:'inv',    label:'库存',     icon:'📦' },
-  { id:'import', label:'导入数据', icon:'📤' },
-  { id:'quality',label:'异常',     icon:'⚠️' },
+  { id:'dash',     label:'总览',   icon:'📊' },
+  { id:'products', label:'商品',   icon:'🏷️' },
+  { id:'suppliers',label:'供应商', icon:'🏭' },
+  { id:'orders',   label:'订单',   icon:'📋' },
+  { id:'inv',      label:'库存',   icon:'📦' },
+  { id:'insights', label:'建议',   icon:'💡' },
+  { id:'cleansing',label:'清洗',   icon:'🧹' },
+  { id:'import',   label:'导入数据',icon:'📤' },
+  { id:'quality',  label:'异常',   icon:'⚠️' },
 ]
 
 // ─── 小组件 ──────────────────────────────────────────────────────────────────
@@ -232,6 +240,9 @@ export default function App() {
             </>
           )}
 
+          {page === 'products' && <ProductPage />}
+          {page === 'suppliers' && <SupplierPage />}
+
           {page === 'orders' && (
             <div style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:16, padding:16 }}>
               <div style={{ fontWeight:600, marginBottom:12 }}>订单</div>
@@ -261,6 +272,8 @@ export default function App() {
           )}
 
           {page === 'import' && <UploadPanel />}
+          {page === 'insights' && <InsightsPage />}
+          {page === 'cleansing' && <CleansingPage />}
 
           {page === 'quality' && (
             <div style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:16, padding:16 }}>

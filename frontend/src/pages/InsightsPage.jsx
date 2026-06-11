@@ -1,0 +1,203 @@
+import React, { useEffect, useState } from 'react'
+import { api } from '../api/client'
+
+const pillStyle = (cond, yes = 'danger', no = 'info') => ({
+  display: 'inline-block', padding: '2px 8px', borderRadius: 99,
+  fontSize: 12, fontWeight: 600,
+  background: cond ? '#fff1f2' : '#eff6ff',
+  color: cond ? '#e11d48' : '#1d4ed8',
+})
+
+export default function InsightsPage() {
+  const [tab, setTab] = useState('replen')
+  const [replen, setReplen] = useState([])
+  const [purchase, setPurchase] = useState([])
+  const [summary, setSummary] = useState(null)
+  const [activities, setActivities] = useState([])
+  const [slowMoving, setSlowMoving] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    Promise.all([
+      api.get('/api/insights/replenishment'),
+      api.get('/api/insights/purchase'),
+      api.get('/api/insights/summary'),
+      api.get('/api/events'),
+      api.get('/api/insights/slow-moving'),
+    ]).then(([r, p, s, ev, sm]) => {
+      setReplen(r.data || [])
+      setPurchase(p.data?.suggestions || p.data || [])
+      setSummary(s.data)
+      setActivities((ev.data || []).slice(0, 15))
+      setSlowMoving(sm.data || [])
+    }).catch(() => {}).finally(() => setLoading(false))
+  }, [])
+
+  const tabs = [
+    { id: 'replen', label: '补货建议', count: replen.length },
+    { id: 'purchase', label: '采购建议', count: purchase.length },
+    { id: 'slow', label: '滞销预警', count: slowMoving.filter(x => x.level !== '正常').length },
+    { id: 'activity', label: '操作回溯', count: activities.length },
+  ]
+
+  const btnStyle = id => ({
+    flex: 1, padding: '10px 12px', fontSize: 13, fontWeight: 500,
+    border: 'none', borderRadius: 10,
+    background: tab === id ? '#1d4ed8' : 'transparent',
+    color: tab === id ? '#fff' : '#64748b', cursor: 'pointer',
+  })
+
+  if (loading) return <div className="card"><div className="muted">加载中...</div></div>
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {/* Summary cards */}
+      {summary && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10 }}>
+          {[
+            { label: '库存商品', value: summary.total_products },
+            { label: '低库存', value: summary.low_stock, color: '#f59e0b' },
+            { label: '紧急补货', value: summary.urgent_replenish, color: summary.urgent_replenish > 0 ? '#ef4444' : '#059669' },
+            { label: '滞销', value: summary.slow_moving, color: summary.slow_moving > 0 ? '#ef4444' : '#059669' },
+            { label: '冷淡', value: summary.cold_count, color: summary.cold_count > 0 ? '#f59e0b' : '#94a3b8' },
+          ].map((c, i) => (
+            <div key={i} className="card" style={{ textAlign: 'center' }}>
+              <div className="small muted">{c.label}</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: c.color || '#0f172a' }}>{c.value ?? 0}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Tab bar */}
+      <div style={{ display: 'flex', gap: 0, background: '#fff', borderRadius: 12, padding: 4, border: '1px solid #f1f5f9' }}>
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)} style={btnStyle(t.id)}>
+            {t.label}{t.count > 0 ? ` (${t.count})` : ''}
+          </button>
+        ))}
+      </div>
+
+      {/* 补货建议 */}
+      {tab === 'replen' && (
+        <div className="card">
+          <div className="section-title">
+            补货建议{replen.length > 0 && <span className="small muted" style={{ marginLeft: 8 }}>· 低于安全线的商品</span>}
+          </div>
+          {replen.length === 0 ? (
+            <div className="muted" style={{ padding: 12, textAlign: 'center' }}>库存健康，暂无补货建议</div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table>
+                <thead><tr>{['SKU','商品','店铺','现有','安全线','在途','建议补','紧急度'].map(h => <th key={h}>{h}</th>)}</tr></thead>
+                <tbody>
+                  {replen.map((x, i) => (
+                    <tr key={i}>
+                      <td className="mono" style={{ fontSize: 12 }}>{x.sku}</td>
+                      <td>{x.product_name}</td><td>{x.store}</td>
+                      <td style={{ color: x.available_qty === 0 ? '#ef4444' : '#374151', fontWeight: 600 }}>{x.available_qty}</td>
+                      <td>{x.safety_qty}</td><td>{x.in_transit_qty}</td>
+                      <td style={{ fontWeight: 600, color: '#059669' }}>+{x.suggested_qty}</td>
+                      <td><span className={`pill ${x.urgency === '紧急' ? 'danger' : x.urgency === '关注' ? 'warning' : 'info'}`}>{x.urgency}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 采购建议 */}
+      {tab === 'purchase' && (
+        <div className="card">
+          <div className="section-title">采购建议 <span className="small muted">· 含供应商匹配</span></div>
+          {purchase.length === 0 ? (
+            <div className="muted" style={{ padding: 12, textAlign: 'center' }}>暂无采购建议</div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table>
+                <thead><tr>{['SKU','商品','建议补量','推荐供应商','评分','紧急度'].map(h => <th key={h}>{h}</th>)}</tr></thead>
+                <tbody>
+                  {purchase.map((x, i) => (
+                    <tr key={i}>
+                      <td className="mono" style={{ fontSize: 12 }}>{x.sku}</td>
+                      <td>{x.product_name}</td>
+                      <td style={{ fontWeight: 600, color: '#059669' }}>+{x.suggested_qty}</td>
+                      <td>{x.supplier_name || '-'}</td>
+                      <td><span className={`pill ${x.supplier_score >= 80 ? 'success' : x.supplier_score >= 60 ? 'warning' : 'danger'}`}>{x.supplier_score}</span></td>
+                      <td><span className={`pill ${x.urgency === '紧急' ? 'danger' : x.urgency === '关注' ? 'warning' : 'info'}`}>{x.urgency}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 滞销预警 */}
+      {tab === 'slow' && (
+        <div className="card">
+          <div className="section-title">滞销预警 <span className="small muted">· 超过 14 天未下单的商品</span></div>
+          {slowMoving.length === 0 ? (
+            <div className="muted" style={{ padding: 12, textAlign: 'center' }}>暂无数据</div>
+          ) : (
+            <>
+              <div style={{ overflowX: 'auto' }}>
+                <table>
+                  <thead><tr>{['SKU','商品','店铺','分类','最近下单','天数','库存','状态'].map(h => <th key={h}>{h}</th>)}</tr></thead>
+                  <tbody>
+                    {slowMoving.filter(x => x.level !== '正常').map((x, i) => (
+                      <tr key={i}>
+                        <td className="mono" style={{ fontSize: 12 }}>{x.sku}</td>
+                        <td>{x.product_name}</td><td>{x.store}</td><td>{x.category}</td>
+                        <td style={{ fontSize: 12, color: '#64748b' }}>{x.last_order_date}</td>
+                        <td style={{ fontWeight: 600, color: x.days_since_last_order >= 90 ? '#ef4444' : x.days_since_last_order >= 30 ? '#f59e0b' : '#64748b' }}>{x.days_since_last_order}天</td>
+                        <td>{x.available_qty}</td>
+                        <td><span className={`pill ${x.level === '滞销' ? 'danger' : x.level === '冷淡' ? 'warning' : 'info'}`}>{x.level}</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {slowMoving.filter(x => x.level === '正常').length > 0 && (
+                <div className="small muted" style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #f1f5f9' }}>
+                  另有 {slowMoving.filter(x => x.level === '正常').length} 个商品最近 14 天内有过订单（正常销售中）
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* 操作回溯 */}
+      {tab === 'activity' && (
+        <div className="card">
+          <div className="section-title">操作回溯 <span className="small muted">· 最近操作记录</span></div>
+          {activities.length === 0 ? (
+            <div className="muted" style={{ padding: 12, textAlign: 'center' }}>暂无操作记录</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {activities.map((x, i) => (
+                <div key={i} style={{
+                  fontSize: 12, padding: '8px 12px', background: '#f8fafc',
+                  border: '1px solid #f1f5f9', borderRadius: 8,
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                }}>
+                  <span>
+                    <span className={`pill ${x.level === 'error' ? 'danger' : x.level === 'warning' ? 'warning' : 'info'}`} style={{ fontSize: 10, marginRight: 8 }}>
+                      {x.event_type}
+                    </span>
+                    {x.title}
+                  </span>
+                  <span className="small muted">{(x.created_at || '').slice(0, 16).replace('T', ' ')}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}

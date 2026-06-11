@@ -9,6 +9,7 @@ from app.api.routes.ws import router as ws_router
 from app.api.routes.alerts import router as alerts_router
 from app.api.routes.events import router as events_router
 from app.api.routes.sync_tasks import router as sync_tasks_router
+from app.api.routes.cleansing import router as cleansing_router
 from app.services.dashboard_service import seed_data
 from app.services.event_service import rebuild_low_stock_alerts
 import os
@@ -40,6 +41,7 @@ app.include_router(alerts_router)
 app.include_router(events_router)
 app.include_router(sync_tasks_router)
 app.include_router(ws_router)
+app.include_router(cleansing_router)
 
 @app.get("/")
 def root():

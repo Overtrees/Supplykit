@@ -27,6 +27,9 @@ from app.api.routes.products import router as products_router
 from app.api.routes.suppliers import router as suppliers_router
 from app.api.routes.insights import router as insights_router
 
+from app.core.events import register_core_handlers
+register_core_handlers()
+
 app = FastAPI(title="SupplyChain V1")
 origins = [x.strip() for x in os.getenv("CORS_ORIGINS", "*").split(",") if x.strip()]
 app.add_middleware(

@@ -543,15 +543,19 @@
       const [busy, setBusy] = useState('')
 
       const loadAll = async () => {
+        const safeFetch = async (url, fallback=[]) => {
+          try { const r = await fetch(url); return await r.json() }
+          catch(e) { console.warn('fetch failed:', url, e); return fallback }
+        }
         try {
           const [d, o, i, q, a, e, s] = await Promise.all([
-            fetch(API+'/api/dashboard/summary').then(r=>r.json()),
-            fetch(API+'/api/orders?page='+orderPage+'&page_size=8').then(r=>r.json()),
-            fetch(API+'/api/inventory').then(r=>r.json()),
-            fetch(API+'/api/quality-logs').then(r=>r.json()),
-            fetch(API+'/api/alerts').then(r=>r.json()),
-            fetch(API+'/api/events').then(r=>r.json()),
-            fetch(API+'/api/sync-tasks').then(r=>r.json()),
+            safeFetch(API+'/api/dashboard/summary', {}),
+            safeFetch(API+'/api/orders?page='+orderPage+'&page_size=8', {items:[],total:0,page:1}),
+            safeFetch(API+'/api/inventory', []),
+            safeFetch(API+'/api/quality-logs', []),
+            safeFetch(API+'/api/alerts', []),
+            safeFetch(API+'/api/events', []),
+            safeFetch(API+'/api/sync-tasks', []),
           ])
           setOrders(o.items||o);
           setOrderTotal(o.total||(o||[]).length);
@@ -568,7 +572,7 @@
       useEffect(() => {
         loadAll()
         const ws = new WebSocket('wss://overtrees.pythonanywhere.com/ws/events')
-        ws.onopen = () => { setWsStatus('connected'); ws.send('ping') }
+        ws.onopen = () => { setWsStatus('polling'); ws.send('ping') }
         ws.onclose = () => setWsStatus('closed')
         ws.onerror = () => setWsStatus('error')
         ws.onmessage = async (e) => {
@@ -620,7 +624,7 @@
                 <div className="small muted">CSV / XLSX 导入 · 实时看板 · 低库存告警 · 字段清洗</div>
               </div>
             </div>
-            <div className="small" style={{color:wsStatus==='connected'?'#86efac':'#fcd34d'}}>WS: {wsStatus}</div>
+            <div className="small" style={{color:wsStatus==='connected'||wsStatus==='polling'?'#86efac':'#fcd34d'}}>WS: {wsStatus}</div>
           </div>
           <div className="wrap">
             {page === 'dash' && <>
@@ -664,8 +668,8 @@
                 <button onClick={()=>{setOrderPage(orderPage+1);setTimeout(loadAll,0)}}
                   style={{fontSize:11,padding:'4px 10px',border:'1px solid #e2e8f0',borderRadius:6,background:'#fff',cursor:'pointer'}}>下一页 ›</button>
               </div>
-            </div><div style={{overflowX:'auto'}}><table><thead><tr>{['订单号','店铺','商品','金额','状态','日期'].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{orders.map(x=><tr key={x.id}><td className="mono" style={{fontSize:12}}>{x.order_no}</td><td>{x.store}</td><td>{x.product_name}</td><td>¥{Number(x.total_amount).toLocaleString()}</td><td>{x.order_status}</td><td>{x.ordered_at}</td></tr>)}</tbody></table></div></div>}
-            {page === 'inv' && <div className="card"><div className="section-title">库存</div><div style={{overflowX:'auto'}}><table><thead><tr>{['店铺','SKU','商品','可用','锁定','在途','安全线'].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{inventory.map(x=><tr key={x.id}><td>{x.store}</td><td className="mono" style={{fontSize:12}}>{x.sku}</td><td>{x.product_name}</td><td>{x.available_qty}</td><td>{x.locked_qty}</td><td>{x.in_transit_qty}</td><td>{x.safety_qty}</td></tr>)}</tbody></table></div></div>}
+            </div><div style={{overflowX:'auto'}}><table><thead><tr>{['订单号','店铺','仓库','商品','金额','状态','日期'].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{orders.map(x=><tr key={x.id}><td className="mono" style={{fontSize:12}}>{x.order_no}</td><td>{x.store||'-'}</td><td>{x.warehouse||'-'}</td><td>{x.product_name}</td><td>¥{Number(x.total_amount).toLocaleString()}</td><td>{x.order_status}</td><td>{x.ordered_at}</td></tr>)}</tbody></table></div></div>}
+            {page === 'inv' && <div className="card"><div className="section-title">库存</div><div style={{overflowX:'auto'}}><table><thead><tr>{['店铺','仓库','SKU','商品','可用','锁定','在途','安全线'].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{inventory.map(x=><tr key={x.id}><td>{x.store||'-'}</td><td>{x.warehouse||'-'}</td><td className="mono" style={{fontSize:12}}>{x.sku}</td><td>{x.product_name}</td><td>{x.available_qty}</td><td>{x.locked_qty}</td><td>{x.in_transit_qty}</td><td>{x.safety_qty}</td></tr>)}</tbody></table></div></div>}
             {page === 'cleansing' && <CleansingPage />}
             {page === 'import' && <div className="card" style={{marginBottom:16}}>
               <div className="section-title">导入与实时刷新</div>

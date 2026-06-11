@@ -220,9 +220,18 @@ async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''
                 "mapping": json.dumps(mapping_config, ensure_ascii=False),
             }).execute()
 
-    from app.api.routes.events import create_event
-    create_event(supabase, f'{target}.cleansed', target, None, f'清洗导入 {success} 条',
-                 {'success': success, 'failed': failed, 'file': file.filename or ''})
+    from app.core.events import bus
+    bus.emit('data.cleaned', {
+        'target': target,
+        'event_type': f'{target}.cleansed',
+        'entity_type': target,
+        'title': f'清洗导入 {success} 条',
+        'payload': {'success': success, 'failed': failed, 'file': file.filename or ''},
+        'ws_message': {
+            'type': f'{target}.cleansed',
+            'payload': {'success': success, 'failed': failed, 'file': file.filename or ''}
+        }
+    })
 
     return {'ok': True, 'success': success, 'failed': failed, 'file': file.filename, 'target': target}
 

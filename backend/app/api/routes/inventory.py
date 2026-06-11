@@ -45,10 +45,22 @@ def adjust_inventory(body: dict, supabase: Client = Depends(get_supabase)):
     if not inv:
         return {"ok": False, "error": "not found"}
     avail = int(inv.get("available_qty") or 0)
+    new_avail = avail
     if action == "in":
-        supabase.table("inventory").update({"available_qty": avail + qty}).eq("id", iid).execute()
+        new_avail = avail + qty
+        supabase.table("inventory").update({"available_qty": new_avail}).eq("id", iid).execute()
     elif action == "out":
-        supabase.table("inventory").update({"available_qty": max(0, avail - qty)}).eq("id", iid).execute()
+        new_avail = max(0, avail - qty)
+        supabase.table("inventory").update({"available_qty": new_avail}).eq("id", iid).execute()
     elif action == "set":
-        supabase.table("inventory").update({"available_qty": qty}).eq("id", iid).execute()
+        new_avail = qty
+        supabase.table("inventory").update({"available_qty": new_avail}).eq("id", iid).execute()
+    
+    inv["available_qty"] = new_avail
+    from app.core.events import bus
+    bus.emit('inventory.changed', {
+        'inventory': inv,
+        'action': action,
+        'quantity': qty,
+    })
     return {"ok": True}

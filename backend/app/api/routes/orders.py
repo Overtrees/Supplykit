@@ -171,17 +171,6 @@ async def import_orders(file: UploadFile = File(...), supabase: Client = Depends
             'raw_data': json.dumps(row, ensure_ascii=False, default=str),
         }
         orders_to_insert.append(item)
-        order_type = item.get('platform') or 'sales'
-        from app.api.routes.insights import auto_adjust_inventory
-        try:
-            auto_adjust_inventory({
-                'sku': item['sku'],
-                'product_name': item['product_name'],
-                'store': item['store'],
-                'quantity': item['quantity'],
-            }, order_type, supabase)
-        except Exception:
-            pass
         success += 1
 
     if orders_to_insert:
@@ -197,15 +186,19 @@ async def import_orders(file: UploadFile = File(...), supabase: Client = Depends
     }
     supabase.table("sync_tasks").insert(task).execute()
 
-    from app.api.routes.events import create_event
-    create_event(supabase, 'orders.imported', 'order', None, '订单导入完成',
-                 {'success': success, 'failed': failed, 'file': file.filename or '', 'type': doc_type})
-
-    from app.api.routes.ws import broadcast
-    import asyncio
-    asyncio.ensure_future(broadcast({
-        'type': 'orders.imported',
-        'payload': {'success': success, 'failed': failed, 'file': file.filename or '', 'type': doc_type}
-    }))
+    from app.core.events import bus
+    bus.emit('order.created', {
+        'event_type': 'orders.imported',
+        'entity_type': 'order',
+        'entity_id': None,
+        'title': '订单导入完成',
+        'payload': {'success': success, 'failed': failed, 'file': file.filename or '', 'type': doc_type},
+        'items': orders_to_insert if success > 0 else [],
+        'order_type': doc_type,
+        'ws_message': {
+            'type': 'orders.imported',
+            'payload': {'success': success, 'failed': failed, 'file': file.filename or '', 'type': doc_type}
+        }
+    })
 
     return {'ok': True, 'success': success, 'failed': failed, 'file': file.filename or '', 'type': doc_type}

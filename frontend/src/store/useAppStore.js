@@ -45,7 +45,13 @@ export const useAppStore = create((set, get) => ({
   },
   setOrderPage(p) {
     set({ orderPage: p })
-    get().loadAll(p).catch(() => {})
+    api.get(`/api/orders?page=${p}&page_size=8`).then(r => {
+      set({
+        orders: r.data?.items || r.data || [],
+        orderTotal: r.data?.total || (r.data || []).length || 0,
+        orderPage: r.data?.page || p,
+      })
+    }).catch(() => {})
   },
   startPolling() {
     const old = get().poller

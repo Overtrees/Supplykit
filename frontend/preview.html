@@ -424,11 +424,12 @@
       if (loading) return <div className="card"><div className="muted">加载中...</div></div>
       return <>
         {/* 统计卡片 */}
-        {summary && <div className="grid4" style={{marginBottom:12}}>
-          <div className="card"><div className="small muted">库存商品</div><div style={{fontSize:22,fontWeight:700}}>{summary.total_products}</div></div>
-          <div className="card"><div className="small muted">低库存</div><div style={{fontSize:22,fontWeight:700,color:'#f59e0b'}}>{summary.low_stock}</div></div>
-          <div className="card"><div className="small muted">缺货</div><div style={{fontSize:22,fontWeight:700,color:'#ef4444'}}>{summary.out_of_stock}</div></div>
-          <div className="card"><div className="small muted">紧急补货</div><div style={{fontSize:22,fontWeight:700,color:summary.urgent_replenish>0?'#ef4444':'#059669'}}>{summary.urgent_replenish}</div></div>
+        {summary && <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:10,marginBottom:12}}>
+          <div className="card"><div className="small muted">库存商品</div><div style={{fontSize:20,fontWeight:700}}>{summary.total_products}</div></div>
+          <div className="card"><div className="small muted">低库存</div><div style={{fontSize:20,fontWeight:700,color:'#f59e0b'}}>{summary.low_stock}</div></div>
+          <div className="card"><div className="small muted">紧急补货</div><div style={{fontSize:20,fontWeight:700,color:summary.urgent_replenish>0?'#ef4444':'#059669'}}>{summary.urgent_replenish}</div></div>
+          <div className="card"><div className="small muted">滞销</div><div style={{fontSize:20,fontWeight:700,color:summary.slow_moving>0?'#ef4444':'#059669'}}>{summary.slow_moving}</div></div>
+          <div className="card"><div className="small muted">冷淡</div><div style={{fontSize:20,fontWeight:700,color:summary.cold_count>0?'#f59e0b':'#94a3b8'}}>{summary.cold_count}</div></div>
         </div>}
         {/* 标签页 */}
         <div style={{display:'flex',gap:0,marginBottom:12,background:'#fff',borderRadius:12,padding:4,border:'1px solid #f1f5f9'}}>

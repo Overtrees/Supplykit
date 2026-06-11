@@ -130,9 +130,16 @@ def get_slow_moving_products(db: Session = Depends(get_db)):
         else:
             level = '正常'
 
+        # 从订单中取最近一次的商品名称作为兜底
+        order_name = ''
+        for o in orders:
+            if o.sku == sku and o.product_name:
+                order_name = o.product_name
+                break
+
         result.append({
             'sku': sku,
-            'product_name': (p.product_name if p else inv.product_name if inv else ''),
+            'product_name': (p.product_name if p else inv.product_name if inv else order_name),
             'store': (p.store if p else inv.store if inv else ''),
             'category': p.category if p else '',
             'last_order_date': last_date[:10] if last_date else '从未下单',

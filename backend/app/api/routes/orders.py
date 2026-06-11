@@ -92,7 +92,16 @@ FIELD_MAPS = {
 
 # ─── 导入接口 ────────────────────────────────────────────────────────────────
 
-@router.post('/import')
+@router.post('/batch-delete')
+def batch_delete_orders(ids: str = '', db: Session = Depends(get_db)):
+    """批量删除订单，ids 为空或 auto 时删除 AUTO- 开头的脏数据"""
+    if not ids or ids == 'auto':
+        deleted = db.query(Order).filter(Order.order_no.like('AUTO-%')).delete(synchronize_session=False)
+    else:
+        id_list = [int(x.strip()) for x in ids.split(',') if x.strip().isdigit()]
+        deleted = db.query(Order).filter(Order.id.in_(id_list)).delete(synchronize_session=False)
+    db.commit()
+    return {'ok': True, 'deleted': deleted}
 async def import_orders(file: UploadFile = File(...), db: Session = Depends(get_db)):
     content = await file.read()
     rows = rows_from_upload(file.filename, content)

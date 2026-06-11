@@ -174,9 +174,26 @@ def auto_adjust_inventory(order_data: dict, order_type: str, supabase: Client):
         inv = inv_list[0]
         avail = int(inv.get("available_qty") or 0)
         if order_type in ("jd_purchase", "cleansing_purchase"):
-            supabase.table("inventory").update({"available_qty": avail + qty}).eq("id", inv["id"]).execute()
+            new_avail = avail + qty
+            supabase.table("inventory").update({"available_qty": new_avail}).eq("id", inv["id"]).execute()
+            inv["available_qty"] = new_avail
         elif order_type in ("sales", "jd_sales", "cleansing"):
-            supabase.table("inventory").update({"available_qty": max(0, avail - qty)}).eq("id", inv["id"]).execute()
+            new_avail = max(0, avail - qty)
+            supabase.table("inventory").update({"available_qty": new_avail}).eq("id", inv["id"]).execute()
+            inv["available_qty"] = new_avail
+        else:
+            return
+        # Emit inventory.changed so alert/event handlers fire
+        try:
+            from app.core.events import bus
+            bus.emit('inventory.changed', {
+                'inventory': inv,
+                'action': 'auto_adjust',
+                'quantity': qty,
+                'order_type': order_type,
+            })
+        except Exception:
+            pass
     else:
         supabase.table("inventory").insert({
             "sku": sku,

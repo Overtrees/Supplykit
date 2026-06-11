@@ -8,6 +8,7 @@ from app.models.entities import Order, Inventory, QualityLog, SyncTask
 from sqlalchemy import Column, Integer, String, Text, DateTime
 from app.api.routes.ws import broadcast
 from app.services.event_service import create_event
+from app.api.routes.insights import auto_adjust_inventory
 
 router = APIRouter(prefix="/api/cleansing", tags=["cleansing"])
 
@@ -166,6 +167,8 @@ async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''
                         source='cleansing',
                         raw_data=json.dumps(row, ensure_ascii=False, default=str),
                     ))
+                    # 自动联动库存
+                    auto_adjust_inventory(data, 'cleansing', db)
                     success += 1
                 else:
                     failed += 1

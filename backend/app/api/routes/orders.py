@@ -9,6 +9,7 @@ from app.core.database import get_db
 from app.models.entities import Order, QualityLog, SyncTask
 from app.api.routes.ws import broadcast
 from app.services.event_service import create_event
+from app.api.routes.insights import auto_adjust_inventory
 
 router = APIRouter(prefix="/api/orders", tags=["orders"])
 
@@ -151,6 +152,14 @@ async def import_orders(file: UploadFile = File(...), db: Session = Depends(get_
             raw_data=json.dumps(row, ensure_ascii=False, default=str),
         )
         db.add(item)
+        # 自动联动库存：采购单入库，销售单出库
+        order_type = item.platform or 'sales'
+        auto_adjust_inventory({
+            'sku': item.sku,
+            'product_name': item.product_name,
+            'store': item.store,
+            'quantity': item.quantity,
+        }, order_type, db)
         success += 1
 
     task = SyncTask(

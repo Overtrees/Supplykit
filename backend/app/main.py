@@ -12,6 +12,7 @@ from app.api.routes.sync_tasks import router as sync_tasks_router
 from app.api.routes.cleansing import router as cleansing_router
 from app.api.routes.products import router as products_router
 from app.api.routes.suppliers import router as suppliers_router
+from app.api.routes.insights import router as insights_router
 from app.services.dashboard_service import seed_data, seed_products, seed_suppliers
 from app.services.event_service import rebuild_low_stock_alerts
 import os
@@ -50,6 +51,7 @@ app.include_router(ws_router)
 app.include_router(cleansing_router)
 app.include_router(products_router)
 app.include_router(suppliers_router)
+app.include_router(insights_router)
 
 @app.get("/")
 def root():

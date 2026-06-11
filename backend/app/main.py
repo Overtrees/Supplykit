@@ -17,6 +17,16 @@ from app.services.dashboard_service import seed_data, seed_products, seed_suppli
 from app.services.event_service import rebuild_low_stock_alerts
 import os
 
+# 自动加载 .env 文件（PythonAnywhere 上设置 DATABASE_URL 用）
+_env_path = os.path.join(os.path.dirname(__file__), '.env')
+if os.path.exists(_env_path):
+    with open(_env_path) as _f:
+        for _line in _f:
+            _line = _line.strip()
+            if _line and not _line.startswith('#') and '=' in _line:
+                _k, _v = _line.split('=', 1)
+                os.environ.setdefault(_k.strip(), _v.strip())
+
 app = FastAPI(title="SupplyChain V1")
 origins = [x.strip() for x in os.getenv("CORS_ORIGINS", "*").split(",") if x.strip()]
 app.add_middleware(

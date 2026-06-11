@@ -129,6 +129,7 @@ async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''
     success = 0
     failed = 0
 
+    dedup = {}  # 跟踪已用的 order_no，重复自动加后缀
     for row in rows:
         try:
             data = {}
@@ -140,8 +141,15 @@ async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''
             if target == 'order':
                 order_no = data.get('order_no', '')
                 if not order_no:
-                    # 自动生成 order_no
                     order_no = f"AUTO-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}-{success}"
+                # 处理重复 order_no
+                if order_no in dedup:
+                    dedup[order_no] += 1
+                    order_no = f"{order_no}-{dedup[order_no]}"
+                else:
+                    dedup[order_no] = 0
+                data['order_no'] = order_no
+
                 exists = db.query(Order).filter(Order.order_no == order_no).first()
                 if not exists:
                     db.add(Order(

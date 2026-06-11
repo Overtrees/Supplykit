@@ -232,7 +232,8 @@
           const res = await fetch(API+'/api/cleansing/execute', { method:'POST', body:form })
           const data = await res.json()
           if (data.ok) { setResult(data); await loadTemplates(); setStep(3) }
-        } finally { setBusy('') }
+          else { alert('清洗失败: ' + (data.error || JSON.stringify(data))); setBusy('') }
+        } catch(e) { alert('请求异常: ' + e.message); setBusy('') }
       }
 
       // 重置

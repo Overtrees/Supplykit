@@ -1,22 +1,23 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-from app.core.database import get_db
-from app.models.entities import Event
-import json
+from supabase import Client
+from app.core.supabase_client import get_supabase
 
 router = APIRouter(prefix="/api/events", tags=["events"])
 
 @router.get("")
-def list_events(db: Session = Depends(get_db)):
-    rows = db.query(Event).order_by(Event.id.desc()).all()
-    return [{
-        "id": x.id,
-        "event_type": x.event_type,
-        "entity_type": x.entity_type,
-        "entity_id": x.entity_id,
-        "title": x.title,
-        "payload": json.loads(x.payload or "{}"),
-        "level": x.level,
-        "status": x.status,
-        "created_at": x.created_at.isoformat() if x.created_at else None,
-    } for x in rows]
+def list_events(supabase: Client = Depends(get_supabase)):
+    data = supabase.table("events").select("*").order("id", desc=True).execute().data
+    return data
+
+def create_event(supabase: Client, event_type: str, entity_type: str,
+                  entity_id: str, title: str, payload: dict, level: str = "info"):
+    import json
+    supabase.table("events").insert({
+        "event_type": event_type,
+        "entity_type": entity_type,
+        "entity_id": str(entity_id) if entity_id is not None else None,
+        "title": title,
+        "payload": json.dumps(payload, ensure_ascii=False),
+        "level": level,
+        "status": "new",
+    }).execute()

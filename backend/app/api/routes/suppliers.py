@@ -1,51 +1,36 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from datetime import datetime
-import json
-from app.core.database import get_db
-from app.models.entities import Supplier
-from app.services.dashboard_service import seed_suppliers
+from fastapi import APIRouter, Depends
+from supabase import Client
+from app.core.supabase_client import get_supabase
 
 router = APIRouter(prefix="/api/suppliers", tags=["suppliers"])
 
 @router.get("")
-def list_suppliers(db: Session = Depends(get_db)):
-    q = db.query(Supplier).order_by(Supplier.id.desc()).all()
-    return [{
-        'id': x.id, 'supplier_code': x.supplier_code,
-        'supplier_name': x.supplier_name, 'contact_person': x.contact_person,
-        'contact_phone': x.contact_phone, 'score': x.score,
-        'status': x.status,
-        'created_at': x.created_at.isoformat() if x.created_at else None,
-    } for x in q]
+def list_suppliers(supabase: Client = Depends(get_supabase), search: str = ""):
+    q = supabase.table("suppliers").select("*")
+    if search:
+        like = f"%{search}%"
+        q = q.ilike("supplier_name", like) | q.ilike("supplier_code", like)
+    data = q.order("id", desc=True).execute().data
+    return data
 
 @router.post("")
-def create_supplier(data: dict, db: Session = Depends(get_db)):
-    exists = db.query(Supplier).filter(Supplier.supplier_code == data.get('supplier_code', '')).first()
-    if exists:
-        raise HTTPException(status_code=400, detail='供应商编码已存在')
-    s = Supplier(
-        supplier_code=str(data.get('supplier_code', ''))[:50],
-        supplier_name=str(data.get('supplier_name', ''))[:200],
-        contact_person=str(data.get('contact_person', ''))[:50],
-        contact_phone=str(data.get('contact_phone', ''))[:50],
-        score=int(data.get('score', 0)),
-        raw_data=json.dumps(data, ensure_ascii=False),
-    )
-    db.add(s)
-    db.commit()
-    return {'ok': True, 'id': s.id}
+def create_supplier(body: dict, supabase: Client = Depends(get_supabase)):
+    data = supabase.table("suppliers").insert({
+        "supplier_code": body.get("supplier_code"),
+        "supplier_name": body.get("supplier_name"),
+        "contact_person": body.get("contact_person", ""),
+        "contact_phone": body.get("contact_phone", ""),
+        "score": int(body.get("score", 0)),
+        "status": body.get("status", "active"),
+    }).execute().data
+    return data[0] if data else {"ok": True}
 
-@router.delete("/{supplier_id}")
-def delete_supplier(supplier_id: int, db: Session = Depends(get_db)):
-    s = db.query(Supplier).filter(Supplier.id == supplier_id).first()
-    if not s:
-        raise HTTPException(status_code=404, detail='供应商不存在')
-    db.delete(s)
-    db.commit()
-    return {'ok': True}
+@router.put("/{sid}")
+def update_supplier(sid: int, body: dict, supabase: Client = Depends(get_supabase)):
+    supabase.table("suppliers").update(body).eq("id", sid).execute()
+    return {"ok": True}
 
-@router.post("/seed")
-def seed_suppliers_endpoint(db: Session = Depends(get_db)):
-    seed_suppliers(db)
-    return {'ok': True}
+@router.delete("/{sid}")
+def delete_supplier(sid: int, supabase: Client = Depends(get_supabase)):
+    supabase.table("suppliers").delete().eq("id", sid).execute()
+    return {"ok": True}

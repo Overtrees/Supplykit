@@ -1,29 +1,13 @@
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
-from sqlalchemy.orm import Session
+from supabase import Client
 from datetime import datetime
-import json, csv, io, re
+import json, csv, io, re, os
 from openpyxl import load_workbook
-from app.core.database import get_db, Base, engine
-from app.models.entities import Order, Inventory, QualityLog, SyncTask
-from sqlalchemy import Column, Integer, String, Text, DateTime
+from app.core.supabase_client import get_supabase
 from app.api.routes.ws import broadcast
-from app.services.event_service import create_event
 from app.api.routes.insights import auto_adjust_inventory
 
 router = APIRouter(prefix="/api/cleansing", tags=["cleansing"])
-
-# ─── 清洗模板模型 ────────────────────────────────────────────────────────────
-
-class CleansingTemplate(Base):
-    __tablename__ = "cleansing_templates"
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, index=True)
-    doc_type = Column(String, default="custom")       # jd_purchase / sales_order / custom
-    mapping = Column(Text, default="{}")               # JSON: { source_col: { target, type, format, default, rules } }
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-Base.metadata.create_all(bind=engine)
 
 # ─── 系统目标字段定义 ────────────────────────────────────────────────────────
 
@@ -55,10 +39,8 @@ SYSTEM_FIELDS = {
 }
 
 # ─── 自定义字段存储 ────────────────────────────────────────────────────────────
-# 存储为 JSON 文件，因为字段结构简单且需要频繁修改
 
 CUSTOM_FIELDS_PATH = '/home/Overtrees/Supplykit/backend/custom_fields.json'
-import os
 
 def load_custom_fields():
     if os.path.exists(CUSTOM_FIELDS_PATH):
@@ -78,8 +60,7 @@ def save_custom_fields(data):
 def parse_file(content, filename):
     if filename.lower().endswith('.csv'):
         text = content.decode('utf-8-sig', errors='ignore')
-        rows = list(csv.DictReader(io.StringIO(text)))
-        return rows
+        return list(csv.DictReader(io.StringIO(text)))
     wb = load_workbook(io.BytesIO(content), data_only=True)
     ws = wb[wb.sheetnames[0]]
     raw = list(ws.iter_rows(values_only=True))
@@ -88,7 +69,7 @@ def parse_file(content, filename):
     headers = [str(c).strip() if c is not None else '' for c in raw[0]]
     return [{headers[i]: raw[r][i] for i in range(len(headers))} for r in range(1, len(raw))]
 
-# ─── 检测接口：上传文件返回列名+样例 ────────────────────────────────────────
+# ─── 检测接口 ────────────────────────────────────────────────────────────────
 
 @router.post('/detect')
 async def detect_columns(file: UploadFile = File(...)):
@@ -106,7 +87,7 @@ async def detect_columns(file: UploadFile = File(...)):
         cols.append({'name': key, 'samples': samples[:3], 'count': len(rows)})
     return {'ok': True, 'columns': cols, 'total': len(rows), 'file': file.filename}
 
-# ─── 预览接口：按映射配置预览结果 ───────────────────────────────────────────
+# ─── 预览接口 ────────────────────────────────────────────────────────────────
 
 @router.post('/preview')
 async def preview_cleansing(file: UploadFile = File(...), mapping: str = Form('')):
@@ -137,7 +118,9 @@ async def preview_cleansing(file: UploadFile = File(...), mapping: str = Form(''
 # ─── 执行清洗 ────────────────────────────────────────────────────────────────
 
 @router.post('/execute')
-async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''), target: str = Form('order'), template_name: str = Form('')):
+async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''),
+                             target: str = Form('order'), template_name: str = Form(''),
+                             supabase: Client = Depends(get_supabase)):
     content = await file.read()
     rows = parse_file(content, file.filename)
     if not rows:
@@ -147,11 +130,12 @@ async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''
     except json.JSONDecodeError:
         return {'ok': False, 'error': '映射配置格式错误'}
 
-    db = next(get_db())
     success = 0
     failed = 0
+    orders_to_insert = []
+    inv_to_insert = []
 
-    dedup = {}  # 跟踪已用的 order_no，重复自动加后缀
+    dedup = {}
     for row in rows:
         try:
             data = {}
@@ -164,7 +148,6 @@ async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''
                 order_no = data.get('order_no', '')
                 if not order_no:
                     order_no = f"AUTO-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}-{success}"
-                # 处理重复 order_no
                 if order_no in dedup:
                     dedup[order_no] += 1
                     order_no = f"{order_no}-{dedup[order_no]}"
@@ -172,43 +155,43 @@ async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''
                     dedup[order_no] = 0
                 data['order_no'] = order_no
 
-                exists = db.query(Order).filter(Order.order_no == order_no).first()
+                exists = supabase.table("orders").select("id").eq("order_no", order_no).execute().data
                 if not exists:
-                    db.add(Order(
-                        order_no=order_no,
-                        store=str(data.get('store', '未知'))[:100],
-                        sku=str(data.get('sku', ''))[:100],
-                        product_name=str(data.get('product_name', ''))[:200],
-                        quantity=int(float(data.get('quantity', 0))),
-                        unit_price=float(data.get('unit_price', 0)),
-                        total_amount=float(data.get('total_amount', 0)),
-                        order_status=str(data.get('order_status', '已完成'))[:50],
-                        ordered_at=str(data.get('ordered_at', ''))[:50],
-                        platform='cleansed',
-                        source='cleansing',
-                        raw_data=json.dumps(row, ensure_ascii=False, default=str),
-                    ))
-                    # 自动联动库存
-                    auto_adjust_inventory(data, 'cleansing', db)
+                    orders_to_insert.append({
+                        "order_no": order_no,
+                        "store": str(data.get('store', '未知'))[:100],
+                        "sku": str(data.get('sku', ''))[:100],
+                        "product_name": str(data.get('product_name', ''))[:200],
+                        "quantity": int(float(data.get('quantity', 0))),
+                        "unit_price": float(data.get('unit_price', 0)),
+                        "total_amount": float(data.get('total_amount', 0)),
+                        "order_status": str(data.get('order_status', '已完成'))[:50],
+                        "ordered_at": str(data.get('ordered_at', ''))[:50],
+                        "platform": "cleansed",
+                        "source": "cleansing",
+                        "raw_data": json.dumps(row, ensure_ascii=False, default=str),
+                    })
+                    auto_adjust_inventory(data, 'cleansing', supabase)
                     success += 1
                 else:
                     failed += 1
+
             elif target == 'inventory':
                 sku = str(data.get('sku', ''))
                 if sku:
-                    exists = db.query(Inventory).filter(Inventory.sku == sku).first()
+                    exists = supabase.table("inventory").select("id").eq("sku", sku).execute().data
                     if not exists:
-                        db.add(Inventory(
-                            store=str(data.get('store', '未知'))[:100],
-                            sku=sku[:100],
-                            product_name=str(data.get('product_name', ''))[:200],
-                            available_qty=int(float(data.get('available_qty', 0))),
-                            locked_qty=int(float(data.get('locked_qty', 0))),
-                            in_transit_qty=int(float(data.get('in_transit_qty', 0))),
-                            safety_qty=int(float(data.get('safety_qty', 0))),
-                            source='cleansing',
-                            raw_data=json.dumps(row, ensure_ascii=False, default=str),
-                        ))
+                        inv_to_insert.append({
+                            "store": str(data.get('store', '未知'))[:100],
+                            "sku": sku[:100],
+                            "product_name": str(data.get('product_name', ''))[:200],
+                            "available_qty": int(float(data.get('available_qty', 0))),
+                            "locked_qty": int(float(data.get('locked_qty', 0))),
+                            "in_transit_qty": int(float(data.get('in_transit_qty', 0))),
+                            "safety_qty": int(float(data.get('safety_qty', 0))),
+                            "source": "cleansing",
+                            "raw_data": json.dumps(row, ensure_ascii=False, default=str),
+                        })
                         success += 1
                     else:
                         failed += 1
@@ -216,42 +199,53 @@ async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''
                     failed += 1
         except Exception as e:
             failed += 1
-            db.add(QualityLog(entity_type=target, issue_type='cleansing_error', issue_message=str(e)[:200], severity='error'))
+            supabase.table("quality_logs").insert({
+                "entity_type": target, "issue_type": "cleansing_error",
+                "issue_message": str(e)[:200], "severity": "error",
+            }).execute()
 
-    # 保存模板（如有名称）
+    if orders_to_insert:
+        supabase.table("orders").insert(orders_to_insert).execute()
+    if inv_to_insert:
+        supabase.table("inventory").insert(inv_to_insert).execute()
+
+    # 保存模板
     if template_name:
-        existing = db.query(CleansingTemplate).filter(CleansingTemplate.name == template_name).first()
+        existing = supabase.table("cleansing_templates").select("id").eq("name", template_name).execute().data
         if existing:
-            existing.mapping = json.dumps(mapping_config, ensure_ascii=False)
+            supabase.table("cleansing_templates").update({"mapping": json.dumps(mapping_config, ensure_ascii=False)}).eq("id", existing[0]["id"]).execute()
         else:
-            db.add(CleansingTemplate(name=template_name, doc_type=target, mapping=json.dumps(mapping_config, ensure_ascii=False)))
+            supabase.table("cleansing_templates").insert({
+                "name": template_name, "doc_type": target,
+                "mapping": json.dumps(mapping_config, ensure_ascii=False),
+            }).execute()
 
-    db.commit()
-    create_event(db, f'{target}.cleansed', target, None, f'清洗导入 {success} 条', {'success': success, 'failed': failed, 'file': file.filename})
-    db.close()
+    from app.api.routes.events import create_event
+    create_event(supabase, f'{target}.cleansed', target, None, f'清洗导入 {success} 条',
+                 {'success': success, 'failed': failed, 'file': file.filename or ''})
+
     return {'ok': True, 'success': success, 'failed': failed, 'file': file.filename, 'target': target}
 
 # ─── 模板管理 ────────────────────────────────────────────────────────────────
 
 @router.get('/templates')
-def list_templates(db: Session = Depends(get_db)):
-    templates = db.query(CleansingTemplate).order_by(CleansingTemplate.updated_at.desc()).all()
+def list_templates(supabase: Client = Depends(get_supabase)):
+    templates = supabase.table("cleansing_templates").select("*").order("updated_at", desc=True).execute().data
     return [{
-        'id': t.id, 'name': t.name, 'doc_type': t.doc_type,
-        'mapping': json.loads(t.mapping),
-        'updated_at': t.updated_at.isoformat() if t.updated_at else None,
+        'id': t['id'], 'name': t['name'], 'doc_type': t['doc_type'],
+        'mapping': json.loads(t.get('mapping') or '{}'),
+        'updated_at': t.get('updated_at'),
     } for t in templates]
 
 @router.delete('/templates/{template_id}')
-def delete_template(template_id: int, db: Session = Depends(get_db)):
-    t = db.query(CleansingTemplate).filter(CleansingTemplate.id == template_id).first()
-    if not t:
+def delete_template(template_id: int, supabase: Client = Depends(get_supabase)):
+    data = supabase.table("cleansing_templates").select("id").eq("id", template_id).execute().data
+    if not data:
         raise HTTPException(status_code=404, detail='模板不存在')
-    db.delete(t)
-    db.commit()
+    supabase.table("cleansing_templates").delete().eq("id", template_id).execute()
     return {'ok': True}
 
-# ─── 获取系统字段定义 ────────────────────────────────────────────────────────
+# ─── 字段管理 ────────────────────────────────────────────────────────────────
 
 @router.get('/fields/{target}')
 def get_fields(target: str):
@@ -267,7 +261,7 @@ def list_custom_fields(target: str):
     return data.get(target, [])
 
 @router.post('/custom-fields/{target}')
-def add_custom_field(target: str, data: dict, db: Session = Depends(get_db)):
+def add_custom_field(target: str, data: dict):
     if target not in ('order', 'inventory'):
         raise HTTPException(status_code=400, detail='目标必须是 order 或 inventory')
     key = str(data.get('key', '')).strip()
@@ -276,7 +270,6 @@ def add_custom_field(target: str, data: dict, db: Session = Depends(get_db)):
     if not key:
         raise HTTPException(status_code=400, detail='字段名不能为空')
     cf = load_custom_fields()
-    # 去重
     existing = [f for f in cf.get(target, []) if f['key'] == key]
     if not existing:
         cf[target].append({'key': key, 'label': label, 'type': ftype})
@@ -294,8 +287,7 @@ def remove_custom_field(target: str, field_key: str):
 
 def cleanse_value(raw_val, cfg):
     if raw_val is None or str(raw_val).strip() == '':
-        default = cfg.get('default', '')
-        return default
+        return cfg.get('default', '')
     v = str(raw_val).strip()
     field_type = cfg.get('type', 'string')
     fmt_str = cfg.get('format', '')

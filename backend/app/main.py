@@ -1,7 +1,7 @@
 import os
 import sys
 
-# ─── 务必最先：加载 .env 文件，使 database.py 导入时能读到 DATABASE_URL ───
+# ─── 务必最先：加载 .env 文件 ───
 _env_path = os.path.join(os.path.dirname(__file__), '.env')
 if os.path.exists(_env_path):
     with open(_env_path) as _f:
@@ -11,10 +11,9 @@ if os.path.exists(_env_path):
                 _k, _v = _line.split('=', 1)
                 os.environ[_k.strip()] = _v.strip()
 
-# ─── 导入 ──────────────────────────────────────────────────────────────────
+# ─── 导入 ───
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.core.database import Base, engine, SessionLocal
 from app.api.routes.dashboard import router as dashboard_router
 from app.api.routes.orders import router as orders_router
 from app.api.routes.inventory import router as inventory_router
@@ -27,8 +26,6 @@ from app.api.routes.cleansing import router as cleansing_router
 from app.api.routes.products import router as products_router
 from app.api.routes.suppliers import router as suppliers_router
 from app.api.routes.insights import router as insights_router
-from app.services.dashboard_service import seed_data, seed_products, seed_suppliers
-from app.services.event_service import rebuild_low_stock_alerts
 
 app = FastAPI(title="SupplyChain V1")
 origins = [x.strip() for x in os.getenv("CORS_ORIGINS", "*").split(",") if x.strip()]
@@ -39,16 +36,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-Base.metadata.create_all(bind=engine)
-db = SessionLocal()
-if os.getenv("APP_ENV", "development") != "production":
-    seed_data(db)
-    seed_products(db)
-    seed_suppliers(db)
-    rebuild_low_stock_alerts(db)
-db.commit()
-db.close()
 
 app.include_router(dashboard_router)
 app.include_router(orders_router)

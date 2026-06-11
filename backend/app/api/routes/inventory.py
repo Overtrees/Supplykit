@@ -1,89 +1,54 @@
-from fastapi import APIRouter, Depends, UploadFile, File
-from sqlalchemy.orm import Session
-from datetime import datetime
-import json
-import csv
-import io
-from openpyxl import load_workbook
-from app.core.database import get_db
-from app.models.entities import Inventory, QualityLog, SyncTask
-from app.api.routes.ws import broadcast
-from app.services.event_service import create_event, rebuild_low_stock_alerts
+from fastapi import APIRouter, Depends
+from supabase import Client
+from app.core.supabase_client import get_supabase
 
 router = APIRouter(prefix="/api/inventory", tags=["inventory"])
 
 @router.get("")
-def list_inventory(db: Session = Depends(get_db), page: int = 1, page_size: int = 50,
-                   search: str = '', store: str = ''):
-    q = db.query(Inventory)
-    if search:
-        like = f'%{search}%'
-        q = q.filter((Inventory.sku.like(like)) | (Inventory.product_name.like(like)))
+def list_inventory(supabase: Client = Depends(get_supabase), store: str = ""):
+    q = supabase.table("inventory").select("*")
     if store:
-        q = q.filter(Inventory.store == store)
-    total = q.count()
-    rows = q.order_by(Inventory.id.desc()).offset((page-1)*page_size).limit(page_size).all()
-    return {
-        'total': total, 'page': page, 'page_size': page_size,
-        'total_pages': (total + page_size - 1) // page_size,
-        'items': [{
-            "id": x.id, "store": x.store, "sku": x.sku, "product_name": x.product_name,
-            "available_qty": x.available_qty, "locked_qty": x.locked_qty,
-            "in_transit_qty": x.in_transit_qty, "safety_qty": x.safety_qty,
-        } for x in rows],
-    }
-
-def rows_from_upload(file_name, content):
-    if file_name.lower().endswith('.csv'):
-        text = content.decode('utf-8-sig', errors='ignore')
-        return list(csv.DictReader(io.StringIO(text)))
-    wb = load_workbook(io.BytesIO(content), data_only=True)
-    ws = wb[wb.sheetnames[0]]
-    rows = list(ws.iter_rows(values_only=True))
-    if not rows:
-        return []
-    headers = [str(x).strip() if x is not None else '' for x in rows[0]]
-    data = []
-    for row in rows[1:]:
-        data.append({headers[i]: row[i] for i in range(len(headers))})
+        q = q.eq("store", store)
+    data = q.order("id", desc=True).execute().data
     return data
 
-@router.post('/import')
-async def import_inventory(file: UploadFile = File(...), db: Session = Depends(get_db)):
-    content = await file.read()
-    rows = rows_from_upload(file.filename, content)
-    success = 0
-    failed = 0
-    for row in rows:
-        sku = str(row.get('商品编号') or row.get('SKU编号') or row.get('sku') or '').strip()
-        store = str(row.get('店铺名称') or row.get('store') or '未知店铺').strip()
-        if not sku:
-          failed += 1
-          db.add(QualityLog(entity_type='inventory', entity_id=None, field_name='sku', issue_type='missing_key', issue_message='缺少SKU', severity='error', raw_data=json.dumps(row, ensure_ascii=False, default=str)))
-          continue
-        exists = db.query(Inventory).filter(Inventory.sku == sku, Inventory.store == store).first()
-        payload = {
-            'store': store,
-            'sku': sku,
-            'product_name': str(row.get('商品名称') or row.get('product_name') or '').strip(),
-            'available_qty': int(float(row.get('可用库存') or row.get('available_qty') or 0)),
-            'locked_qty': int(float(row.get('锁定库存') or row.get('locked_qty') or 0)),
-            'in_transit_qty': int(float(row.get('在途数量') or row.get('in_transit_qty') or 0)),
-            'safety_qty': int(float(row.get('预警库存') or row.get('safety_qty') or 0)),
-            'source': 'import_file',
-            'raw_data': json.dumps(row, ensure_ascii=False, default=str),
-        }
-        if exists:
-            for k, v in payload.items():
-                setattr(exists, k, v)
-        else:
-            db.add(Inventory(**payload))
-        success += 1
-    task = SyncTask(task_type='import_inventory', platform='manual_import', status='success', started_at=datetime.utcnow(), finished_at=datetime.utcnow(), success_count=success, failed_count=failed, message=f'导入库存 {success} 条，异常 {failed} 条')
-    db.add(task)
-    create_event(db, 'inventory.imported', 'inventory', None, '库存导入完成', {'success': success, 'failed': failed, 'file': file.filename})
-    db.flush()
-    rebuild_low_stock_alerts(db)
-    db.commit()
-    await broadcast({'type': 'inventory.imported', 'payload': {'success': success, 'failed': failed, 'file': file.filename}})
-    return {'ok': True, 'success': success, 'failed': failed, 'file': file.filename}
+@router.post("")
+def create_inventory(body: dict, supabase: Client = Depends(get_supabase)):
+    data = supabase.table("inventory").insert({
+        "sku": body.get("sku"),
+        "product_name": body.get("product_name"),
+        "store": body.get("store", ""),
+        "available_qty": int(body.get("available_qty", 0)),
+        "locked_qty": int(body.get("locked_qty", 0)),
+        "in_transit_qty": int(body.get("in_transit_qty", 0)),
+        "safety_qty": int(body.get("safety_qty", 10)),
+        "status": body.get("status", "active"),
+    }).execute().data
+    return data[0] if data else {"ok": True}
+
+@router.put("/{iid}")
+def update_inventory(iid: int, body: dict, supabase: Client = Depends(get_supabase)):
+    supabase.table("inventory").update(body).eq("id", iid).execute()
+    return {"ok": True}
+
+@router.delete("/{iid}")
+def delete_inventory(iid: int, supabase: Client = Depends(get_supabase)):
+    supabase.table("inventory").delete().eq("id", iid).execute()
+    return {"ok": True}
+
+@router.post("/adjust")
+def adjust_inventory(body: dict, supabase: Client = Depends(get_supabase)):
+    iid = body.get("id")
+    action = body.get("action")
+    qty = int(body.get("quantity", 0))
+    inv = supabase.table("inventory").select("*").eq("id", iid).single().execute().data
+    if not inv:
+        return {"ok": False, "error": "not found"}
+    avail = int(inv.get("available_qty") or 0)
+    if action == "in":
+        supabase.table("inventory").update({"available_qty": avail + qty}).eq("id", iid).execute()
+    elif action == "out":
+        supabase.table("inventory").update({"available_qty": max(0, avail - qty)}).eq("id", iid).execute()
+    elif action == "set":
+        supabase.table("inventory").update({"available_qty": qty}).eq("id", iid).execute()
+    return {"ok": True}

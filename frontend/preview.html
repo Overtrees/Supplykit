@@ -95,6 +95,7 @@
           }
           if (!window.echarts) return
           inst = echarts.init(el)
+          setTimeout(function() { inst.setOption(option) }, 0)
           inst._rz = function() { inst.resize() }
           window.addEventListener('resize', inst._rz)
         }

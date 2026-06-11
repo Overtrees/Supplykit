@@ -83,25 +83,21 @@
         return <div className="card"><div style={{display:'flex',justifyContent:'space-between',gap:8}}><div className="small muted">{title}</div>{badge || null}</div><div style={{fontSize:28,fontWeight:700,marginTop:6}}>{value}</div>{sub ? <div className="small muted" style={{marginTop:4}}>{sub}</div> : null}</div>
       }
       function Chart({ option, height=260 }) {
-        var inst = null
-        var bind = function(el) {
-          if (!el) {
-            if (inst) {
-              window.removeEventListener('resize', inst._rz)
-              inst.dispose()
-              inst = null
-            }
-            return
-          }
-          if (!window.echarts) return
-          var existing = echarts.getInstanceByDom(el)
+        const ref = useRef(null)
+        useEffect(() => {
+          if (!ref.current || !window.echarts) return
+          var existing = echarts.getInstanceByDom(ref.current)
           if (existing) existing.dispose()
-          inst = echarts.init(el)
-          setTimeout(function() { inst.setOption(option) }, 0)
-          inst._rz = function() { inst.resize() }
-          window.addEventListener('resize', inst._rz)
-        }
-        return <div ref={bind} style={{width:'100%',height}} />
+          const chart = echarts.init(ref.current)
+          chart.setOption(option)
+          const onResize = () => chart.resize()
+          window.addEventListener('resize', onResize)
+          return () => {
+            window.removeEventListener('resize', onResize)
+            chart.dispose()
+          }
+        }, [option])
+        return <div ref={ref} style={{width:'100%',height}} />
       }
       function levelClass(level) {
         if (level === 'error') return 'danger'

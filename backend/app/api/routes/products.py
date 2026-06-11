@@ -9,14 +9,27 @@ from app.services.dashboard_service import seed_products
 router = APIRouter(prefix="/api/products", tags=["products"])
 
 @router.get("")
-def list_products(db: Session = Depends(get_db)):
-    q = db.query(Product).order_by(Product.id.desc()).all()
-    return [{
-        'id': x.id, 'sku': x.sku, 'product_name': x.product_name,
-        'store': x.store, 'category': x.category, 'unit': x.unit,
-        'price': x.price, 'status': x.status,
-        'created_at': x.created_at.isoformat() if x.created_at else None,
-    } for x in q]
+def list_products(db: Session = Depends(get_db), page: int = 1, page_size: int = 50,
+                  search: str = '', store: str = '', category: str = ''):
+    q = db.query(Product)
+    if search:
+        like = f'%{search}%'
+        q = q.filter((Product.sku.like(like)) | (Product.product_name.like(like)))
+    if store:
+        q = q.filter(Product.store == store)
+    if category:
+        q = q.filter(Product.category == category)
+    total = q.count()
+    rows = q.order_by(Product.id.desc()).offset((page-1)*page_size).limit(page_size).all()
+    return {
+        'total': total, 'page': page, 'page_size': page_size,
+        'total_pages': (total + page_size - 1) // page_size,
+        'items': [{
+            'id': x.id, 'sku': x.sku, 'product_name': x.product_name,
+            'store': x.store, 'category': x.category, 'unit': x.unit,
+            'price': x.price, 'status': x.status,
+        } for x in rows],
+    }
 
 @router.get("/{sku}")
 def get_product(sku: str, db: Session = Depends(get_db)):

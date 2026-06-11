@@ -20,8 +20,8 @@ export const useAppStore = create((set, get) => ({
     ])
     set({
       dashboard: dashboard.data,
-      orders: orders.data,
-      inventory: inventory.data,
+      orders: orders.data?.items || orders.data || [],
+      inventory: inventory.data?.items || inventory.data || [],
       qualityLogs: qualityLogs.data,
     })
   },

@@ -14,21 +14,34 @@ from app.api.routes.insights import auto_adjust_inventory
 router = APIRouter(prefix="/api/orders", tags=["orders"])
 
 @router.get("")
-def list_orders(db: Session = Depends(get_db)):
-    rows = db.query(Order).order_by(Order.id.desc()).all()
-    return [{
-        "id": x.id,
-        "order_no": x.order_no,
-        "store": x.store,
-        "sku": x.sku,
-        "product_name": x.product_name,
-        "quantity": x.quantity,
-        "unit_price": x.unit_price,
-        "total_amount": x.total_amount,
-        "order_status": x.order_status,
-        "platform": x.platform,
-        "ordered_at": x.ordered_at,
-    } for x in rows]
+def list_orders(db: Session = Depends(get_db), page: int = 1, page_size: int = 50,
+                search: str = '', status: str = '', store: str = '',
+                sort_by: str = 'id', sort_order: str = 'desc'):
+    q = db.query(Order)
+    if search:
+        like = f'%{search}%'
+        q = q.filter((Order.order_no.like(like)) | (Order.product_name.like(like)) | (Order.sku.like(like)))
+    if status:
+        q = q.filter(Order.order_status == status)
+    if store:
+        q = q.filter(Order.store == store)
+    total = q.count()
+    sort_col = getattr(Order, sort_by, Order.id)
+    if sort_order == 'asc':
+        q = q.order_by(sort_col.asc())
+    else:
+        q = q.order_by(sort_col.desc())
+    rows = q.offset((page-1)*page_size).limit(page_size).all()
+    return {
+        'total': total, 'page': page, 'page_size': page_size,
+        'total_pages': (total + page_size - 1) // page_size,
+        'items': [{
+            "id": x.id, "order_no": x.order_no, "store": x.store, "sku": x.sku,
+            "product_name": x.product_name, "quantity": x.quantity,
+            "unit_price": x.unit_price, "total_amount": x.total_amount,
+            "order_status": x.order_status, "platform": x.platform, "ordered_at": x.ordered_at,
+        } for x in rows],
+    }
 
 def rows_from_upload(file_name, content):
     if file_name.lower().endswith('.csv'):
@@ -103,6 +116,8 @@ def batch_delete_orders(ids: str = '', db: Session = Depends(get_db)):
         deleted = db.query(Order).filter(Order.id.in_(id_list)).delete(synchronize_session=False)
     db.commit()
     return {'ok': True, 'deleted': deleted}
+
+@router.post('/import')
 async def import_orders(file: UploadFile = File(...), db: Session = Depends(get_db)):
     content = await file.read()
     rows = rows_from_upload(file.filename, content)

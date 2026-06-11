@@ -553,7 +553,7 @@
             fetch(API+'/api/events').then(r=>r.json()),
             fetch(API+'/api/sync-tasks').then(r=>r.json()),
           ])
-          setDashboard(d); setOrders(o); setInventory(i); setQualityLogs(q); setAlerts(a); setEvents(e); setSyncTasks(s)
+          setDashboard(d); setOrders(o.items||o); setInventory(i.items||i); setQualityLogs(q); setAlerts(a); setEvents(e); setSyncTasks(s)
         } catch(e) { console.error(e) }
       }
 

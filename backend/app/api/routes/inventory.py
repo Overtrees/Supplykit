@@ -13,18 +13,25 @@ from app.services.event_service import create_event, rebuild_low_stock_alerts
 router = APIRouter(prefix="/api/inventory", tags=["inventory"])
 
 @router.get("")
-def list_inventory(db: Session = Depends(get_db)):
-    rows = db.query(Inventory).order_by(Inventory.id.desc()).all()
-    return [{
-        "id": x.id,
-        "store": x.store,
-        "sku": x.sku,
-        "product_name": x.product_name,
-        "available_qty": x.available_qty,
-        "locked_qty": x.locked_qty,
-        "in_transit_qty": x.in_transit_qty,
-        "safety_qty": x.safety_qty,
-    } for x in rows]
+def list_inventory(db: Session = Depends(get_db), page: int = 1, page_size: int = 50,
+                   search: str = '', store: str = ''):
+    q = db.query(Inventory)
+    if search:
+        like = f'%{search}%'
+        q = q.filter((Inventory.sku.like(like)) | (Inventory.product_name.like(like)))
+    if store:
+        q = q.filter(Inventory.store == store)
+    total = q.count()
+    rows = q.order_by(Inventory.id.desc()).offset((page-1)*page_size).limit(page_size).all()
+    return {
+        'total': total, 'page': page, 'page_size': page_size,
+        'total_pages': (total + page_size - 1) // page_size,
+        'items': [{
+            "id": x.id, "store": x.store, "sku": x.sku, "product_name": x.product_name,
+            "available_qty": x.available_qty, "locked_qty": x.locked_qty,
+            "in_transit_qty": x.in_transit_qty, "safety_qty": x.safety_qty,
+        } for x in rows],
+    }
 
 def rows_from_upload(file_name, content):
     if file_name.lower().endswith('.csv'):

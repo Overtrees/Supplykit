@@ -45,8 +45,13 @@ def register_core_handlers():
 
     def _handle_broadcast(data):
         from app.api.routes.ws import broadcast
-        import asyncio
-        asyncio.ensure_future(broadcast(data.get('ws_message', {})))
+        try:
+            import asyncio
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                loop.create_task(broadcast(data.get('ws_message', {})))
+        except Exception:
+            pass
 
     bus.on('order.created', _handle_inventory_adjust)
     bus.on('order.created', _handle_event_log)

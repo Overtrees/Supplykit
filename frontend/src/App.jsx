@@ -170,10 +170,20 @@ export default function App() {
   const [page, setPage] = useState('dash')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [periodTab, setPeriodTab] = useState('month')
+  const [highlightSku, setHighlightSku] = useState('')
   const { dashboard, orders, orderTotal, orderPage, inventory, qualityLogs, alerts, startPolling, stopAll, setOrderPage, wsStatus } = useAppStore()
   const [loadingOrders, setLoadingOrders] = useState(false)
 
   useEffect(() => { startPolling(); return () => stopAll() }, [])
+
+  useEffect(() => {
+    if (page === 'inv' && highlightSku) {
+      setTimeout(() => {
+        const el = document.getElementById('hl-row')
+        if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); setTimeout(() => setHighlightSku(''), 3000) }
+      }, 200)
+    }
+  }, [page, highlightSku])
 
   const periodLabel = { today:'今日', week:'本周', month:'本月' }
   const periodTrend = dashboard?.periods?.[periodTab + '_trend'] || dashboard?.trend || []
@@ -310,7 +320,8 @@ export default function App() {
                   {alertsList.length === 0
                     ? <div className="small muted" style={{ padding: 12, textAlign: 'center' }}>暂无告警</div>
                     : alertsList.slice(0, 6).map(x => (
-                        <div key={x.id} style={{ padding: '6px 0', borderBottom: '1px solid #f1f5f9', fontSize: 13 }}>
+                        <div key={x.id} onClick={() => { setPage('inv'); setHighlightSku(x.related_sku) }} style={{ padding: '6px 0', borderBottom: '1px solid #f1f5f9', fontSize: 13, cursor: 'pointer' }}
+                          onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                             <span style={{ fontWeight: 600, fontSize: 12 }}>{x.title}</span>
                             <span className={`pill ${x.alert_type === 'replenish' || x.severity === 'error' ? 'danger' : x.severity === 'warning' ? 'warning' : 'info'}`}>
@@ -366,7 +377,9 @@ export default function App() {
                 <table>
                   <thead><tr>{['店铺','仓库','SKU','商品','可用','锁定','在途','安全线'].map(h => <th key={h}>{h}</th>)}</tr></thead>
                   <tbody>
-                    {inventory.map(x => <tr key={x.id}>
+                    {inventory.map(x => {
+                      const isHL = highlightSku && x.sku === highlightSku
+                      return <tr key={x.id} id={isHL ? 'hl-row' : ''} style={isHL ? { background: '#fef3c7', outline: '2px solid #f59e0b' } : {}}>
                       <td>{x.store || '-'}</td>
                       <td>{x.warehouse || '-'}</td>
                       <td className="mono" style={{ fontSize:12 }}>{x.sku}</td>

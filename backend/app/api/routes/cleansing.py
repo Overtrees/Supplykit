@@ -134,8 +134,28 @@ async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''
     failed = 0
     orders_to_insert = []
     inv_to_insert = []
+    order_no_seen = set()
 
+    # 批量加载已存在的订单号，避免逐行 SELECT
     dedup = {}
+    for row in rows:
+        data = {}
+        for src_col, cfg in mapping_config.items():
+            target_field = cfg.get('target', '')
+            if target_field:
+                data[target_field] = cleanse_value(row.get(src_col, ''), cfg)
+        order_no = data.get('order_no', '')
+        if not order_no:
+            order_no = f"AUTO-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+        if order_no in dedup:
+            dedup[order_no] += 1
+        else:
+            dedup[order_no] = 0
+
+    if dedup:
+        existing_data = supabase.table("orders").select("order_no").in_("order_no", list(dedup.keys())).execute().data
+        order_no_seen = {r['order_no'] for r in existing_data}
+
     for row in rows:
         try:
             data = {}
@@ -155,8 +175,8 @@ async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''
                     dedup[order_no] = 0
                 data['order_no'] = order_no
 
-                exists = supabase.table("orders").select("id").eq("order_no", order_no).execute().data
-                if not exists:
+                if order_no not in order_no_seen:
+                    order_no_seen.add(order_no)
                     orders_to_insert.append({
                         "order_no": order_no,
                         "store": str(data.get('store', '未知'))[:100],
@@ -197,8 +217,8 @@ async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''
         except Exception as e:
             failed += 1
             supabase.table("quality_logs").insert({
-                "issue_type": "cleansing_error",
-                "issue_message": str(e)[:200], "severity": "error",
+                "log_type": "cleansing_error",
+                "message": str(e)[:200], "level": "error",
             }).execute()
 
     if orders_to_insert:
@@ -208,8 +228,8 @@ async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''
             failed += len(orders_to_insert)
             success -= len(orders_to_insert)
             supabase.table("quality_logs").insert({
-                "issue_type": "cleansing_batch_error",
-                "issue_message": f"批量写入订单失败: {str(e)[:150]}", "severity": "error",
+                "log_type": "cleansing_batch_error",
+                "message": f"批量写入订单失败: {str(e)[:150]}", "level": "error",
             }).execute()
     if inv_to_insert:
         try:
@@ -218,8 +238,8 @@ async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''
             failed += len(inv_to_insert)
             success -= len(inv_to_insert)
             supabase.table("quality_logs").insert({
-                "issue_type": "cleansing_batch_error",
-                "issue_message": f"批量写入库存失败: {str(e)[:150]}", "severity": "error",
+                "log_type": "cleansing_batch_error",
+                "message": f"批量写入库存失败: {str(e)[:150]}", "level": "error",
             }).execute()
 
     # 保存模板

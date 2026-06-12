@@ -167,9 +167,6 @@ async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''
                         "total_amount": float(data.get('total_amount', 0)),
                         "order_status": str(data.get('order_status', '已完成'))[:50],
                         "ordered_at": str(data.get('ordered_at', ''))[:50],
-                        "platform": "cleansed",
-                        "source": "cleansing",
-                        "raw_data": json.dumps(row, ensure_ascii=False, default=str),
                     })
                     auto_adjust_inventory(data, 'cleansing', supabase)
                     success += 1
@@ -200,7 +197,7 @@ async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''
         except Exception as e:
             failed += 1
             supabase.table("quality_logs").insert({
-                "entity_type": target, "issue_type": "cleansing_error",
+                "issue_type": "cleansing_error",
                 "issue_message": str(e)[:200], "severity": "error",
             }).execute()
 
@@ -211,7 +208,7 @@ async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''
             failed += len(orders_to_insert)
             success -= len(orders_to_insert)
             supabase.table("quality_logs").insert({
-                "entity_type": "order", "issue_type": "cleansing_batch_error",
+                "issue_type": "cleansing_batch_error",
                 "issue_message": f"批量写入订单失败: {str(e)[:150]}", "severity": "error",
             }).execute()
     if inv_to_insert:
@@ -221,7 +218,7 @@ async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''
             failed += len(inv_to_insert)
             success -= len(inv_to_insert)
             supabase.table("quality_logs").insert({
-                "entity_type": "inventory", "issue_type": "cleansing_batch_error",
+                "issue_type": "cleansing_batch_error",
                 "issue_message": f"批量写入库存失败: {str(e)[:150]}", "severity": "error",
             }).execute()
 

@@ -84,7 +84,7 @@ export default function CleansingPage() {
       const r = await fetch(API + '/api/cleansing/execute', { method: 'POST', body: form })
       const d = await r.json()
       if (d.ok) { setResult(d); await loadTemplates(); setStep(3) }
-      else { alert('清洗失败: ' + (d.error || JSON.stringify(d))); setBusy('') }
+      else { alert(d.error || '清洗失败: ' + JSON.stringify(d)); setBusy('') }
     } catch (e) { alert('请求异常: ' + e.message); setBusy('') }
   }
 
@@ -241,12 +241,16 @@ export default function CleansingPage() {
 
       {step === 3 && result && (
         <div className="card" style={{ textAlign: 'center', padding: 40 }}>
-          <div style={{ fontSize: 32, marginBottom: 8 }}>✅</div>
-          <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 4 }}>清洗完成</div>
-          <div className="small muted" style={{ marginBottom: 16 }}>目标: {result.target} · 文件: {result.file}</div>
+          <div style={{ fontSize: 32, marginBottom: 8 }}>{result.success > 0 ? '✅' : '⚠️'}</div>
+          <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 4 }}>
+            {result.success > 0 ? '清洗完成' : '清洗完成（无新增）'}
+          </div>
+          <div className="small muted" style={{ marginBottom: 16 }}>
+            {result.message || `目标: ${result.target} · 文件: ${result.file}`}
+          </div>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginBottom: 16 }}>
             <div><div style={{ fontSize: 24, fontWeight: 700, color: '#059669' }}>{result.success}</div><div className="small muted">成功</div></div>
-            <div><div style={{ fontSize: 24, fontWeight: 700, color: result.failed > 0 ? '#e11d48' : '#94a3b8' }}>{result.failed}</div><div className="small muted">失败</div></div>
+            <div><div style={{ fontSize: 24, fontWeight: 700, color: result.failed > 0 ? '#e11d48' : '#94a3b8' }}>{result.failed}</div><div className="small muted">跳过</div></div>
           </div>
           <button onClick={reset}
             style={{ padding: '8px 20px', background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>

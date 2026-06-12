@@ -233,6 +233,14 @@ async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''
                 "mapping": json.dumps(mapping_config, ensure_ascii=False),
             }).execute()
 
+    # 构建提示消息
+    msg_parts = []
+    if success > 0:
+        msg_parts.append(f"成功导入 {success} 条")
+    if failed > 0:
+        msg_parts.append(f"{failed} 条跳过（已存在或写入失败）")
+    message = "，".join(msg_parts) if msg_parts else "无数据变更"
+
     from app.core.events import bus
     bus.emit('data.cleaned', {
         'target': target,
@@ -246,7 +254,11 @@ async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''
         }
     })
 
-    return {'ok': True, 'success': success, 'failed': failed, 'file': file.filename, 'target': target}
+    if success == 0 and failed > 0:
+        return {'ok': False, 'success': 0, 'failed': failed, 'file': file.filename, 'target': target,
+                'error': '所有记录均重复或写入失败，无新增数据。请检查文件是否已导入过'}
+    return {'ok': True, 'success': success, 'failed': failed, 'file': file.filename,
+            'target': target, 'message': message}
 
 # ─── 模板管理 ────────────────────────────────────────────────────────────────
 

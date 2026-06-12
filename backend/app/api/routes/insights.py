@@ -162,6 +162,50 @@ def get_insight_summary(db = get_db()):
     }
 
 
+@router.get('/trend-analysis')
+def trend_analysis(days: int = 30, db = get_db()):
+    """趋势分析：日/周/月维度聚合"""
+    from collections import defaultdict
+    orders = db.table("orders").select("*").execute().data
+    inventory = db.table("inventory").select("*").execute().data
+
+    daily = defaultdict(lambda: {'gmv': 0, 'orders': 0})
+    cat_count = defaultdict(int)
+    for o in orders:
+        date = (o.get('ordered_at') or '')[:10]
+        daily[date]['gmv'] += float(o.get('total_amount') or 0)
+        daily[date]['orders'] += 1
+        cat = o.get('product_name', '未知')[:4]
+        cat_count[cat] += 1
+
+    trend = [{'date': d, **v} for d, v in sorted(daily.items())[-days:]]
+    cat_pie = [{'name': k, 'value': v} for k, v in sorted(cat_count.items(), key=lambda x: -x[1])[:10]]
+    inv_status = {
+        'normal': sum(1 for i in inventory if int(i.get('available_qty') or 0) >= int(i.get('safety_qty') or 0)),
+        'low': sum(1 for i in inventory if 0 < int(i.get('available_qty') or 0) < int(i.get('safety_qty') or 0)),
+        'out': sum(1 for i in inventory if int(i.get('available_qty') or 0) <= 0),
+    }
+    return {'daily': trend, 'categories': cat_pie, 'inventory_health': inv_status,
+            'total_gmv': sum(d['gmv'] for d in trend), 'total_orders': sum(d['orders'] for d in trend)}
+
+@router.get('/anomaly-tracking')
+def anomaly_tracking(db = get_db()):
+    """异常追踪：告警 + 质量日志汇总"""
+    alerts = db.table("alerts").select("*").order("id", desc=True).limit(100).execute().data or []
+    quality = db.table("quality_logs").select("*").order("id", desc=True).limit(100).execute().data or []
+    events = db.table("events").select("*").order("id", desc=True).limit(100).execute().data or []
+    return {
+        'alerts': alerts,
+        'quality_logs': quality,
+        'events': events,
+        'summary': {
+            'alert_count': len(alerts),
+            'active_alerts': sum(1 for a in alerts if a.get('status') == 'active'),
+            'error_count': sum(1 for q in quality if q.get('level') == 'error'),
+            'event_count': len(events),
+        }
+    }
+
 @router.post('/sync-from-orders')
 def sync_inventory_from_orders(db = get_db(), limit: int = 200):
     """根据最近订单自动调整库存（异步调用）"""

@@ -203,5 +203,4 @@ def auto_adjust_inventory(order_data: dict, order_type: str, supabase: Client):
             "locked_qty": 0,
             "in_transit_qty": 0,
             "safety_qty": 10,
-            "source": "auto_created",
         }).execute()

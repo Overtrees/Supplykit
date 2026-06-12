@@ -245,11 +245,24 @@
         form.append('target', targetType)
         form.append('template_name', templateName)
         try {
+          console.log('[Cleansing] POST', API+'/api/cleansing/execute')
           const res = await fetch(API+'/api/cleansing/execute', { method:'POST', body:form })
+          console.log('[Cleansing] Status:', res.status)
+          if (!res.ok) {
+            const txt = await res.text().catch(() => '')
+            console.error('[Cleansing] Error body:', txt.slice(0,300))
+            alert('清洗失败 (HTTP '+res.status+'): '+(txt.slice(0,100)||res.statusText))
+            setBusy(''); return
+          }
           const data = await res.json()
+          console.log('[Cleansing] Data:', data)
           if (data.ok) { setResult(data); await loadTemplates(); setStep(3) }
           else { alert(data.error || '清洗失败: ' + JSON.stringify(data)); setBusy('') }
-        } catch(e) { alert('请求异常: ' + e.message); setBusy('') }
+        } catch(e) {
+          console.error('[Cleansing] Exception:', e.name, e.message, e.cause||'')
+          alert('请求异常: ' + e.message + ' (详见控制台 Console)')
+          setBusy('')
+        }
       }
 
       // 重置

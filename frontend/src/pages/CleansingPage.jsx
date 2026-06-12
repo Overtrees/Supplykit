@@ -81,11 +81,24 @@ export default function CleansingPage() {
     form.append('target', targetType)
     form.append('template_name', templateName)
     try {
+      console.log('[Cleansing] POST', API + '/api/cleansing/execute')
       const r = await fetch(API + '/api/cleansing/execute', { method: 'POST', body: form })
+      console.log('[Cleansing] Response status:', r.status, r.statusText)
+      if (!r.ok) {
+        const text = await r.text().catch(() => '')
+        console.error('[Cleansing] HTTP error body:', text.slice(0, 300))
+        alert('清洗失败 (HTTP ' + r.status + '): ' + (text.slice(0, 100) || r.statusText))
+        setBusy(''); return
+      }
       const d = await r.json()
+      console.log('[Cleansing] Response data:', d)
       if (d.ok) { setResult(d); await loadTemplates(); setStep(3) }
       else { alert(d.error || '清洗失败: ' + JSON.stringify(d)); setBusy('') }
-    } catch (e) { alert('请求异常: ' + e.message); setBusy('') }
+    } catch (e) {
+      console.error('[Cleansing] Fetch exception:', e.name, e.message, e.cause || '')
+      alert('请求异常: ' + e.message + ' (详见控制台 Console)')
+      setBusy('')
+    }
   }
 
   const reset = () => { setStep(0); setFile(null); setColumns([]); setPreview(null); setResult(null); setTemplateName('') }

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
 from app.core.database import get_db
+from app.core.scheduler import get_status as scheduler_status, start as restart_scheduler
 
 router = APIRouter(prefix="/api/sync-tasks", tags=["sync_tasks"])
 
@@ -10,3 +11,7 @@ def list_sync_tasks(db = get_db()):
         return data
     except Exception:
         return []
+
+@router.get("/scheduler")
+def get_scheduler_status():
+    return scheduler_status()

@@ -29,12 +29,14 @@ from app.api.routes.insights import router as insights_router
 
 from app.core.events import register_core_handlers
 from app.core.database import init_db, backup_db
+from app.core.scheduler import start as start_scheduler, get_status as scheduler_status
+
 init_db()
-# 启动时自动备份
 bak = backup_db()
 if bak:
     import logging; logging.info(f"Database backed up to {bak}")
 register_core_handlers()
+start_scheduler()
 
 app = FastAPI(title="SupplyChain V1")
 origins = [x.strip() for x in os.getenv("CORS_ORIGINS", "*").split(",") if x.strip()]

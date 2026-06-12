@@ -169,6 +169,19 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
     if orders_to_insert:
         try:
             db.table("orders").insert(orders_to_insert).execute()
+            # 触发事件
+            try:
+                from app.core.events import bus
+                bus.emit('data.cleaned', {
+                    'target': target, 'event_type': f'{target}.cleansed',
+                    'title': f'清洗导入 {success} 条',
+                    'success': success, 'failed': failed,
+                    'ws_message': {
+                        'type': f'{target}.cleansed',
+                        'payload': {'success': success, 'failed': failed}
+                    }
+                })
+            except: pass
             # 异步触发库存调整
             from app.core.database import submit_task
             from app.api.routes.insights import sync_inventory_from_orders

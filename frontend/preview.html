@@ -594,14 +594,13 @@
       useEffect(() => {
         loadLatest()
         const ws = new WebSocket('wss://overtrees.pythonanywhere.com/ws/events')
-        ws.onopen = () => { setWsStatus('polling'); ws.send('ping') }
+        ws.onopen = () => { setWsStatus('connected'); ws.send('ping') }
         ws.onclose = () => setWsStatus('closed')
         ws.onerror = () => setWsStatus('error')
         ws.onmessage = async (e) => {
           try {
             const data = JSON.parse(e.data)
-            if (data.type === 'orders.imported' || data.type === 'inventory.imported') {
-              setLogs(prev => [data, ...prev].slice(0, 20))
+            if (data.type === 'order.created' || data.type === 'inventory.changed' || data.type === 'order.imported' || data.type === 'data.cleaned') {
               await loadLatest()
             }
           } catch (_) {}
@@ -669,7 +668,7 @@
                 <div className="small muted">CSV / XLSX 导入 · 实时看板 · 低库存告警 · 字段清洗</div>
               </div>
             </div>
-            <div className="small" style={{color:wsStatus==='connected'||wsStatus==='polling'?'#86efac':'#fcd34d'}}>WS: {wsStatus}</div>
+            <div className="small" style={{color:wsStatus==='connected'?'#86efac':wsStatus==='closed'?'#fcd34d':'#f87171'}}>WS: {wsStatus==='connected'?'实时':wsStatus==='closed'?'轮询':'断开'}</div>
           </div>
           <div className="wrap">
             {page === 'dash' && <>

@@ -170,10 +170,10 @@ export default function App() {
   const [page, setPage] = useState('dash')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [periodTab, setPeriodTab] = useState('month')
-  const { dashboard, orders, orderTotal, orderPage, inventory, qualityLogs, alerts, startPolling, stopPolling, setOrderPage, wsStatus } = useAppStore()
+  const { dashboard, orders, orderTotal, orderPage, inventory, qualityLogs, alerts, startPolling, stopAll, setOrderPage, wsStatus } = useAppStore()
   const [loadingOrders, setLoadingOrders] = useState(false)
 
-  useEffect(() => { startPolling(); return () => stopPolling() }, [])
+  useEffect(() => { startPolling(); return () => stopAll() }, [])
 
   const periodLabel = { today:'今日', week:'本周', month:'本月' }
   const periodTrend = dashboard?.periods?.[periodTab + '_trend'] || dashboard?.trend || []
@@ -250,7 +250,9 @@ export default function App() {
               <div style={{ fontSize:12, color:'rgba(255,255,255,0.6)' }}>React + ECharts · FastAPI · Polling</div>
             </div>
           </div>
-          <div style={{ fontSize:12, color: wsStatus === 'polling' ? '#86efac' : '#fcd34d' }}>{wsStatus}</div>
+          <div style={{ fontSize:12, color: wsStatus === 'connected' ? '#86efac' : wsStatus === 'polling' ? '#fcd34d' : '#f87171' }}>
+            {wsStatus === 'connected' ? '🟢 实时' : wsStatus === 'polling' ? '🟡 轮询' : '🔴 断开'}
+          </div>
         </div>
 
         {/* 内容 */}

@@ -53,33 +53,22 @@ def register_core_handlers():
         except Exception:
             pass
 
+    def _handle_order_rules(data):
+        from app.core.rules import evaluate
+        for item in data.get('items', []):
+            evaluate('order.created', {
+                'order_qty': int(item.get('quantity',0)),
+                'sku': item.get('sku',''),
+                'order': item,
+                'db': get_db(),
+            })
+
     bus.on('order.created', _handle_inventory_adjust)
     bus.on('order.created', _handle_event_log)
     bus.on('order.created', _handle_broadcast)
     bus.on('order.created', lambda _: invalidate_dashboard())
 
     # ─── inventory.changed ──────────────────────────────────────────
-    def _handle_inventory_alert(data):
-        db = get_db()
-        inv = data.get('inventory', {})
-        avail = int(inv.get('available_qty') or 0)
-        safety = int(inv.get('safety_qty') or 0)
-        sku = inv.get('sku', '')
-        product_name = inv.get('product_name', sku)
-        if 0 < safety and avail < safety:
-            existing = db.table("alerts").select("id").eq("alert_type", "low_stock")\
-                .eq("related_sku", sku).eq("status", "active").execute().data
-            if not existing:
-                db.table("alerts").insert({
-                    "alert_type": "low_stock",
-                    "title": f"低库存预警: {product_name}",
-                    "description": f"可用 {avail} < 安全线 {safety}",
-                    "severity": "warning",
-                    "source": "event_bus",
-                    "related_sku": sku,
-                    "status": "active",
-                }).execute()
-
     def _handle_inventory_event(data):
         from app.api.routes.events import create_event
         db = get_db()
@@ -93,35 +82,7 @@ def register_core_handlers():
         except Exception:
             pass
 
-    bus.on('inventory.changed', _handle_inventory_alert)
     bus.on('inventory.changed', _handle_inventory_event)
-
-    # ─── inventory.changed → 补货建议 ──────────────────────────────
-    def _handle_replenishment_check(data):
-        db = get_db()
-        inv = data.get('inventory', {})
-        avail = int(inv.get('available_qty') or 0)
-        safety = int(inv.get('safety_qty') or 0)
-        sku = inv.get('sku', '')
-        if not sku or safety <= 0:
-            return
-        # Only trigger when seriously low (≤30% safety or ≤0)
-        if avail <= max(1, int(safety * 0.3)):
-            suggested = max(safety * 2 - avail - int(inv.get('in_transit_qty') or 0), safety - avail)
-            existing = db.table("alerts").select("id").eq("alert_type", "replenish")\
-                .eq("related_sku", sku).eq("status", "active").execute().data
-            if not existing:
-                db.table("alerts").insert({
-                    "alert_type": "replenish",
-                    "title": f"紧急补货: {inv.get('product_name', sku)}",
-                    "description": f"可用 {avail}，建议补货 {suggested} 件 (安全线 {safety})",
-                    "severity": "error",
-                    "source": "event_bus",
-                    "related_sku": sku,
-                    "status": "active",
-                }).execute()
-
-    bus.on('inventory.changed', _handle_replenishment_check)
     bus.on('inventory.changed', lambda _: invalidate_dashboard())
 
     # ─── data.cleaned ───────────────────────────────────────────────

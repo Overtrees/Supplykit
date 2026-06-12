@@ -6,8 +6,6 @@ import ProductPage from './pages/ProductPage'
 import SupplierPage from './pages/SupplierPage'
 import InsightsPage from './pages/InsightsPage'
 import CleansingPage from './pages/CleansingPage'
-import TrendAnalysis from './pages/TrendAnalysis'
-import AnomalyTracking from './pages/AnomalyTracking'
 
 // ─── 导航配置 ────────────────────────────────────────────────────────────────
 
@@ -19,9 +17,8 @@ const NAV = [
   { id:'inv',      label:'库存',   icon:'📦' },
   { id:'insights', label:'建议',   icon:'💡' },
   { id:'cleansing',label:'清洗',   icon:'🧹' },
-  { id:'analytics', label:'趋势',   icon:'📈' },
-  { id:'anomalies', label:'异常',   icon:'⚠️' },
   { id:'import',   label:'导入数据',icon:'📤' },
+  { id:'quality',  label:'异常',   icon:'⚠️' },
 ]
 
 // ─── 小组件 ──────────────────────────────────────────────────────────────────
@@ -387,8 +384,6 @@ export default function App() {
 
           {page === 'import' && <UploadPanel />}
           {page === 'insights' && <InsightsPage />}
-          {page === 'analytics' && <TrendAnalysis />}
-          {page === 'anomalies' && <AnomalyTracking />}
           {page === 'cleansing' && <CleansingPage />}
 
           {page === 'quality' && (

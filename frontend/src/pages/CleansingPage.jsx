@@ -92,6 +92,8 @@ export default function CleansingPage() {
 
       // 轮询任务进度
       const taskId = d.task_id
+      setBusy('polling')
+      const startTime = Date.now()
       const poll = setInterval(async () => {
         try {
           const sr = await fetch(API + '/api/cleansing/task/' + taskId)
@@ -106,7 +108,6 @@ export default function CleansingPage() {
           }
         } catch(e) { clearInterval(poll); setBusy('') }
       }, 1000)
-      setBusy('polling')
     } catch (e) {
       alert('网络错误: ' + e.message + '\n\n请检查:\n1. ' + API + ' 是否可访问\n2. 切换到 Wi-Fi 或 4G 重试')
       setBusy('')
@@ -255,9 +256,9 @@ export default function CleansingPage() {
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => setStep(1)}
                 style={{ padding: '8px 16px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, cursor: 'pointer', fontSize: 13 }}>返回修改</button>
-              <button onClick={handleExecute} disabled={busy === 'exec'}
-                style={{ padding: '8px 20px', background: busy === 'exec' ? '#94a3b8' : '#059669', color: '#fff', border: 'none', borderRadius: 8, cursor: busy === 'exec' ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: 13 }}>
-                {busy === 'exec' ? '执行中...' : `确认写入 (${preview.total} 条)`}
+              <button onClick={handleExecute} disabled={busy === 'exec' || busy === 'polling'}
+                style={{ padding: '8px 20px', background: (busy === 'exec' || busy === 'polling') ? '#94a3b8' : '#059669', color: '#fff', border: 'none', borderRadius: 8, cursor: (busy === 'exec' || busy === 'polling') ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: 13 }}>
+                {busy === 'polling' ? '⏳ 清洗中...' : busy === 'exec' ? '执行中...' : `确认写入 (${preview.total} 条)`}
               </button>
             </div>
           </div>

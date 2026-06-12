@@ -162,6 +162,20 @@ def get_insight_summary(db = get_db()):
     }
 
 
+@router.post('/sync-from-orders')
+def sync_inventory_from_orders(db = get_db(), limit: int = 200):
+    """根据最近订单自动调整库存（异步调用）"""
+    orders = db.table("orders").select("*").order("id", desc=True).limit(limit).execute().data
+    count = 0
+    for o in orders:
+        try:
+            auto_adjust_inventory(o, 'cleansing', db)
+            count += 1
+        except Exception:
+            pass
+    return {'ok': True, 'synced': count, 'scanned': len(orders)}
+
+
 def auto_adjust_inventory(order_data: dict, order_type: str, db):
     sku = order_data.get("sku", "")
     qty = int(float(order_data.get("quantity", 0)))

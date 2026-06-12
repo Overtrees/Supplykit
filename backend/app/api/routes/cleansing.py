@@ -205,9 +205,25 @@ async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''
             }).execute()
 
     if orders_to_insert:
-        supabase.table("orders").insert(orders_to_insert).execute()
+        try:
+            supabase.table("orders").insert(orders_to_insert).execute()
+        except Exception as e:
+            failed += len(orders_to_insert)
+            success -= len(orders_to_insert)
+            supabase.table("quality_logs").insert({
+                "entity_type": "order", "issue_type": "cleansing_batch_error",
+                "issue_message": f"批量写入订单失败: {str(e)[:150]}", "severity": "error",
+            }).execute()
     if inv_to_insert:
-        supabase.table("inventory").insert(inv_to_insert).execute()
+        try:
+            supabase.table("inventory").insert(inv_to_insert).execute()
+        except Exception as e:
+            failed += len(inv_to_insert)
+            success -= len(inv_to_insert)
+            supabase.table("quality_logs").insert({
+                "entity_type": "inventory", "issue_type": "cleansing_batch_error",
+                "issue_message": f"批量写入库存失败: {str(e)[:150]}", "severity": "error",
+            }).execute()
 
     # 保存模板
     if template_name:

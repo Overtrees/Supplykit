@@ -188,7 +188,6 @@ async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''
                         "order_status": str(data.get('order_status', '已完成'))[:50],
                         "ordered_at": str(data.get('ordered_at', ''))[:50],
                     })
-                    auto_adjust_inventory(data, 'cleansing', supabase)
                     success += 1
                 else:
                     failed += 1

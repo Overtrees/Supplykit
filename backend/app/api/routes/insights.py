@@ -1,14 +1,13 @@
 from fastapi import APIRouter, Depends
-from supabase import Client
-from app.core.supabase_client import get_supabase
+from app.core.database import get_db
 
 router = APIRouter(prefix="/api/insights", tags=["insights"])
 
 
 @router.get('/replenishment')
-def get_replenishment_suggestions(supabase: Client = Depends(get_supabase)):
-    items = supabase.table("inventory").select("*").execute().data
-    products = {p["sku"]: p for p in supabase.table("products").select("*").execute().data}
+def get_replenishment_suggestions(db = get_db()):
+    items = db.table("inventory").select("*").execute().data
+    products = {p["sku"]: p for p in db.table("products").select("*").execute().data}
     suggestions = []
 
     for inv in items:
@@ -39,9 +38,9 @@ def get_replenishment_suggestions(supabase: Client = Depends(get_supabase)):
 
 
 @router.get('/purchase')
-def get_purchase_suggestions(supabase: Client = Depends(get_supabase)):
-    replen = get_replenishment_suggestions(supabase)
-    suppliers = supabase.table("suppliers").select("*").eq("status", "active").execute().data
+def get_purchase_suggestions(db = get_db()):
+    replen = get_replenishment_suggestions(db)
+    suppliers = db.table("suppliers").select("*").eq("status", "active").execute().data
     if not suppliers:
         return {"suggestions": replen, "suppliers": []}
 
@@ -66,12 +65,12 @@ def get_purchase_suggestions(supabase: Client = Depends(get_supabase)):
 
 
 @router.get('/slow-moving')
-def get_slow_moving_products(supabase: Client = Depends(get_supabase)):
+def get_slow_moving_products(db = get_db()):
     from datetime import datetime, timedelta
 
-    orders = supabase.table("orders").select("*").execute().data
-    products_map = {p["sku"]: p for p in supabase.table("products").select("*").execute().data}
-    inventory_map = {i["sku"]: i for i in supabase.table("inventory").select("*").execute().data}
+    orders = db.table("orders").select("*").execute().data
+    products_map = {p["sku"]: p for p in db.table("products").select("*").execute().data}
+    inventory_map = {i["sku"]: i for i in db.table("inventory").select("*").execute().data}
 
     last_order = {}
     for o in orders:
@@ -139,16 +138,16 @@ def get_slow_moving_products(supabase: Client = Depends(get_supabase)):
 
 
 @router.get('/summary')
-def get_insight_summary(supabase: Client = Depends(get_supabase)):
-    inv = supabase.table("inventory").select("*").execute().data
+def get_insight_summary(db = get_db()):
+    inv = db.table("inventory").select("*").execute().data
     total = len(inv)
     low_stock = len([x for x in inv if int(x.get("available_qty") or 0) < int(x.get("safety_qty") or 0)])
     out_of_stock = len([x for x in inv if int(x.get("available_qty") or 0) == 0])
 
-    replen = get_replenishment_suggestions(supabase)
+    replen = get_replenishment_suggestions(db)
     urgent = len([x for x in replen if x["urgency"] == "紧急"])
 
-    slow = get_slow_moving_products(supabase)
+    slow = get_slow_moving_products(db)
     slow_count = len([x for x in slow if x["level"] == "滞销"])
     cold_count = len([x for x in slow if x["level"] == "冷淡"])
 
@@ -163,23 +162,23 @@ def get_insight_summary(supabase: Client = Depends(get_supabase)):
     }
 
 
-def auto_adjust_inventory(order_data: dict, order_type: str, supabase: Client):
+def auto_adjust_inventory(order_data: dict, order_type: str, db):
     sku = order_data.get("sku", "")
     qty = int(float(order_data.get("quantity", 0)))
     if not sku or qty <= 0:
         return
 
-    inv_list = supabase.table("inventory").select("*").eq("sku", sku).execute().data
+    inv_list = db.table("inventory").select("*").eq("sku", sku).execute().data
     if inv_list:
         inv = inv_list[0]
         avail = int(inv.get("available_qty") or 0)
         if order_type in ("jd_purchase", "cleansing_purchase"):
             new_avail = avail + qty
-            supabase.table("inventory").update({"available_qty": new_avail}).eq("id", inv["id"]).execute()
+            db.table("inventory").update({"available_qty": new_avail}).eq("id", inv["id"]).execute()
             inv["available_qty"] = new_avail
         elif order_type in ("sales", "jd_sales", "cleansing"):
             new_avail = max(0, avail - qty)
-            supabase.table("inventory").update({"available_qty": new_avail}).eq("id", inv["id"]).execute()
+            db.table("inventory").update({"available_qty": new_avail}).eq("id", inv["id"]).execute()
             inv["available_qty"] = new_avail
         else:
             return
@@ -195,7 +194,7 @@ def auto_adjust_inventory(order_data: dict, order_type: str, supabase: Client):
         except Exception:
             pass
     else:
-        supabase.table("inventory").insert({
+        db.table("inventory").insert({
             "sku": sku,
             "product_name": order_data.get("product_name", ""),
             "store": order_data.get("store", ""),

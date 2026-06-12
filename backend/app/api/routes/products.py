@@ -1,12 +1,11 @@
 from fastapi import APIRouter, Depends
-from supabase import Client
-from app.core.supabase_client import get_supabase
+from app.core.database import get_db
 
 router = APIRouter(prefix="/api/products", tags=["products"])
 
 @router.get("")
-def list_products(supabase: Client = Depends(get_supabase), search: str = ""):
-    q = supabase.table("products").select("*")
+def list_products(db = get_db(), search: str = ""):
+    q = db.table("products").select("*")
     if search:
         like = f"%{search}%"
         q = q.ilike("product_name", like) | q.ilike("sku", like)
@@ -14,9 +13,9 @@ def list_products(supabase: Client = Depends(get_supabase), search: str = ""):
     return data
 
 @router.post("")
-def create_product(body: dict, supabase: Client = Depends(get_supabase)):
+def create_product(body: dict, db = get_db()):
     import json
-    data = supabase.table("products").insert({
+    data = db.table("products").insert({
         "sku": body.get("sku"),
         "product_name": body.get("product_name"),
         "store": body.get("store", ""),
@@ -29,17 +28,17 @@ def create_product(body: dict, supabase: Client = Depends(get_supabase)):
     return data[0] if data else {"ok": True}
 
 @router.put("/{pid}")
-def update_product(pid: int, body: dict, supabase: Client = Depends(get_supabase)):
-    supabase.table("products").update(body).eq("id", pid).execute()
+def update_product(pid: int, body: dict, db = get_db()):
+    db.table("products").update(body).eq("id", pid).execute()
     return {"ok": True}
 
 @router.delete("/{pid}")
-def delete_product(pid: int, supabase: Client = Depends(get_supabase)):
-    supabase.table("products").delete().eq("id", pid).execute()
+def delete_product(pid: int, db = get_db()):
+    db.table("products").delete().eq("id", pid).execute()
     return {"ok": True}
 
 @router.delete("")
-def batch_delete_products(ids: str, supabase: Client = Depends(get_supabase)):
+def batch_delete_products(ids: str, db = get_db()):
     id_list = [int(x.strip()) for x in ids.split(",") if x.strip().isdigit()]
-    data = supabase.table("products").delete().in_("id", id_list).execute().data
+    data = db.table("products").delete().in_("id", id_list).execute().data
     return {"ok": True, "deleted": len(data)}

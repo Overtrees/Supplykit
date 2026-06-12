@@ -28,6 +28,8 @@ from app.api.routes.suppliers import router as suppliers_router
 from app.api.routes.insights import router as insights_router
 
 from app.core.events import register_core_handlers
+from app.core.database import init_db
+init_db()
 register_core_handlers()
 
 app = FastAPI(title="SupplyChain V1")

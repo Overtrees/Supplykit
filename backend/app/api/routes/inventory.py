@@ -1,20 +1,19 @@
 from fastapi import APIRouter, Depends
-from supabase import Client
-from app.core.supabase_client import get_supabase
+from app.core.database import get_db
 
 router = APIRouter(prefix="/api/inventory", tags=["inventory"])
 
 @router.get("")
-def list_inventory(supabase: Client = Depends(get_supabase), store: str = ""):
-    q = supabase.table("inventory").select("*")
+def list_inventory(db = get_db(), store: str = ""):
+    q = db.table("inventory").select("*")
     if store:
         q = q.eq("store", store)
     data = q.order("id", desc=True).execute().data
     return data
 
 @router.post("")
-def create_inventory(body: dict, supabase: Client = Depends(get_supabase)):
-    data = supabase.table("inventory").insert({
+def create_inventory(body: dict, db = get_db()):
+    data = db.table("inventory").insert({
         "sku": body.get("sku"),
         "product_name": body.get("product_name"),
         "store": body.get("store", ""),
@@ -39,9 +38,9 @@ def create_inventory(body: dict, supabase: Client = Depends(get_supabase)):
     return inv or {"ok": True}
 
 @router.put("/{iid}")
-def update_inventory(iid: int, body: dict, supabase: Client = Depends(get_supabase)):
-    supabase.table("inventory").update(body).eq("id", iid).execute()
-    inv = supabase.table("inventory").select("*").eq("id", iid).single().execute().data
+def update_inventory(iid: int, body: dict, db = get_db()):
+    db.table("inventory").update(body).eq("id", iid).execute()
+    inv = db.table("inventory").select("*").eq("id", iid).single().execute().data
     if inv:
         try:
             from app.core.events import bus
@@ -55,29 +54,29 @@ def update_inventory(iid: int, body: dict, supabase: Client = Depends(get_supaba
     return {"ok": True}
 
 @router.delete("/{iid}")
-def delete_inventory(iid: int, supabase: Client = Depends(get_supabase)):
-    supabase.table("inventory").delete().eq("id", iid).execute()
+def delete_inventory(iid: int, db = get_db()):
+    db.table("inventory").delete().eq("id", iid).execute()
     return {"ok": True}
 
 @router.post("/adjust")
-def adjust_inventory(body: dict, supabase: Client = Depends(get_supabase)):
+def adjust_inventory(body: dict, db = get_db()):
     iid = body.get("id")
     action = body.get("action")
     qty = int(body.get("quantity", 0))
-    inv = supabase.table("inventory").select("*").eq("id", iid).single().execute().data
+    inv = db.table("inventory").select("*").eq("id", iid).single().execute().data
     if not inv:
         return {"ok": False, "error": "not found"}
     avail = int(inv.get("available_qty") or 0)
     new_avail = avail
     if action == "in":
         new_avail = avail + qty
-        supabase.table("inventory").update({"available_qty": new_avail}).eq("id", iid).execute()
+        db.table("inventory").update({"available_qty": new_avail}).eq("id", iid).execute()
     elif action == "out":
         new_avail = max(0, avail - qty)
-        supabase.table("inventory").update({"available_qty": new_avail}).eq("id", iid).execute()
+        db.table("inventory").update({"available_qty": new_avail}).eq("id", iid).execute()
     elif action == "set":
         new_avail = qty
-        supabase.table("inventory").update({"available_qty": new_avail}).eq("id", iid).execute()
+        db.table("inventory").update({"available_qty": new_avail}).eq("id", iid).execute()
     
     inv["available_qty"] = new_avail
     try:

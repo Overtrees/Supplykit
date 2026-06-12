@@ -1,9 +1,8 @@
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
-from supabase import Client
 from datetime import datetime
 import json, csv, io, re, os
 from openpyxl import load_workbook
-from app.core.supabase_client import get_supabase
+from app.core.database import get_db
 from app.api.routes.ws import broadcast
 from app.api.routes.insights import auto_adjust_inventory
 
@@ -120,7 +119,7 @@ async def preview_cleansing(file: UploadFile = File(...), mapping: str = Form(''
 @router.post('/execute')
 async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''),
                              target: str = Form('order'), template_name: str = Form(''),
-                             supabase: Client = Depends(get_supabase)):
+                             db = get_db()):
     content = await file.read()
     rows = parse_file(content, file.filename)
     if not rows:
@@ -153,7 +152,7 @@ async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''
             dedup[order_no] = 0
 
     if dedup:
-        existing_data = supabase.table("orders").select("order_no").in_("order_no", list(dedup.keys())).execute().data
+        existing_data = db.table("orders").select("order_no").in_("order_no", list(dedup.keys())).execute().data
         order_no_seen = {r['order_no'] for r in existing_data}
 
     for row in rows:
@@ -195,7 +194,7 @@ async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''
             elif target == 'inventory':
                 sku = str(data.get('sku', ''))
                 if sku:
-                    exists = supabase.table("inventory").select("id").eq("sku", sku).execute().data
+                    exists = db.table("inventory").select("id").eq("sku", sku).execute().data
                     if not exists:
                         inv_to_insert.append({
                             "store": str(data.get('store', '未知'))[:100],
@@ -215,39 +214,39 @@ async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''
                     failed += 1
         except Exception as e:
             failed += 1
-            supabase.table("quality_logs").insert({
+            db.table("quality_logs").insert({
                 "log_type": "cleansing_error",
                 "message": str(e)[:200], "level": "error",
             }).execute()
 
     if orders_to_insert:
         try:
-            supabase.table("orders").insert(orders_to_insert).execute()
+            db.table("orders").insert(orders_to_insert).execute()
         except Exception as e:
             failed += len(orders_to_insert)
             success -= len(orders_to_insert)
-            supabase.table("quality_logs").insert({
+            db.table("quality_logs").insert({
                 "log_type": "cleansing_batch_error",
                 "message": f"批量写入订单失败: {str(e)[:150]}", "level": "error",
             }).execute()
     if inv_to_insert:
         try:
-            supabase.table("inventory").insert(inv_to_insert).execute()
+            db.table("inventory").insert(inv_to_insert).execute()
         except Exception as e:
             failed += len(inv_to_insert)
             success -= len(inv_to_insert)
-            supabase.table("quality_logs").insert({
+            db.table("quality_logs").insert({
                 "log_type": "cleansing_batch_error",
                 "message": f"批量写入库存失败: {str(e)[:150]}", "level": "error",
             }).execute()
 
     # 保存模板
     if template_name:
-        existing = supabase.table("cleansing_templates").select("id").eq("name", template_name).execute().data
+        existing = db.table("cleansing_templates").select("id").eq("name", template_name).execute().data
         if existing:
-            supabase.table("cleansing_templates").update({"mapping": json.dumps(mapping_config, ensure_ascii=False)}).eq("id", existing[0]["id"]).execute()
+            db.table("cleansing_templates").update({"mapping": json.dumps(mapping_config, ensure_ascii=False)}).eq("id", existing[0]["id"]).execute()
         else:
-            supabase.table("cleansing_templates").insert({
+            db.table("cleansing_templates").insert({
                 "name": template_name, "doc_type": target,
                 "mapping": json.dumps(mapping_config, ensure_ascii=False),
             }).execute()
@@ -282,8 +281,8 @@ async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''
 # ─── 模板管理 ────────────────────────────────────────────────────────────────
 
 @router.get('/templates')
-def list_templates(supabase: Client = Depends(get_supabase)):
-    templates = supabase.table("cleansing_templates").select("*").order("updated_at", desc=True).execute().data
+def list_templates(db = get_db()):
+    templates = db.table("cleansing_templates").select("*").order("updated_at", desc=True).execute().data
     return [{
         'id': t['id'], 'name': t['name'], 'doc_type': t['doc_type'],
         'mapping': json.loads(t.get('mapping') or '{}'),
@@ -291,11 +290,11 @@ def list_templates(supabase: Client = Depends(get_supabase)):
     } for t in templates]
 
 @router.delete('/templates/{template_id}')
-def delete_template(template_id: int, supabase: Client = Depends(get_supabase)):
-    data = supabase.table("cleansing_templates").select("id").eq("id", template_id).execute().data
+def delete_template(template_id: int, db = get_db()):
+    data = db.table("cleansing_templates").select("id").eq("id", template_id).execute().data
     if not data:
         raise HTTPException(status_code=404, detail='模板不存在')
-    supabase.table("cleansing_templates").delete().eq("id", template_id).execute()
+    db.table("cleansing_templates").delete().eq("id", template_id).execute()
     return {'ok': True}
 
 # ─── 字段管理 ────────────────────────────────────────────────────────────────

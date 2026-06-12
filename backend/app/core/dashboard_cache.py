@@ -3,7 +3,7 @@
 import time
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
-from app.core.supabase_client import get_supabase
+from app.core.database import get_db
 
 _cache = None
 _cache_ts = 0
@@ -113,12 +113,12 @@ def _compute_health(inv):
 
 def _rebuild():
     """Full rebuild of dashboard data from database."""
-    supabase = get_supabase()
-    orders = supabase.table("orders").select("*").execute().data or []
-    inv = supabase.table("inventory").select("*").execute().data or []
-    products = supabase.table("products").select("*").execute().data or []
-    suppliers = supabase.table("suppliers").select("*").execute().data or []
-    alerts = supabase.table("alerts").select("*").eq("status", "active").execute().data or []
+    db = get_db()
+    orders = db.table("orders").select("*").execute().data or []
+    inv = db.table("inventory").select("*").execute().data or []
+    products = db.table("products").select("*").execute().data or []
+    suppliers = db.table("suppliers").select("*").execute().data or []
+    alerts = db.table("alerts").select("*").eq("status", "active").execute().data or []
 
     gmv = sum(float(x.get("total_amount") or 0) for x in orders if x.get("order_status") == "已完成")
     pending = len([x for x in orders if x.get("order_status") == "待发货"])

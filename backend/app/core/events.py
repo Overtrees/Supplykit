@@ -24,7 +24,7 @@ def register_core_handlers():
     # ─── order.created ──────────────────────────────────────────────
     def _handle_inventory_adjust(data):
         from app.api.routes.insights import auto_adjust_inventory
-        db = get_supabase()
+        db = get_db()
         items = data.get('items', [])
         order_type = data.get('order_type', 'sales')
         for item in items:
@@ -32,7 +32,7 @@ def register_core_handlers():
 
     def _handle_event_log(data):
         from app.api.routes.events import create_event
-        db = get_supabase()
+        db = get_db()
         try:
             create_event(db,
                          event_type=data.get('event_type', 'unknown'),
@@ -55,7 +55,7 @@ def register_core_handlers():
 
     # ─── inventory.changed ──────────────────────────────────────────
     def _handle_inventory_alert(data):
-        db = get_supabase()
+        db = get_db()
         inv = data.get('inventory', {})
         avail = int(inv.get('available_qty') or 0)
         safety = int(inv.get('safety_qty') or 0)
@@ -77,7 +77,7 @@ def register_core_handlers():
 
     def _handle_inventory_event(data):
         from app.api.routes.events import create_event
-        db = get_supabase()
+        db = get_db()
         inv = data.get('inventory', {})
         try:
             create_event(db, 'stock.changed', 'inventory', str(inv.get('id')),
@@ -93,7 +93,7 @@ def register_core_handlers():
 
     # ─── inventory.changed → 补货建议 ──────────────────────────────
     def _handle_replenishment_check(data):
-        db = get_supabase()
+        db = get_db()
         inv = data.get('inventory', {})
         avail = int(inv.get('available_qty') or 0)
         safety = int(inv.get('safety_qty') or 0)
@@ -122,7 +122,7 @@ def register_core_handlers():
     # ─── data.cleaned ───────────────────────────────────────────────
     def _handle_cleansed_event(data):
         from app.api.routes.events import create_event
-        db = get_supabase()
+        db = get_db()
         try:
             create_event(db, f"{data.get('target', 'data')}.cleansed", 'data', None,
                          f"清洗导入 {data.get('success', 0)} 条", data)

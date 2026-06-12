@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
 from datetime import datetime
-import json, csv, io, re, os
+import json, csv, io, re, os, uuid
 from openpyxl import load_workbook
-from app.core.database import get_db
+from app.core.database import get_db, submit_task, get_task, backup_db
 from app.api.routes.ws import broadcast
 from app.api.routes.insights import auto_adjust_inventory
 
@@ -116,27 +116,24 @@ async def preview_cleansing(file: UploadFile = File(...), mapping: str = Form(''
 
 # ─── 执行清洗 ────────────────────────────────────────────────────────────────
 
-@router.post('/execute')
-async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''),
-                             target: str = Form('order'), template_name: str = Form(''),
-                             db = get_db()):
-    content = await file.read()
-    rows = parse_file(content, file.filename)
+def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str, template_name: str = ''):
+    """清洗核心逻辑，可同步调用也可后台线程调用"""
+    db = get_db()
+    rows = parse_file(content, filename)
     if not rows:
-        return {'ok': False, 'error': '文件为空'}
+        return {'ok': False, 'error': '文件为空', 'success': 0, 'failed': 0, 'file': filename}
     try:
-        mapping_config = json.loads(mapping) if mapping else {}
+        mapping_config = json.loads(mapping_json) if mapping_json else {}
     except json.JSONDecodeError:
-        return {'ok': False, 'error': '映射配置格式错误'}
+        return {'ok': False, 'error': '映射配置格式错误', 'success': 0, 'failed': 0, 'file': filename}
 
     success = 0
     failed = 0
     orders_to_insert = []
     inv_to_insert = []
     order_no_seen = set()
-
-    # 批量加载已存在的订单号，避免逐行 SELECT
     dedup = {}
+
     for row in rows:
         data = {}
         for src_col, cfg in mapping_config.items():
@@ -145,79 +142,29 @@ async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''
                 data[target_field] = cleanse_value(row.get(src_col, ''), cfg)
         order_no = data.get('order_no', '')
         if not order_no:
-            order_no = f"AUTO-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+            order_no = f"AUTO-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}-{success}"
         if order_no in dedup:
             dedup[order_no] += 1
+            order_no = f"{order_no}-{dedup[order_no]}"
         else:
             dedup[order_no] = 0
+        data['order_no'] = order_no
 
-    if dedup:
-        existing_data = db.table("orders").select("order_no").in_("order_no", list(dedup.keys())).execute().data
-        order_no_seen = {r['order_no'] for r in existing_data}
-
-    for row in rows:
-        try:
-            data = {}
-            for src_col, cfg in mapping_config.items():
-                target_field = cfg.get('target', '')
-                if target_field:
-                    data[target_field] = cleanse_value(row.get(src_col, ''), cfg)
-
-            if target == 'order':
-                order_no = data.get('order_no', '')
-                if not order_no:
-                    order_no = f"AUTO-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}-{success}"
-                if order_no in dedup:
-                    dedup[order_no] += 1
-                    order_no = f"{order_no}-{dedup[order_no]}"
-                else:
-                    dedup[order_no] = 0
-                data['order_no'] = order_no
-
-                if order_no not in order_no_seen:
-                    order_no_seen.add(order_no)
-                    orders_to_insert.append({
-                        "order_no": order_no,
-                        "store": str(data.get('store', '未知'))[:100],
-                        "sku": str(data.get('sku', ''))[:100],
-                        "product_name": str(data.get('product_name', ''))[:200],
-                        "quantity": int(float(data.get('quantity', 0))),
-                        "unit_price": float(data.get('unit_price', 0)),
-                        "total_amount": float(data.get('total_amount', 0)),
-                        "order_status": str(data.get('order_status', '已完成'))[:50],
-                        "ordered_at": str(data.get('ordered_at', ''))[:50],
-                    })
-                    success += 1
-                else:
-                    failed += 1
-
-            elif target == 'inventory':
-                sku = str(data.get('sku', ''))
-                if sku:
-                    exists = db.table("inventory").select("id").eq("sku", sku).execute().data
-                    if not exists:
-                        inv_to_insert.append({
-                            "store": str(data.get('store', '未知'))[:100],
-                            "sku": sku[:100],
-                            "product_name": str(data.get('product_name', ''))[:200],
-                            "available_qty": int(float(data.get('available_qty', 0))),
-                            "locked_qty": int(float(data.get('locked_qty', 0))),
-                            "in_transit_qty": int(float(data.get('in_transit_qty', 0))),
-                            "safety_qty": int(float(data.get('safety_qty', 0))),
-                            "source": "cleansing",
-                            "raw_data": json.dumps(row, ensure_ascii=False, default=str),
-                        })
-                        success += 1
-                    else:
-                        failed += 1
-                else:
-                    failed += 1
-        except Exception as e:
+        if order_no not in order_no_seen:
+            order_no_seen.add(order_no)
+            orders_to_insert.append({
+                "order_no": order_no, "store": str(data.get('store', '未知'))[:100],
+                "sku": str(data.get('sku', ''))[:100],
+                "product_name": str(data.get('product_name', ''))[:200],
+                "quantity": int(float(data.get('quantity', 0))),
+                "unit_price": float(data.get('unit_price', 0)),
+                "total_amount": float(data.get('total_amount', 0)),
+                "order_status": str(data.get('order_status', '已完成'))[:50],
+                "ordered_at": str(data.get('ordered_at', ''))[:50],
+            })
+            success += 1
+        else:
             failed += 1
-            db.table("quality_logs").insert({
-                "log_type": "cleansing_error",
-                "message": str(e)[:200], "level": "error",
-            }).execute()
 
     if orders_to_insert:
         try:
@@ -225,61 +172,22 @@ async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''
         except Exception as e:
             failed += len(orders_to_insert)
             success -= len(orders_to_insert)
-            db.table("quality_logs").insert({
-                "log_type": "cleansing_batch_error",
-                "message": f"批量写入订单失败: {str(e)[:150]}", "level": "error",
-            }).execute()
-    if inv_to_insert:
-        try:
-            db.table("inventory").insert(inv_to_insert).execute()
-        except Exception as e:
-            failed += len(inv_to_insert)
-            success -= len(inv_to_insert)
-            db.table("quality_logs").insert({
-                "log_type": "cleansing_batch_error",
-                "message": f"批量写入库存失败: {str(e)[:150]}", "level": "error",
-            }).execute()
 
-    # 保存模板
-    if template_name:
-        existing = db.table("cleansing_templates").select("id").eq("name", template_name).execute().data
-        if existing:
-            db.table("cleansing_templates").update({"mapping": json.dumps(mapping_config, ensure_ascii=False)}).eq("id", existing[0]["id"]).execute()
-        else:
-            db.table("cleansing_templates").insert({
-                "name": template_name, "doc_type": target,
-                "mapping": json.dumps(mapping_config, ensure_ascii=False),
-            }).execute()
-
-    # 构建提示消息
     msg_parts = []
-    if success > 0:
-        msg_parts.append(f"成功导入 {success} 条")
-    if failed > 0:
-        msg_parts.append(f"{failed} 条跳过（已存在或写入失败）")
-    message = "，".join(msg_parts) if msg_parts else "无数据变更"
-
-    from app.core.events import bus
-    bus.emit('data.cleaned', {
-        'target': target,
-        'event_type': f'{target}.cleansed',
-        'entity_type': target,
-        'title': f'清洗导入 {success} 条',
-        'payload': {'success': success, 'failed': failed, 'file': file.filename or ''},
-        'ws_message': {
-            'type': f'{target}.cleansed',
-            'payload': {'success': success, 'failed': failed, 'file': file.filename or ''}
-        }
-    })
+    if success > 0: msg_parts.append(f"成功导入 {success} 条")
+    if failed > 0: msg_parts.append(f"{failed} 条跳过")
 
     if success == 0 and failed > 0:
-        return {'ok': False, 'success': 0, 'failed': failed, 'file': file.filename, 'target': target,
+        return {'ok': False, 'success': 0, 'failed': failed, 'file': filename, 'target': target,
                 'error': '所有记录均重复或写入失败，无新增数据。请检查文件是否已导入过'}
-    return {'ok': True, 'success': success, 'failed': failed, 'file': file.filename,
-            'target': target, 'message': message}
+    return {'ok': True, 'success': success, 'failed': failed, 'file': filename,
+            'target': target, 'message': '，'.join(msg_parts) if msg_parts else '无数据变更'}
 
-# ─── 模板管理 ────────────────────────────────────────────────────────────────
-
+@router.post('/execute')
+async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''),
+                             target: str = Form('order'), template_name: str = Form('')):
+    content = await file.read()
+    return _run_cleansing(content, file.filename, mapping, target, template_name)
 @router.get('/templates')
 def list_templates(db = get_db()):
     templates = db.table("cleansing_templates").select("*").order("updated_at", desc=True).execute().data
@@ -334,6 +242,32 @@ def remove_custom_field(target: str, field_key: str):
     cf[target] = [f for f in cf.get(target, []) if f['key'] != field_key]
     save_custom_fields(cf)
     return {'ok': True}
+
+@router.post('/execute-async')
+async def execute_cleansing_async(file: UploadFile = File(...), mapping: str = Form(''),
+                                   target: str = Form('order'), template_name: str = Form('')):
+    content = await file.read()
+    task_id = str(uuid.uuid4())[:8]
+    submit_task(task_id, _run_cleansing, content, file.filename, mapping, target, template_name)
+    return {'ok': True, 'task_id': task_id, 'message': '任务已提交'}
+
+# ─── 异步任务进度 ───────────────────────────────────────────────────────────
+
+@router.get('/task/{task_id}')
+def get_task_status(task_id: str):
+    task = get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail='任务不存在')
+    return {'ok': True, 'task_id': task_id, **task}
+
+# ─── 数据库备份 ──────────────────────────────────────────────────────────────
+
+@router.post('/backup')
+def trigger_backup():
+    path = backup_db()
+    if path:
+        return {'ok': True, 'path': path, 'message': f'备份完成: {os.path.basename(path)}'}
+    return {'ok': False, 'error': '备份失败'}
 
 # ─── 清洗工具函数 ────────────────────────────────────────────────────────────
 

@@ -13,6 +13,46 @@ DB_PATH = os.getenv("SQLITE_PATH", os.path.join(os.path.dirname(__file__), "..",
 
 _local = threading.local()
 
+def backup_db():
+    """备份数据库到同目录下"""
+    import shutil
+    bak_path = DB_PATH + f".bak.{datetime.utcnow().strftime('%Y%m%d')}"
+    try:
+        shutil.copy2(DB_PATH, bak_path)
+        return bak_path
+    except Exception as e:
+        return None
+
+# ─── 轻量异步任务队列 ──────────────────────────────────────────────────────
+
+_task_queue = []
+_task_results = {}
+_task_lock = threading.Lock()
+
+def submit_task(task_id: str, fn, *args, **kwargs):
+    """提交一个后台任务"""
+    with _task_lock:
+        _task_results[task_id] = {"status": "pending", "result": None, "error": None}
+    def _run():
+        try:
+            with _task_lock:
+                _task_results[task_id]["status"] = "running"
+            result = fn(*args, **kwargs)
+            with _task_lock:
+                _task_results[task_id]["status"] = "done"
+                _task_results[task_id]["result"] = result
+        except Exception as e:
+            with _task_lock:
+                _task_results[task_id]["status"] = "error"
+                _task_results[task_id]["error"] = str(e)
+    t = threading.Thread(target=_run, daemon=True)
+    t.start()
+    return task_id
+
+def get_task(task_id: str):
+    with _task_lock:
+        return _task_results.get(task_id)
+
 def get_conn():
     if not hasattr(_local, "conn") or _local.conn is None:
         _local.conn = sqlite3.connect(DB_PATH)

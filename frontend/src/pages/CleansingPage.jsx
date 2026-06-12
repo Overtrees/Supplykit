@@ -81,17 +81,34 @@ export default function CleansingPage() {
     form.append('target', targetType)
     form.append('template_name', templateName)
     try {
-      const r = await fetch(API + '/api/cleansing/execute', { method: 'POST', body: form })
+      const r = await fetch(API + '/api/cleansing/execute-async', { method: 'POST', body: form })
       if (!r.ok) {
         const txt = await r.text().catch(() => '')
-        alert('清洗失败 (HTTP ' + r.status + '): ' + (txt.slice(0, 200) || r.statusText))
+        alert('提交失败 (HTTP ' + r.status + '): ' + (txt.slice(0, 200) || r.statusText))
         setBusy(''); return
       }
       const d = await r.json()
-      if (d.ok) { setResult(d); await loadTemplates(); setStep(3) }
-      else { alert(d.error || '清洗失败: ' + JSON.stringify(d)); setBusy('') }
+      if (!d.ok) { alert(d.error || '提交失败'); setBusy(''); return }
+
+      // 轮询任务进度
+      const taskId = d.task_id
+      const poll = setInterval(async () => {
+        try {
+          const sr = await fetch(API + '/api/cleansing/task/' + taskId)
+          const sd = await sr.json()
+          if (sd.status === 'done') {
+            clearInterval(poll)
+            setResult(sd.result); await loadTemplates(); setStep(3)
+          } else if (sd.status === 'error') {
+            clearInterval(poll)
+            alert('清洗失败: ' + (sd.error || '未知错误'))
+            setBusy('')
+          }
+        } catch(e) { clearInterval(poll); setBusy('') }
+      }, 1000)
+      setBusy('polling')
     } catch (e) {
-      alert('网络错误: ' + e.message + '\n\n请检查:\n1. ' + API + ' 是否可访问\n2. 切换到 Wi-Fi 或 4G 重试\n3. 尝试 Safari 无痕模式')
+      alert('网络错误: ' + e.message + '\n\n请检查:\n1. ' + API + ' 是否可访问\n2. 切换到 Wi-Fi 或 4G 重试')
       setBusy('')
     }
   }

@@ -238,31 +238,26 @@
 
       // STEP 3→4: 执行
       const handleExecute = async () => {
-        if (!file) return
-        setBusy('exec')
+        if (!file) return; setBusy('exec')
         const form = new FormData(); form.append('file', file)
         form.append('mapping', JSON.stringify(mapping))
         form.append('target', targetType)
         form.append('template_name', templateName)
         try {
-          console.log('[Cleansing] POST', API+'/api/cleansing/execute')
-          const res = await fetch(API+'/api/cleansing/execute', { method:'POST', body:form })
-          console.log('[Cleansing] Status:', res.status)
-          if (!res.ok) {
-            const txt = await res.text().catch(() => '')
-            console.error('[Cleansing] Error body:', txt.slice(0,300))
-            alert('清洗失败 (HTTP '+res.status+'): '+(txt.slice(0,100)||res.statusText))
-            setBusy(''); return
-          }
-          const data = await res.json()
-          console.log('[Cleansing] Data:', data)
-          if (data.ok) { setResult(data); await loadTemplates(); setStep(3) }
-          else { alert(data.error || '清洗失败: ' + JSON.stringify(data)); setBusy('') }
-        } catch(e) {
-          console.error('[Cleansing] Exception:', e.name, e.message, e.cause||'')
-          alert('请求异常: ' + e.message + ' (详见控制台 Console)')
-          setBusy('')
-        }
+          const res = await fetch(API+'/api/cleansing/execute-async', { method:'POST', body:form })
+          if (!res.ok) { alert('提交失败: '+res.status); setBusy(''); return }
+          const d = await res.json()
+          if (!d.ok) { alert(d.error||'提交失败'); setBusy(''); return }
+          const tid = d.task_id; setBusy('polling')
+          const poll = setInterval(async () => {
+            try {
+              const sr = await fetch(API+'/api/cleansing/task/'+tid)
+              const sd = await sr.json()
+              if (sd.status==='done') { clearInterval(poll); setResult(sd.result); await loadTemplates(); setStep(3) }
+              else if (sd.status==='error') { clearInterval(poll); alert('失败: '+(sd.error||'未知')); setBusy('') }
+            } catch(e) { clearInterval(poll); setBusy('') }
+          }, 1000)
+        } catch(e) { alert('网络错误: '+e.message); setBusy('') }
       }
 
       // 重置

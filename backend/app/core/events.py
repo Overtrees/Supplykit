@@ -137,3 +137,9 @@ def register_core_handlers():
     bus.on('data.cleaned', _handle_cleansed_event)
     bus.on('data.cleaned', _handle_broadcast)
     bus.on('data.cleaned', lambda _: invalidate_dashboard())
+
+    # ─── 规则引擎 ──────────────────────────────────────────────────────
+    def _handle_rules_engine(data):
+        from app.core.rules import evaluate
+        evaluate('inventory.changed', {'inv': data.get('inventory', {}), 'db': get_db(), 'sku': data.get('inventory', {}).get('sku','')})
+    bus.on('inventory.changed', _handle_rules_engine)

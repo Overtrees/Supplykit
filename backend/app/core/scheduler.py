@@ -58,6 +58,25 @@ def _task_backup():
     except Exception as e:
         print(f"[Scheduler] Backup error: {e}")
 
+def _task_daily_rules():
+    """每天执行定时规则（滞销识别等）"""
+    try:
+        from app.core.database import get_db
+        from app.api.routes.insights import detect_slow_moving_products
+        from app.core.rules import evaluate
+        db = get_db()
+        results = detect_slow_moving_products(db, create_alerts=True)
+        for item in results:
+            evaluate('scheduled.daily', {
+                'db': db, 'sku': item['sku'],
+                'product_name': item['product_name'],
+                'days_since_last': item['days_since_last'],
+                'stock': item['stock'],
+            })
+        print(f"[Scheduler] Daily rules: checked {len(results)} items")
+    except Exception as e:
+        print(f"[Scheduler] Daily rules error: {e}")
+
 def start():
     global _started
     if _started:
@@ -66,6 +85,7 @@ def start():
     scheduler.add_job(_task_inventory_sync, IntervalTrigger(minutes=30), id='inventory_sync')
     scheduler.add_job(_task_cleanup_logs, CronTrigger(hour=3, minute=0), id='cleanup_logs')
     scheduler.add_job(_task_backup, CronTrigger(hour=2, minute=0), id='db_backup')
+    scheduler.add_job(_task_daily_rules, CronTrigger(hour=4, minute=0), id='daily_rules')
     scheduler.start()
     print(f"[Scheduler] Started at {datetime.utcnow().isoformat()}")
 

@@ -64,77 +64,43 @@ def get_purchase_suggestions(db = get_db()):
     return {"suggestions": result, "suppliers": len(suppliers)}
 
 
-@router.get('/slow-moving')
-def get_slow_moving_products(db = get_db()):
+def detect_slow_moving_products(db=None, create_alerts=False):
     from datetime import datetime, timedelta
-
+    if db is None:
+        from app.core.database import get_db; db = get_db()
     orders = db.table("orders").select("*").execute().data
     products_map = {p["sku"]: p for p in db.table("products").select("*").execute().data}
     inventory_map = {i["sku"]: i for i in db.table("inventory").select("*").execute().data}
-
     last_order = {}
     for o in orders:
         sku = o.get("sku")
-        if not sku:
-            continue
-        date_str = str(o.get("ordered_at") or "")
-        d = date_str[:10]
-        if sku not in last_order or d > last_order[sku]:
-            last_order[sku] = d
-
+        if not sku: continue
+        ds = str(o.get("ordered_at") or "")[:10]
+        if sku not in last_order or ds > last_order[sku]: last_order[sku] = ds
     now = datetime.utcnow()
     result = []
-
-    all_skus = set()
-    for p in products_map:
-        all_skus.add(p)
-    for o in orders:
-        if o.get("sku"):
-            all_skus.add(o["sku"])
-    for i in inventory_map:
-        all_skus.add(i)
-
+    all_skus = set(products_map.keys()) | {o.get("sku") for o in orders if o.get("sku")} | set(inventory_map.keys())
     for sku in all_skus:
         p = products_map.get(sku)
         inv = inventory_map.get(sku)
-
         last_date = last_order.get(sku, "")
         days = 999
         if last_date:
-            try:
-                dt = datetime.strptime(last_date[:10], "%Y-%m-%d")
-                days = (now - dt).days
-            except Exception:
-                days = 999
-
-        if days >= 90:
-            level = "滞销"
-        elif days >= 30:
-            level = "冷淡"
-        elif days >= 14:
-            level = "观望"
-        else:
-            level = "正常"
-
-        order_name = ""
-        for o in orders:
-            if o.get("sku") == sku and o.get("product_name"):
-                order_name = o["product_name"]
-                break
-
-        result.append({
-            "sku": sku,
-            "product_name": (p["product_name"] if p else inv["product_name"] if inv else order_name),
-            "store": (p["store"] if p else inv["store"] if inv else ""),
-            "category": p["category"] if p else "",
-            "last_order_date": last_date[:10] if last_date else "从未下单",
-            "days_since_last_order": days,
-            "level": level,
-            "available_qty": inv["available_qty"] if inv else 0,
-        })
-
-    result.sort(key=lambda x: (x["level"] != "滞销", x["level"] != "冷淡", -x["days_since_last_order"]))
+            try: days = (now - datetime.strptime(last_date[:10], "%Y-%m-%d")).days
+            except: pass
+        stock = int(inv.get("available_qty") or 0) if inv else 0
+        if days > 30 and stock > 0:
+            result.append({"sku": sku, "product_name": p["product_name"] if p else inv.get("product_name",sku) if inv else sku, "last_order_date": last_date[:10], "days_since_last": days, "stock": stock})
+            if create_alerts:
+                ex = db.table("alerts").select("id").eq("alert_type","slow_moving").eq("related_sku",sku).eq("status","active").execute().data
+                if not ex:
+                    db.table("alerts").insert({"alert_type":"slow_moving", "title":f"滞销: {result[-1]['product_name']}", "description":f"{days} 天无销售，库存 {stock} 件", "severity":"warning", "source":"event_bus", "related_sku":sku, "status":"active"}).execute()
+    result.sort(key=lambda x: -x["days_since_last"])
     return result
+
+@router.get('/slow-moving')
+def get_slow_moving_products(db = get_db()):
+    return detect_slow_moving_products(db, create_alerts=False)
 
 
 @router.get('/summary')

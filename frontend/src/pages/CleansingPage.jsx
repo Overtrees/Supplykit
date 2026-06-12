@@ -81,22 +81,17 @@ export default function CleansingPage() {
     form.append('target', targetType)
     form.append('template_name', templateName)
     try {
-      console.log('[Cleansing] POST', API + '/api/cleansing/execute')
       const r = await fetch(API + '/api/cleansing/execute', { method: 'POST', body: form })
-      console.log('[Cleansing] Response status:', r.status, r.statusText)
       if (!r.ok) {
-        const text = await r.text().catch(() => '')
-        console.error('[Cleansing] HTTP error body:', text.slice(0, 300))
-        alert('清洗失败 (HTTP ' + r.status + '): ' + (text.slice(0, 100) || r.statusText))
+        const txt = await r.text().catch(() => '')
+        alert('清洗失败 (HTTP ' + r.status + '): ' + (txt.slice(0, 200) || r.statusText))
         setBusy(''); return
       }
       const d = await r.json()
-      console.log('[Cleansing] Response data:', d)
       if (d.ok) { setResult(d); await loadTemplates(); setStep(3) }
       else { alert(d.error || '清洗失败: ' + JSON.stringify(d)); setBusy('') }
     } catch (e) {
-      console.error('[Cleansing] Fetch exception:', e.name, e.message, e.cause || '')
-      alert('请求异常: ' + e.message + ' (详见控制台 Console)')
+      alert('网络错误: ' + e.message + '\n\n请检查:\n1. ' + API + ' 是否可访问\n2. 切换到 Wi-Fi 或 4G 重试\n3. 尝试 Safari 无痕模式')
       setBusy('')
     }
   }

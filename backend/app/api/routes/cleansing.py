@@ -117,7 +117,7 @@ async def preview_cleansing(file: UploadFile = File(...), mapping: str = Form(''
 # ─── 执行清洗 ────────────────────────────────────────────────────────────────
 
 def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str, template_name: str = ''):
-    """清洗核心逻辑，可同步调用也可后台线程调用"""
+    """清洗核心逻辑，含格式校验 → 业务校验 → 补全推断"""
     db = get_db()
     rows = parse_file(content, filename)
     if not rows:
@@ -127,22 +127,49 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
     except json.JSONDecodeError:
         return {'ok': False, 'error': '映射配置格式错误', 'success': 0, 'failed': 0, 'file': filename}
 
+    # 加载用于校验和推断的参考数据
+    products_map = {p["sku"]: p for p in db.table("products").select("*").execute().data}
+    inventory_map = {i["sku"]: i for i in db.table("inventory").select("*").execute().data}
+    task_id = f"clean_{datetime.utcnow().strftime('%H%M%S')}"
+    errors = []
     success = 0
     failed = 0
     orders_to_insert = []
-    inv_to_insert = []
     order_no_seen = set()
     dedup = {}
 
-    for row in rows:
+    for idx, row in enumerate(rows):
+        row_errors = []
         data = {}
+
+        # ─── 格式校验 + 字段映射 ──────────────────────────────────────
         for src_col, cfg in mapping_config.items():
             target_field = cfg.get('target', '')
-            if target_field:
-                data[target_field] = cleanse_value(row.get(src_col, ''), cfg)
+            if not target_field: continue
+            raw_val = row.get(src_col, '')
+            try:
+                cleaned = cleanse_value(raw_val, cfg)
+                data[target_field] = cleaned
+            except Exception as e:
+                row_errors.append({'error_type': 'format_error', 'field_name': src_col,
+                                   'raw_value': str(raw_val)[:100], 'error_message': str(e)[:100]})
+
+        # ─── 补全推断 ──────────────────────────────────────────────
+        sku = str(data.get('sku', ''))
+        if sku and not data.get('product_name'):
+            p = products_map.get(sku)
+            if p:
+                data['product_name'] = p.get('product_name', '')
+
+        # ─── 业务校验 ──────────────────────────────────────────────
+        if not data.get('ordered_at'):
+            data['ordered_at'] = datetime.utcnow().strftime('%Y-%m-%d')
+
+        # 订单号处理
         order_no = data.get('order_no', '')
         if not order_no:
             order_no = f"AUTO-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}-{success}"
+            data['order_no'] = order_no
         if order_no in dedup:
             dedup[order_no] += 1
             order_no = f"{order_no}-{dedup[order_no]}"
@@ -150,11 +177,24 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
             dedup[order_no] = 0
         data['order_no'] = order_no
 
+        # 记录行错误（不影响继续处理，只是标记）
+        for e in row_errors:
+            errors.append(e)
+            try:
+                db.table("cleansing_errors").insert({
+                    "task_id": task_id, "row_index": idx, "source_file": filename,
+                    "error_type": e['error_type'], "field_name": e['field_name'],
+                    "raw_value": e['raw_value'], "error_message": e['error_message'],
+                    "raw_data": json.dumps(row, ensure_ascii=False, default=str),
+                }).execute()
+            except: pass
+
+        # ─── 写入目标 ──────────────────────────────────────────────
         if order_no not in order_no_seen:
             order_no_seen.add(order_no)
             orders_to_insert.append({
                 "order_no": order_no, "store": str(data.get('store', '未知'))[:100],
-                "sku": str(data.get('sku', ''))[:100],
+                "sku": sku[:100],
                 "product_name": str(data.get('product_name', ''))[:200],
                 "quantity": int(float(data.get('quantity', 0))),
                 "unit_price": float(data.get('unit_price', 0)),
@@ -165,6 +205,8 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
             success += 1
         else:
             failed += 1
+            errors.append({'error_type': 'duplicate_order', 'field_name': 'order_no',
+                           'raw_value': order_no, 'error_message': '重复订单号'})
 
     if orders_to_insert:
         try:
@@ -193,12 +235,26 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
     msg_parts = []
     if success > 0: msg_parts.append(f"成功导入 {success} 条")
     if failed > 0: msg_parts.append(f"{failed} 条跳过")
+    if errors: msg_parts.append(f"{len(errors)} 条异常（可查看错误详情）")
 
     if success == 0 and failed > 0:
         return {'ok': False, 'success': 0, 'failed': failed, 'file': filename, 'target': target,
-                'error': '所有记录均重复或写入失败，无新增数据。请检查文件是否已导入过'}
+                'error': '所有记录均重复或写入失败', 'error_count': len(errors)}
     return {'ok': True, 'success': success, 'failed': failed, 'file': filename,
-            'target': target, 'message': '，'.join(msg_parts) if msg_parts else '无数据变更'}
+            'target': target, 'message': '，'.join(msg_parts) if msg_parts else '无数据变更',
+            'error_count': len(errors)}
+
+@router.get('/errors')
+def get_cleansing_errors(file: str = '', db = get_db()):
+    """查询清洗错误记录"""
+    if file:
+        errs = db.table("cleansing_errors").select("*").eq("source_file", file).order("id", desc=True).limit(500).execute().data
+    else:
+        errs = db.table("cleansing_errors").select("*").order("id", desc=True).limit(200).execute().data
+    for e in errs:
+        try: e['raw_data'] = json.loads(e.get('raw_data','{}'))
+        except: pass
+    return {'ok': True, 'errors': errs, 'total': len(errs)}
 
 @router.post('/execute')
 async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''),

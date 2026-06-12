@@ -329,6 +329,19 @@ def init_db(path=None):
             owner_id TEXT DEFAULT '',
             created_at TEXT DEFAULT (datetime('now'))
         );
+        CREATE TABLE IF NOT EXISTS cleansing_errors (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            task_id TEXT DEFAULT '',
+            row_index INTEGER DEFAULT 0,
+            source_file TEXT DEFAULT '',
+            error_type TEXT DEFAULT '',  -- invalid_sku / duplicate_order / missing_field / format_error
+            field_name TEXT DEFAULT '',
+            raw_value TEXT DEFAULT '',
+            error_message TEXT DEFAULT '',
+            raw_data TEXT DEFAULT '{}',
+            owner_id TEXT DEFAULT '',
+            created_at TEXT DEFAULT (datetime('now'))
+        );
         CREATE TABLE IF NOT EXISTS quality_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             log_type TEXT DEFAULT '',

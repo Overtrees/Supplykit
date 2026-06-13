@@ -43,7 +43,7 @@ export default function RulesPage() {
   }
 
   const startNew = () => {
-    setEditing(null)
+    setEditing({})
     setForm({ name: '', event: 'inventory.changed', alert_type: '', alert_title: '', alert_desc: '', severity: 'warning', condition_json: '{}' })
   }
 
@@ -77,7 +77,7 @@ export default function RulesPage() {
 
       {editing !== null && (
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-          <div style={{ fontWeight: 600, marginBottom: 12 }}>{editing ? '编辑规则' : '新建规则'}</div>
+          <div style={{ fontWeight: 600, marginBottom: 12 }}>{editing.id ? '编辑规则' : '新建规则'}</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <label style={{ fontSize: 12, display: 'block' }}>
               规则名称

@@ -87,9 +87,8 @@ Supplykit/
 ## 开发工作流
 
 1. 改 `frontend/src/` 源码
-2. 同步改动到 `frontend/preview.html`（本地 Safari 测试）
-3. 测试通过 → `git push`
-4. Vercel 自动部署
+2. `git push` → Vercel 自动部署
+3. 线上验证
 
 ## 定时任务
 

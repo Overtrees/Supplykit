@@ -242,7 +242,24 @@ class SQLiteDB:
     def close(self):
         if hasattr(_local, "conn") and _local.conn:
             _local.conn.close()
-            _local.conn = None
+def _seed_builtin_rules():
+    try:
+        _local.conn = sqlite3.connect(DB_PATH)
+        existing = _local.conn.execute("SELECT COUNT(*) FROM rules").fetchone()[0]
+        if existing > 0:
+            return
+        rules = [
+            ("低库存预警", "inventory.changed", '{"left":"inv.available_qty","op":"<","right":"inv.safety_qty"}', "low_stock", "低库存预警: {product_name}", "可用 {avail} < 安全线 {safety}", "warning", 1),
+            ("紧急补货", "inventory.changed", '{"left":"inv.available_qty","op":"<=","right":"max(1,inv.safety_qty*0.3)"}', "replenish", "紧急补货: {product_name}", "可用 {avail}，低于安全线 30%", "error", 1),
+            ("超卖保护", "order.created", '{"left":"order.quantity","op":">","right":"inv.available_qty"}', "oversell", "超卖告警: {sku}", "订单数量超过可用库存", "error", 1),
+            ("滞销识别", "scheduled.daily", '{"left":"inv.days_since_last","op":">","right":"30"}', "slow_moving", "滞销: {product_name}", "{days} 天无销售", "warning", 1),
+        ]
+        for r in rules:
+            _local.conn.execute("INSERT INTO rules(name,event,condition_json,alert_type,alert_title,alert_desc,severity,is_active) VALUES(?,?,?,?,?,?,?,?)", r)
+        _local.conn.commit()
+    except: pass
+
+_local.conn = None
 
 db = SQLiteDB()
 
@@ -416,3 +433,26 @@ def init_db(path=None):
     """)
     conn.commit()
     conn.close()
+def _seed_builtin_rules():
+    try:
+        _local.conn = sqlite3.connect(DB_PATH)
+        existing = _local.conn.execute("SELECT COUNT(*) FROM rules").fetchone()[0]
+        if existing > 0:
+            return
+        rules = [
+            ("低库存预警", "inventory.changed", '{"left":"inv.available_qty","op":"<","right":"inv.safety_qty"}', "low_stock", "低库存预警: {product_name}", "可用 {avail} < 安全线 {safety}", "warning", 1),
+            ("紧急补货", "inventory.changed", '{"left":"inv.available_qty","op":"<=","right":"max(1,inv.safety_qty*0.3)"}', "replenish", "紧急补货: {product_name}", "可用 {avail}，低于安全线 30%", "error", 1),
+            ("超卖保护", "order.created", '{"left":"order.quantity","op":">","right":"inv.available_qty"}', "oversell", "超卖告警: {sku}", "订单数量超过可用库存", "error", 1),
+            ("滞销识别", "scheduled.daily", '{"left":"inv.days_since_last","op":">","right":"30"}', "slow_moving", "滞销: {product_name}", "{days} 天无销售", "warning", 1),
+        ]
+        for r in rules:
+            _local.conn.execute("INSERT INTO rules(name,event,condition_json,alert_type,alert_title,alert_desc,severity,is_active) VALUES(?,?,?,?,?,?,?,?)", r)
+        _local.conn.commit()
+    except: pass
+
+
+    # 播种内置规则
+    try:
+        _seed_builtin_rules()
+    except Exception as e:
+        pass

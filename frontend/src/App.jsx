@@ -388,7 +388,7 @@ export default function App() {
                       <td>{x.locked_qty}</td>
                       <td>{x.in_transit_qty}</td>
                       <td>{x.safety_qty}</td>
-                    </tr>)}
+                    </tr>})}
                   </tbody>
                 </table>
               </div>

@@ -59,14 +59,10 @@ export const useAppStore = create((set, get) => ({
         get().loadAll().catch(() => {})
       }
       ws.onclose = () => {
-        if (get().ws === ws) {
-          set({ wsStatus: 'polling', ws: null })
-        }
+        set({ wsStatus: 'polling', ws: null })
       }
       ws.onerror = () => {
-        if (get().ws === ws) {
-          set({ wsStatus: 'polling', ws: null })
-        }
+        set({ wsStatus: 'polling', ws: null })
       }
     } catch(e) {
       set({ wsStatus: 'polling', ws: null })

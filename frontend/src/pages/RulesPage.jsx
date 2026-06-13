@@ -1,3 +1,153 @@
-import React,{useState,useEffect} from "react"
-const API=import.meta.env.VITE_API_BASE_URL||"https://overtrees.pythonanywhere.com"
-export default function RulesPage(){const[r,setR]=useState([]);const[e,setE]=useState(null);const[f,setF]=useState({name:"",event:"inventory.changed",alert_type:"",alert_title:"",alert_desc:"",severity:"warning",condition_json:"{}"});const load=async()=>{try{const a=await fetch(API+"/api/rules");setR(await a.json())}catch(e){}};useEffect(()=>{load()},[]);const save=async()=>{const u=e?API+"/api/rules/"+e.id:API+"/api/rules";const m=e?"PUT":"POST";await fetch(u,{method:m,headers:{"Content-Type":"application/json"},body:JSON.stringify(f)});setE(null);setF({name:"",event:"inventory.changed",alert_type:"",alert_title:"",alert_desc:"",severity:"warning",condition_json:"{}"});load()};const del=async id=>{await fetch(API+"/api/rules/"+id,{method:"DELETE"});load()};return(<div className="card"><div className="section-title"><span>⚙️ 规则引擎</span></div><div className="small muted" style={{marginBottom:12}}>自定义规则会在事件触发时自动评估</div>{e&&(<div style={{background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:12,padding:16,marginBottom:16}}><div style={{fontWeight:600,marginBottom:12}}>{e.id?"编辑规则":"新建规则"}</div><label style={{fontSize:12,display:"block",marginBottom:8}}>规则名称<input value={f.name} onChange={e2=>setF({...f,name:e2.target.value})} style={{width:"100%",padding:"6px 8px",fontSize:12,border:"1px solid #e2e8f0",borderRadius:6,marginTop:4}}/></label><label style={{fontSize:12,display:"block",marginBottom:8}}>事件<select value={f.event} onChange={e2=>setF({...f,event:e2.target.value})} style={{width:"100%",padding:"6px 8px",fontSize:12,border:"1px solid #e2e8f0",borderRadius:6,marginTop:4}}><option value="inventory.changed">库存变动</option><option value="order.created">订单创建</option><option value="scheduled.daily">每日定时</option></select></label><label style={{fontSize:12,display:"block",marginBottom:8}}>告警类型<input value={f.alert_type} onChange={e2=>setF({...f,alert_type:e2.target.value})} style={{width:"100%",padding:"6px 8px",fontSize:12,border:"1px solid #e2e8f0",borderRadius:6,marginTop:4}}/></label><label style={{fontSize:12,display:"block",marginBottom:8}}>严重级别<select value={f.severity} onChange={e2=>setF({...f,severity:e2.target.value})} style={{width:"100%",padding:"6px 8px",fontSize:12,border:"1px solid #e2e8f0",borderRadius:6,marginTop:4}}><option value="warning">警告</option><option value="error">严重</option><option value="info">提示</option></select></label><div style={{display:"flex",gap:8,marginTop:12}}><button onClick={save} style={{padding:"6px 20px",background:"#1d4ed8",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:13}}>保存</button><button onClick={()=>{setE(null);setF({name:"",event:"inventory.changed",alert_type:"",alert_title:"",alert_desc:"",severity:"warning",condition_json:"{}"})}} style={{padding:"6px 20px",background:"#fff",border:"1px solid #e2e8f0",borderRadius:8,cursor:"pointer",fontSize:13}}>取消</button></div></div>):null}{r.map(rule=>(<div key={rule.id} style={{padding:"10px 14px",border:"1px solid #e5e7eb",borderRadius:10,marginBottom:6,display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontWeight:600,fontSize:14}}>{rule.name}</div><div style={{fontSize:12,color:"#94a3b8",marginTop:2}}><span className={"pill "+(rule.is_active?"success":"warning")}>{rule.is_active?"启用":"停用"}</span> <span className={"pill "+(rule.severity==="error"?"danger":rule.severity==="info"?"info":"warning")}>{rule.severity==="error"?"严重":rule.severity==="info"?"提示":"警告"}</span></div></div><div style={{display:"flex",gap:6}}><button onClick={()=>{setE(rule);setF({name:rule.name,event:rule.event,alert_type:rule.alert_type,alert_title:rule.alert_title,alert_desc:rule.alert_desc,severity:rule.severity,condition_json:rule.condition_json||"{}"})}} style={{fontSize:12,padding:"4px 10px",border:"1px solid #e2e8f0",borderRadius:6,cursor:"pointer",background:"#fff"}}>编辑</button><button onClick={()=>del(rule.id)} style={{fontSize:12,padding:"4px 10px",border:"1px solid #ef4444",borderRadius:6,cursor:"pointer",background:"#fff",color:"#ef4444"}}>删除</button></div></div>))}{r.length===0&&<div className="small muted" style={{padding:40,textAlign:"center"}}>暂无规则</div>}</div>) }
+import React, { useState, useEffect } from 'react'
+
+const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
+
+const EVENTS = [
+  { value: 'inventory.changed', label: '库存变动' },
+  { value: 'order.created', label: '订单创建' },
+  { value: 'scheduled.daily', label: '每日定时' },
+]
+
+export default function RulesPage() {
+  const [rules, setRules] = useState([])
+  const [editing, setEditing] = useState(null)
+  const [form, setForm] = useState({
+    name: '', event: 'inventory.changed', alert_type: '',
+    alert_title: '', alert_desc: '', severity: 'warning',
+    condition_json: '{}',
+  })
+
+  const load = async () => {
+    try { const r = await fetch(API + '/api/rules'); setRules(await r.json()) }
+    catch (e) {}
+  }
+
+  useEffect(() => { load() }, [])
+
+  const save = async () => {
+    const url = editing ? API + '/api/rules/' + editing.id : API + '/api/rules'
+    const method = editing ? 'PUT' : 'POST'
+    await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    })
+    setEditing(null)
+    setForm({ name: '', event: 'inventory.changed', alert_type: '', alert_title: '', alert_desc: '', severity: 'warning', condition_json: '{}' })
+    load()
+  }
+
+  const del = async (id) => {
+    await fetch(API + '/api/rules/' + id, { method: 'DELETE' })
+    load()
+  }
+
+  const startNew = () => {
+    setEditing(null)
+    setForm({ name: '', event: 'inventory.changed', alert_type: '', alert_title: '', alert_desc: '', severity: 'warning', condition_json: '{}' })
+  }
+
+  const startEdit = (rule) => {
+    setEditing(rule)
+    setForm({
+      name: rule.name, event: rule.event, alert_type: rule.alert_type || '',
+      alert_title: rule.alert_title || '', alert_desc: rule.alert_desc || '',
+      severity: rule.severity || 'warning', condition_json: rule.condition_json || '{}',
+    })
+  }
+
+  const severityClass = (sev) => {
+    if (sev === 'error') return 'danger'
+    if (sev === 'info') return 'info'
+    return 'warning'
+  }
+
+  const severityLabel = (sev) => {
+    if (sev === 'error') return '严重'
+    if (sev === 'info') return '提示'
+    return '警告'
+  }
+
+  return (
+    <div className="card">
+      <div className="section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span>⚙️ 规则引擎</span>
+        <button onClick={startNew} style={btnStyle.primary}>+ 新建规则</button>
+      </div>
+
+      {editing !== null && (
+        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+          <div style={{ fontWeight: 600, marginBottom: 12 }}>{editing ? '编辑规则' : '新建规则'}</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <label style={{ fontSize: 12, display: 'block' }}>
+              规则名称
+              <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} style={inputStyle} />
+            </label>
+            <label style={{ fontSize: 12, display: 'block' }}>
+              触发事件
+              <select value={form.event} onChange={e => setForm({ ...form, event: e.target.value })} style={inputStyle}>
+                {EVENTS.map(ev => <option key={ev.value} value={ev.value}>{ev.label}</option>)}
+              </select>
+            </label>
+            <label style={{ fontSize: 12, display: 'block' }}>
+              告警类型
+              <input value={form.alert_type} onChange={e => setForm({ ...form, alert_type: e.target.value })} style={inputStyle} placeholder="low_stock" />
+            </label>
+            <label style={{ fontSize: 12, display: 'block' }}>
+              严重级别
+              <select value={form.severity} onChange={e => setForm({ ...form, severity: e.target.value })} style={inputStyle}>
+                <option value="warning">警告</option>
+                <option value="error">严重</option>
+                <option value="info">提示</option>
+              </select>
+            </label>
+            <label style={{ fontSize: 12, display: 'block' }}>
+              告警标题
+              <input value={form.alert_title} onChange={e => setForm({ ...form, alert_title: e.target.value })} style={inputStyle} />
+            </label>
+            <label style={{ fontSize: 12, display: 'block' }}>
+              告警描述
+              <input value={form.alert_desc} onChange={e => setForm({ ...form, alert_desc: e.target.value })} style={inputStyle} />
+            </label>
+          </div>
+          <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+            <button onClick={save} style={btnStyle.primary}>保存</button>
+            <button onClick={startNew} style={btnStyle.secondary}>取消</button>
+          </div>
+        </div>
+      )}
+
+      {rules.map(rule => (
+        <div key={rule.id} style={{ padding: '10px 14px', border: '1px solid #e5e7eb', borderRadius: 10, marginBottom: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 14 }}>{rule.name}</div>
+            <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
+              <span className={'pill ' + (rule.is_active ? 'success' : 'warning')}>{rule.is_active ? '启用' : '停用'}</span>
+              {' '}
+              <span className={'pill ' + severityClass(rule.severity)}>{severityLabel(rule.severity)}</span>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button onClick={() => startEdit(rule)} style={btnStyle.edit}>编辑</button>
+            <button onClick={() => del(rule.id)} style={btnStyle.danger}>删除</button>
+          </div>
+        </div>
+      ))}
+
+      {rules.length === 0 && (
+        <div className="small muted" style={{ textAlign: 'center', padding: 40 }}>
+          暂无规则，点击「新建规则」创建
+        </div>
+      )}
+    </div>
+  )
+}
+
+const btnStyle = {
+  primary: { padding: '6px 16px', background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13 },
+  secondary: { padding: '6px 16px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, cursor: 'pointer', fontSize: 13 },
+  edit: { fontSize: 12, padding: '4px 10px', border: '1px solid #e2e8f0', borderRadius: 6, cursor: 'pointer', background: '#fff' },
+  danger: { fontSize: 12, padding: '4px 10px', border: '1px solid #ef4444', borderRadius: 6, cursor: 'pointer', background: '#fff', color: '#ef4444' },
+}
+
+const inputStyle = { width: '100%', padding: '6px 8px', fontSize: 12, border: '1px solid #e2e8f0', borderRadius: 6, marginTop: 4, outline: 'none', background: '#fff', boxSizing: 'border-box' }

@@ -47,6 +47,11 @@ export default function RulesPage() {
     setForm({ name: '', event: 'inventory.changed', alert_type: '', alert_title: '', alert_desc: '', severity: 'warning', condition_json: '{}' })
   }
 
+  const cancel = () => {
+    setEditing(null)
+    setForm({ name: '', event: 'inventory.changed', alert_type: '', alert_title: '', alert_desc: '', severity: 'warning', condition_json: '{}' })
+  }
+
   const startEdit = (rule) => {
     setEditing(rule)
     setForm({
@@ -112,7 +117,7 @@ export default function RulesPage() {
           </div>
           <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
             <button onClick={save} style={btnStyle.primary}>保存</button>
-            <button onClick={startNew} style={btnStyle.secondary}>取消</button>
+            <button onClick={cancel} style={btnStyle.secondary}>取消</button>
           </div>
         </div>
       )}

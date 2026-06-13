@@ -75,20 +75,74 @@ RULES = [
 
 # ─── 评估引擎 ──────────────────────────────────────────────────────────────
 
+def _resolve_value(expr: str, ctx: dict):
+    """解析条件表达式，如 inv.available_qty → ctx['inv']['available_qty']"""
+    parts = expr.split('.')
+    val = ctx
+    for p in parts:
+        if isinstance(val, dict):
+            val = val.get(p, 0)
+        else:
+            return 0
+    return val if isinstance(val, (int, float)) else 0
+
+def _check_condition(cond: dict, ctx: dict) -> bool:
+    """判断条件是否成立"""
+    try:
+        left_raw = cond.get('left', '0')
+        right_raw = cond.get('right', '0')
+        op = cond.get('op', '<')
+        # 处理 max() 表达式
+        if right_raw.startswith('max('):
+            inner = right_raw[4:-1]
+            parts = [p.strip() for p in inner.split(',')]
+            right = max(_resolve_value(parts[0], ctx), float(parts[1]) if parts[1].replace('.','',1).isdigit() else 0)
+        elif right_raw.replace('.','',1).isdigit():
+            right = float(right_raw)
+        else:
+            right = _resolve_value(right_raw, ctx)
+        left = _resolve_value(left_raw, ctx)
+        if op == '<': return left < right
+        if op == '<=': return left <= right
+        if op == '>': return left > right
+        if op == '>=': return left >= right
+        if op == '==': return left == right
+        return False
+    except: return False
+
 def evaluate(event: str, context: dict):
-    """根据事件名匹配规则，满足条件则执行动作"""
+    """根据事件名匹配所有规则（硬编码 + 数据库），满足条件则执行动作"""
     results = []
+
+    # 评估硬编码规则
     for rule in RULES:
-        if rule['event'] != event:
-            continue
+        if rule['event'] != event: continue
         ctx = {**context, 'rule': rule, 'avail': context.get('inv',{}).get('available_qty',0),
                'safety': context.get('inv',{}).get('safety_qty',0),
                'product_name': context.get('inv',{}).get('product_name','')}
         try:
             if rule['condition'](ctx):
-                for action in rule['actions']:
-                    action(ctx)
+                for action in rule['actions']: action(ctx)
                 results.append(rule['name'])
         except Exception as e:
             results.append(f"{rule['name']} error: {e}")
+
+    # 评估数据库规则
+    try:
+        from app.core.database import get_db
+        db = get_db()
+        db_rules = db.table("rules").select("*").eq("is_active", 1).eq("event", event).execute().data
+        for rule in db_rules:
+            try:
+                cond = json.loads(rule.get('condition_json', '{}'))
+            except: continue
+            ctx = {**context, 'rule': rule, 'avail': context.get('inv',{}).get('available_qty',0),
+                   'safety': context.get('inv',{}).get('safety_qty',0),
+                   'product_name': context.get('inv',{}).get('product_name','')}
+            if _check_condition(cond, ctx):
+                _action_create_alert(ctx)
+                results.append(rule['name'])
+    except Exception as e:
+        results.append(f"DB rules error: {e}")
+
     return results

@@ -329,6 +329,20 @@ def init_db(path=None):
             owner_id TEXT DEFAULT '',
             created_at TEXT DEFAULT (datetime('now'))
         );
+        CREATE TABLE IF NOT EXISTS rules (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT DEFAULT '',
+            event TEXT DEFAULT '',           -- inventory.changed / order.created / scheduled.daily
+            condition_json TEXT DEFAULT '{}', -- {"left":"inv.available_qty","op":"<","right":"inv.safety_qty"}
+            alert_type TEXT DEFAULT '',
+            alert_title TEXT DEFAULT '',
+            alert_desc TEXT DEFAULT '',
+            severity TEXT DEFAULT 'warning',
+            is_active INTEGER DEFAULT 1,
+            owner_id TEXT DEFAULT '',
+            created_at TEXT DEFAULT (datetime('now')),
+            updated_at TEXT DEFAULT (datetime('now'))
+        );
         CREATE TABLE IF NOT EXISTS cleansing_errors (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             task_id TEXT DEFAULT '',

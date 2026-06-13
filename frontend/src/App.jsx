@@ -6,6 +6,7 @@ import ProductPage from './pages/ProductPage'
 import SupplierPage from './pages/SupplierPage'
 import InsightsPage from './pages/InsightsPage'
 import CleansingPage from './pages/CleansingPage'
+import RulesPage from './pages/RulesPage'
 
 // ─── 导航配置 ────────────────────────────────────────────────────────────────
 
@@ -17,6 +18,7 @@ const NAV = [
   { id:'inv',      label:'库存',   icon:'📦' },
   { id:'insights', label:'建议',   icon:'💡' },
   { id:'cleansing',label:'清洗',   icon:'🧹' },
+  { id:'rules',    label:'规则',   icon:'⚙️' },
   { id:'import',   label:'导入数据',icon:'📤' },
   { id:'quality',  label:'异常',   icon:'⚠️' },
 ]
@@ -398,6 +400,7 @@ export default function App() {
           {page === 'import' && <UploadPanel />}
           {page === 'insights' && <InsightsPage />}
           {page === 'cleansing' && <CleansingPage />}
+          {page === 'rules' && <RulesPage />}
 
           {page === 'quality' && (
             <div className="card">

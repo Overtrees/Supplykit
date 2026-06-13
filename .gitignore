@@ -1,3 +1,4 @@
 supplykit.db
 *.db
 *.db.bak*
+node_modules/

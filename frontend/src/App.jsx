@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import * as echarts from 'echarts'
 import { useAppStore } from './store/useAppStore'
 import { api } from './api/client'
+import { ToastProvider } from './components/Toast'
 import ProductPage from './pages/ProductPage'
 import SupplierPage from './pages/SupplierPage'
 import InsightsPage from './pages/InsightsPage'
@@ -53,7 +54,7 @@ function Chart({ option, height=260 }) {
   return <div ref={ref} style={{ width:'100%', height }} />
 }
 
-function UploadPanel() {
+function UploadPanel({ onImport }) {
   const [busy, setBusy] = useState('')
   const { importLogs, loadAll, addImportLog } = useAppStore()
 
@@ -397,7 +398,7 @@ export default function App() {
             </div>
           )}
 
-          {page === 'import' && <UploadPanel />}
+          {page === 'import' && <UploadPanel onImport={(t) => setPage(t === "orders" ? "orders" : "inv")} />}
           {page === 'insights' && <InsightsPage />}
           {page === 'cleansing' && <CleansingPage />}
           {page === 'rules' && <RulesPage />}

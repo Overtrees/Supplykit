@@ -7,6 +7,9 @@ import InsightsPage from './pages/InsightsPage'
 import CleansingPage from './pages/CleansingPage'
 import RulesPage from './pages/RulesPage'
 import DashboardPage from './pages/DashboardPage'
+import OrdersPage from './pages/OrdersPage'
+import InventoryPage from './pages/InventoryPage'
+import QualityPage from './pages/QualityPage'
 import Sidebar from './components/Sidebar'
 import UploadPanel from './components/UploadPanel'
 import useKeyboard from './hooks/useKeyboard'
@@ -27,7 +30,7 @@ export default function App() {
   useEffect(() => { startPolling(); return () => stopAll() }, [])
   const lowStock = (inventory||[]).filter(x => Number(x.available_qty) < Number(x.safety_qty)).length
   const errCount = (qualityLogs||[]).length
-  return <>
+  return <ToastProvider>
     <Sidebar open={sidebarOpen} onClose={()=>setSidebarOpen(false)} page={page} onNavigate={setPage} lowStock={lowStock} errCount={errCount} />
     <div style={{minHeight:'100vh',background:'#f8fafc',fontFamily:'system-ui, sans-serif',color:'#0f172a'}}>
       <div style={{background:'linear-gradient(135deg,#0f172a,#1d4ed8)',color:'#fff',padding:'14px 20px',display:'flex',justifyContent:'space-between',alignItems:'center',position:'relative',zIndex:1}}>
@@ -50,5 +53,5 @@ export default function App() {
         {page==='quality' && <QualityPage />}
       </div>
     </div>
-  </>
+  </ToastProvider>
 }

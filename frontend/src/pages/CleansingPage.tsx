@@ -4,6 +4,7 @@ import { api } from '../api/client'
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
 
 export default function CleansingPage() {
+  document.title = 'CP: mounted'
   // 智能列名匹配
   const aliasMap = {"订单号":"order_no","订单编号":"order_no","采购单号":"order_no","商品编号":"sku",SKU:"sku","货号":"sku","商品名称":"product_name","产品名称":"product_name","名称":"product_name","数量":"quantity","采购数量":"quantity","订货数量":"quantity","单价":"unit_price","价格":"unit_price","采购价格":"unit_price","金额":"total_amount","总金额":"total_amount","采购金额":"total_amount","店铺":"store","店铺名":"store","门店":"store","状态":"order_status","订单状态":"order_status","日期":"ordered_at","订购时间":"ordered_at","下单时间":"ordered_at"}
 

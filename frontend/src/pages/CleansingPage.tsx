@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-
+import { api } from '../api/client'
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
 
 // 智能列名匹配
@@ -48,8 +48,8 @@ export default function CleansingPage() {
     const form = new FormData()
     form.append('file', f)
     try {
-      const res = await fetch(API + '/api/cleansing/detect', { method: 'POST', body: form })
-      const d = await res.json()
+      const res = await api.post('/api/cleansing/detect', form)
+      const d = res.data
       if (!d.ok) { alert('检测失败: ' + (d.error || JSON.stringify(d))); setBusy(''); return }
       setColumns(d.columns || [])
       setTotalRows(d.total || 0)

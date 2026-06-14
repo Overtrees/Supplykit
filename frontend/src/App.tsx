@@ -13,6 +13,7 @@ import QualityPage from './pages/QualityPage'
 import Sidebar from './components/Sidebar'
 import UploadPanel from './components/UploadPanel'
 import useKeyboard from './hooks/useKeyboard'
+import './version'
 
 // 导航配置（也用于 Sidebar）
 export const NAV = [

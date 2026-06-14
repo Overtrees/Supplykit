@@ -15,7 +15,7 @@ export default function CleansingPage() {
       if (key) auto[col.name] = { target: key, type: 'string' }
     })
     if (Object.keys(auto).length > 0) setMapping(auto)
-  }, [detected])
+  }, [columns])
 
   const [step, setStep] = useState(0)
   const [file, setFile] = useState(null)

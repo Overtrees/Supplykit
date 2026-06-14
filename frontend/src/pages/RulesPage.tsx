@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
-import { api } from '../api/client'
 
 
 

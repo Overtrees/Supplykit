@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
+import { api } from '../api/client'
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
-import { api } from '../api/client'
 
 export default function CleansingPage() {
   // 智能列名匹配

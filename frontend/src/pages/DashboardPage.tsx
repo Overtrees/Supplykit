@@ -31,6 +31,20 @@ export default function DashboardPage() {
     grid: { left: 40, right: 20, top: 30, bottom: 30 }
   }), [dashboard])
 
+  const funnelOption = useMemo(() => {
+    const f = dashboard?.funnel || []
+    return {
+      tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+      series: [{
+        type: 'funnel', left: '10%', top: 20, bottom: 40, width: '80%',
+        minSize: '20%', maxSize: '100%', sort: 'descending', gap: 4,
+        label: { show: true, fontSize: 11, formatter: '{b}\n{c}单\n转化率{d}%' },
+        itemStyle: { borderColor: '#fff', borderWidth: 1 },
+        data: f.map((x,i) => ({ ...x, value: x.value, itemStyle: { color: ['#3b82f6','#06b6d4','#0ea5e9','#14b8a6','#10b981'][i % 5] } }))
+      }]
+    }
+  }, [dashboard])
+
   const lowStock = (inventory||[]).filter(x => Number(x.available_qty) < Number(x.safety_qty)).length
   const errCount = (qualityLogs||[]).length
   const alertsList = alerts || []
@@ -54,7 +68,30 @@ export default function DashboardPage() {
 
     <div style={{ display:'grid', gridTemplateColumns:'1.3fr 1fr', gap:16, marginBottom:16 }}>
       <div className="card"><div className="section-title">{periodLabel[periodTab]} GMV·订单趋势</div><Chart option={periodTrendOption} height={200} /></div>
-      <div className="card"><div className="section-title">店铺 GMV</div><Chart option={storeOption} height={200} /></div>
+      <div className="card"><div className="section-title">订单漏斗 下单→完成</div><Chart option={funnelOption} height={200} /></div>
+    </div>
+
+    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:16, marginBottom:16 }}>
+      <div className="card"><div className="section-title">店铺 GMV</div><Chart option={storeOption} height={170} /></div>
+      <div className="card"><div className="section-title">商品分类分布</div>
+        {dashboard?.category_distribution
+          ? <Chart option={{ tooltip: { trigger: 'item' }, series: [{ type: 'pie', radius: ['40%', '70%'], data: dashboard.category_distribution, label: { fontSize: 11 } }] }} height={170} />
+          : <div className="small muted">暂无数据</div>}
+      </div>
+      <div className="card"><div className="section-title">低库存 & 补货告警</div>
+        {alertsList.length === 0
+          ? <div className="small muted" style={{ padding: 12, textAlign: 'center' }}>暂无告警</div>
+          : alertsList.slice(0, 6).map(x => (
+              <div key={x.id} style={{ padding: '6px 0', borderBottom: '1px solid #f1f5f9', fontSize: 13 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                  <span style={{ fontWeight: 600, fontSize: 12 }}>{x.title}</span>
+                  <span className={'pill '+(x.alert_type==='replenish'||x.severity==='error'?'danger':x.severity==='warning'?'warning':'info')}>{x.alert_type==='replenish'?'补货':x.severity}</span>
+                </div>
+                <div className="small muted" style={{ fontSize: 11 }}>{x.description}</div>
+              </div>
+            ))}
+        {alertsList.length > 6 && <div className="small muted" style={{ textAlign: 'center', padding: 6 }}>还有 {alertsList.length - 6} 条...</div>}
+      </div>
     </div>
   </div>
 }

@@ -20,7 +20,7 @@ def create_product(body: dict, db = get_db()):
         "product_name": body.get("product_name"),
         "store": body.get("store", ""),
         "category": body.get("category", ""),
-        "unit": body.get("unit", "件"),
+        "spec": body.get("spec", ""),
         "price": float(body.get("price", 0)),
         "status": body.get("status", "active"),
         "raw_data": json.dumps(body, ensure_ascii=False),

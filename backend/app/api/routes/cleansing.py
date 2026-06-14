@@ -211,7 +211,7 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
     if orders_to_insert:
         try:
             db.table("orders").insert(orders_to_insert).execute()
-            # 触发事件
+            # 触犯事件
             try:
                 from app.core.events import bus
                 bus.emit('data.cleaned', {
@@ -224,13 +224,11 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                     }
                 })
             except: pass
-            # 异步触发库存调整
             from app.core.database import submit_task
             from app.api.routes.insights import sync_inventory_from_orders
             submit_task(f"inv_sync_{datetime.utcnow().strftime('%H%M%S')}", sync_inventory_from_orders, 200)
         except Exception as e:
-            failed += len(orders_to_insert)
-            success -= len(orders_to_insert)
+            return {'ok': False, 'error': f'清洗写入失败: {str(e)[:200]}', 'success': 0, 'failed': 0}
 
     msg_parts = []
     if success > 0: msg_parts.append(f"成功导入 {success} 条")

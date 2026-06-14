@@ -5,7 +5,7 @@ from datetime import datetime
 # ─── 内置动作 ──────────────────────────────────────────────────────────────
 
 def _action_create_alert(ctx):
-    db = ctx['db']
+    db = ctx.get('db') or get_db()
     existing = db.table("alerts").select("id").eq("alert_type", ctx['rule']['alert_type'])\
         .eq("related_sku", ctx.get('sku','')).eq("status", "active").execute().data
     if existing:

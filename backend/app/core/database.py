@@ -100,6 +100,24 @@ class QueryBuilder:
         self._params.extend(vals)
         return self
 
+    def ilike(self, col, pattern):
+        self._where.append(f'LOWER("{col}") LIKE ?')
+        self._params.append(pattern.replace("%", "%").lower())
+        return self
+
+    def single(self):
+        result = self.limit(1).execute()
+        return result.data[0] if result.data else None
+
+    def or_(self, other):
+        # 合并两个 QueryBuilder 的 WHERE 条件用 OR 连接
+        combined_where = f"({' AND '.join(self._where)})" if self._where else "1=1"
+        other_where = f"({' AND '.join(other._where)})" if other._where else "1=1"
+        new_qb = QueryBuilder(self.table, self.conn)
+        new_qb._where = [f"{combined_where} OR {other_where}"]
+        new_qb._params = self._params + other._params
+        return new_qb
+
     def gte(self, col, val):
         self._where.append(f'"{col}" >= ?')
         self._params.append(val)
@@ -190,6 +208,11 @@ class DeleteBuilder:
     def eq(self, col, val):
         self._where.append(f'"{col}" = ?')
         self._params.append(val)
+        return self
+
+    def ilike(self, col, pattern):
+        self._where.append(f'LOWER("{col}") LIKE ?')
+        self._params.append(pattern.replace("%", "%").lower())
         return self
 
     def execute(self):

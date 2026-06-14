@@ -90,7 +90,8 @@ def detect_slow_moving_products(db=None, create_alerts=False):
             except: pass
         stock = int(inv.get("available_qty") or 0) if inv else 0
         if days > 30 and stock > 0:
-            result.append({"sku": sku, "product_name": p["product_name"] if p else inv.get("product_name",sku) if inv else sku, "last_order_date": last_date[:10], "days_since_last": days, "stock": stock})
+            level = "滞销" if days > 60 else ("冷淡" if days > 30 else "正常")
+            result.append({"sku": sku, "product_name": p["product_name"] if p else inv.get("product_name",sku) if inv else sku, "last_order_date": last_date[:10], "days_since_last": days, "stock": stock, "level": level})
             if create_alerts:
                 ex = db.table("alerts").select("id").eq("alert_type","slow_moving").eq("related_sku",sku).eq("status","active").execute().data
                 if not ex:

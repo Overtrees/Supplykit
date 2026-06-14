@@ -20,7 +20,7 @@ export default function RulesPage() {
   })
 
   const load = async () => {
-    try { const r = await fetch('/api/rules'); setRules(await r.json()) }
+    try { const r = await fetch(API + '/api/rules'); setRules(await r.json()) }
     catch (e) {}
   }
 

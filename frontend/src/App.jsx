@@ -8,6 +8,7 @@ import SupplierPage from './pages/SupplierPage'
 import InsightsPage from './pages/InsightsPage'
 import CleansingPage from './pages/CleansingPage'
 import RulesPage from './pages/RulesPage'
+import useKeyboard from './hooks/useKeyboard'
 
 // ─── 导航配置 ────────────────────────────────────────────────────────────────
 
@@ -176,6 +177,7 @@ export default function App() {
   const [highlightSku, setHighlightSku] = useState('')
   const { dashboard, orders, orderTotal, orderPage, inventory, qualityLogs, alerts, startPolling, stopAll, setOrderPage, wsStatus } = useAppStore()
   const [loadingOrders, setLoadingOrders] = useState(false)
+  useKeyboard({ 'meta+b': () => setSidebarOpen(o => !o), 'esc': () => setSidebarOpen(false) })
 
   useEffect(() => { startPolling(); return () => stopAll() }, [])
 

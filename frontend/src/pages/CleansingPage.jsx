@@ -3,6 +3,19 @@ import React, { useState } from 'react'
 import { api } from '../api/client'
 
 export default function CleansingPage() {
+  // 智能列名匹配
+  const aliasMap = {"订单号":"order_no","订单编号":"order_no","采购单号":"order_no","商品编号":"sku",SKU:"sku","货号":"sku","商品名称":"product_name","产品名称":"product_name","名称":"product_name","数量":"quantity","采购数量":"quantity","订货数量":"quantity","单价":"unit_price","价格":"unit_price","采购价格":"unit_price","金额":"total_amount","总金额":"total_amount","采购金额":"total_amount","店铺":"store","店铺名":"store","门店":"store","状态":"order_status","订单状态":"order_status","日期":"ordered_at","订购时间":"ordered_at","下单时间":"ordered_at"}
+
+  useEffect(() => {
+    if (!detected || Object.keys(mapping).length > 0) return
+    const auto = {}
+    detected.forEach(col => {
+      const key = aliasMap[col.name]
+      if (key) auto[col.name] = { target: key, type: 'string' }
+    })
+    if (Object.keys(auto).length > 0) setMapping(auto)
+  }, [detected])
+
   const [step, setStep] = useState(0)
   const [file, setFile] = useState(null)
   const [columns, setColumns] = useState([])

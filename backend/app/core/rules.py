@@ -111,23 +111,8 @@ def _check_condition(cond: dict, ctx: dict) -> bool:
     except: return False
 
 def evaluate(event: str, context: dict):
-    """根据事件名匹配所有规则（硬编码 + 数据库），满足条件则执行动作"""
+    """根据事件名匹配数据库中的规则，满足条件则执行动作"""
     results = []
-
-    # 评估硬编码规则
-    for rule in RULES:
-        if rule['event'] != event: continue
-        ctx = {**context, 'rule': rule, 'avail': context.get('inv',{}).get('available_qty',0),
-               'safety': context.get('inv',{}).get('safety_qty',0),
-               'product_name': context.get('inv',{}).get('product_name','')}
-        try:
-            if rule['condition'](ctx):
-                for action in rule['actions']: action(ctx)
-                results.append(rule['name'])
-        except Exception as e:
-            results.append(f"{rule['name']} error: {e}")
-
-    # 评估数据库规则
     try:
         from app.core.database import get_db
         db = get_db()
@@ -144,5 +129,4 @@ def evaluate(event: str, context: dict):
                 results.append(rule['name'])
     except Exception as e:
         results.append(f"DB rules error: {e}")
-
     return results

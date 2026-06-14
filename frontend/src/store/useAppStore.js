@@ -60,9 +60,11 @@ export const useAppStore = create((set, get) => ({
       }
       ws.onclose = () => {
         set({ wsStatus: 'polling', ws: null })
+        setTimeout(() => connectWebSocket(), 10000)
       }
       ws.onerror = () => {
         set({ wsStatus: 'polling', ws: null })
+        setTimeout(() => connectWebSocket(), 10000)
       }
     } catch(e) {
       set({ wsStatus: 'polling', ws: null })

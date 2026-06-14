@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 
-const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
+import { api } from '../../api/client'
 
 export default function CleansingPage() {
   const [step, setStep] = useState(0)
@@ -81,7 +81,7 @@ export default function CleansingPage() {
     form.append('target', targetType)
     form.append('template_name', templateName)
     try {
-      const r = await fetch(API + '/api/cleansing/execute-async', { method: 'POST', body: form })
+      const r = await fetch(api.defaults.baseURL + '/api/cleansing/execute-async', { method: 'POST', body: form })
       if (!r.ok) {
         const txt = await r.text().catch(() => '')
         alert('提交失败 (HTTP ' + r.status + '): ' + (txt.slice(0, 200) || r.statusText))
@@ -96,7 +96,7 @@ export default function CleansingPage() {
       const startTime = Date.now()
       const poll = setInterval(async () => {
         try {
-          const sr = await fetch(API + '/api/cleansing/task/' + taskId)
+          const sr = await fetch(api.defaults.baseURL + '/api/cleansing/task/' + taskId)
           const sd = await sr.json()
           if (sd.status === 'done') {
             clearInterval(poll)

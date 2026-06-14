@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 
-const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
+
 
 const EVENTS = [
   { value: 'inventory.changed', label: '库存变动' },
@@ -18,14 +18,14 @@ export default function RulesPage() {
   })
 
   const load = async () => {
-    try { const r = await fetch(API + '/api/rules'); setRules(await r.json()) }
+    try { const r = await fetch('/api/rules'); setRules(await r.json()) }
     catch (e) {}
   }
 
   useEffect(() => { load() }, [])
 
   const save = async () => {
-    const url = editing ? API + '/api/rules/' + editing.id : API + '/api/rules'
+    const url = editing ? '/api/rules/' + editing.id : '/api/rules'
     const method = editing ? 'PUT' : 'POST'
     await fetch(url, {
       method,
@@ -38,7 +38,7 @@ export default function RulesPage() {
   }
 
   const del = async (id) => {
-    await fetch(API + '/api/rules/' + id, { method: 'DELETE' })
+    await fetch('/api/rules/' + id, { method: 'DELETE' })
     load()
   }
 

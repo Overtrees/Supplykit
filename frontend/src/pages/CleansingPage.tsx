@@ -144,12 +144,12 @@ export default function CleansingPage() {
           {matched && sf && <span className="small muted" style={{display:'block',fontSize:11}}>→ {sf.l} ({sf.t})</span>}
         </div>
         <div style={{fontSize:11,color:'#94a3b8',flexShrink:0}}>→</div>
-        <select value={mp[c.name]?.target||''} onChange={e=>{const v=e.target.value;setMp(p=>({...p,[c.name]:{target:v||c.name,type:'string'}}))}} style={{flex:1,fontSize:12,padding:'6px 8px',border:'1px solid #e2e8f0',borderRadius:6}}>
+        <select value={mp[c.name]?.target||''} onChange={e=>{const v=e.target.value;const matchedCf=cf.find(f=>f.t===v);setMp(p=>({...p,[c.name]:{target:v||c.name,type:matchedCf?matchedCf.tp:'string'}}))}} style={{flex:1,fontSize:12,padding:'6px 8px',border:'1px solid #e2e8f0',borderRadius:6}}>
           <option value="">不映射</option>
           <optgroup label="系统字段">{SYS_FIELDS.map(sf => <option key={sf.t} value={sf.t}>{sf.l}</option>)}</optgroup>
           {cf.length > 0 && <optgroup label="自定义字段">{cf.map(f => <option key={f.t} value={f.t}>{f.l}</option>)}</optgroup>}
         </select>
-        <select value={mp[c.name]?.type||'string'} onChange={e=>{const v=e.target.value;setMp(p=>({...p,[c.name]:{...p[c.name],type:v}}))}} style={{flexShrink:0,fontSize:11,padding:'5px',border:'1px solid #e2e8f0',borderRadius:6}}>
+        <select value={mp[c.name]?.type||''} onChange={e=>{const v=e.target.value;setMp(p=>({...p,[c.name]:{...p[c.name],type:v}}))}} style={{flexShrink:0,fontSize:11,padding:'5px',border:'1px solid #e2e8f0',borderRadius:6}}>
           <option value="string">文本</option><option value="number">数字</option><option value="date">日期</option>
         </select>
       </div>})}

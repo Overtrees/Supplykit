@@ -124,14 +124,16 @@ export default function CleansingPage() {
 
     {s === 1 && <div>
       <div style={{fontSize:13,marginBottom:12}}>已识别 {cols.length} 列 · {tr} 行 · 目标: {tt}</div>
-      <div style={{display:'flex',gap:8,marginBottom:8,flexWrap:'wrap'}}>
-        {cf.map((f,i) => <div key={i} style={{display:'flex',alignItems:'center',gap:4,background:'#f1f5f9',borderRadius:8,padding:'4px 8px',fontSize:12}}>
-          <span>{f.l}</span>
-          <span className="small muted">({f.t})</span>
-          <span className="small muted">{f.tp}</span>
-          <button onClick={()=>delField(i)} style={{background:'none',border:'none',cursor:'pointer',color:'#ef4444',fontSize:14,padding:0,lineHeight:1}}>×</button>
+      <div style={{marginBottom:10,border:'1px solid #e2e8f0',borderRadius:12,padding:12,background:'#fafafa'}}>
+        <div style={{fontSize:12,fontWeight:600,marginBottom:8}}>自定义字段</div>
+        {cf.map((f,i) => <div key={i} style={{display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
+          <input value={f.l} onChange={e=>{const v=e.target.value;setCf(p=>p.map((x,k)=>k===i?{...x,l:v}:x))}} placeholder="字段名" style={{flex:1,fontSize:12,padding:'5px 8px',border:'1px solid #e2e8f0',borderRadius:6,outline:'none'}}/>
+          <select value={f.tp} onChange={e=>{const v=e.target.value;setCf(p=>p.map((x,k)=>k===i?{...x,tp:v}:x))}} style={{fontSize:11,padding:'5px',border:'1px solid #e2e8f0',borderRadius:6}}>
+            <option value="string">文本</option><option value="number">数字</option><option value="date">日期</option>
+          </select>
+          <button onClick={()=>delField(i)} style={{background:'#fee2e2',border:'none',borderRadius:6,cursor:'pointer',padding:'4px 8px',fontSize:12,color:'#dc2626'}}>删除</button>
         </div>)}
-        <button onClick={addField} style={{padding:'4px 12px',fontSize:12,border:'1px dashed #94a3b8',borderRadius:8,background:'#fff',cursor:'pointer',color:'#64748b'}}>+ 添加字段</button>
+        <button onClick={addField} style={{padding:'5px 14px',fontSize:12,border:'1px dashed #94a3b8',borderRadius:8,background:'#fff',cursor:'pointer',color:'#64748b',width:'100%'}}>+ 添加自定义字段</button>
       </div>
       {cols.map(c => {
         const matched = ALIAS[c.name]

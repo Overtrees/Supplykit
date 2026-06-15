@@ -3,21 +3,40 @@ import { api } from '../api/client'
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
 const SYS_FIELDS = [
-  {t:'order_no',l:'订单号',tp:'string'},{t:'store',l:'店铺',tp:'string'},{t:'warehouse',l:'仓库',tp:'string'},
-  {t:'sku',l:'SKU',tp:'string'},{t:'product_name',l:'商品名称',tp:'string'},{t:'quantity',l:'数量',tp:'number'},
-  {t:'unit_price',l:'单价',tp:'number'},{t:'total_amount',l:'金额',tp:'number'},{t:'order_status',l:'状态',tp:'string'},
-  {t:'ordered_at',l:'订购时间',tp:'date'},{t:'supplier',l:'供应商',tp:'string'},{t:'remark',l:'备注',tp:'string'},
+  {t:'order_no',l:'订单号',tp:'string'},{t:'source_order_id',l:'原始单号',tp:'string'},
+  {t:'store',l:'店铺',tp:'string'},{t:'warehouse',l:'仓库',tp:'string'},
+  {t:'sku',l:'SKU',tp:'string'},{t:'product_name',l:'商品名称',tp:'string'},
+  {t:'quantity',l:'数量',tp:'number'},{t:'unit_price',l:'单价',tp:'number'},{t:'total_amount',l:'金额',tp:'number'},
+  {t:'order_status',l:'状态',tp:'string'},{t:'ordered_at',l:'订购时间',tp:'date'},
+  {t:'supplier',l:'供应商',tp:'string'},{t:'supplier_code',l:'供应商编码',tp:'string'},
+  {t:'remark',l:'备注',tp:'string'},{t:'platform',l:'平台',tp:'string'},
+  {t:'paid_at',l:'付款时间',tp:'date'},{t:'shipped_at',l:'发货时间',tp:'date'},
+  {t:'sender',l:'收货人',tp:'string'},{t:'sender_phone',l:'收货电话',tp:'string'},
+  {t:'currency',l:'币种',tp:'string'},{t:'discount',l:'折扣',tp:'number'},
+  {t:'freight',l:'运费',tp:'number'},{t:'category',l:'分类',tp:'string'},
+  {t:'brand',l:'品牌',tp:'string'},{t:'spec',l:'规格',tp:'string'},
 ]
 const ALIAS = {
   "订单号":"order_no","订单编号":"order_no","采购单号":"order_no",
+  "原始单号":"source_order_id","外部单号":"source_order_id","平台订单号":"source_order_id",
   "商品编号":"sku","货号":"sku","SKU":"sku",
   "商品名称":"product_name","产品名称":"product_name","名称":"product_name",
-  "数量":"quantity","采购数量":"quantity","订货数量":"quantity",
+  "数量":"quantity","采购数量":"quantity","订货数量":"quantity","原始采购数量":"quantity",
   "单价":"unit_price","价格":"unit_price","采购价格":"unit_price",
-  "金额":"total_amount","总金额":"total_amount","采购金额":"total_amount",
+  "金额":"total_amount","总金额":"total_amount","采购金额":"total_amount","实收金额":"total_amount",
   "店铺":"store","店铺名":"store","门店":"store",
+  "仓库":"warehouse","京东仓库":"warehouse","发货仓":"warehouse",
   "状态":"order_status","订单状态":"order_status",
-  "日期":"ordered_at","订购时间":"ordered_at","下单时间":"ordered_at",
+  "日期":"ordered_at","订购时间":"ordered_at","下单时间":"ordered_at","入库时间":"paid_at",
+  "供应商":"supplier","供应商名称":"supplier","供应商简码":"supplier_code",
+  "备注":"remark",
+  "平台":"platform","订单来源":"platform","来源":"platform",
+  "收货人":"sender","收货负责人":"sender",
+  "收货电话":"sender_phone","电话":"sender_phone",
+  "币种":"currency","货币":"currency",
+  "品牌":"brand",
+  "规格":"spec",
+  "分类":"category","商品分类":"category",
 }
 
 export default function CleansingPage() {
@@ -30,6 +49,10 @@ export default function CleansingPage() {
   const [pv,setPv] = useState(null)
   const [res,setRes] = useState(null)
   const [bs,setBs] = useState('')
+  const [cf,setCf] = useState([])
+
+  const addField = () => setCf(p => [...p, {t:'field_'+Date.now(), l:'自定义字段', tp:'string'}])
+  const delField = (i) => setCf(p => p.filter((_,k) => k !== i))
 
   const detect = async (file) => {
     setF(file); setBs('识别中')
@@ -101,6 +124,15 @@ export default function CleansingPage() {
 
     {s === 1 && <div>
       <div style={{fontSize:13,marginBottom:12}}>已识别 {cols.length} 列 · {tr} 行 · 目标: {tt}</div>
+      <div style={{display:'flex',gap:8,marginBottom:8,flexWrap:'wrap'}}>
+        {cf.map((f,i) => <div key={i} style={{display:'flex',alignItems:'center',gap:4,background:'#f1f5f9',borderRadius:8,padding:'4px 8px',fontSize:12}}>
+          <span>{f.l}</span>
+          <span className="small muted">({f.t})</span>
+          <span className="small muted">{f.tp}</span>
+          <button onClick={()=>delField(i)} style={{background:'none',border:'none',cursor:'pointer',color:'#ef4444',fontSize:14,padding:0,lineHeight:1}}>×</button>
+        </div>)}
+        <button onClick={addField} style={{padding:'4px 12px',fontSize:12,border:'1px dashed #94a3b8',borderRadius:8,background:'#fff',cursor:'pointer',color:'#64748b'}}>+ 添加字段</button>
+      </div>
       {cols.map(c => {
         const matched = ALIAS[c.name]
         const sf = SYS_FIELDS.find(x => x.t === matched)
@@ -112,7 +144,8 @@ export default function CleansingPage() {
         <div style={{fontSize:11,color:'#94a3b8',flexShrink:0}}>→</div>
         <select value={mp[c.name]?.target||''} onChange={e=>{const v=e.target.value;setMp(p=>({...p,[c.name]:{target:v||c.name,type:'string'}}))}} style={{flex:1,fontSize:12,padding:'6px 8px',border:'1px solid #e2e8f0',borderRadius:6}}>
           <option value="">不映射</option>
-          {SYS_FIELDS.map(sf => <option key={sf.t} value={sf.t}>{sf.l}</option>)}
+          <optgroup label="系统字段">{SYS_FIELDS.map(sf => <option key={sf.t} value={sf.t}>{sf.l}</option>)}</optgroup>
+          {cf.length > 0 && <optgroup label="自定义字段">{cf.map(f => <option key={f.t} value={f.t}>{f.l}</option>)}</optgroup>}
         </select>
         <select value={mp[c.name]?.type||'string'} onChange={e=>{const v=e.target.value;setMp(p=>({...p,[c.name]:{...p[c.name],type:v}}))}} style={{flexShrink:0,fontSize:11,padding:'5px',border:'1px solid #e2e8f0',borderRadius:6}}>
           <option value="string">文本</option><option value="number">数字</option><option value="date">日期</option>

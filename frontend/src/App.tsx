@@ -7,6 +7,7 @@ import InsightsPage from './pages/InsightsPage'
 import CleansingPage from './pages/CleansingPage'
 import RulesPage from './pages/RulesPage'
 import DashboardPage from './pages/DashboardPage'
+import ErrorBoundary from './components/ErrorBoundary'
 import OrdersPage from './pages/OrdersPage'
 import InventoryPage from './pages/InventoryPage'
 import QualityPage from './pages/QualityPage'
@@ -42,16 +43,16 @@ export default function App() {
         <div style={{fontSize:12,color:wsStatus==='connected'?'#86efac':wsStatus==='polling'?'#fcd34d':'#f87171'}}>{wsStatus==='connected'?'🟢 实时':wsStatus==='polling'?'🟡 轮询':'🔴 断开'}</div>
       </div>
       <div style={{maxWidth:1200,margin:'0 auto',padding:20}}>
-        {page==='dash' && <DashboardPage />}
-        {page==='products' && <ProductPage />}
-        {page==='suppliers' && <SupplierPage />}
-        {page==='orders' && <OrdersPage />}
-        {page==='inv' && <InventoryPage />}
-        {page==='insights' && <InsightsPage />}
-        {page==='cleansing' && <CleansingPage />}
-        {page==='rules' && <RulesPage />}
-        {page==='import' && <UploadPanel onImport={(t)=>setPage(t==='orders'?'orders':'inv')} />}
-        {page==='quality' && <QualityPage />}
+        {page==='dash' && <ErrorBoundary><DashboardPage /></ErrorBoundary>}
+        {page==='products' && <ErrorBoundary><ProductPage /></ErrorBoundary>}
+        {page==='suppliers' && <ErrorBoundary><SupplierPage /></ErrorBoundary>}
+        {page==='orders' && <ErrorBoundary><OrdersPage /></ErrorBoundary>}
+        {page==='inv' && <ErrorBoundary><InventoryPage /></ErrorBoundary>}
+        {page==='insights' && <ErrorBoundary><InsightsPage /></ErrorBoundary>}
+        {page==='cleansing' && <ErrorBoundary><CleansingPage /></ErrorBoundary>}
+        {page==='rules' && <ErrorBoundary><RulesPage /></ErrorBoundary>}
+        {page==='import' && <ErrorBoundary><UploadPanel onImport={(t)=>setPage(t==='orders'?'orders':'inv')} /></ErrorBoundary>}
+        {page==='quality' && <ErrorBoundary><QualityPage /></ErrorBoundary>}
       </div>
     </div>
   </ToastProvider>

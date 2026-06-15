@@ -101,12 +101,18 @@ export default function CleansingPage() {
 
     {s === 1 && <div>
       <div style={{fontSize:13,marginBottom:12}}>已识别 {cols.length} 列 · {tr} 行 · 目标: {tt}</div>
-      {cols.map(c => <div key={c.name} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 10px',border:'1px solid #f1f5f9',borderRadius:10,marginBottom:4}}>
-        <div style={{flex:1,fontSize:13,fontWeight:500}}>{c.name}</div>
+      {cols.map(c => {
+        const matched = ALIAS[c.name]
+        const sf = SYS_FIELDS.find(x => x.t === matched)
+        return <div key={c.name} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 10px',border:'1px solid #f1f5f9',borderRadius:10,marginBottom:4}}>
+        <div style={{flex:1,fontSize:13,fontWeight:500}}>
+          {c.name}
+          {matched && sf && <span className="small muted" style={{display:'block',fontSize:11}}>→ {sf.l} ({sf.t})</span>}
+        </div>
         <div style={{fontSize:11,color:'#94a3b8',flexShrink:0}}>→</div>
         <select value={mp[c.name]?.target||''} onChange={e=>{const v=e.target.value;setMp(p=>({...p,[c.name]:{target:v||c.name,type:'string'}}))}} style={{flex:1,fontSize:12,padding:'6px 8px',border:'1px solid #e2e8f0',borderRadius:6}}>
           <option value="">不映射</option>
-          {SYS_FIELDS.map(sf => <option key={sf.t} value={sf.t}>{sf.l} ({sf.t})</option>)}
+          {SYS_FIELDS.map(sf => <option key={sf.t} value={sf.t}>{sf.l}</option>)}
         </select>
         <select value={mp[c.name]?.type||'string'} onChange={e=>{const v=e.target.value;setMp(p=>({...p,[c.name]:{...p[c.name],type:v}}))}} style={{flexShrink:0,fontSize:11,padding:'5px',border:'1px solid #e2e8f0',borderRadius:6}}>
           <option value="string">文本</option><option value="number">数字</option><option value="date">日期</option>

@@ -52,7 +52,7 @@ export default function CleansingPage() {
   const [cf,setCf] = useState([])
   const [templates, setTemplates] = useState([])
 
-  const loadTemplates = async () => try { const r = await api.get('/api/cleansing/templates'); setTemplates(r.data || []) } catch(e) {}
+  const loadTemplates = async () => { try { const r = await api.get('/api/cleansing/templates'); setTemplates(r.data || []) } catch(e) {} }
   useEffect(() => { loadTemplates() }, [])
 
   const addField = () => setCf(p => [...p, {t:'field_'+Date.now(), l:'自定义字段', tp:'string'}])

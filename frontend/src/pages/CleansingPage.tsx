@@ -49,14 +49,14 @@ export default function CleansingPage() {
   const [pv,setPv] = useState(null)
   const [res,setRes] = useState(null)
   const [bs,setBs] = useState('')
-  const [cf,setCf] = useState([])
-  const [templates, setTemplates] = useState([])
+  const [cf,setCf] = useState(JSON.parse(localStorage.getItem('c_cf')||'[]'))
+  const saveCf = (v) => { setCf(v); localStorage.setItem('c_cf', JSON.stringify(v)) }
 
   const loadTemplates = async () => { try { const r = await api.get('/api/cleansing/templates'); setTemplates(r.data || []) } catch(e) {} }
   useEffect(() => { loadTemplates() }, [])
 
-  const addField = () => setCf(p => [...p, {t:'field_'+Date.now(), l:'自定义字段', tp:'string'}])
-  const delField = (i) => setCf(p => p.filter((_,k) => k !== i))
+  const addField = () => saveCf([...cf, {t:'field_'+Date.now(), l:'自定义字段', tp:'string'}])
+  const delField = (i) => saveCf(cf.filter((_,k) => k !== i))
 
   const detect = async (file) => {
     setF(file); setBs('识别中')

@@ -126,7 +126,8 @@ export default function CleansingPage() {
       <div className="small muted" style={{marginTop:8}}>CSV / Excel · 中文列名自动匹配</div>
     </div>}
 
-    {s === 1 && <div>
+    {s === 1 && (() => { try {
+      return <div>
       <div style={{fontSize:13,marginBottom:12}}>已识别 {cols.length} 列 · {tr} 行 · 目标: {tt}</div>
       {/* 模板区域 */}
       <div style={{display:'flex',gap:8,marginBottom:12,alignItems:'center',flexWrap:'wrap'}}>
@@ -171,7 +172,7 @@ export default function CleansingPage() {
         {btn('← 返回', ()=>{setS(0);setF(null);setCols([]);setMp({})}, '#64748b')}
         {btn('预览 →', preview)}
       </div>
-    </div>}
+    </div> } catch(e) { return <div style={{padding:20,color:'red',background:'#fef2f2',border:'1px solid #dc2626',borderRadius:8,margin:12}}>渲染错误: {e.message}</div> } })()}
 
     {s === 2 && pv && <div>
       <div className="section-title">清洗预览 · 前 {pv.preview?.length||0} 行 · 共 {pv.total} 行</div>

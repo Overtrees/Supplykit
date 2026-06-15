@@ -268,6 +268,25 @@ def list_templates(db = get_db()):
         'updated_at': t.get('updated_at'),
     } for t in templates]
 
+@router.post('/templates')
+def save_template(data: dict, db = get_db()):
+    name = data.get('name', '').strip()
+    if not name:
+        raise HTTPException(status_code=400, detail='模板名称不能为空')
+    existing = db.table("cleansing_templates").select("id").eq("name", name).execute().data
+    payload = {
+        'name': name,
+        'doc_type': data.get('doc_type', 'order'),
+        'mapping': json.dumps(data.get('mapping', {}), ensure_ascii=False),
+        'updated_at': datetime.utcnow().isoformat()[:19],
+    }
+    if existing:
+        db.table("cleansing_templates").update(payload).eq("id", existing[0]['id']).execute()
+        return {'ok': True, 'message': f'模板「{name}」已更新', 'id': existing[0]['id']}
+    else:
+        db.table("cleansing_templates").insert(payload).execute()
+        return {'ok': True, 'message': f'模板「{name}」已保存'}
+
 @router.delete('/templates/{template_id}')
 def delete_template(template_id: int, db = get_db()):
     data = db.table("cleansing_templates").select("id").eq("id", template_id).execute().data

@@ -50,6 +50,10 @@ export default function CleansingPage() {
   const [res,setRes] = useState(null)
   const [bs,setBs] = useState('')
   const [cf,setCf] = useState([])
+  const [templates, setTemplates] = useState([])
+
+  const loadTemplates = async () => try { const r = await api.get('/api/cleansing/templates'); setTemplates(r.data || []) } catch(e) {}
+  useEffect(() => { loadTemplates() }, [])
 
   const addField = () => setCf(p => [...p, {t:'field_'+Date.now(), l:'自定义字段', tp:'string'}])
   const delField = (i) => setCf(p => p.filter((_,k) => k !== i))
@@ -124,6 +128,16 @@ export default function CleansingPage() {
 
     {s === 1 && <div>
       <div style={{fontSize:13,marginBottom:12}}>已识别 {cols.length} 列 · {tr} 行 · 目标: {tt}</div>
+      {/* 模板区域 */}
+      <div style={{display:'flex',gap:8,marginBottom:12,alignItems:'center'}}>
+        <select id="tmplSelect" style={{flex:1,fontSize:12,padding:'6px 8px',border:'1px solid #e2e8f0',borderRadius:6}}>
+          <option value="">加载映射模板...</option>
+          {templates.map(t => <option key={t.id} value={JSON.stringify(t.mapping)}>{t.name}</option>)}
+        </select>
+        <button onClick={()=>{const sel=document.getElementById('tmplSelect');if(sel.value)try{setMp(JSON.parse(sel.value))}catch(e){}}} style={{padding:'6px 14px',fontSize:12,border:'1px solid #e2e8f0',borderRadius:6,background:'#fff',cursor:'pointer'}}>应用</button>
+        <input id="tmplName" placeholder="模板名称" style={{width:120,fontSize:12,padding:'6px 8px',border:'1px solid #e2e8f0',borderRadius:6,outline:'none'}}/>
+        <button onClick={async()=>{const n=document.getElementById('tmplName').value;if(!n)return alert('请输入模板名称');await api.post('/api/cleansing/templates',{name:n,doc_type:tt,mapping:mp});document.getElementById('tmplName').value='';loadTemplates()}} style={{padding:'6px 14px',fontSize:12,background:'#1d4ed8',color:'#fff',border:'none',borderRadius:6,cursor:'pointer'}}>保存模板</button>
+      </div>
       <div style={{marginBottom:10,border:'1px solid #e2e8f0',borderRadius:12,padding:12,background:'#fafafa'}}>
         <div style={{fontSize:12,fontWeight:600,marginBottom:8}}>自定义字段</div>
         {cf.map((f,i) => <div key={i} style={{display:'flex',alignItems:'center',gap:6,marginBottom:6}}>

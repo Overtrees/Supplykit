@@ -132,13 +132,13 @@ export default function CleansingPage() {
       <div style={{display:'flex',gap:8,marginBottom:12,alignItems:'center',flexWrap:'wrap'}}>
         <select id="tmplSelect" style={{flex:1,fontSize:12,padding:'6px 8px',border:'1px solid #e2e8f0',borderRadius:6,minWidth:140}}>
           <option value="">加载映射模板...</option>
-          {templates.map(t => <option key={t.id} value={JSON.stringify(t.mapping)}>{t.name}</option>)}
+          {Array.isArray(templates) && templates.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
         </select>
         <button onClick={()=>{const sel=document.getElementById('tmplSelect');if(sel.value)try{setMp(JSON.parse(sel.value))}catch(e){}}} style={{padding:'6px 14px',fontSize:12,border:'1px solid #e2e8f0',borderRadius:6,background:'#fff',cursor:'pointer'}}>应用</button>
         <input id="tmplName" placeholder="新模板名称" style={{width:120,fontSize:12,padding:'6px 8px',border:'1px solid #e2e8f0',borderRadius:6,outline:'none'}}/>
         <button onClick={async()=>{const n=document.getElementById('tmplName').value;if(!n)return alert('请输入模板名称');await api.post('/api/cleansing/templates',{name:n,doc_type:tt,mapping:mp});document.getElementById('tmplName').value='';loadTemplates()}} style={{padding:'6px 14px',fontSize:12,background:'#1d4ed8',color:'#fff',border:'none',borderRadius:6,cursor:'pointer'}}>保存</button>
       </div>
-      <div style={{marginBottom:10,border:'1px solid #e2e8f0',borderRadius:12,padding:12,background:'#fafafa'}}>
+      {Array.isArray(cf) && <div style={{marginBottom:10,border:'1px solid #e2e8f0',borderRadius:12,padding:12,background:'#fafafa'}}>
         <div style={{fontSize:12,fontWeight:600,marginBottom:8}}>自定义字段</div>
         {cf.map((f,i) => <div key={i} style={{display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
           <input value={f.l} onChange={e=>{const v=e.target.value;setCf(p=>p.map((x,k)=>k===i?{...x,l:v}:x))}} placeholder="字段名" style={{flex:1,fontSize:12,padding:'5px 8px',border:'1px solid #e2e8f0',borderRadius:6,outline:'none'}}/>
@@ -148,7 +148,7 @@ export default function CleansingPage() {
           <button onClick={()=>delField(i)} style={{background:'#fee2e2',border:'none',borderRadius:6,cursor:'pointer',padding:'4px 8px',fontSize:12,color:'#dc2626'}}>删除</button>
         </div>)}
         <button onClick={addField} style={{padding:'5px 14px',fontSize:12,border:'1px dashed #94a3b8',borderRadius:8,background:'#fff',cursor:'pointer',color:'#64748b',width:'100%'}}>+ 添加自定义字段</button>
-      </div>
+      </div>}
       {cols.map(c => {
         const matched = ALIAS[c.name]
         const sf = SYS_FIELDS.find(x => x.t === matched)

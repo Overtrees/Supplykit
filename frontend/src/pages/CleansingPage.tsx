@@ -127,8 +127,13 @@ export default function CleansingPage() {
     {s === 2 && pv && <div>
       <div className="section-title">清洗预览 · 前 {pv.preview?.length||0} 行 · 共 {pv.total} 行</div>
       {pv.preview?.length > 0 && <div style={{overflowX:'auto',marginBottom:12}}>
-        <table><thead><tr>{Object.keys(pv.preview[0]).map(h=><th key={h}>{h}</th>)}</tr></thead>
-        <tbody>{pv.preview.map((r,i)=><tr key={i}>{Object.values(r).map((v,j)=><td key={j}>{String(v||'')}</td>)}</tr>)}</tbody></table>
+        {(() => { const keys = Object.keys(pv.preview[0]).filter(k => k !== '_source'); return <>
+        <table><thead><tr>{keys.map(h=>{
+          const sf = SYS_FIELDS.find(x => x.t === h)
+          return <th key={h}>{sf ? sf.l : h}</th>
+        })}</tr></thead>
+        <tbody>{pv.preview.map((r,i)=><tr key={i}>{keys.map(k=><td key={k}>{String(r[k]||'')}</td>)}</tr>)}</tbody></table>
+        </>})()}
       </div>}
       <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
         {btn('← 返回', ()=>setS(1), '#64748b')}

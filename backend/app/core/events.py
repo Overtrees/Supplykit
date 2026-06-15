@@ -55,12 +55,17 @@ def register_core_handlers():
 
     def _handle_order_rules(data):
         from app.core.rules import evaluate
+        db = get_db()
         for item in data.get('items', []):
+            sku = item.get('sku', '')
+            inv_list = db.table("inventory").select("*").eq("sku", sku).execute().data if sku else []
+            inv = inv_list[0] if inv_list else {}
             evaluate('order.created', {
                 'order_qty': int(item.get('quantity',0)),
-                'sku': item.get('sku',''),
+                'sku': sku,
                 'order': item,
-                'db': get_db(),
+                'inv': inv,
+                'db': db,
             })
 
     bus.on('order.created', _handle_inventory_adjust)

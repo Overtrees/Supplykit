@@ -5,7 +5,7 @@ import Chart from '../components/Chart'
 
 const periodLabel = { today:'今日', week:'本周', month:'本月' }
 
-export default function DashboardPage() {
+export default function DashboardPage({ onAlert }) {
   const [periodTab, setPeriodTab] = useState('month')
   const { dashboard, inventory, qualityLogs, alerts } = useAppStore()
   const periodTrend = dashboard?.periods?.[periodTab + '_trend'] || dashboard?.trend || []
@@ -82,7 +82,7 @@ export default function DashboardPage() {
         {alertsList.length === 0
           ? <div className="small muted" style={{ padding: 12, textAlign: 'center' }}>暂无告警</div>
           : alertsList.slice(0, 6).map(x => (
-              <div key={x.id} style={{ padding: '6px 0', borderBottom: '1px solid #f1f5f9', fontSize: 13 }}>
+              <div key={x.id} onClick={() => onAlert && onAlert(x.related_sku)} style={{ padding: '6px 0', borderBottom: '1px solid #f1f5f9', fontSize: 13, cursor: 'pointer' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                   <span style={{ fontWeight: 600, fontSize: 12 }}>{x.title}</span>
                   <span className={'pill '+(x.alert_type==='replenish'||x.severity==='error'?'danger':x.severity==='warning'?'warning':'info')}>{x.alert_type==='replenish'?'补货':x.severity}</span>

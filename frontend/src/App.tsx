@@ -27,6 +27,7 @@ export const NAV = [
 export default function App() {
   const [page, setPage] = useState('dash')
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [highlightSku, setHighlightSku] = useState('')
   const { inventory, qualityLogs, startPolling, stopAll, wsStatus } = useAppStore()
   useKeyboard({ 'meta+b': () => setSidebarOpen(o=>!o), 'esc': () => setSidebarOpen(false) })
   useEffect(() => { startPolling(); return () => stopAll() }, [])
@@ -43,11 +44,11 @@ export default function App() {
         <div style={{fontSize:12,color:wsStatus==='connected'?'#86efac':wsStatus==='polling'?'#fcd34d':'#f87171'}}>{wsStatus==='connected'?'🟢 实时':wsStatus==='polling'?'🟡 轮询':'🔴 断开'}</div>
       </div>
       <div style={{maxWidth:1200,margin:'0 auto',padding:20}}>
-        {page==='dash' && <ErrorBoundary><DashboardPage /></ErrorBoundary>}
+        {page==='dash' && <ErrorBoundary><DashboardPage onAlert={(s)=>{setHighlightSku(s);setPage('inv')}} /></ErrorBoundary>}
         {page==='products' && <ErrorBoundary><ProductPage /></ErrorBoundary>}
         {page==='suppliers' && <ErrorBoundary><SupplierPage /></ErrorBoundary>}
         {page==='orders' && <ErrorBoundary><OrdersPage /></ErrorBoundary>}
-        {page==='inv' && <ErrorBoundary><InventoryPage /></ErrorBoundary>}
+        {page==='inv' && <ErrorBoundary><InventoryPage highlightSku={highlightSku} /></ErrorBoundary>}
         {page==='insights' && <ErrorBoundary><InsightsPage /></ErrorBoundary>}
         {page==='cleansing' && <ErrorBoundary><CleansingPage /></ErrorBoundary>}
         {page==='rules' && <ErrorBoundary><RulesPage /></ErrorBoundary>}

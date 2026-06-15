@@ -117,7 +117,7 @@ export default function CleansingPage() {
         <select value={mp[c.name]?.type||'string'} onChange={e=>{const v=e.target.value;setMp(p=>({...p,[c.name]:{...p[c.name],type:v}}))}} style={{flexShrink:0,fontSize:11,padding:'5px',border:'1px solid #e2e8f0',borderRadius:6}}>
           <option value="string">文本</option><option value="number">数字</option><option value="date">日期</option>
         </select>
-      </div>)}
+      </div>})}
       <div style={{marginTop:12,display:'flex',gap:8,justifyContent:'flex-end'}}>
         {btn('← 返回', ()=>{setS(0);setF(null);setCols([]);setMp({})}, '#64748b')}
         {btn('预览 →', preview)}

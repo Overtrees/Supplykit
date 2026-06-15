@@ -178,7 +178,7 @@ export default function CleansingPage() {
       {pv.preview?.length > 0 && <div style={{overflowX:'auto',marginBottom:12}}>
         {(() => { const keys = Object.keys(pv.preview[0]).filter(k => k !== '_source'); return <>
         <table><thead><tr>{keys.map(h=>{
-          const sf = SYS_FIELDS.find(x => x.t === h)
+          const sf = SYS_FIELDS.find(x => x.t === h) || cf.find(x => x.t === h)
           return <th key={h}>{sf ? sf.l : h}</th>
         })}</tr></thead>
         <tbody>{pv.preview.map((r,i)=><tr key={i}>{keys.map(k=><td key={k}>{String(r[k]||'')}</td>)}</tr>)}</tbody></table>

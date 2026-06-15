@@ -129,14 +129,15 @@ export default function CleansingPage() {
     {s === 1 && <div>
       <div style={{fontSize:13,marginBottom:12}}>已识别 {cols.length} 列 · {tr} 行 · 目标: {tt}</div>
       {/* 模板区域 */}
-      <div style={{display:'flex',gap:8,marginBottom:12,alignItems:'center'}}>
-        <select id="tmplSelect" style={{flex:1,fontSize:12,padding:'6px 8px',border:'1px solid #e2e8f0',borderRadius:6}}>
+      <div style={{display:'flex',gap:8,marginBottom:12,alignItems:'center',flexWrap:'wrap'}}>
+        <select id="tmplSelect" style={{flex:1,fontSize:12,padding:'6px 8px',border:'1px solid #e2e8f0',borderRadius:6,minWidth:140}}>
           <option value="">加载映射模板...</option>
           {templates.map(t => <option key={t.id} value={JSON.stringify(t.mapping)}>{t.name}</option>)}
         </select>
         <button onClick={()=>{const sel=document.getElementById('tmplSelect');if(sel.value)try{setMp(JSON.parse(sel.value))}catch(e){}}} style={{padding:'6px 14px',fontSize:12,border:'1px solid #e2e8f0',borderRadius:6,background:'#fff',cursor:'pointer'}}>应用</button>
-        <input id="tmplName" placeholder="模板名称" style={{width:120,fontSize:12,padding:'6px 8px',border:'1px solid #e2e8f0',borderRadius:6,outline:'none'}}/>
-        <button onClick={async()=>{const n=document.getElementById('tmplName').value;if(!n)return alert('请输入模板名称');await api.post('/api/cleansing/templates',{name:n,doc_type:tt,mapping:mp});document.getElementById('tmplName').value='';loadTemplates()}} style={{padding:'6px 14px',fontSize:12,background:'#1d4ed8',color:'#fff',border:'none',borderRadius:6,cursor:'pointer'}}>保存模板</button>
+}>
+        <input id="tmplName" placeholder="新模板名称" style={{width:120,fontSize:12,padding:'6px 8px',border:'1px solid #e2e8f0',borderRadius:6,outline:'none'}}/>
+        <button onClick={async()=>{const n=document.getElementById('tmplName').value;if(!n)return alert('请输入模板名称');await api.post('/api/cleansing/templates',{name:n,doc_type:tt,mapping:mp});document.getElementById('tmplName').value='';loadTemplates()}} style={{padding:'6px 14px',fontSize:12,background:'#1d4ed8',color:'#fff',border:'none',borderRadius:6,cursor:'pointer'}}>保存</button>
       </div>
       <div style={{marginBottom:10,border:'1px solid #e2e8f0',borderRadius:12,padding:12,background:'#fafafa'}}>
         <div style={{fontSize:12,fontWeight:600,marginBottom:8}}>自定义字段</div>

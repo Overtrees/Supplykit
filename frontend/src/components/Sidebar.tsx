@@ -14,7 +14,8 @@ export default function Sidebar({ open, onClose, page, onNavigate, lowStock, err
         position:'fixed', top:0, left:0, bottom:0, width:280,
         background:'var(--sidebar)', color:'#fff', zIndex:1000,
         transform: open ? 'translateX(0)' : 'translateX(-100%)',
-        transition:'transform 0.25s cubic-bezier(0.4,0,0.2,1)',
+        transition:'transform 0.25s cubic-bezier(0.4,0,0.2,1),visibility 0.25s',
+        visibility: open ? 'visible' : 'hidden',
         display:'flex', flexDirection:'column', overflow:'hidden',
         paddingBottom:'env(safe-area-inset-bottom,0)',
       }}>

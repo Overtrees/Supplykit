@@ -14,8 +14,11 @@ export default function DashboardPage({ onAlert }) {
   const periodTrendOption = useMemo(() => ({
     tooltip: { trigger: 'axis' },
     xAxis: { type: 'category', data: periodTrend.map(i => i['日期']) || [] },
-    yAxis: { type: 'value' },
-    grid: { left: 40, right: 20, top: 30, bottom: 30 },
+    yAxis: [
+      { type: 'value', name: 'GMV (¥)', nameTextStyle: { fontSize: 11 } },
+      { type: 'value', name: '订单数', nameTextStyle: { fontSize: 11 } }
+    ],
+    grid: { left: 50, right: 50, top: 30, bottom: 30 },
     series: [
       { type: 'line', smooth: true, areaStyle: { opacity: 0.15 }, data: periodTrend.map(i => i['GMV']) || [], color: '#1d4ed8', name: 'GMV' },
       { type: 'bar', data: periodTrend.map(i => i['订单数']) || [], color: '#0f766e', yAxisIndex: 1, name: '订单数' }
@@ -67,7 +70,9 @@ export default function DashboardPage({ onAlert }) {
     </div>
 
     <div style={{ display:'grid', gridTemplateColumns:'1.3fr 1fr', gap:16, marginBottom:16 }}>
-      <div className="card"><div className="section-title">{periodLabel[periodTab]} GMV·订单趋势</div><Chart option={periodTrendOption} height={200} /></div>
+      <div className="card"><div className="section-title">{periodLabel[periodTab]} GMV·订单趋势</div>
+        {periodTrend.length === 0 ? <div className="small muted" style={{ padding: '40px 0', textAlign: 'center' }}>暂无{periodLabel[periodTab]}数据</div> : <Chart option={periodTrendOption} height={200} />}
+      </div>
       <div className="card"><div className="section-title">订单漏斗 下单→完成</div><Chart option={funnelOption} height={200} /></div>
     </div>
 

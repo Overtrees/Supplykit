@@ -41,6 +41,7 @@ def _compute_periods(orders):
         if d == now:
             periods["today"]["gmv"] += gmv
             periods["today"]["orders"] += 1
+            period_trend["today"].append((str(d), gmv, 1))
 
         if d >= now - timedelta(days=7):
             periods["week"]["gmv"] += gmv
@@ -53,7 +54,7 @@ def _compute_periods(orders):
             period_trend["month"].append((str(d), gmv, 1))
 
     # Build daily trend lines for each period
-    for key, days in [("week", 7), ("month", 30)]:
+    for key, days in [("today", 1), ("week", 7), ("month", 30)]:
         daily = defaultdict(lambda: {"gmv": 0.0, "orders": 0})
         for date_str, g, cnt in period_trend[key]:
             daily[date_str[-5:]]["gmv"] += g

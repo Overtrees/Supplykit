@@ -16,6 +16,7 @@ export default function Sidebar({ open, onClose, page, onNavigate, lowStock, err
         transform: open ? 'translateX(0)' : 'translateX(-100%)',
         transition:'transform 0.25s cubic-bezier(0.4,0,0.2,1)',
         display:'flex', flexDirection:'column', overflow:'hidden',
+        paddingBottom:'env(safe-area-inset-bottom,0)',
       }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'16px 20px', borderBottom:'1px solid rgba(255,255,255,0.08)', flexShrink:0 }}>
           <div style={{ display:'flex', alignItems:'center', gap:10 }}>

@@ -43,7 +43,7 @@ export default function App() {
         </div>
         <div style={{fontSize:12,color:wsStatus==='connected'?'#86efac':wsStatus==='polling'?'#fcd34d':'#f87171'}}>{wsStatus==='connected'?'🟢 实时':wsStatus==='polling'?'🟡 轮询':'🔴 断开'}</div>
       </div>
-      <div style={{maxWidth:1200,margin:'0 auto',padding:20}}>
+      <div style={{maxWidth:1200,margin:'0 auto',padding:'20px 20px calc(20px + env(safe-area-inset-bottom, 0px))'}}>
         {page==='dash' && <div className="fade-in" key="dash"><ErrorBoundary><DashboardPage onAlert={(s)=>{setHighlightSku(s);setPage('inv')}} /></ErrorBoundary></div>}
         {page==='products' && <div className="fade-in" key="products"><ErrorBoundary><ProductPage /></ErrorBoundary></div>}
         {page==='suppliers' && <div className="fade-in" key="suppliers"><ErrorBoundary><SupplierPage /></ErrorBoundary></div>}

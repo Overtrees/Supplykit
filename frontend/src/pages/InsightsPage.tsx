@@ -17,6 +17,17 @@ export default function InsightsPage() {
   const [slowMoving, setSlowMoving] = useState([])
   const [loading, setLoading] = useState(true)
 
+  // "已下单"标记 — localStorage 持久化
+  const [ordered, setOrdered] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('c_ordered') || '[]') } catch { return [] }
+  })
+  const toggleOrdered = (sku, store) => {
+    const key = sku + '|' + store
+    const next = ordered.includes(key) ? ordered.filter(k => k !== key) : [...ordered, key]
+    setOrdered(next)
+    localStorage.setItem('c_ordered', JSON.stringify(next))
+  }
+
   useEffect(() => {
     Promise.all([
       api.get('/api/insights/replenishment'),
@@ -81,18 +92,23 @@ export default function InsightsPage() {
       {/* 补货建议 */}
       {tab === 'replen' && (
         <div className="card">
-          <div className="section-title">
-            补货建议{replen.length > 0 && <span className="small muted" style={{ marginLeft: 8 }}>· 低于安全线的商品</span>}
+          <div className="section-title" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <span>补货建议{replen.length > 0 && <span className="small muted" style={{ marginLeft: 8 }}>· 低于安全线的商品</span>}</span>
+            <div style={{display:'flex',gap:6}}>
+              <button onClick={()=>window.open(API+'/api/insights/export-purchase')}
+                style={{padding:'5px 14px',fontSize:12,background:'#059669',color:'#fff',border:'none',borderRadius:6,cursor:'pointer',fontWeight:600}}>📥 导出采购单</button>
+            </div>
           </div>
-          {replen.length === 0 ? (
+          {replen.filter(x => !ordered.includes(x.sku+'|'+x.store)).length === 0 ? (
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>库存健康，暂无补货建议</div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table>
-                <thead><tr>{['SKU','商品','店铺','现有','安全线','在途','日销','可撑(天)','建议补'].map(h => <th key={h}>{h}</th>)}</tr></thead>
+                <thead><tr>{['','SKU','商品','店铺','现有','安全线','在途','日销','可撑(天)','建议补','紧急度','已下单'].map(h => <th key={h}>{h}</th>)}</tr></thead>
                 <tbody>
-                  {replen.map((x, i) => (
+                  {replen.filter(x => !ordered.includes(x.sku+'|'+x.store)).map((x, i) => (
                     <tr key={i}>
+                      <td style={{fontSize:11,color:'#94a3b8'}}>{i+1}</td>
                       <td className="mono" style={{ fontSize: 12 }}>{x.sku}</td>
                       <td>{x.product_name}</td><td>{x.store}</td>
                       <td style={{ color: x.available_qty === 0 ? '#ef4444' : '#374151', fontWeight: 600 }}>{x.available_qty}</td>
@@ -100,13 +116,26 @@ export default function InsightsPage() {
                       <td>{x.daily_sales}</td>
                       <td style={{color: x.days_to_empty < 5 ? '#ef4444' : x.days_to_empty < 10 ? '#f59e0b' : '#374151'}}>{x.days_to_empty > 999 ? '∞' : x.days_to_empty}</td>
                       <td style={{ fontWeight: 600, color: '#059669' }}>+{x.suggested_qty}</td>
-                      <td><span className={`pill ${x.urgency === '紧急' ? 'danger' : x.urgency === '关注' ? 'warning' : 'info'}`}>{x.urgency}</span></td>
+                      <td><span className={`pill ${x.urgency === '紧急' ? 'danger' : x.urgency === '建议' ? 'warning' : 'info'}`}>{x.urgency}</span></td>
+                      <td><span onClick={()=>toggleOrdered(x.sku, x.store)} style={{cursor:'pointer',fontSize:18,opacity:0.5}}>☐</span></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           )}
+          {/* 已下单区域 */}
+          {ordered.length > 0 && <details style={{marginTop:12}}>
+            <summary className="small muted" style={{cursor:'pointer',fontSize:12}}>已下单 {ordered.length} 项</summary>
+            <div style={{fontSize:12,marginTop:8}}>
+              {replen.filter(x => ordered.includes(x.sku+'|'+x.store)).map((x,i) => (
+                <div key={i} style={{display:'flex',justifyContent:'space-between',padding:'4px 8px',border:'1px solid #f1f5f9',borderRadius:6,marginBottom:4}}>
+                  <span>{x.sku} {x.product_name} <span className="pill success" style={{fontSize:10}}>+{x.suggested_qty}</span></span>
+                  <span onClick={()=>toggleOrdered(x.sku, x.store)} style={{cursor:'pointer',fontSize:14}}>↩ 撤销</span>
+                </div>
+              ))}
+            </div>
+          </details>}
         </div>
       )}
 

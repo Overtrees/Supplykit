@@ -44,16 +44,16 @@ export default function App() {
         <div style={{fontSize:12,color:wsStatus==='connected'?'#86efac':wsStatus==='polling'?'#fcd34d':'#f87171'}}>{wsStatus==='connected'?'🟢 实时':wsStatus==='polling'?'🟡 轮询':'🔴 断开'}</div>
       </div>
       <div style={{maxWidth:1200,margin:'0 auto',padding:20}}>
-        {page==='dash' && <ErrorBoundary><DashboardPage onAlert={(s)=>{setHighlightSku(s);setPage('inv')}} /></ErrorBoundary>}
-        {page==='products' && <ErrorBoundary><ProductPage /></ErrorBoundary>}
-        {page==='suppliers' && <ErrorBoundary><SupplierPage /></ErrorBoundary>}
-        {page==='orders' && <ErrorBoundary><OrdersPage /></ErrorBoundary>}
-        {page==='inv' && <ErrorBoundary><InventoryPage highlightSku={highlightSku} /></ErrorBoundary>}
-        {page==='insights' && <ErrorBoundary><InsightsPage /></ErrorBoundary>}
-        {page==='cleansing' && <ErrorBoundary><CleansingPage /></ErrorBoundary>}
-        {page==='rules' && <ErrorBoundary><RulesPage /></ErrorBoundary>}
-        {page==='import' && <ErrorBoundary><UploadPanel onImport={(t)=>setPage(t==='orders'?'orders':'inv')} /></ErrorBoundary>}
-        {page==='quality' && <ErrorBoundary><QualityPage /></ErrorBoundary>}
+        {page==='dash' && <div className="fade-in" key="dash"><ErrorBoundary><DashboardPage onAlert={(s)=>{setHighlightSku(s);setPage('inv')}} /></ErrorBoundary></div>}
+        {page==='products' && <div className="fade-in" key="products"><ErrorBoundary><ProductPage /></ErrorBoundary></div>}
+        {page==='suppliers' && <div className="fade-in" key="suppliers"><ErrorBoundary><SupplierPage /></ErrorBoundary></div>}
+        {page==='orders' && <div className="fade-in" key="orders"><ErrorBoundary><OrdersPage /></ErrorBoundary></div>}
+        {page==='inv' && <div className="fade-in" key="inv"><ErrorBoundary><InventoryPage highlightSku={highlightSku} /></ErrorBoundary></div>}
+        {page==='insights' && <div className="fade-in" key="insights"><ErrorBoundary><InsightsPage /></ErrorBoundary></div>}
+        {page==='cleansing' && <div className="fade-in" key="cleansing"><ErrorBoundary><CleansingPage /></ErrorBoundary></div>}
+        {page==='rules' && <div className="fade-in" key="rules"><ErrorBoundary><RulesPage /></ErrorBoundary></div>}
+        {page==='import' && <div className="fade-in" key="import"><ErrorBoundary><UploadPanel onImport={(t)=>setPage(t==='orders'?'orders':'inv')} /></ErrorBoundary></div>}
+        {page==='quality' && <div className="fade-in" key="quality"><ErrorBoundary><QualityPage /></ErrorBoundary></div>}
       </div>
     </div>
   </ToastProvider>

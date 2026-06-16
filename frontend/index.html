@@ -18,7 +18,10 @@ table{width:100%;border-collapse:collapse}th{text-align:left;font-size:12px;colo
 .btn{padding:8px 16px;border:none;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;transition:all .1s;min-height:40px}.btn-primary{background:var(--primary);color:#fff}.btn-success{background:var(--success);color:#fff}.btn-danger{background:var(--danger);color:#fff}.btn-ghost{background:#fff;border:1px solid var(--border);color:var(--text)}
 input,select,button,textarea{font-family:inherit;font-size:16px}input[type="file"]{font-size:14px}
 .btn:active{transform:scale(0.97);opacity:0.85}button:active:not(.btn){opacity:0.7}
-.overflow-x-auto{overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.overflow-x-auto{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.search-bar{display:flex;align-items:center;gap:8px;background:#e2e8f0;border-radius:10px;padding:8px 12px;flex:1;min-width:160px}.search-bar input{background:none;border:none;outline:none;font-size:16px;flex:1;min-width:0}.search-bar input::placeholder{color:#94a3b8}.search-bar .cancel{color:var(--primary);font-size:16px;cursor:pointer;white-space:nowrap}
+.skeleton{background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:8px;height:16px;margin-bottom:8px}@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.fade-in{animation:fadeIn 0.2s ease}@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
     </style>
   </head>
   <body>

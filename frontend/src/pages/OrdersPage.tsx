@@ -31,16 +31,21 @@ export default function OrdersPage() {
       <span>订单 <span className="small muted">共 {orderTotal} 条</span></span>
     </div>
 
-    {/* 搜索+筛选行 */}
+    {/* iOS 风格搜索栏 */}
     <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}}>
-      <input value={sq} onChange={e=>setSq(e.target.value)} onKeyDown={e=>e.key==='Enter'&&doSearch()}
-        placeholder="搜索单号/商品/SKU..." style={{flex:1,minWidth:160,fontSize:12,padding:'7px 10px',border:'1px solid var(--border)',borderRadius:8,outline:'none'}} />
-      <select value={ss} onChange={e=>{setSs(e.target.value);setOrderFilter(sq,e.target.value)}} style={{fontSize:12,padding:'7px 10px',border:'1px solid var(--border)',borderRadius:8,outline:'none',background:'#fff'}}>
+      <div className="search-bar">
+        <span style={{fontSize:16,color:'#94a3b8',flexShrink:0}}>🔍</span>
+        <input value={sq} onChange={e=>setSq(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')doSearch()}}
+          placeholder="搜索单号/商品/SKU" enterKeyHint="search" inputMode="search" autoCorrect="off" />
+        {sq && <span className="cancel" onClick={()=>{setSq('');doSearch()}}>清除</span>}
+      </div>
+      <select value={ss} onChange={e=>{setSs(e.target.value);setOrderFilter(sq,e.target.value)}} style={{fontSize:16,padding:'8px 12px',border:'1px solid var(--border)',borderRadius:10,outline:'none',background:'#fff'}}>
         {STATUSES.map(s => <option key={s} value={s}>{s||'全部状态'}</option>)}
       </select>
-      <button onClick={doSearch} className="btn btn-primary" style={{fontSize:12,padding:'7px 14px'}}>搜索</button>
-      {(orderSearch||orderStatus) && <button onClick={()=>{setSq('');setSs('');setOrderFilter('','')}} style={{fontSize:12,padding:'7px 14px',border:'1px solid var(--border)',borderRadius:8,cursor:'pointer',background:'#fff'}}>清除</button>}
+      {(orderSearch||orderStatus) && <button onClick={()=>{setSq('');setSs('');setOrderFilter('','')}} className="btn btn-ghost" style={{fontSize:14}}>重置</button>}
     </div>
+    {/* 结果计数 */}
+    {orderSearch && <div className="small muted" style={{marginBottom:8}}>搜索 "{orderSearch}" 共 {orderTotal} 条结果</div>}
 
     {orders.length === 0
       ? <EmptyState icon='📋' title={orderSearch?'无匹配订单':'暂无订单'} desc={orderSearch?'换个关键词试试':''} />

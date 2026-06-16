@@ -40,9 +40,9 @@ export default function DashboardPage({ onAlert }) {
       tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
       grid: { top: 10, bottom: 10 },
       series: [{
-        type: 'funnel', left: '5%', top: 20, bottom: 8, width: '90%',
+        type: 'funnel', left: '5%', top: 20, bottom: 8, width: '60%',
         minSize: '15%', maxSize: '100%', sort: 'descending', gap: 2,
-        label: { show: true, fontSize: 10, position: 'inside', formatter: (p) => `${p.name}\n${p.value}单` },
+        label: { show: true, fontSize: 11, position: 'outside', formatter: (p) => `${p.name}  ${p.value}单` },
         itemStyle: { borderColor: '#fff', borderWidth: 1 },
         data: f.map((x,i) => ({ ...x, value: x.value, itemStyle: { color: ['#3b82f6','#06b6d4','#0ea5e9','#14b8a6','#10b981'][i % 5] } }))
       }]

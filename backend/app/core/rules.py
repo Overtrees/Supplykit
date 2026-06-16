@@ -19,6 +19,15 @@ def _action_create_alert(ctx):
         "related_sku": ctx.get('sku',''),
         "status": "active",
     }).execute()
+    # 同时记录事件到 events 表
+    try:
+        from app.api.routes.events import create_event
+        create_event(db, 'rule.triggered', 'rule', str(ctx['rule'].get('id','')),
+                     f"规则触发: {ctx['rule']['name']} → {ctx['rule']['alert_title'].format(**ctx)}",
+                     {'rule_name': ctx['rule']['name'], 'alert_type': ctx['rule']['alert_type'],
+                      'severity': ctx['rule'].get('severity','warning'), 'sku': ctx.get('sku','')})
+    except Exception:
+        pass
 
 def _action_tag_slow_moving(ctx):
     db = ctx['db']

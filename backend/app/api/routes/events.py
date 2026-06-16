@@ -12,14 +12,12 @@ def list_events(db = get_db()):
         return []
 
 def create_event(db, event_type: str, entity_type: str,
-                  entity_id: str, title: str, payload: dict, level: str = "info"):
+                  entity_id: str, title: str, payload: dict):
     import json
     db.table("events").insert({
         "event_type": event_type,
         "entity_type": entity_type,
         "entity_id": str(entity_id) if entity_id is not None else None,
         "title": title,
-        "payload": json.dumps(payload, ensure_ascii=False),
-        "level": level,
-        "status": "new",
+        "payload": json.dumps(payload, ensure_ascii=False, default=str),
     }).execute()

@@ -1,16 +1,27 @@
 import React, { useState } from 'react'
 import { useAppStore } from '../store/useAppStore'
 import EmptyState from '../components/EmptyState'
+import { useToast } from '../components/Toast'
 
 const STATUSES = ['','已完成','待发货','已发货','待确认','申请退款']
 
 export default function OrdersPage() {
+  const toast = useToast()
   const { orders, orderTotal, orderPage, setOrderPage, setOrderFilter, orderSearch, orderStatus } = useAppStore()
   const [sq, setSq] = useState(orderSearch)
   const [ss, setSs] = useState(orderStatus)
   const totalPages = Math.max(1, Math.ceil(orderTotal / 8))
 
   const doSearch = () => setOrderFilter(sq, ss)
+
+  const delOrder = async (id) => {
+    if (!confirm('确认删除该订单？')) return
+    try {
+      const r = await fetch(`https://overtrees.pythonanywhere.com/api/orders/${id}`, {method:'DELETE'})
+      if (r.ok) { toast.success('已删除'); setOrderPage(orderPage, sq, ss) }
+      else toast.error('删除失败')
+    } catch(e) { toast.error('删除失败: '+e.message) }
+  }
 
   return <div className="card">
     <div className="section-title" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
@@ -31,7 +42,7 @@ export default function OrdersPage() {
     {orders.length === 0
       ? <EmptyState icon='📋' title={orderSearch?'无匹配订单':'暂无订单'} desc={orderSearch?'换个关键词试试':''} />
       : <div style={{overflowX:'auto'}}>
-      <table><thead><tr>{['订单号','店铺','仓库','商品','金额','状态','日期'].map(h=><th key={h}>{h}</th>)}</tr></thead>
+      <table><thead><tr>{['订单号','店铺','仓库','商品','金额','状态','日期',''].map(h=><th key={h}>{h}</th>)}</tr></thead>
       <tbody>
         {orders.map(x => <tr key={x.id}>
           <td className="mono col-sku">{x.order_no}</td>
@@ -39,6 +50,7 @@ export default function OrdersPage() {
           <td className="col-price">¥{Number(x.total_amount).toLocaleString()}</td>
           <td><span className={`pill ${x.order_status==='已完成'?'success':x.order_status==='待发货'?'warning':x.order_status==='已发货'?'info':x.order_status==='申请退款'?'danger':''}`}>{x.order_status}</span></td>
           <td className="col-date">{x.ordered_at}</td>
+          <td><span onClick={()=>delOrder(x.id)} style={{cursor:'pointer',fontSize:14,opacity:0.4}} title='删除'>🗑️</span></td>
         </tr>)}
       </tbody></table>
     </div>}

@@ -39,3 +39,9 @@ def batch_delete_orders(ids: str = '', db = get_db()):
     return {'ok': True, 'deleted': deleted}
 
 
+@router.delete('/{oid}')
+def delete_order(oid: int, db = get_db()):
+    db.table("orders").delete().eq("id", oid).execute()
+    return {'ok': True}
+
+

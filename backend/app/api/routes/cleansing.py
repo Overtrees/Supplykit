@@ -141,12 +141,12 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
     order_no_seen = set() if not is_inv else None
     dedup = {} if not is_inv else None
 
-    # 加载数据库中已有的订单号和 SKU，用于跨文件去重
-    existing_orders = set()
+    # 加载数据库中已有的订单(编号+SKU)和 SKU，用于跨文件去重
+    existing_pairs = set()
     existing_skus = set()
     try:
-        for o in db.table("orders").select("order_no").execute().data:
-            existing_orders.add(o.get('order_no',''))
+        for o in db.table("orders").select("order_no,sku").execute().data:
+            existing_pairs.add((o.get('order_no',''), o.get('sku','')))
         for i in db.table("inventory").select("sku").execute().data:
             existing_skus.add(i.get('sku',''))
     except Exception:
@@ -206,10 +206,11 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
             if not order_no:
                 order_no = f"AUTO-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}-{success}"
                 data['order_no'] = order_no
-            # 检查数据库中是否已存在
-            if order_no in existing_orders:
+            # 检查数据库中是否已存在（同一采购单号+同 SKU 才算重复）
+            sku_key = data.get('sku', '')
+            if (order_no, sku_key) in existing_pairs:
                 errors.append({'error_type': 'duplicate_order', 'field_name': 'order_no',
-                               'raw_value': order_no, 'error_message': '订单号已存在于数据库'})
+                               'raw_value': order_no, 'error_message': f'单号+SKU已存在: {order_no}/{sku_key}'})
                 failed += 1; continue
             if order_no in dedup:
                 dedup[order_no] += 1

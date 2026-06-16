@@ -31,10 +31,11 @@ def get_seasons(db=get_db()):
     ]
 
 @router.put('/seasons')
-def update_seasons(data: list, db=get_db()):
+def update_seasons(data: dict, db=get_db()):
     import json
-    db.table('replenishment_config').update({'value': json.dumps(data, ensure_ascii=False)}).eq('key', 'season_config').execute()
-    return data
+    items = data.get('items', data.get('seasons', []))
+    db.table('replenishment_config').update({'value': json.dumps(list(items), ensure_ascii=False)}).eq('key', 'season_config').execute()
+    return items
 @router.get('/calculate')
 def calculate(db=get_db()):
     rows = db.table("replenishment_config").select("*").execute().data

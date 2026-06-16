@@ -23,3 +23,7 @@ input,select,button,textarea{font-family:inherit;font-size:16px}input[type="file
 .chart-row-3{display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:16px}
 @media(min-width:640px){.chart-row-3{grid-template-columns:1fr 1fr}}
 @media(min-width:1024px){.chart-row-3{grid-template-columns:1fr 1fr 1fr}}
+
+/* 流体排版 - 根据容器宽度自适应字号 */
+.card{container-type:inline-size}.card-value{font-size:clamp(16px,8cqi,28px);font-weight:700;overflow-wrap:break-word;line-height:1.2}.card-sub{font-size:clamp(11px,3cqi,13px);margin-top:4px}
+.col-price{max-width:120px;text-align:right;font-size:clamp(11px,2.5cqi,14px);white-space:nowrap}.col-name{max-width:260px;word-break:break-word;white-space:normal;font-size:clamp(11px,2.5cqi,14px)}.col-sku{max-width:140px;font-size:clamp(10px,2cqi,13px)}

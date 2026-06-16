@@ -78,9 +78,9 @@ export default function InsightsPage() {
             { label: '滞销', value: summary.slow_moving, color: summary.slow_moving > 0 ? '#ef4444' : '#059669' },
             { label: '冷淡', value: summary.cold_count, color: summary.cold_count > 0 ? '#f59e0b' : '#94a3b8' },
           ].map((c, i) => (
-            <div key={i} className="card" style={{ textAlign: 'center' }}>
+            <div key={i} className="card" style={{ textAlign: 'center', containerType:'inline-size' }}>
               <div className="small muted">{c.label}</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: c.color || '#0f172a' }}>{c.value ?? 0}</div>
+              <div className="card-value" style={{ color: c.color || 'var(--text)' }}>{c.value ?? 0}</div>
             </div>
           ))}
         </div>

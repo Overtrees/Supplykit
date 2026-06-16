@@ -18,12 +18,12 @@ export default function DashboardPage({ onAlert }) {
       { type: 'value', axisLabel: { fontSize: 10 } },
       { type: 'value', axisLabel: { fontSize: 10 } }
     ],
-    grid: { left: 36, right: 4, top: 12, bottom: 40 },
+    grid: { left: 36, right: 4, top: 12, bottom: 50 },
     series: [
       { type: 'line', smooth: true, areaStyle: { opacity: 0.15 }, data: periodTrend.map(i => i['GMV']) || [], color: '#1d4ed8', name: 'GMV' },
       { type: 'bar', data: periodTrend.map(i => i['订单数']) || [], color: '#0f766e', yAxisIndex: 1, name: '订单数' }
     ],
-    legend: { data: ['GMV', '订单数'], bottom: 4, left: 'center', icon: 'circle', itemWidth: 8, itemHeight: 8, textStyle: { fontSize: 10 } }
+    legend: { data: ['GMV', '订单数'], bottom: 8, left: 'center', icon: 'circle', itemWidth: 8, itemHeight: 8, textStyle: { fontSize: 10 } }
   }), [periodTrend])
 
   const storeOption = useMemo(() => ({

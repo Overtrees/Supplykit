@@ -6,11 +6,10 @@ export default function Sidebar({ open, onClose, page, onNavigate, lowStock, err
       {/* 侧边栏 — 全屏 */}
       <div onClick={onClose} style={{
         position:'fixed', inset:0, width:'100%',
-        background:'var(--sidebar)', color:'#fff',
-        zIndex: open ? 99999999 : -1,
+        background:'var(--sidebar)', color:'#fff', zIndex:99999999,
+        visibility: open ? 'visible' : 'hidden',
         display:'flex', flexDirection:'column', overflow:'hidden',
         paddingTop:'env(safe-area-inset-top,0)', paddingBottom:'env(safe-area-inset-bottom,0)',
-        pointerEvents: open ? 'auto' : 'none',
       }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'16px 20px', borderBottom:'1px solid rgba(255,255,255,0.08)', flexShrink:0 }}>
           <div style={{ display:'flex', alignItems:'center', gap:10 }}>

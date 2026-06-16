@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { api } from '../api/client'
+import { useToast } from '../components/Toast'
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
 const INV_FIELDS = [
@@ -46,6 +47,7 @@ const ALIAS = {
 }
 
 export default function CleansingPage() {
+  const toast = useToast()
   const [s,setS] = useState(0)
   const [f,setF] = useState(null)
   const [cols,setCols] = useState([])
@@ -71,7 +73,7 @@ export default function CleansingPage() {
     try {
       const r = await api.post('/api/cleansing/detect', fd)
       const d = r.data
-      if (!d.ok) { alert(d.error||'识别失败'); setBs(''); return }
+      if (!d.ok) { toast.error(d.error||'识别失败'); setBs(''); return }
       setCols(d.columns||[]); setTr(d.total||0)
       const a = {}
       let mappedCount = 0
@@ -89,12 +91,12 @@ export default function CleansingPage() {
         try {
           const r2 = await api.post('/api/cleansing/preview', fd2)
           const d2 = r2.data
-          if (!d2.ok) { alert(d2.error||'预览失败'); setBs(''); return }
+          if (!d2.ok) { toast.error(d2.error||'预览失败'); setBs(''); return }
           setPv(d2); setS(2)
-        } catch(e) { alert('请求异常: '+e.message) }
+        } catch(e) { toast.error('请求异常: '+e.message) }
         setBs('')
       }
-    } catch(e) { alert('请求异常: '+e.message) }
+    } catch(e) { toast.error('请求异常: '+e.message) }
     setBs('')
   }
 
@@ -104,9 +106,9 @@ export default function CleansingPage() {
     try {
       const r = await api.post('/api/cleansing/preview', fd)
       const d = r.data
-      if (!d.ok) { alert(d.error||'预览失败'); setBs(''); return }
+      if (!d.ok) { toast.error(d.error||'预览失败'); setBs(''); return }
       setPv(d); setS(2)
-    } catch(e) { alert('请求异常: '+e.message) }
+    } catch(e) { toast.error('请求异常: '+e.message) }
     setBs('')
   }
 
@@ -116,18 +118,18 @@ export default function CleansingPage() {
     try {
       const r = await api.post('/api/cleansing/execute-async', fd)
       const d = r.data
-      if (!d.ok) { alert(d.error||'提交失败'); setBs(''); return }
+      if (!d.ok) { toast.error(d.error||'提交失败'); setBs(''); return }
       const totalRows = d.total_rows || '?'
       const poll = setInterval(async () => {
         try {
           const sr = await api.get('/api/cleansing/task/'+d.task_id)
           const sd = sr.data
-          if (sd.status === 'done') { clearInterval(poll); setRes(sd.result); setS(3); setBs('') }
-          else if (sd.status === 'error') { clearInterval(poll); alert('失败: '+sd.error); setBs('') }
+          if (sd.status === 'done') { clearInterval(poll); setRes(sd.result); setS(3); setBs(''); toast.success('清洗完成') }
+          else if (sd.status === 'error') { clearInterval(poll); toast.error('失败: '+sd.error); setBs('') }
           else if (sd.progress !== undefined) { setBs(`清洗中... ${sd.progress}% (${Math.round(sd.progress/100*totalRows)}/${totalRows}条)`) }
         } catch { clearInterval(poll); setBs('') }
       }, 1000)
-    } catch(e) { alert('请求异常: '+e.message); setBs('') }
+    } catch(e) { toast.error('请求异常: '+e.message); setBs('') }
   }
 
   // 一键执行（跳过预览）
@@ -137,11 +139,11 @@ export default function CleansingPage() {
     try {
       const r = await api.post('/api/cleansing/preview', fd)
       const d = r.data
-      if (!d.ok) { alert(d.error||'提交失败'); setBs(''); return }
+      if (!d.ok) { toast.error(d.error||'提交失败'); setBs(''); return }
       setPv(d)
       // 确认预览正常后直接写入
       doExecute()
-    } catch(e) { alert('请求异常: '+e.message); setBs('') }
+    } catch(e) { toast.error('请求异常: '+e.message); setBs('') }
   }
 
   // 记忆上次映射
@@ -186,7 +188,7 @@ export default function CleansingPage() {
         </select>
         <button onClick={()=>{const s=document.getElementById('tmplSelect');if(s.value)try{setMp(JSON.parse(s.value))}catch(e){}}} style={{padding:'6px 14px',fontSize:12,border:'1px solid #e2e8f0',borderRadius:6,background:'#fff',cursor:'pointer'}}>应用</button>
         <input id="tmplName" placeholder="新模板名称" style={{width:120,fontSize:12,padding:'6px 8px',border:'1px solid #e2e8f0',borderRadius:6,outline:'none'}}/>
-        <button onClick={async()=>{const n=document.getElementById('tmplName').value;if(!n)return alert('请输入模板名称');await api.post('/api/cleansing/templates',{name:n,doc_type:tt,mapping:mp});document.getElementById('tmplName').value='';loadTemplates()}} style={{padding:'6px 14px',fontSize:12,background:'#1d4ed8',color:'#fff',border:'none',borderRadius:6,cursor:'pointer'}}>保存</button>
+        <button onClick={async()=>{const n=document.getElementById('tmplName').value;if(!n)return toast.error('请输入模板名称');await api.post('/api/cleansing/templates',{name:n,doc_type:tt,mapping:mp});document.getElementById('tmplName').value='';loadTemplates();toast.success('模板已保存')}}
       </div>
       {Array.isArray(cf) && <div style={{marginBottom:10,border:'1px solid #e2e8f0',borderRadius:12,padding:12,background:'#fafafa'}}>
         <div style={{fontSize:12,fontWeight:600,marginBottom:8}}>自定义字段</div>

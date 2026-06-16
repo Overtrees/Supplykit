@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { api } from '../api/client'
+import { useToast } from '../components/Toast'
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
 const EVENTS = [
@@ -9,6 +10,7 @@ const EVENTS = [
 ]
 
 export default function RulesPage() {
+  const toast = useToast()
   const [tab,setTab] = useState('rules')
   const [rules,setRules] = useState([])
   const [editing,setEditing] = useState(null)
@@ -130,7 +132,7 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
       </div>)}
       <button onClick={()=>setSeasons(p=>[...p,{key:'new',name:'新活动',factor:1.2,enabled:true}])} style={{padding:'4px 12px',fontSize:12,border:'1px dashed #94a3b8',borderRadius:8,background:'#fff',cursor:'pointer',color:'#64748b',width:'100%',marginBottom:16}}>+ 添加活动</button>
 
-      <button onClick={async()=>{try{await api.put('/api/replenishment-config',cfg);await api.put('/api/replenishment-config/seasons',{items:seasons});loadCfg();loadSeasons()}catch(e){alert('保存失败: '+e.message)}}} style={ST.primary}>💾 保存所有参数</button>
+      <button onClick={async()=>{try{await api.put('/api/replenishment-config',cfg);await api.put('/api/replenishment-config/seasons',{items:seasons});loadCfg();loadSeasons();toast.success('参数已保存')}catch(e){toast.error('保存失败: '+e.message)}}} style={ST.primary}>💾 保存所有参数</button>
       <span className='small muted' style={{marginLeft:8,fontSize:11}}>更新后补货建议 & 规则引擎适用</span>
     </div>}
   </div>

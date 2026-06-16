@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { api } from '../api/client'
+import { useToast } from '../components/Toast'
 
 const pillStyle = (cond, yes = 'danger', no = 'info') => ({
   display: 'inline-block', padding: '2px 8px', borderRadius: 99,
@@ -9,6 +10,7 @@ const pillStyle = (cond, yes = 'danger', no = 'info') => ({
 })
 
 export default function InsightsPage() {
+  const toast = useToast()
   const [tab, setTab] = useState('replen')
   const [replen, setReplen] = useState([])
   const [replenDays, setReplenDays] = useState(28)
@@ -118,7 +120,7 @@ export default function InsightsPage() {
                   a.href = url; a.download = '采购建议_'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'.xlsx'
                   document.body.appendChild(a); a.click(); a.remove()
                   URL.revokeObjectURL(url)
-                } catch(e) { alert('导出失败: '+e.message) }
+                } catch(e) { toast.error('导出失败: '+e.message) }
               }}
                 style={{padding:'5px 14px',fontSize:12,background:'#059669',color:'#fff',border:'none',borderRadius:6,cursor:'pointer',fontWeight:600}}>📥 导出采购单</button>
             </div>

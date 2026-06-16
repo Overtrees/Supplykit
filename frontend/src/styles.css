@@ -23,3 +23,7 @@ input,select,button,textarea{font-family:inherit;font-size:16px}input[type="file
 .chart-row-3{display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:16px}
 @media(min-width:640px){.chart-row-3{grid-template-columns:1fr 1fr}}
 @media(min-width:1024px){.chart-row-3{grid-template-columns:1fr 1fr 1fr}}
+
+/* 图表横向滚动 - 手机上看全 */
+.chart-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px;margin:0 -4px}
+.chart-scroll>div{min-width:340px}

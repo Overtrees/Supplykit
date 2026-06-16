@@ -6,7 +6,7 @@ export default function Sidebar({ open, onClose, page, onNavigate, lowStock, err
       {/* 侧边栏 — 全屏，点空白处关闭 */}
       <div onClick={onClose} style={{
         position:'fixed', inset:0, width:'100%',
-        background:'var(--sidebar)', color:'#fff', zIndex:1000,
+        background:'var(--sidebar)', color:'#fff', zIndex:99999999,
         opacity: open ? 1 : 0, pointerEvents: open ? 'auto' : 'none',
         visibility: open ? 'visible' : 'hidden',
         transition:'opacity 0.2s ease,visibility 0.2s',

@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Depends
 from app.core.database import get_db
+from datetime import datetime
 
 router = APIRouter(prefix="/api/insights", tags=["insights"])
 
 
 @router.get('/replenishment')
 def get_replenishment_suggestions(db = get_db()):
-    from datetime import datetime, timedelta
+    from datetime import timedelta
     items = db.table("inventory").select("*").execute().data
     products = {p["sku"]: p for p in db.table("products").select("*").execute().data}
     orders = db.table("orders").select("*").execute().data
@@ -282,11 +283,13 @@ def export_purchase_excel(db = get_db()):
     wb.save(buf)
     buf.seek(0)
 
+    from fastapi.responses import Response
+    from urllib.parse import quote
     filename = f"采购建议_{datetime.utcnow().strftime('%Y%m%d')}.xlsx"
-    return StreamingResponse(
-        buf,
+    return Response(
+        content=buf.getvalue(),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
+        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(filename)}"}
     )
 
 

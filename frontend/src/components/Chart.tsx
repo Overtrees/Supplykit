@@ -47,10 +47,11 @@ function responsiveOption(base, width) {
 export default function Chart({ option, height = 260 }) {
   const ref = useRef(null)
   const inst = useRef(null)
-  const [width, setWidth] = useState(400)
+  const [width, setWidth] = useState(0)
 
   useEffect(() => {
     if (!ref.current) return
+    setWidth(ref.current.clientWidth || 400)
     const ro = new ResizeObserver(entries => {
       for (const entry of entries) {
         setWidth(entry.contentRect.width)
@@ -61,7 +62,7 @@ export default function Chart({ option, height = 260 }) {
   }, [])
 
   useEffect(() => {
-    if (!ref.current) return
+    if (!ref.current || width === 0) return
     const timer = setTimeout(() => {
       if (!ref.current) return
       try {

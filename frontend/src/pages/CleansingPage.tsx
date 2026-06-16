@@ -155,8 +155,8 @@ export default function CleansingPage() {
     localStorage.setItem('c_last_tt', tt)
   }, [tt])
 
-  const btn = (label, onClick, color='#1d4ed8') => <button onClick={onClick} disabled={!!bs}
-    style={{padding:'8px 20px',background:bs?'#94a3b8':color,color:'#fff',border:'none',borderRadius:8,cursor:bs?'not-allowed':'pointer',fontSize:13,fontWeight:600}}>{label}</button>
+  const btn = (label, onClick, color='var(--primary)') => <button onClick={onClick} disabled={!!bs}
+    style={{padding:'8px 20px',background:bs?'var(--muted2)':color,color:'#fff',border:'none',borderRadius:8,cursor:bs?'not-allowed':'pointer',fontSize:13,fontWeight:600}}>{label}</button>
 
   return <div className="card">
     <div className="step-indicator">
@@ -167,8 +167,8 @@ export default function CleansingPage() {
     {s === 0 && <div style={{textAlign:'center',padding:40}}>
       <div style={{fontSize:28,marginBottom:12,opacity:.3}}>🧹</div>
       <div style={{display:'flex',justifyContent:'center',gap:8,marginBottom:12}}>
-        <button onClick={()=>setTt('order')} style={{padding:'6px 16px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',background:tt==='order'?'#1d4ed8':'#fff',color:tt==='order'?'#fff':'#64748b',borderColor:tt==='order'?'#1d4ed8':'#e2e8f0',fontWeight:tt==='order'?600:400}}>📋 导入订单</button>
-        <button onClick={()=>setTt('inventory')} style={{padding:'6px 16px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',background:tt==='inventory'?'#059669':'#fff',color:tt==='inventory'?'#fff':'#64748b',borderColor:tt==='inventory'?'#059669':'#e2e8f0',fontWeight:tt==='inventory'?600:400}}>📦 导入库存</button>
+        <button onClick={()=>setTt('order')} style={{padding:'6px 16px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',background:tt==='order'?'var(--primary)':'#fff',color:tt==='order'?'#fff':'var(--muted)',borderColor:tt==='order'?'var(--primary)':'var(--border)',fontWeight:tt==='order'?600:400}}>📋 导入订单</button>
+        <button onClick={()=>setTt('inventory')} style={{padding:'6px 16px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',background:tt==='inventory'?'var(--success)':'#fff',color:tt==='inventory'?'#fff':'var(--muted)',borderColor:tt==='inventory'?'var(--success)':'var(--border)',fontWeight:tt==='inventory'?600:400}}>📦 导入库存</button>
       </div>
       <label style={{display:'inline-block',padding:'10px 24px',background:'#1d4ed8',color:'#fff',borderRadius:10,cursor:'pointer',fontSize:14,fontWeight:600}}>
         {bs?'识别中...':'选择文件'}

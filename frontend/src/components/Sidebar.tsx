@@ -12,7 +12,7 @@ export default function Sidebar({ open, onClose, page, onNavigate, lowStock, err
       {/* 侧边栏 */}
       <div style={{
         position:'fixed', top:0, left:0, bottom:0, width:280,
-        background:'#1e293b', color:'#fff', zIndex:1000,
+        background:'var(--sidebar)', color:'#fff', zIndex:1000,
         transform: open ? 'translateX(0)' : 'translateX(-100%)',
         transition:'transform 0.25s cubic-bezier(0.4,0,0.2,1)',
         display:'flex', flexDirection:'column', overflow:'hidden',

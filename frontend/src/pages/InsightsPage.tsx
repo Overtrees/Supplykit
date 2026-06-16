@@ -60,8 +60,8 @@ export default function InsightsPage() {
   const btnStyle = id => ({
     flex: 1, padding: '10px 12px', fontSize: 13, fontWeight: 500,
     border: 'none', borderRadius: 10,
-    background: tab === id ? '#1d4ed8' : 'transparent',
-    color: tab === id ? '#fff' : '#64748b', cursor: 'pointer',
+    background: tab === id ? 'var(--primary)' : 'transparent',
+    color: tab === id ? '#fff' : 'var(--muted)', cursor: 'pointer',
   })
 
   if (loading) return <div className="card"><div className="muted">加载中...</div></div>

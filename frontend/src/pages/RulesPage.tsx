@@ -138,5 +138,5 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
   </div>
 }
 
-const ST={primary:{padding:'6px 16px',background:'#1d4ed8',color:'#fff',border:'none',borderRadius:8,cursor:'pointer',fontSize:13},secondary:{padding:'6px 16px',background:'#fff',border:'1px solid #e2e8f0',borderRadius:8,cursor:'pointer',fontSize:13},edit:{fontSize:12,padding:'4px 10px',border:'1px solid #e2e8f0',borderRadius:6,cursor:'pointer',background:'#fff'},danger:{fontSize:12,padding:'4px 10px',border:'1px solid #ef4444',borderRadius:6,cursor:'pointer',background:'#fff',color:'#ef4444'}}
+const ST={primary:{padding:'6px 16px',background:'var(--primary)',color:'#fff',border:'none',borderRadius:8,cursor:'pointer',fontSize:13},secondary:{padding:'6px 16px',background:'#fff',border:'1px solid var(--border)',borderRadius:8,cursor:'pointer',fontSize:13},edit:{fontSize:12,padding:'4px 10px',border:'1px solid var(--border)',borderRadius:6,cursor:'pointer',background:'#fff'},danger:{fontSize:12,padding:'4px 10px',border:'1px solid var(--danger)',borderRadius:6,cursor:'pointer',background:'#fff',color:'var(--danger)'}}
 const IS={width:'100%',padding:'6px 8px',fontSize:12,border:'1px solid #e2e8f0',borderRadius:6,marginTop:4,outline:'none',background:'#fff',boxSizing:'border-box'}

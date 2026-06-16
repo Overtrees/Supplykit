@@ -56,7 +56,7 @@ export default function DashboardPage({ onAlert }) {
     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
       <div style={{ display:'flex', gap:4 }}>
         {['today','week','month'].map(k => (
-          <button key={k} onClick={() => setPeriodTab(k)} style={{ fontSize:12, padding:'4px 14px', borderRadius:99, border:'1px solid', cursor:'pointer', background: periodTab === k ? '#1d4ed8' : '#fff', color: periodTab === k ? '#fff' : '#64748b', borderColor: periodTab === k ? '#1d4ed8' : '#e2e8f0', fontWeight: periodTab === k ? 600 : 400 }}>{periodLabel[k]}</button>
+          <button key={k} onClick={() => setPeriodTab(k)} style={{ fontSize:12, padding:'4px 14px', borderRadius:99, border:'1px solid', cursor:'pointer', background: periodTab === k ? 'var(--primary)' : '#fff', color: periodTab === k ? '#fff' : 'var(--muted)', borderColor: periodTab === k ? 'var(--primary)' : 'var(--border)', fontWeight: periodTab === k ? 600 : 400 }}>{periodLabel[k]}</button>
         ))}
       </div>
       <div className="small muted">{periodMeta.date ? periodMeta.date : ''}</div>

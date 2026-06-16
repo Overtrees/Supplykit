@@ -12,3 +12,6 @@ export const colors = {
   textSecondary: '#64748b',
   textMuted: '#94a3b8',
 }
+
+// CSS 变量名（对应 index.html :root）
+export const cssVar = (name) => `var(--${name})`

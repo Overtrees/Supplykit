@@ -36,7 +36,7 @@ export default function App() {
   return <ToastProvider>
     <Sidebar open={sidebarOpen} onClose={()=>setSidebarOpen(false)} page={page} onNavigate={setPage} lowStock={lowStock} errCount={errCount} />
     <div style={{minHeight:'100vh',background:'#f8fafc',fontFamily:'system-ui, sans-serif',color:'#0f172a'}}>
-      <div style={{background:'linear-gradient(135deg,#0f172a,#1d4ed8)',color:'#fff',padding:'14px 20px',display:'flex',justifyContent:'space-between',alignItems:'center',position:'relative',zIndex:1}}>
+      <div style={{background:'linear-gradient(135deg,var(--sidebar),var(--primary))',color:'#fff',padding:'14px 20px',display:'flex',justifyContent:'space-between',alignItems:'center',position:'relative',zIndex:1}}>
         <div style={{display:'flex',alignItems:'center',gap:10}}>
           <button onClick={()=>setSidebarOpen(true)} style={{width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:8,cursor:'pointer',border:'none',background:'rgba(255,255,255,0.12)',color:'#fff',fontSize:18,flexShrink:0}}>☰</button>
           <div><div style={{fontSize:20,fontWeight:800,lineHeight:1.3}}>SupplyChain V1</div><div style={{fontSize:12,color:'rgba(255,255,255,0.6)'}}>React + ECharts</div></div>

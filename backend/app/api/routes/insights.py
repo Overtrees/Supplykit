@@ -34,6 +34,8 @@ def get_replenishment_suggestions(days: int = 28, db = get_db()):
     cfg_rows = db.table("replenishment_config").select("*").execute().data
     cfg = {r['key']: r['value'] for r in cfg_rows}
     lead_time = int(cfg.get('lead_time_days', '10'))
+    # BBCC 模式：总前置期 = 生产到B仓 + B→C调拨 + C仓安全库存
+    lead_time = lead_time + int(cfg.get('b_to_c_days', '0')) + int(cfg.get('c_safety_days', '0'))
 
     suggestions = []
     for inv in items:
@@ -225,7 +227,7 @@ def export_purchase_excel(db = get_db()):
     from io import BytesIO
     from fastapi.responses import StreamingResponse
 
-    replen = get_replenishment_suggestions(db)
+    replen = get_replenishment_suggestions(db=db)
     suppliers = {s["supplier_code"]: s for s in db.table("suppliers").select("*").execute().data}
 
     wb = Workbook()

@@ -1,24 +1,24 @@
-import React, { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import * as echarts from 'echarts'
+
 export default function Chart({ option, height = 260 }) {
-  const ref = React.useRef(null)
-  const chartRef = React.useRef(null)
+  const ref = useRef(null)
+  const inst = useRef(null)
   useEffect(() => {
     if (!ref.current) return
-    setTimeout(() => {
+    const timer = setTimeout(() => {
+      if (!ref.current) return
       try {
-        if (chartRef.current) {
-          chartRef.current.dispose()
-          chartRef.current = null
-        }
+        if (inst.current) { inst.current.dispose(); inst.current = null }
         const chart = echarts.init(ref.current)
         chart.setOption(option)
-        chartRef.current = chart
-        const onResize = () => chart.resize()
-        window.addEventListener('resize', onResize)
-        return () => { window.removeEventListener('resize', onResize); try { chart.dispose() } catch(e) {} }
-      } catch(e) {}
-    }, 0)
+        inst.current = chart
+        const resize = () => chart.resize()
+        window.addEventListener('resize', resize)
+        return () => { window.removeEventListener('resize', resize); try { chart.dispose() } catch(e) {} }
+      } catch(e) { console.error('Chart error:', e) }
+    }, 100)
+    return () => clearTimeout(timer)
   }, [option])
-  return <div ref={ref} style={{ width:'100%', height }} />
+  return <div ref={ref} style={{ width: '100%', height }} />
 }

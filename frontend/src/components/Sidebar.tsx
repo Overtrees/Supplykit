@@ -27,7 +27,7 @@ export default function Sidebar({ open, onClose, page, onNavigate, lowStock, err
           {NAV.map(item => {
             const active = page === item.id
             return (
-              <div key={item.id} onClick={() => { onClose(); setTimeout(() => onNavigate(item.id), 220) }} style={{
+              <div key={item.id} onClick={() => { onNavigate(item.id); setTimeout(() => onClose(), 80) }} style={{
                 display:'flex', alignItems:'center', gap:12, padding:'12px 16px', margin:'2px 4px',
                 borderRadius:10, cursor:'pointer', fontSize:14, transition:'all 0.12s',
                 color: active ? '#fff' : 'rgba(255,255,255,0.65)',

@@ -17,6 +17,24 @@ def update_config(data: dict, db=get_db()):
         db.table("replenishment_config").update({"value": str(v)}).eq("key", k).execute()
     return get_config(db)
 
+
+@router.get('/seasons')
+def get_seasons(db=get_db()):
+    import json
+    val = db.table('replenishment_config').select('*').eq('key', 'season_config').execute().data
+    if val and val[0].get('value'):
+        return json.loads(val[0]['value'])
+    return [
+        {'key':'618','name':'618','factor':1.5,'enabled':True},
+        {'key':'1111','name':'双11','factor':1.8,'enabled':True},
+        {'key':'cny','name':'年货节','factor':1.6,'enabled':True},
+    ]
+
+@router.put('/seasons')
+def update_seasons(data: list, db=get_db()):
+    import json
+    db.table('replenishment_config').update({'value': json.dumps(data, ensure_ascii=False)}).eq('key', 'season_config').execute()
+    return data
 @router.get('/calculate')
 def calculate(db=get_db()):
     rows = db.table("replenishment_config").select("*").execute().data

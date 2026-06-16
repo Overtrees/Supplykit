@@ -229,7 +229,7 @@ export default function CleansingPage() {
 
     {s === 2 && pv && <div>
       <div className="section-title">清洗预览 · 前 {pv.preview?.length||0} 行{pv.total > 50 ? <span className="small muted"> · 共 {pv.total} 行，仅展示前 50 行</span> : ''}</div>
-      {pv.preview?.length > 0 && <div style={{overflowX:'auto',marginBottom:12}}>
+      {pv.preview?.length > 0 && <div style={{overflowX:"auto",marginBottom:12}}>
         {(() => { const keys = Object.keys(pv.preview[0]).filter(k => k !== '_source'); return <>
         <table><thead><tr>{keys.map(h=>{
           const sf = SYS_FIELDS.find(x => x.t === h) || cf.find(x => x.t === h)

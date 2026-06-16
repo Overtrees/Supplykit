@@ -7,6 +7,6 @@ if(ld)return<div className='card'><div className='muted'>加载中...</div></div
 const fl=s?list.filter(x=>(x.sku||'').includes(s)||(x.product_name||'').includes(s)||(x.store||'').includes(s)):list
 return<div className='card'><div className='section-title'><span>商品管理</span><span className='small muted'>共 {list.length} 个</span></div>
 <input value={s} onChange={e=>setS(e.target.value)} placeholder='搜索SKU/名称/店铺...' style={{width:'100%',padding:'8px 12px',fontSize:13,border:'1px solid #e2e8f0',borderRadius:8,marginBottom:12,outline:'none',boxSizing:'border-box'}}/>
-{fl.length===0?<EmptyState icon='🏷️' title={s?'无匹配商品':'暂无商品'} desc={s?'换个关键词试试':''}/>:<div style={{overflowX:'auto'}}>
+{fl.length===0?<EmptyState icon='🏷️' title={s?'无匹配商品':'暂无商品'} desc={s?'换个关键词试试':''}/>:<div style={{overflowX:"auto"}}>
 <table><thead><tr>{['SKU','名称','店铺','分类','单价','状态'].map(h=><th key={h}>{h}</th>)}</tr></thead>
 <tbody>{fl.map(x=><tr key={x.id}><td className='mono' style={{fontSize:12}}>{x.sku}</td><td>{x.product_name}</td><td>{x.store}</td><td>{x.category}</td><td>¥{x.price}</td><td><span className={'pill '+(x.status==='active'?'success':'warning')}>{x.status}</span></td></tr>)}</tbody></table></div>}</div>}

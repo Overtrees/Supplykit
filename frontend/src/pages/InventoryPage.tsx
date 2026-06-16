@@ -32,7 +32,7 @@ export default function InventoryPage({ highlightSku }) {
     </div>
     {fl.length === 0
       ? <EmptyState icon='📦' title={s?'无匹配库存':'暂无库存数据'} desc={s?'换个关键词试试':'通过清洗导入或手动添加库存'} />
-      : <div style={{overflowX:'auto'}}>
+      : <div style={{overflowX:"auto"}}>
       <table><thead><tr>{['店铺','仓库','SKU','商品','可用','锁定','在途','安全线',''].map(h=><th key={h}>{h}</th>)}</tr></thead>
       <tbody>{fl.map(x => {
         const isHL = highlightSku && x.sku === highlightSku

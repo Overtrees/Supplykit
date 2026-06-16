@@ -44,7 +44,7 @@ export default function OrdersPage() {
 
     {orders.length === 0
       ? <EmptyState icon='📋' title={orderSearch?'无匹配订单':'暂无订单'} desc={orderSearch?'换个关键词试试':''} />
-      : <div style={{overflowX:'auto'}}>
+      : <div style={{overflowX:"auto"}}>
       <table><thead><tr>{['订单号','店铺','仓库','商品','金额','状态','日期',''].map(h=><th key={h}>{h}</th>)}</tr></thead>
       <tbody>
         {orders.map(x => <tr key={x.id}>

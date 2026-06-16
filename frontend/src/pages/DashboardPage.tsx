@@ -13,12 +13,12 @@ export default function DashboardPage({ onAlert }) {
 
   const periodTrendOption = useMemo(() => ({
     tooltip: { trigger: 'axis', valueFormatter: (v) => '¥' + Number(v).toLocaleString('zh-CN', {minimumFractionDigits:2,maximumFractionDigits:2}) },
-    xAxis: { type: 'category', data: periodTrend.map(i => i['日期']) || [], axisLabel: { fontSize: 10 } },
+    xAxis: { type: 'category', data: periodTrend.map(i => i['日期']) || [], axisLabel: { fontSize: 9 } },
     yAxis: [
-      { type: 'value', axisLabel: { fontSize: 10, formatter: (v) => v >= 10000 ? (v/10000).toFixed(0) + 'W' : v } },
-      { type: 'value', axisLabel: { fontSize: 10 } }
+      { type: 'value', axisLabel: { fontSize: 9, formatter: (v) => v >= 10000 ? (v/10000).toFixed(0) + 'W' : v } },
+      { type: 'value', axisLabel: { fontSize: 9 } }
     ],
-    grid: { left: 32, right: 4, top: 12, bottom: 50 },
+    grid: { left: 24, right: 2, top: 8, bottom: 44 },
     series: [
       { type: 'line', smooth: true, areaStyle: { opacity: 0.15 }, data: periodTrend.map(i => i['GMV']) || [], color: '#1d4ed8', name: 'GMV' },
       { type: 'bar', data: periodTrend.map(i => i['订单数']) || [], color: '#0f766e', yAxisIndex: 1, name: '订单数' }
@@ -28,10 +28,10 @@ export default function DashboardPage({ onAlert }) {
 
   const storeOption = useMemo(() => ({
     tooltip: { trigger: 'axis', valueFormatter: (v) => '¥' + Number(v).toLocaleString('zh-CN', {minimumFractionDigits:2,maximumFractionDigits:2}) },
-    xAxis: { type: 'category', data: dashboard?.stores?.map(i => i.name) || [], axisLabel: { fontSize: 10 } },
-    yAxis: { type: 'value', axisLabel: { fontSize: 10, formatter: (v) => v >= 10000 ? (v/10000).toFixed(0) + 'W' : v } },
+    xAxis: { type: 'category', data: dashboard?.stores?.map(i => i.name) || [], axisLabel: { fontSize: 9 } },
+    yAxis: { type: 'value', axisLabel: { fontSize: 9, formatter: (v) => v >= 10000 ? (v/10000).toFixed(0) + 'W' : v } },
     series: [{ type: 'bar', data: dashboard?.stores?.map(i => Math.round(i.gmv * 100) / 100) || [], itemStyle: { color:'#0f766e' } }],
-    grid: { left: 28, right: 4, top: 16, bottom: 20 }
+    grid: { left: 20, right: 2, top: 8, bottom: 16 }
   }), [dashboard])
 
   const funnelOption = useMemo(() => {

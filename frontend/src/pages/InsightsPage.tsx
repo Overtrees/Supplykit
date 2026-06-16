@@ -11,11 +11,16 @@ const pillStyle = (cond, yes = 'danger', no = 'info') => ({
 export default function InsightsPage() {
   const [tab, setTab] = useState('replen')
   const [replen, setReplen] = useState([])
+  const [replenDays, setReplenDays] = useState(28)
   const [purchase, setPurchase] = useState([])
   const [summary, setSummary] = useState(null)
   const [activities, setActivities] = useState([])
   const [slowMoving, setSlowMoving] = useState([])
   const [loading, setLoading] = useState(true)
+
+  const loadReplen = async (days) => {
+    try { const r = await api.get('/api/insights/replenishment?days=' + (days||replenDays)); setReplen(r.data || []) } catch(e) {}
+  }
 
   // "已下单"标记 — localStorage 持久化
   const [ordered, setOrdered] = useState(() => {
@@ -30,13 +35,12 @@ export default function InsightsPage() {
 
   useEffect(() => {
     Promise.all([
-      api.get('/api/insights/replenishment'),
+      loadReplen(replenDays),
       api.get('/api/insights/purchase'),
       api.get('/api/insights/summary'),
       api.get('/api/events'),
       api.get('/api/insights/slow-moving'),
-    ]).then(([r, p, s, ev, sm]) => {
-      setReplen(r.data || [])
+    ]).then(([, p, s, ev, sm]) => {
       setPurchase(p.data?.suggestions || p.data || [])
       setSummary(s.data)
       setActivities((ev.data || []).slice(0, 15))
@@ -93,7 +97,17 @@ export default function InsightsPage() {
       {tab === 'replen' && (
         <div className="card">
           <div className="section-title" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-            <span>补货建议{replen.length > 0 && <span className="small muted" style={{ marginLeft: 8 }}>· 低于安全线的商品</span>}</span>
+            <span>
+              补货建议{replen.length > 0 && <span className="small muted" style={{ marginLeft: 8 }}>· 低于安全线的商品</span>}
+              <span style={{marginLeft:12,display:'inline-flex',gap:2,background:'#f1f5f9',borderRadius:99,padding:2}}>
+                {[7,14,28].map(d => (
+                  <span key={d} onClick={()=>{setReplenDays(d);loadReplen(d)}}
+                    style={{padding:'2px 10px',fontSize:11,borderRadius:99,cursor:'pointer',
+                      background:replenDays===d?'#1d4ed8':'transparent',
+                      color:replenDays===d?'#fff':'#64748b',fontWeight:replenDays===d?600:400}}>{d}天</span>
+                ))}
+              </span>
+            </span>
             <div style={{display:'flex',gap:6}}>
               <button onClick={async()=>{
                 try {
@@ -114,7 +128,7 @@ export default function InsightsPage() {
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table>
-                <thead><tr>{['','SKU','商品','店铺','现有','安全线','在途','日销','可撑(天)','建议补','紧急度','已下单'].map(h => <th key={h}>{h}</th>)}</tr></thead>
+                <thead><tr>{['','SKU','商品','店铺','现有','安全线','在途','日销7','日销14','日销28','可撑(天)','建议补','紧急度','已下单'].map(h => <th key={h}>{h}</th>)}</tr></thead>
                 <tbody>
                   {replen.filter(x => !ordered.includes(x.sku+'|'+x.store)).map((x, i) => (
                     <tr key={i}>
@@ -123,7 +137,9 @@ export default function InsightsPage() {
                       <td>{x.product_name}</td><td>{x.store}</td>
                       <td style={{ color: x.available_qty === 0 ? '#ef4444' : '#374151', fontWeight: 600 }}>{x.available_qty}</td>
                       <td>{x.safety_qty}</td><td>{x.in_transit_qty}</td>
-                      <td>{x.daily_sales}</td>
+                      <td style={{fontSize:11}}>{x.daily_sales_7}</td>
+                      <td style={{fontSize:11}}>{x.daily_sales_14}</td>
+                      <td style={{fontSize:11,fontWeight:replenDays===28?600:400}}>{x.daily_sales_28}</td>
                       <td style={{color: x.days_to_empty < 5 ? '#ef4444' : x.days_to_empty < 10 ? '#f59e0b' : '#374151'}}>{x.days_to_empty > 999 ? '∞' : x.days_to_empty}</td>
                       <td style={{ fontWeight: 600, color: '#059669' }}>+{x.suggested_qty}</td>
                       <td><span className={`pill ${x.urgency === '紧急' ? 'danger' : x.urgency === '建议' ? 'warning' : 'info'}`}>{x.urgency}</span></td>

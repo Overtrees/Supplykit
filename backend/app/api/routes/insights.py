@@ -6,22 +6,34 @@ router = APIRouter(prefix="/api/insights", tags=["insights"])
 
 
 @router.get('/replenishment')
-def get_replenishment_suggestions(db = get_db()):
+def get_replenishment_suggestions(days: int = 28, db = get_db()):
+    """补货建议，支持 days=7/14/28 切换"""
     from datetime import timedelta
     items = db.table("inventory").select("*").execute().data
     products = {p["sku"]: p for p in db.table("products").select("*").execute().data}
     orders = db.table("orders").select("*").execute().data
 
-    now = datetime.utcnow()
-    cutoff = (now - timedelta(days=30)).strftime('%Y-%m-%d')
-    sku_sales = {}
-    for o in orders:
-        sku = o.get('sku', '')
-        if not sku: continue
-        dt = str(o.get('ordered_at', ''))[:10]
-        qty = int(o.get('quantity', 0) or 0)
-        if dt >= cutoff:
-            sku_sales[sku] = sku_sales.get(sku, 0) + qty
+    # 三周期日销预计算
+    def calc_sales(cutoff_days):
+        cutoff = (datetime.utcnow() - timedelta(days=cutoff_days)).strftime('%Y-%m-%d')
+        sku_s = {}
+        for o in orders:
+            sku = o.get('sku', '')
+            if not sku: continue
+            dt = str(o.get('ordered_at', ''))[:10]
+            qty = int(o.get('quantity', 0) or 0)
+            if dt >= cutoff:
+                sku_s[sku] = sku_s.get(sku, 0) + qty
+        return sku_s
+
+    sales_7 = calc_sales(7)
+    sales_14 = calc_sales(14)
+    sales_28 = calc_sales(28)
+    selected_sales = {28: sales_28, 14: sales_14, 7: sales_7}.get(days, sales_28)
+
+    cfg_rows = db.table("replenishment_config").select("*").execute().data
+    cfg = {r['key']: r['value'] for r in cfg_rows}
+    lead_time = int(cfg.get('lead_time_days', '10'))
 
     suggestions = []
     for inv in items:
@@ -29,23 +41,27 @@ def get_replenishment_suggestions(db = get_db()):
         avail = int(inv.get("available_qty") or 0)
         safety = int(inv.get("safety_qty") or 0)
         transit = int(inv.get("in_transit_qty") or 0)
-        total_sales = sku_sales.get(sku, 0)
-        daily_sales = round(total_sales / 30, 1)
-        lead_time = 10
-        suggested = 0
-        if daily_sales > 0:
-            suggested = max(round(daily_sales * lead_time + safety - avail - transit), 0)
-        days_to_empty = round(avail / daily_sales, 1) if daily_sales > 0 else 999
+
+        # 三周期日销
+        ds7 = round(sales_7.get(sku, 0) / 7, 1)
+        ds14 = round(sales_14.get(sku, 0) / 14, 1)
+        ds28 = round(sales_28.get(sku, 0) / 28, 1)
+        sel_ds = {28: ds28, 14: ds14, 7: ds7}[days]
+
+        # 当前周期计算
+        suggested = max(round(sel_ds * lead_time + safety - avail - transit), 0) if sel_ds > 0 else 0
+        days_to_empty = round(avail / sel_ds, 1) if sel_ds > 0 else 999
 
         p = products.get(sku, {})
         suggestions.append({
             "sku": sku, "product_name": inv.get("product_name") or p.get("product_name", ""),
             "store": inv.get("store"), "category": p.get("category", ""),
             "available_qty": avail, "safety_qty": safety, "in_transit_qty": transit,
-            "daily_sales": daily_sales, "total_sales_30d": total_sales,
+            "daily_sales": sel_ds,
+            "daily_sales_7": ds7, "daily_sales_14": ds14, "daily_sales_28": ds28,
             "suggested_qty": suggested,
             "days_to_empty": days_to_empty,
-            "urgency": "紧急" if days_to_empty < safety/(daily_sales or 1)/2 else ("建议" if suggested > 0 else "正常"),
+            "urgency": "紧急" if days_to_empty < safety/(sel_ds or 1)/2 else ("建议" if suggested > 0 else "正常"),
         })
 
     suggestions.sort(key=lambda x: x['days_to_empty'])

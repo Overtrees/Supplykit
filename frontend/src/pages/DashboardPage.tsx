@@ -15,34 +15,33 @@ export default function DashboardPage({ onAlert }) {
     tooltip: { trigger: 'axis', valueFormatter: (v) => '¥' + Number(v).toLocaleString('zh-CN', {minimumFractionDigits:2,maximumFractionDigits:2}) },
     xAxis: { type: 'category', data: periodTrend.map(i => i['日期']) || [], axisLabel: { fontSize: 9 } },
     yAxis: [
-      { type: 'value', axisLabel: { fontSize: 9, formatter: (v) => v >= 10000 ? (v/10000).toFixed(0) + 'W' : v } },
+      { type: 'value', axisLabel: { fontSize: 9, formatter: (v) => v >= 10000 ? (v/10000).toFixed(0) + 'W' : v }, max: (v) => Math.ceil(v.max * 1.2 / 1000) * 1000 },
       { type: 'value', axisLabel: { fontSize: 9 } }
     ],
-    grid: { left: 24, right: 2, top: 8, bottom: 44 },
+    grid: { containLabel: true, top: 8, bottom: 42 },
     series: [
       { type: 'line', smooth: true, areaStyle: { opacity: 0.15 }, data: periodTrend.map(i => i['GMV']) || [], color: '#1d4ed8', name: 'GMV' },
       { type: 'bar', data: periodTrend.map(i => i['订单数']) || [], color: '#0f766e', yAxisIndex: 1, name: '订单数' }
     ],
-    legend: { data: ['GMV', '订单数'], bottom: 8, left: 'center', icon: 'circle', itemWidth: 8, itemHeight: 8, textStyle: { fontSize: 10 } }
+    legend: { data: ['GMV', '订单数'], bottom: 6, left: 'center', icon: 'circle', itemWidth: 8, itemHeight: 8, textStyle: { fontSize: 9 } }
   }), [periodTrend])
 
   const storeOption = useMemo(() => ({
     tooltip: { trigger: 'axis', valueFormatter: (v) => '¥' + Number(v).toLocaleString('zh-CN', {minimumFractionDigits:2,maximumFractionDigits:2}) },
     xAxis: { type: 'category', data: dashboard?.stores?.map(i => i.name) || [], axisLabel: { fontSize: 9 } },
-    yAxis: { type: 'value', axisLabel: { fontSize: 9, formatter: (v) => v >= 10000 ? (v/10000).toFixed(0) + 'W' : v } },
+    yAxis: { type: 'value', axisLabel: { fontSize: 9, formatter: (v) => v >= 10000 ? (v/10000).toFixed(0) + 'W' : v }, max: (v) => Math.ceil(v.max * 1.2 / 1000) * 1000 },
     series: [{ type: 'bar', data: dashboard?.stores?.map(i => Math.round(i.gmv * 100) / 100) || [], itemStyle: { color:'#0f766e' } }],
-    grid: { left: 20, right: 2, top: 8, bottom: 16 }
+    grid: { containLabel: true, top: 8, bottom: 16 }
   }), [dashboard])
 
   const funnelOption = useMemo(() => {
     const f = dashboard?.funnel || []
     return {
       tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
-      grid: { top: 10, bottom: 10 },
       series: [{
-        type: 'funnel', left: '5%', top: 20, bottom: 8, width: '60%',
+        type: 'funnel', left: '5%', top: 16, bottom: 6, width: '90%',
         minSize: '15%', maxSize: '100%', sort: 'descending', gap: 2,
-        label: { show: true, fontSize: 11, position: 'outside', formatter: (p) => `${p.name}  ${p.value}单` },
+        label: { show: true, fontSize: 10, position: 'outside', formatter: (p) => `${p.name}  ${p.value}单` },
         itemStyle: { borderColor: '#fff', borderWidth: 1 },
         data: f.map((x,i) => ({ ...x, value: x.value, itemStyle: { color: ['#3b82f6','#06b6d4','#0ea5e9','#14b8a6','#10b981'][i % 5] } }))
       }]
@@ -71,20 +70,20 @@ export default function DashboardPage({ onAlert }) {
     </div>
 
     <div className="chart-row">
-      <div className="card"><div className="section-title">{periodLabel[periodTab]} GMV·订单趋势</div>
+      <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title">{periodLabel[periodTab]} GMV·订单趋势</div>
         {periodTrend.length === 0 ? <div className="small muted" style={{ padding: '40px 0', textAlign: 'center' }}>暂无{periodLabel[periodTab]}数据</div> : <Chart option={periodTrendOption} height={200} />}
       </div>
-      <div className="card"><div className="section-title">订单漏斗 下单→完成</div><Chart option={funnelOption} height={200} /></div>
+      <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title">订单漏斗 下单→完成</div><Chart option={funnelOption} height={200} /></div>
     </div>
 
     <div className="chart-row-3">
-      <div className="card"><div className="section-title">店铺 GMV</div><Chart option={storeOption} height={170} /></div>
-      <div className="card"><div className="section-title">商品分类分布</div>
+      <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title">店铺 GMV</div><Chart option={storeOption} height={170} /></div>
+      <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title">商品分类分布</div>
         {dashboard?.category_distribution
-          ? <Chart option={{ tooltip: { trigger: 'item' }, series: [{ type: 'pie', radius: ['40%', '70%'], data: dashboard.category_distribution, label: { fontSize: 11 } }] }} height={170} />
+          ? <Chart option={{ tooltip: { trigger: 'item' }, series: [{ type: 'pie', radius: ['40%', '70%'], data: dashboard.category_distribution, label: { fontSize: 10 } }] }} height={170} />
           : <div className="small muted">暂无数据</div>}
       </div>
-      <div className="card"><div className="section-title">低库存 & 补货告警</div>
+      <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title">低库存 & 补货告警</div>
         {alertsList.length === 0
           ? <div className="small muted" style={{ padding: 12, textAlign: 'center' }}>暂无告警</div>
           : alertsList.slice(0, 6).map(x => (

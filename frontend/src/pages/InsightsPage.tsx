@@ -142,7 +142,7 @@ export default function InsightsPage() {
                       <td style={{fontSize:11,fontWeight:replenDays===28?600:400}}>{x.daily_sales_28}</td>
                       <td style={{color: x.days_to_empty < 5 ? '#ef4444' : x.days_to_empty < 10 ? '#f59e0b' : '#374151'}}>{x.days_to_empty > 999 ? '∞' : x.days_to_empty}</td>
                       <td style={{ fontWeight: 600, color: '#059669' }}>+{x.suggested_qty}</td>
-                      <td><span className={`pill ${x.urgency === '紧急' ? 'danger' : x.urgency === '建议' ? 'warning' : 'info'}`}>{x.urgency}</span></td>
+                      <td><span className={`pill ${x.urgency === '紧急' ? 'danger' : x.urgency === '仓储费风险' ? 'warning' : x.urgency === '建议' ? 'info' : 'info'}`}>{x.urgency}</span></td>
                       <td><span onClick={()=>toggleOrdered(x.sku, x.store)} style={{cursor:'pointer',fontSize:18,opacity:0.5}}>☐</span></td>
                     </tr>
                   ))}

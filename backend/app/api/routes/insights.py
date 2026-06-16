@@ -54,6 +54,22 @@ def get_replenishment_suggestions(days: int = 28, db = get_db()):
         suggested = max(round(sel_ds * lead_time + safety - avail - transit), 0) if sel_ds > 0 else 0
         days_to_empty = round(avail / sel_ds, 1) if sel_ds > 0 else 999
 
+        # B仓超15天仓储费风险告警
+        max_turnover = int(cfg.get('max_turnover_days', '15'))
+        if days_to_empty > max_turnover and sel_ds > 0:
+            try:
+                exists = db.table("alerts").select("id").eq("alert_type","storage_fee")\
+                    .eq("related_sku",sku).eq("status","active").execute().data
+                if not exists:
+                    db.table("alerts").insert({
+                        "alert_type":"storage_fee","title":f"B仓周转超限: {inv.get('product_name',sku)}",
+                        "description":f"库存可撑 {days_to_empty}天 > B仓免费 {max_turnover}天，超期将产生仓储费",
+                        "severity":"warning","source":"replenishment_engine",
+                        "related_sku":sku,"status":"active"
+                    }).execute()
+            except Exception:
+                pass
+
         p = products.get(sku, {})
         suggestions.append({
             "sku": sku, "product_name": inv.get("product_name") or p.get("product_name", ""),
@@ -63,7 +79,7 @@ def get_replenishment_suggestions(days: int = 28, db = get_db()):
             "daily_sales_7": ds7, "daily_sales_14": ds14, "daily_sales_28": ds28,
             "suggested_qty": suggested,
             "days_to_empty": days_to_empty,
-            "urgency": "紧急" if days_to_empty < safety/(sel_ds or 1)/2 else ("建议" if suggested > 0 else "正常"),
+            "urgency": "仓储费风险" if days_to_empty > max_turnover else ("紧急" if days_to_empty < safety/(sel_ds or 1)/2 else ("建议" if suggested > 0 else "正常")),
         })
 
     suggestions.sort(key=lambda x: x['days_to_empty'])

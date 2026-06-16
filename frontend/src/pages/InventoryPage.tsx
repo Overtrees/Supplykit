@@ -2,10 +2,12 @@ import React, { useState, useMemo, useEffect } from 'react'
 import { useAppStore } from '../store/useAppStore'
 import EmptyState from '../components/EmptyState'
 import { useToast } from '../components/Toast'
+import ConfirmDialog from '../components/ConfirmDialog'
 export default function InventoryPage({ highlightSku }) {
   const toast = useToast()
   const { inventory, loadAll } = useAppStore()
   const [s, setS] = useState('')
+  const [confirmDel, setConfirmDel] = useState(null)
   const fl = useMemo(() => {
     if (!s) return inventory
     const q = s.toLowerCase()
@@ -14,13 +16,14 @@ export default function InventoryPage({ highlightSku }) {
   useEffect(() => {
     if (highlightSku) setTimeout(() => document.getElementById('hl-' + highlightSku)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 200)
   }, [highlightSku])
-  const delInv = async (id) => {
-    if (!confirm('确认删除该库存记录？')) return
+  const delInv = async () => {
+    if (!confirmDel) return
     try {
-      const r = await fetch(`https://overtrees.pythonanywhere.com/api/inventory/${id}`, {method:'DELETE'})
-      if (r.ok) { toast.success('已删除'); loadAll() }
+      const r = await fetch(`https://overtrees.pythonanywhere.com/api/inventory/${confirmDel}`, {method:'DELETE'})
+      if (r.ok) { toast.success('已删除'); setConfirmDel(null); loadAll() }
       else toast.error('删除失败')
     } catch(e) { toast.error('删除失败: '+e.message) }
+    setConfirmDel(null)
   }
   return <div className="card">
     <div className="section-title" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
@@ -37,8 +40,9 @@ export default function InventoryPage({ highlightSku }) {
         <td className="col-store">{x.store||'-'}</td><td className="col-store">{x.warehouse||'-'}</td>
         <td className="mono col-sku">{x.sku}</td><td className="col-name">{x.product_name}</td>
         <td className="col-qty">{x.available_qty}</td><td className="col-qty">{x.locked_qty}</td><td className="col-qty">{x.in_transit_qty}</td><td className="col-qty">{x.safety_qty}</td>
-        <td><span onClick={()=>delInv(x.id)} style={{cursor:'pointer',fontSize:14,opacity:0.4}} title='删除'>🗑️</span></td>
+        <td><span onClick={()=>setConfirmDel(x.id)} style={{cursor:'pointer',fontSize:18,opacity:0.4,padding:'8px'}} title='删除'>🗑️</span></td>
       </tr>})}</tbody></table>
     </div>}
+    <ConfirmDialog open={!!confirmDel} title='删除库存记录' desc='删除后不可恢复' confirmLabel='删除' onConfirm={delInv} onCancel={()=>setConfirmDel(null)} />
   </div>
 }

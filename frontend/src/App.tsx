@@ -35,7 +35,7 @@ export default function App() {
   const errCount = (qualityLogs||[]).length
   return <ToastProvider>
     <Sidebar open={sidebarOpen} onClose={()=>setSidebarOpen(false)} page={page} onNavigate={setPage} lowStock={lowStock} errCount={errCount} />
-    <div style={{minHeight:'100vh',background:'#f8fafc',fontFamily:'system-ui, sans-serif',color:'#0f172a'}}>
+    <div style={{minHeight:'100vh',background:'var(--bg)',fontFamily:'-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",sans-serif',color:'var(--text)',paddingTop:'env(safe-area-inset-top,0)',WebkitFontSmoothing:'antialiased'}}>
       <div style={{background:'linear-gradient(135deg,var(--sidebar),var(--primary))',color:'#fff',padding:'14px 20px',display:'flex',justifyContent:'space-between',alignItems:'center',position:'relative',zIndex:1}}>
         <div style={{display:'flex',alignItems:'center',gap:10}}>
           <button onClick={()=>setSidebarOpen(true)} style={{width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:8,cursor:'pointer',border:'none',background:'rgba(255,255,255,0.12)',color:'#fff',fontSize:18,flexShrink:0}}>☰</button>

@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useAppStore } from '../store/useAppStore'
 import EmptyState from '../components/EmptyState'
 import { useToast } from '../components/Toast'
+import ConfirmDialog from '../components/ConfirmDialog'
 
 const STATUSES = ['','已完成','待发货','已发货','待确认','申请退款']
 
@@ -10,17 +11,19 @@ export default function OrdersPage() {
   const { orders, orderTotal, orderPage, setOrderPage, setOrderFilter, orderSearch, orderStatus } = useAppStore()
   const [sq, setSq] = useState(orderSearch)
   const [ss, setSs] = useState(orderStatus)
+  const [confirmDel, setConfirmDel] = useState(null)
   const totalPages = Math.max(1, Math.ceil(orderTotal / 8))
 
   const doSearch = () => setOrderFilter(sq, ss)
 
-  const delOrder = async (id) => {
-    if (!confirm('确认删除该订单？')) return
+  const delOrder = async () => {
+    if (!confirmDel) return
     try {
-      const r = await fetch(`https://overtrees.pythonanywhere.com/api/orders/${id}`, {method:'DELETE'})
-      if (r.ok) { toast.success('已删除'); setOrderPage(orderPage, sq, ss) }
+      const r = await fetch(`https://overtrees.pythonanywhere.com/api/orders/${confirmDel}`, {method:'DELETE'})
+      if (r.ok) { toast.success('已删除'); setConfirmDel(null); setOrderPage(orderPage, sq, ss) }
       else toast.error('删除失败')
     } catch(e) { toast.error('删除失败: '+e.message) }
+    setConfirmDel(null)
   }
 
   return <div className="card">
@@ -50,10 +53,11 @@ export default function OrdersPage() {
           <td className="col-price">¥{Number(x.total_amount).toLocaleString()}</td>
           <td><span className={`pill ${x.order_status==='已完成'?'success':x.order_status==='待发货'?'warning':x.order_status==='已发货'?'info':x.order_status==='申请退款'?'danger':''}`}>{x.order_status}</span></td>
           <td className="col-date">{x.ordered_at}</td>
-          <td><span onClick={()=>delOrder(x.id)} style={{cursor:'pointer',fontSize:14,opacity:0.4}} title='删除'>🗑️</span></td>
+          <td><span onClick={()=>setConfirmDel(x.id)} style={{cursor:'pointer',fontSize:18,opacity:0.4,padding:'8px'}} title='删除'>🗑️</span></td>
         </tr>)}
       </tbody></table>
     </div>}
+    <ConfirmDialog open={!!confirmDel} title='删除订单' desc='删除后不可恢复' confirmLabel='删除' onConfirm={delOrder} onCancel={()=>setConfirmDel(null)} />
 
     {/* 分页 */}
     {orderTotal > 8 && <div style={{display:'flex',justifyContent:'center',alignItems:'center',gap:8,marginTop:12,flexWrap:'wrap'}}>

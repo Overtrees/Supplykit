@@ -127,7 +127,7 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
       </div>)}
       <button onClick={()=>setSeasons(p=>[...p,{key:'new',name:'新活动',factor:1.2,enabled:true}])} style={{padding:'4px 12px',fontSize:12,border:'1px dashed #94a3b8',borderRadius:8,background:'#fff',cursor:'pointer',color:'#64748b',width:'100%',marginBottom:16}}>+ 添加活动</button>
 
-      <button onClick={async()=>{try{await api.put('/api/replenishment-config',cfg);await api.put('/api/replenishment-config/seasons',seasons);loadCfg();loadSeasons()}catch(e){alert('保存失败: '+e.message)}}} style={ST.primary}>💾 保存所有参数</button>
+      <button onClick={async()=>{try{await api.put('/api/replenishment-config',cfg);await api.put('/api/replenishment-config/seasons',{items:seasons});loadCfg();loadSeasons()}catch(e){alert('保存失败: '+e.message)}}} style={ST.primary}>💾 保存所有参数</button>
       <span className='small muted' style={{marginLeft:8,fontSize:11}}>更新后补货建议 & 规则引擎适用</span>
     </div>}
   </div>

@@ -7,7 +7,8 @@ export default function Sidebar({ open, onClose, page, onNavigate, lowStock, err
       <div onClick={onClose} style={{
         position:'fixed', inset:0, background:'rgba(0,0,0,0.35)', zIndex:999,
         opacity: open ? 1 : 0, pointerEvents: open ? 'auto' : 'none',
-        transition:'opacity 0.25s ease',
+        visibility: open ? 'visible' : 'hidden',
+        transition:'opacity 0.25s ease,visibility 0.25s',
       }} />
       {/* 侧边栏 */}
       <div style={{

@@ -89,7 +89,7 @@ export default function InsightsPage() {
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table>
-                <thead><tr>{['SKU','商品','店铺','现有','安全线','在途','建议补','紧急度'].map(h => <th key={h}>{h}</th>)}</tr></thead>
+                <thead><tr>{['SKU','商品','店铺','现有','安全线','在途','日销','可撑(天)','建议补'].map(h => <th key={h}>{h}</th>)}</tr></thead>
                 <tbody>
                   {replen.map((x, i) => (
                     <tr key={i}>
@@ -97,6 +97,8 @@ export default function InsightsPage() {
                       <td>{x.product_name}</td><td>{x.store}</td>
                       <td style={{ color: x.available_qty === 0 ? '#ef4444' : '#374151', fontWeight: 600 }}>{x.available_qty}</td>
                       <td>{x.safety_qty}</td><td>{x.in_transit_qty}</td>
+                      <td>{x.daily_sales}</td>
+                      <td style={{color: x.days_to_empty < 5 ? '#ef4444' : x.days_to_empty < 10 ? '#f59e0b' : '#374151'}}>{x.days_to_empty > 999 ? '∞' : x.days_to_empty}</td>
                       <td style={{ fontWeight: 600, color: '#059669' }}>+{x.suggested_qty}</td>
                       <td><span className={`pill ${x.urgency === '紧急' ? 'danger' : x.urgency === '关注' ? 'warning' : 'info'}`}>{x.urgency}</span></td>
                     </tr>

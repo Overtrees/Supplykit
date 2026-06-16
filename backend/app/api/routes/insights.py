@@ -6,34 +6,48 @@ router = APIRouter(prefix="/api/insights", tags=["insights"])
 
 @router.get('/replenishment')
 def get_replenishment_suggestions(db = get_db()):
+    from datetime import datetime, timedelta
     items = db.table("inventory").select("*").execute().data
     products = {p["sku"]: p for p in db.table("products").select("*").execute().data}
-    suggestions = []
+    orders = db.table("orders").select("*").execute().data
 
+    now = datetime.utcnow()
+    cutoff = (now - timedelta(days=30)).strftime('%Y-%m-%d')
+    sku_sales = {}
+    for o in orders:
+        sku = o.get('sku', '')
+        if not sku: continue
+        dt = str(o.get('ordered_at', ''))[:10]
+        qty = int(o.get('quantity', 0) or 0)
+        if dt >= cutoff:
+            sku_sales[sku] = sku_sales.get(sku, 0) + qty
+
+    suggestions = []
     for inv in items:
+        sku = inv.get("sku", "")
         avail = int(inv.get("available_qty") or 0)
         safety = int(inv.get("safety_qty") or 0)
         transit = int(inv.get("in_transit_qty") or 0)
+        total_sales = sku_sales.get(sku, 0)
+        daily_sales = round(total_sales / 30, 1)
+        lead_time = 10
+        suggested = 0
+        if daily_sales > 0:
+            suggested = max(round(daily_sales * lead_time + safety - avail - transit), 0)
+        days_to_empty = round(avail / daily_sales, 1) if daily_sales > 0 else 999
 
-        if avail >= safety:
-            continue
-
-        suggested = max(safety * 2 - avail - transit, safety - avail)
-        p = products.get(inv.get("sku") or "")
-
+        p = products.get(sku, {})
         suggestions.append({
-            "sku": inv.get("sku"),
-            "product_name": inv.get("product_name") or (p["product_name"] if p else ""),
-            "store": inv.get("store"),
-            "category": p["category"] if p else "",
-            "available_qty": avail,
-            "safety_qty": safety,
-            "in_transit_qty": transit,
+            "sku": sku, "product_name": inv.get("product_name") or p.get("product_name", ""),
+            "store": inv.get("store"), "category": p.get("category", ""),
+            "available_qty": avail, "safety_qty": safety, "in_transit_qty": transit,
+            "daily_sales": daily_sales, "total_sales_30d": total_sales,
             "suggested_qty": suggested,
-            "urgency": "紧急" if avail <= safety * 0.3 else ("关注" if avail <= safety * 0.6 else "预警"),
+            "days_to_empty": days_to_empty,
+            "urgency": "紧急" if days_to_empty < safety/(daily_sales or 1)/2 else ("建议" if suggested > 0 else "正常"),
         })
 
-    suggestions.sort(key=lambda x: (x["urgency"] != "紧急", x["urgency"] != "关注", x["available_qty"]))
+    suggestions.sort(key=lambda x: x['days_to_empty'])
     return suggestions
 
 

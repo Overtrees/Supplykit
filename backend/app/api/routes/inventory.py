@@ -40,7 +40,8 @@ def create_inventory(body: dict, db = get_db()):
 @router.put("/{iid}")
 def update_inventory(iid: int, body: dict, db = get_db()):
     db.table("inventory").update(body).eq("id", iid).execute()
-    inv = db.table("inventory").select("*").eq("id", iid).single().execute().data
+    inv = db.table("inventory").select("*").eq("id", iid).execute().data
+    inv = inv[0] if inv else None
     if inv:
         try:
             from app.core.events import bus
@@ -63,7 +64,8 @@ def adjust_inventory(body: dict, db = get_db()):
     iid = body.get("id")
     action = body.get("action")
     qty = int(body.get("quantity", 0))
-    inv = db.table("inventory").select("*").eq("id", iid).single().execute().data
+    inv = db.table("inventory").select("*").eq("id", iid).execute().data
+    inv = inv[0] if inv else None
     if not inv:
         return {"ok": False, "error": "not found"}
     avail = int(inv.get("available_qty") or 0)

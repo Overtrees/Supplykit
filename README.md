@@ -7,10 +7,10 @@
 ## 架构
 
 ```
-前端 (Vercel)             后端 (PythonAnywhere)    数据库
-React 18 + TypeScript      FastAPI                  SQLite → PostgreSQL
-ECharts 5                  WebSocket(降级轮询)      owner_id / created_at
-React Query + Zustand      APScheduler 定时任务     raw_data 全部表已带
+前端 (Cloudflare Pages)       后端 (PythonAnywhere)    数据库
+React 18 + TypeScript          FastAPI                  SQLite → PostgreSQL
+ECharts 5 + React Query        WebSocket(降级轮询)      owner_id / created_at
+Zustand + ErrorBoundary        APScheduler 定时任务     raw_data 全部表已带
 ```
 
 ---
@@ -19,14 +19,14 @@ React Query + Zustand      APScheduler 定时任务     raw_data 全部表已带
 
 | 页面 | 说明 |
 |------|------|
-| 📊 总览 | 时段切换、GMV趋势、漏斗图、分类饼图、库存健康度、告警列表 |
+| 📊 总览 | 时段切换、GMV趋势、漏斗图、分类饼图、库存健康度、告警列表(点击→库存高亮) |
 | 🏷️ 商品 | 列表 + 搜索 |
 | 🏭 供应商 | 列表 + 搜索 |
 | 📋 订单 | 分页 + 仓库列 |
-| 📦 库存 | 仓库列 |
+| 📦 库存 | 列表 + 告警高亮(从总览跳转) |
 | 💡 建议 | 补货 / 采购 / 滞销 / 回溯 |
-| 🧹 清洗 | 上传 → 智能匹配 → 映射 → 预览 → 异步执行 → 异常池 |
-| ⚙️ 规则 | 自定义规则引擎，支持试运行 |
+| 🧹 清洗 | 上传→智能匹配→字段映射→预览→异步执行→异常池，支持模板保存/加载、自定义字段 |
+| ⚙️ 规则 | 自定义规则引擎（低库存/补货/超卖/滞销），保存至数据库 |
 | 📤 导入 | Excel 批量导入，成功后自动跳转 |
 | ⚠️ 异常 | 数据质量日志 |
 
@@ -34,15 +34,43 @@ React Query + Zustand      APScheduler 定时任务     raw_data 全部表已带
 
 ## 技术栈
 
-- **TypeScript** 全量迁移（.tsx / .ts）
-- **组件拆分**：Card / Chart / Sidebar / UploadPanel + 8 个页面文件
+- **TypeScript** 全量迁移（.tsx / .ts，非严格模式）
+- **组件拆分**：App.tsx ~60行，Card/Chart/Sidebar/UploadPanel + 8 页面文件
+- **ErrorBoundary** 包裹所有页面，崩溃时显示错误信息而非空白
 - **键盘快捷键**：Cmd+B 开关侧栏、Esc 关闭
-- **智能列名匹配**：24 组中文 → 字段名自动映射
-- **React Query** 已接入（`QueryClientProvider` 配置完成）
-- **Toast 通知** 替代 `alert()`
-- **颜色 token** 集中管理（`theme.ts`）
+- **智能列名匹配**：30+ 组中文→字段名自动映射（ALIAS 表）
+- **React Query** 已接入（QueryClientProvider）
+- **Toast 通知** 替代 alert()，已全局注入
+- **颜色 token** 集中管理（theme.ts）
 - **WebSocket** 10s 重连退避，失败降级 30s 轮询
 - **EmptyState** 空状态引导组件
+- **localStorage** 自定义字段持久化
+
+---
+
+## 清洗页特性
+
+| 功能 | 说明 |
+|------|------|
+| 智能列名匹配 | 30+ 组中文别名自动映射 |
+| 系统字段 | 26 个（订单号、SKU、数量、金额、供应商、平台、收货人、币种等） |
+| 自定义字段 | 运行时添加/删除，持久化到 localStorage，预览时显示中文名 |
+| 映射模板 | 保存/加载/应用，支持同名覆盖 |
+| 异步执行 | 提交→轮询进度→结果展示 |
+| 预览表头 | 中文显示（映射字段查找系统字段或自定义字段的中文名） |
+
+---
+
+## 联动链路
+
+| 链路 | 说明 |
+|------|------|
+| 总览告警→库存高亮 | 点击告警 → 切换到库存页 → 自动滚动并黄色高亮对应 SKU 行 |
+| 清洗导入→库存同步 | `data.cleaned` → `sync_inventory_from_orders` 异步同步 |
+| 库存变动→规则评估 | `inventory.changed` → 低库存预警/补货规则 |
+| 订单创建→超卖保护 | `order.created` → 检查库存 → 超卖告警 |
+| 每日定时→滞销识别 | `scheduled.daily` → 30天无销售→滞销标记 |
+| EventBus→看板刷新 | 任何事件 → 看板缓存失效 → WS/轮询 → 前端刷新 |
 
 ---
 
@@ -50,15 +78,17 @@ React Query + Zustand      APScheduler 定时任务     raw_data 全部表已带
 
 ```
 frontend/src/
-├── App.tsx                   路由 + 全局 layout（~80行）
+├── App.tsx                   路由 + 全局 layout（~60行）
 ├── main.tsx                  QueryClientProvider
 ├── theme.ts                  颜色 token
-├── api/client.ts
+├── version.ts                构建版本
+├── api/client.ts             axios 实例
 ├── store/useAppStore.ts      Zustand + WebSocket
-├── hooks/useKeyboard.ts
+├── hooks/useKeyboard.ts      键盘快捷键
 ├── components/
 │   ├── Card.tsx / Chart.tsx / Sidebar.tsx
 │   ├── UploadPanel.tsx / Toast.tsx / EmptyState.tsx
+│   └── ErrorBoundary.tsx     错误边界
 └── pages/
     ├── DashboardPage.tsx / OrdersPage.tsx / InventoryPage.tsx
     ├── ProductPage.tsx / SupplierPage.tsx
@@ -74,7 +104,8 @@ backend/app/
 │   ├── scheduler.py          APScheduler
 │   └── dashboard_cache.py
 ├── api/routes/               12 个路由模块
-└── models/                   SQLAlchemy（预留）
+├── models/                   SQLAlchemy（预留）
+└── alembic/                  数据迁移（预留）
 ```
 
 ---
@@ -83,7 +114,7 @@ backend/app/
 
 | 组件 | 位置 | 自动部署 |
 |------|------|---------|
-| 前端 | Vercel | 推 main 自动构建 |
+| 前端 | Cloudflare Pages | 推 main 自动构建 |
 | 后端 API | PythonAnywhere | 手动上传 + reload |
 | 数据库 | SQLite（本地文件） | 每天 2:00 自动备份 |
 
@@ -92,7 +123,7 @@ backend/app/
 ## 工作流
 
 1. 改 `frontend/src/` 源码
-2. `git push` → Vercel 自动部署
+2. `git push` → Cloudflare Pages 自动部署
 3. 线上验证
 
 ---
@@ -105,4 +136,3 @@ backend/app/
 | 每天 02:00 | 数据库备份 |
 | 每天 03:00 | 清理 30 天前日志 |
 | 每天 04:00 | 规则评估（滞销识别等） |
-

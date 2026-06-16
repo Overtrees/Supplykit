@@ -26,15 +26,14 @@ export const NAV = [
 
 export default function App() {
   const [page, setPage] = useState('dash')
-  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [highlightSku, setHighlightSku] = useState('')
-  const { inventory, qualityLogs, startPolling, stopAll, wsStatus } = useAppStore()
-  useKeyboard({ 'meta+b': () => setSidebarOpen(o=>!o), 'esc': () => setSidebarOpen(false) })
+  const { inventory, qualityLogs, startPolling, stopAll, wsStatus, setSidebarOpen } = useAppStore()
+  useKeyboard({ 'meta+b': () => { const s = useAppStore.getState(); s.setSidebarOpen(!s.sidebarOpen) }, 'esc': () => setSidebarOpen(false) })
   useEffect(() => { startPolling(); return () => stopAll() }, [])
   const lowStock = (inventory||[]).filter(x => Number(x.available_qty) < Number(x.safety_qty)).length
   const errCount = (qualityLogs||[]).length
   return <ToastProvider>
-    <Sidebar open={sidebarOpen} onClose={()=>setSidebarOpen(false)} page={page} onNavigate={setPage} lowStock={lowStock} errCount={errCount} />
+    <Sidebar page={page} onNavigate={setPage} lowStock={lowStock} errCount={errCount} />
     <div style={{minHeight:'100vh',background:'var(--bg)',fontFamily:'-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",sans-serif',color:'var(--text)',paddingTop:'env(safe-area-inset-top,0)',WebkitFontSmoothing:'antialiased'}}>
       <div style={{background:'transparent',color:'var(--text)',padding:'14px 20px',display:'flex',justifyContent:'space-between',alignItems:'center',position:'relative',zIndex:1}}>
         <div style={{display:'flex',alignItems:'center',gap:10}}>

@@ -19,6 +19,8 @@ export const useAppStore = create((set, get) => ({
 
   orderSearch: '',
   orderStatus: '',
+  sidebarOpen: false,
+  setSidebarOpen: (v) => set({ sidebarOpen: v }),
 
   async loadAll(page) {
     const p = page ?? get().orderPage

@@ -151,10 +151,9 @@ export default function RulesPage() {
           暂无规则，点击「新建规则」创建
         </div>
       )}
-    </div>
 
-    {/* 补货参数面板 */}
-    <div style={{border:'1px solid #e2e8f0',borderRadius:12,padding:16,marginTop:16}}>
+      {/* 补货参数面板 */}
+      <div style={{border:'1px solid #e2e8f0',borderRadius:12,padding:16,marginTop:16}}>
       <div className="section-title">📊 补货参数</div>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
         {[{k:'lead_time_days',l:'前置期(天)'},{k:'safety_multiplier',l:'安全线倍数'},{k:'max_turnover_days',l:'最大周转(天)'},{k:'season_618',l:'618系数'},{k:'season_1111',l:'双11系数'},{k:'season_cny',l:'年货节系数'}].map(({k,l}) => <label key={k} style={{fontSize:12}}>{l}<input value={cfg[k]||''} onChange={e=>setCfg(p=>({...p,[k]:e.target.value}))} style={inputStyle}/></label>)}

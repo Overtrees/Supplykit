@@ -24,6 +24,7 @@ from app.api.routes.events import router as events_router
 from app.api.routes.sync_tasks import router as sync_tasks_router
 from app.api.routes.cleansing import router as cleansing_router
 from app.api.routes.rules import router as rules_router
+from app.api.routes.replenishment_config import router as replenishment_config_router
 from app.api.routes.products import router as products_router
 from app.api.routes.suppliers import router as suppliers_router
 from app.api.routes.insights import router as insights_router
@@ -59,6 +60,7 @@ app.include_router(sync_tasks_router)
 app.include_router(ws_router)
 app.include_router(cleansing_router)
 app.include_router(rules_router)
+app.include_router(replenishment_config_router)
 app.include_router(products_router)
 app.include_router(suppliers_router)
 app.include_router(insights_router)

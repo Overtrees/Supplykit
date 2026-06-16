@@ -451,6 +451,19 @@ def init_db(path=None):
         CREATE INDEX IF NOT EXISTS idx_inventory_sku ON inventory(sku);
         CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku);
         CREATE INDEX IF NOT EXISTS idx_alerts_status ON alerts(status);
+
+        CREATE TABLE IF NOT EXISTS replenishment_config (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            key TEXT UNIQUE NOT NULL,
+            value TEXT DEFAULT '',
+            updated_at TEXT DEFAULT (datetime('now'))
+        );
+        INSERT OR IGNORE INTO replenishment_config(key,value) VALUES('lead_time_days','10');
+        INSERT OR IGNORE INTO replenishment_config(key,value) VALUES('safety_multiplier','1.0');
+        INSERT OR IGNORE INTO replenishment_config(key,value) VALUES('max_turnover_days','17');
+        INSERT OR IGNORE INTO replenishment_config(key,value) VALUES('season_618','1.5');
+        INSERT OR IGNORE INTO replenishment_config(key,value) VALUES('season_1111','1.8');
+        INSERT OR IGNORE INTO replenishment_config(key,value) VALUES('season_cny','1.6');
         CREATE INDEX IF NOT EXISTS idx_events_type ON events(event_type);
         CREATE INDEX IF NOT EXISTS idx_quality_logs_level ON quality_logs(level);
     """)

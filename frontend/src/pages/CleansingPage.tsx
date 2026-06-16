@@ -188,7 +188,7 @@ export default function CleansingPage() {
         </select>
         <button onClick={()=>{const s=document.getElementById('tmplSelect');if(s.value)try{setMp(JSON.parse(s.value))}catch(e){}}} style={{padding:'6px 14px',fontSize:12,border:'1px solid #e2e8f0',borderRadius:6,background:'#fff',cursor:'pointer'}}>应用</button>
         <input id="tmplName" placeholder="新模板名称" style={{width:120,fontSize:12,padding:'6px 8px',border:'1px solid #e2e8f0',borderRadius:6,outline:'none'}}/>
-        <button onClick={async()=>{const n=document.getElementById('tmplName').value;if(!n)return toast.error('请输入模板名称');await api.post('/api/cleansing/templates',{name:n,doc_type:tt,mapping:mp});document.getElementById('tmplName').value='';loadTemplates();toast.success('模板已保存')}}
+        <button onClick={async()=>{const n=document.getElementById('tmplName').value;if(!n)return toast.error('请输入模板名称');await api.post('/api/cleansing/templates',{name:n,doc_type:tt,mapping:mp});document.getElementById('tmplName').value='';loadTemplates();toast.success('模板已保存')}} style={{padding:'6px 14px',fontSize:12,background:'#1d4ed8',color:'#fff',border:'none',borderRadius:6,cursor:'pointer'}}>保存</button>
       </div>
       {Array.isArray(cf) && <div style={{marginBottom:10,border:'1px solid #e2e8f0',borderRadius:12,padding:12,background:'#fafafa'}}>
         <div style={{fontSize:12,fontWeight:600,marginBottom:8}}>自定义字段</div>

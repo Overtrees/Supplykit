@@ -74,12 +74,26 @@ export default function CleansingPage() {
       if (!d.ok) { alert(d.error||'识别失败'); setBs(''); return }
       setCols(d.columns||[]); setTr(d.total||0)
       const a = {}
+      let mappedCount = 0
       ;(d.columns||[]).forEach(c => {
         const key = ALIAS[c.name]
-        if (key) a[c.name] = { target: key, type: 'string' }
+        if (key) { a[c.name] = { target: key, type: 'string' }; mappedCount++ }
       })
       if (Object.keys(a).length > 0) setMp(a)
       setS(1)
+      // 所有列都自动匹配到 → 直接进预览（用 a 而非 mp，避免 state 闭包问题）
+      if ((d.columns||[]).length > 0 && mappedCount === (d.columns||[]).length) {
+        setMp(a)
+        setBs('预览中')
+        const fd2 = new FormData(); fd2.append('file', file); fd2.append('mapping', JSON.stringify(a)); fd2.append('target', tt)
+        try {
+          const r2 = await api.post('/api/cleansing/preview', fd2)
+          const d2 = r2.data
+          if (!d2.ok) { alert(d2.error||'预览失败'); setBs(''); return }
+          setPv(d2); setS(2)
+        } catch(e) { alert('请求异常: '+e.message) }
+        setBs('')
+      }
     } catch(e) { alert('请求异常: '+e.message) }
     setBs('')
   }
@@ -96,14 +110,13 @@ export default function CleansingPage() {
     setBs('')
   }
 
-  const execute = async () => {
-    setBs('执行中')
+  const doExecute = async () => {
+    setBs('清洗中...')
     const fd = new FormData(); fd.append('file', f); fd.append('mapping', JSON.stringify(mp)); fd.append('target', tt)
     try {
       const r = await api.post('/api/cleansing/execute-async', fd)
       const d = r.data
       if (!d.ok) { alert(d.error||'提交失败'); setBs(''); return }
-      setBs('清洗中...')
       const poll = setInterval(async () => {
         try {
           const sr = await api.get('/api/cleansing/task/'+d.task_id)
@@ -114,6 +127,29 @@ export default function CleansingPage() {
       }, 1000)
     } catch(e) { alert('请求异常: '+e.message); setBs('') }
   }
+
+  // 一键执行（跳过预览）
+  const quickExecute = async () => {
+    setBs('执行中')
+    const fd = new FormData(); fd.append('file', f); fd.append('mapping', JSON.stringify(mp)); fd.append('target', tt)
+    try {
+      const r = await api.post('/api/cleansing/preview', fd)
+      const d = r.data
+      if (!d.ok) { alert(d.error||'提交失败'); setBs(''); return }
+      setPv(d)
+      // 确认预览正常后直接写入
+      doExecute()
+    } catch(e) { alert('请求异常: '+e.message); setBs('') }
+  }
+
+  // 记忆上次映射
+  useEffect(() => {
+    const saved = localStorage.getItem('c_last_tt')
+    if (saved) setTt(saved)
+  }, [])
+  useEffect(() => {
+    localStorage.setItem('c_last_tt', tt)
+  }, [tt])
 
   const btn = (label, onClick, color='#1d4ed8') => <button onClick={onClick} disabled={!!bs}
     style={{padding:'8px 20px',background:bs?'#94a3b8':color,color:'#fff',border:'none',borderRadius:8,cursor:bs?'not-allowed':'pointer',fontSize:13,fontWeight:600}}>{label}</button>
@@ -181,6 +217,8 @@ export default function CleansingPage() {
       </div>})}
       <div style={{marginTop:12,display:'flex',gap:8,justifyContent:'flex-end'}}>
         {btn('← 返回', ()=>{setS(0);setF(null);setCols([]);setMp({})}, '#64748b')}
+        <div style={{flex:1}}></div>
+        {btn('一键执行 ⚡', quickExecute, '#059669')}
         {btn('预览 →', preview)}
       </div>
     </div>}
@@ -198,7 +236,7 @@ export default function CleansingPage() {
       </div>}
       <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
         {btn('← 返回', ()=>setS(1), '#64748b')}
-        {btn('确认写入 ('+pv.total+' 条)', execute, '#059669')}
+        {btn('确认写入 ('+pv.total+' 条)', doExecute, '#059669')}
       </div>
     </div>}
 
@@ -210,8 +248,17 @@ export default function CleansingPage() {
         <div><div style={{fontSize:24,fontWeight:700,color:'#059669'}}>{res.success}</div><div className="small muted">成功</div></div>
         <div><div style={{fontSize:24,fontWeight:700,color:res.failed>0?'#e11d48':'#94a3b8'}}>{res.failed}</div><div className="small muted">跳过</div></div>
       </div>
-      <button onClick={()=>{setS(0);setF(null);setCols([]);setTr(0);setMp({});setPv(null);setRes(null)}}
-        style={{padding:'8px 20px',background:'#1d4ed8',color:'#fff',border:'none',borderRadius:8,cursor:'pointer',fontSize:13,fontWeight:600}}>继续清洗下一份文件</button>
+      <div style={{display:'flex',gap:8,justifyContent:'center'}}>
+        <button onClick={()=>{setS(0);setF(null);setCols([]);setTr(0);setMp({});setPv(null);setRes(null)}}
+          style={{padding:'8px 20px',background:'#64748b',color:'#fff',border:'none',borderRadius:8,cursor:'pointer',fontSize:13,fontWeight:600}}>重新开始</button>
+        <label style={{display:'inline-block',padding:'8px 20px',background:'#059669',color:'#fff',borderRadius:8,cursor:'pointer',fontSize:13,fontWeight:600}}>
+          导入相同格式 📁
+          <input type="file" accept=".csv,.xlsx" style={{display:'none'}} onChange={e=>{
+            const fi=e.target.files[0]
+            if(fi){setF(fi);setBs('识别中');setS(1);detect(fi)}
+          }}/>
+        </label>
+      </div>
     </div>}
   </div>
 }

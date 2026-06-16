@@ -15,10 +15,10 @@ export default function DashboardPage({ onAlert }) {
     tooltip: { trigger: 'axis' },
     xAxis: { type: 'category', data: periodTrend.map(i => i['日期']) || [], axisLabel: { fontSize: 10 } },
     yAxis: [
-      { type: 'value', name: 'GMV', nameTextStyle: { fontSize: 10 }, axisLabel: { fontSize: 10 } },
-      { type: 'value', name: '订单数', nameTextStyle: { fontSize: 10 }, axisLabel: { fontSize: 10 } }
+      { type: 'value', name: 'GMV', nameLocation: 'middle', nameGap: 30, nameTextStyle: { fontSize: 10 }, axisLabel: { fontSize: 10 } },
+      { type: 'value', name: '订单数', nameLocation: 'middle', nameGap: 30, nameTextStyle: { fontSize: 10 }, axisLabel: { fontSize: 10 } }
     ],
-    grid: { left: 40, right: 8, top: 20, bottom: 36 },
+    grid: { left: 40, right: 8, top: 16, bottom: 36 },
     series: [
       { type: 'line', smooth: true, areaStyle: { opacity: 0.15 }, data: periodTrend.map(i => i['GMV']) || [], color: '#1d4ed8', name: 'GMV' },
       { type: 'bar', data: periodTrend.map(i => i['订单数']) || [], color: '#0f766e', yAxisIndex: 1, name: '订单数' }
@@ -40,7 +40,7 @@ export default function DashboardPage({ onAlert }) {
       tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
       grid: { top: 10, bottom: 10 },
       series: [{
-        type: 'funnel', left: '5%', top: 10, bottom: 10, width: '90%',
+        type: 'funnel', left: '5%', top: 20, bottom: 8, width: '90%',
         minSize: '15%', maxSize: '100%', sort: 'descending', gap: 2,
         label: { show: true, fontSize: 10, formatter: (p) => `${p.name}\n${p.value}单` },
         itemStyle: { borderColor: '#fff', borderWidth: 1 },

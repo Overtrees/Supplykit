@@ -1,13 +1,22 @@
 import { useEffect, useRef, useState } from 'react'
 import * as echarts from 'echarts'
 
+function deepClone(obj) {
+  if (obj === null || typeof obj !== 'object') return obj
+  if (typeof obj === 'function') return obj
+  if (Array.isArray(obj)) return obj.map(deepClone)
+  const c = {}
+  for (const k in obj) c[k] = deepClone(obj[k])
+  return c
+}
+
 function responsiveOption(base, width) {
   if (!base || width === 0) return base
   const scale = width < 250 ? 0.7 : width < 350 ? 0.8 : width < 500 ? 0.9 : 1.0
   if (scale >= 1) return base
 
-  // 保留原 option 引用，直接修改数值属性（不深拷贝以免丢失函数）
-  const opt = Array.isArray(base) ? [...base] : Object.assign({}, base)
+  // 深拷贝保留函数，避免污染原 option
+  const opt = deepClone(base)
   const scaleVal = (v) => typeof v === 'number' ? Math.max(4, Math.round(v * scale)) : v
 
   if (opt.grid) {

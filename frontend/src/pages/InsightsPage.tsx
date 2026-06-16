@@ -95,7 +95,17 @@ export default function InsightsPage() {
           <div className="section-title" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
             <span>补货建议{replen.length > 0 && <span className="small muted" style={{ marginLeft: 8 }}>· 低于安全线的商品</span>}</span>
             <div style={{display:'flex',gap:6}}>
-              <button onClick={()=>window.open(API+'/api/insights/export-purchase')}
+              <button onClick={async()=>{
+                try {
+                  const r = await fetch('https://overtrees.pythonanywhere.com/api/insights/export-purchase')
+                  const blob = await r.blob()
+                  const url = URL.createObjectURL(blob)
+                  const a = document.createElement('a')
+                  a.href = url; a.download = '采购建议_'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'.xlsx'
+                  document.body.appendChild(a); a.click(); a.remove()
+                  URL.revokeObjectURL(url)
+                } catch(e) { alert('导出失败: '+e.message) }
+              }}
                 style={{padding:'5px 14px',fontSize:12,background:'#059669',color:'#fff',border:'none',borderRadius:6,cursor:'pointer',fontWeight:600}}>📥 导出采购单</button>
             </div>
           </div>

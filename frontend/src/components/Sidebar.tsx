@@ -3,16 +3,9 @@ import { NAV } from '../App'
 export default function Sidebar({ open, onClose, page, onNavigate, lowStock, errCount }) {
   return (
     <>
-      {/* 遮罩 */}
+      {/* 侧边栏 — 全屏，点空白处关闭 */}
       <div onClick={onClose} style={{
-        position:'fixed', inset:0, background:'rgba(0,0,0,0.35)', zIndex:999,
-        opacity: open ? 1 : 0, pointerEvents: open ? 'auto' : 'none',
-        visibility: open ? 'visible' : 'hidden',
-        transition:'opacity 0.25s ease,visibility 0.25s',
-      }} />
-      {/* 侧边栏 — 全屏 */}
-      <div style={{
-        position:'fixed', top:0, left:0, right:0, bottom:0, width:'100%',
+        position:'fixed', inset:0, width:'100%',
         background:'var(--sidebar)', color:'#fff', zIndex:1000,
         opacity: open ? 1 : 0, pointerEvents: open ? 'auto' : 'none',
         visibility: open ? 'visible' : 'hidden',

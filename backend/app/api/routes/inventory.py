@@ -52,6 +52,20 @@ def update_inventory(iid: int, body: dict, db = get_db()):
             })
         except Exception:
             pass
+        # 直接写入事件（不依赖事件总线）
+        try:
+            from app.api.routes.events import create_event
+            create_event(db, 'stock.changed', 'inventory', str(inv['id']),
+                         f"库存变动: {inv.get('product_name', inv.get('sku',''))}",
+                         {'available_qty': inv.get('available_qty'), 'action': 'update'})
+        except Exception:
+            pass
+        # 直接检查并触发规则
+        try:
+            from app.core.rules import evaluate
+            evaluate('inventory.changed', {'inv': inv, 'db': db, 'sku': inv.get('sku','')})
+        except Exception:
+            pass
     return {"ok": True}
 
 @router.delete("/{iid}")

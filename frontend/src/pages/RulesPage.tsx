@@ -160,6 +160,7 @@ export default function RulesPage() {
       </div>
       <button onClick={async()=>{try{await api.put('/api/replenishment-config',cfg)}catch(e){};loadCfg()}} style={{marginTop:10,padding:'6px 16px',background:'#1d4ed8',color:'#fff',border:'none',borderRadius:8,cursor:'pointer',fontSize:13}}>保存参数</button>
       <span className="small muted" style={{marginLeft:8,fontSize:11}}>更新后补货建议 & 规则引擎自动使用新参数</span>
+      </div>
     </div>
   )
 }

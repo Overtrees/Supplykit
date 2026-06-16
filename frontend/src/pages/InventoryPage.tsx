@@ -31,6 +31,7 @@ export default function InventoryPage({ highlightSku }) {
       <div className="search-bar" style={{maxWidth:240,flex:'none'}}>
         <span style={{fontSize:16,color:'#94a3b8',flexShrink:0}}>🔍</span>
         <input value={s} onChange={e=>setS(e.target.value)} placeholder="搜索SKU/商品名" enterKeyHint="search" autoCorrect="off" />
+      </div>
     </div>
     {fl.length === 0
       ? <EmptyState icon='📦' title={s?'无匹配库存':'暂无库存数据'} desc={s?'换个关键词试试':'通过清洗导入或手动添加库存'} />

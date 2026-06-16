@@ -21,15 +21,19 @@ export default function RulesPage() {
   const loadSeasons=async()=>{try{const r=await api.get('/api/replenishment-config/seasons');setSeasons(r.data||[])}catch(e){}}
   useEffect(()=>{load();loadCfg();loadSeasons()},[])
 
-  const save=async()=>{
+  const save=async()=>{const cj=JSON.stringify({left:cond.left,op:cond.op,right:cond.rightType==='field'?cond.right:parseFloat(cond.right)||0})
     const url=editing?API+'/api/rules/'+editing.id:API+'/api/rules'
     const m=editing?'PUT':'POST'
-    await fetch(url,{method:m,headers:{'Content-Type':'application/json'},body:JSON.stringify(f)})
+    await fetch(url,{method:m,headers:{'Content-Type':'application/json'},body:JSON.stringify({...f,condition_json:cj})})
     setEditing(null);setF({name:'',event:'inventory.changed',alert_type:'',alert_title:'',alert_desc:'',severity:'warning',condition_json:'{}'});load()
   }
   const del=async id=>{await fetch(API+'/api/rules/'+id,{method:'DELETE'});load()}
 
   const sevCls=s=>s==='error'?'danger':s==='info'?'info':'warning'
+const[cond,setCond]=useState({left:'inv.available_qty',op:'<',right:'inv.safety_qty',rightType:'field'})
+const LF=[{l:'可用库存',v:'inv.available_qty'},{l:'安全库存',v:'inv.safety_qty'},{l:'在途库存',v:'inv.in_transit_qty'},{l:'距上次销售(天)',v:'inv.days_since_last'},{l:'库存量',v:'inv.stock'},{l:'订单数量',v:'order.quantity'},{l:'订单金额',v:'order.total_amount'},{l:'单价',v:'order.unit_price'}]
+const OPS=[{l:'< 小于',v:'<'},{l:'≤ 小于等于',v:'<='},{l:'> 大于',v:'>'},{l:'≥ 大于等于',v:'>='},{l:'== 等于',v:'=='}]
+const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',op:c.op||'<',right:c.right||'inv.safety_qty',rightType:LF.find(x=>x.v===c.right)?'field':'number'}}catch{return{left:'inv.available_qty',op:'<',right:'inv.safety_qty',rightType:'field'}}}
   const sevLbl=s=>s==='error'?'严重':s==='info'?'提示':'警告'
 
   const ruleFields=[
@@ -67,6 +71,18 @@ export default function RulesPage() {
             :<input value={f[k]} onChange={e=>setF({...f,[k]:e.target.value})} style={IS} placeholder={pl||''}/>}
             <div className='small muted' style={{fontSize:11,marginTop:2}}>{h}</div>
           </label>)}
+        </div>
+        <div style={{marginTop:12}}>
+          <div style={{fontWeight:600,fontSize:13,marginBottom:8}}>⚖️ 触发条件</div>
+          <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+            <select value={cond.left} onChange={e=>setCond(p=>({...p,left:e.target.value}))} style={{...IS,width:180}}>{LF.map(f=><option key={f.v} value={f.v}>{f.l}</option>)}</select>
+            <select value={cond.op} onChange={e=>setCond(p=>({...p,op:e.target.value}))} style={{...IS,width:120}}>{OPS.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select>
+            <select value={cond.rightType} onChange={e=>setCond(p=>({...p,rightType:e.target.value,right:e.target.value==='field'?'inv.safety_qty':'0'}))} style={{...IS,width:80}}><option value='field'>字段</option><option value='number'>数值</option></select>
+            {cond.rightType==='field'
+              ?<select value={cond.right} onChange={e=>setCond(p=>({...p,right:e.target.value}))} style={{...IS,width:180}}>{LF.map(f=><option key={f.v} value={f.v}>{f.l}</option>)}</select>
+              :<input type='number' value={cond.right} onChange={e=>setCond(p=>({...p,right:e.target.value}))} style={{...IS,width:160}}/>}
+          </div>
+          <div className='small muted' style={{marginTop:6,fontSize:11}}>当满足此条件时触发告警</div>
         </div>
         <div style={{marginTop:12,display:'flex',gap:8}}>
           <button onClick={save} style={ST.primary}>保存</button>

@@ -15,10 +15,10 @@ export default function DashboardPage({ onAlert }) {
     tooltip: { trigger: 'axis' },
     xAxis: { type: 'category', data: periodTrend.map(i => i['日期']) || [], axisLabel: { fontSize: 10 } },
     yAxis: [
-      { type: 'value', name: 'GMV', nameLocation: 'middle', nameGap: 30, nameTextStyle: { fontSize: 10 }, axisLabel: { fontSize: 10 } },
-      { type: 'value', name: '订单数', nameLocation: 'middle', nameGap: 30, nameTextStyle: { fontSize: 10 }, axisLabel: { fontSize: 10 } }
+      { type: 'value', axisLabel: { fontSize: 10 } },
+      { type: 'value', axisLabel: { fontSize: 10 } }
     ],
-    grid: { left: 40, right: 8, top: 16, bottom: 36 },
+    grid: { left: 36, right: 4, top: 12, bottom: 34 },
     series: [
       { type: 'line', smooth: true, areaStyle: { opacity: 0.15 }, data: periodTrend.map(i => i['GMV']) || [], color: '#1d4ed8', name: 'GMV' },
       { type: 'bar', data: periodTrend.map(i => i['订单数']) || [], color: '#0f766e', yAxisIndex: 1, name: '订单数' }

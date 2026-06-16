@@ -8,6 +8,7 @@ const INV_FIELDS = [
   {t:'available_qty',l:'可用库存',tp:'number'},{t:'locked_qty',l:'锁定库存',tp:'number'},
   {t:'in_transit_qty',l:'在途',tp:'number'},{t:'safety_qty',l:'安全线',tp:'number'},
 ]
+const SYS_FIELDS = [
   {t:'order_no',l:'订单号',tp:'string'},{t:'source_order_id',l:'原始单号',tp:'string'},
   {t:'store',l:'店铺',tp:'string'},{t:'warehouse',l:'仓库',tp:'string'},
   {t:'sku',l:'SKU',tp:'string'},{t:'product_name',l:'商品名称',tp:'string'},

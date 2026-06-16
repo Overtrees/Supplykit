@@ -13,35 +13,36 @@ export default function DashboardPage({ onAlert }) {
 
   const periodTrendOption = useMemo(() => ({
     tooltip: { trigger: 'axis' },
-    xAxis: { type: 'category', data: periodTrend.map(i => i['日期']) || [] },
+    xAxis: { type: 'category', data: periodTrend.map(i => i['日期']) || [], axisLabel: { fontSize: 10 } },
     yAxis: [
-      { type: 'value', name: 'GMV (¥)', nameTextStyle: { fontSize: 11 } },
-      { type: 'value', name: '订单数', nameTextStyle: { fontSize: 11 } }
+      { type: 'value', name: 'GMV', nameTextStyle: { fontSize: 10 }, axisLabel: { fontSize: 10 } },
+      { type: 'value', name: '订单数', nameTextStyle: { fontSize: 10 }, axisLabel: { fontSize: 10 } }
     ],
-    grid: { left: 50, right: 50, top: 30, bottom: 30 },
+    grid: { left: 40, right: 8, top: 20, bottom: 36 },
     series: [
       { type: 'line', smooth: true, areaStyle: { opacity: 0.15 }, data: periodTrend.map(i => i['GMV']) || [], color: '#1d4ed8', name: 'GMV' },
       { type: 'bar', data: periodTrend.map(i => i['订单数']) || [], color: '#0f766e', yAxisIndex: 1, name: '订单数' }
     ],
-    legend: { data: ['GMV', '订单数'], bottom: 0, left: 'center', icon: 'circle', itemWidth: 8 }
+    legend: { data: ['GMV', '订单数'], bottom: 2, left: 'center', icon: 'circle', itemWidth: 8, itemHeight: 8, textStyle: { fontSize: 10 } }
   }), [periodTrend])
 
   const storeOption = useMemo(() => ({
     tooltip: { trigger: 'axis' },
-    xAxis: { type: 'category', data: dashboard?.stores?.map(i => i.name) || [] },
-    yAxis: { type: 'value' },
+    xAxis: { type: 'category', data: dashboard?.stores?.map(i => i.name) || [], axisLabel: { fontSize: 10 } },
+    yAxis: { type: 'value', axisLabel: { fontSize: 10 } },
     series: [{ type: 'bar', data: dashboard?.stores?.map(i => i.gmv) || [], itemStyle: { color:'#0f766e' } }],
-    grid: { left: 40, right: 20, top: 30, bottom: 30 }
+    grid: { left: 36, right: 8, top: 16, bottom: 20 }
   }), [dashboard])
 
   const funnelOption = useMemo(() => {
     const f = dashboard?.funnel || []
     return {
       tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+      grid: { top: 10, bottom: 10 },
       series: [{
-        type: 'funnel', left: '10%', top: 20, bottom: 40, width: '80%',
-        minSize: '20%', maxSize: '100%', sort: 'descending', gap: 4,
-        label: { show: true, fontSize: 11, formatter: '{b}\n{c}单\n转化率{d}%' },
+        type: 'funnel', left: '5%', top: 10, bottom: 10, width: '90%',
+        minSize: '15%', maxSize: '100%', sort: 'descending', gap: 2,
+        label: { show: true, fontSize: 10, formatter: (p) => `${p.name}\n${p.value}单` },
         itemStyle: { borderColor: '#fff', borderWidth: 1 },
         data: f.map((x,i) => ({ ...x, value: x.value, itemStyle: { color: ['#3b82f6','#06b6d4','#0ea5e9','#14b8a6','#10b981'][i % 5] } }))
       }]

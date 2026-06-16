@@ -100,7 +100,7 @@ async def preview_cleansing(file: UploadFile = File(...), mapping: str = Form(''
         return {'ok': False, 'error': '映射配置格式错误'}
 
     preview_rows = []
-    for row in rows[:20]:
+    for row in rows[:50]:
         result = {'_source': {}}
         for src_col, cfg in mapping_config.items():
             target = cfg.get('target', '')
@@ -144,6 +144,16 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
     for idx, row in enumerate(rows):
         row_errors = []
         data = {}
+
+        # 更新进度
+        if idx % 50 == 0:
+            try:
+                from app.core.database import get_task, submit_task
+                existing = get_task(task_id)
+                if existing:
+                    existing["progress"] = round(idx / len(rows) * 100)
+            except Exception:
+                pass
 
         # ─── 格式校验 + 字段映射 ──────────────────────────────────────
         for src_col, cfg in mapping_config.items():

@@ -117,12 +117,14 @@ export default function CleansingPage() {
       const r = await api.post('/api/cleansing/execute-async', fd)
       const d = r.data
       if (!d.ok) { alert(d.error||'提交失败'); setBs(''); return }
+      const totalRows = d.total_rows || '?'
       const poll = setInterval(async () => {
         try {
           const sr = await api.get('/api/cleansing/task/'+d.task_id)
           const sd = sr.data
           if (sd.status === 'done') { clearInterval(poll); setRes(sd.result); setS(3); setBs('') }
           else if (sd.status === 'error') { clearInterval(poll); alert('失败: '+sd.error); setBs('') }
+          else if (sd.progress !== undefined) { setBs(`清洗中... ${sd.progress}% (${Math.round(sd.progress/100*totalRows)}/${totalRows}条)`) }
         } catch { clearInterval(poll); setBs('') }
       }, 1000)
     } catch(e) { alert('请求异常: '+e.message); setBs('') }
@@ -224,7 +226,7 @@ export default function CleansingPage() {
     </div>}
 
     {s === 2 && pv && <div>
-      <div className="section-title">清洗预览 · 前 {pv.preview?.length||0} 行 · 共 {pv.total} 行</div>
+      <div className="section-title">清洗预览 · 前 {pv.preview?.length||0} 行{pv.total > 50 ? <span className="small muted"> · 共 {pv.total} 行，仅展示前 50 行</span> : ''}</div>
       {pv.preview?.length > 0 && <div style={{overflowX:'auto',marginBottom:12}}>
         {(() => { const keys = Object.keys(pv.preview[0]).filter(k => k !== '_source'); return <>
         <table><thead><tr>{keys.map(h=>{

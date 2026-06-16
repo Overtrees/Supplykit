@@ -2,43 +2,33 @@ import { useEffect, useRef, useState } from 'react'
 import * as echarts from 'echarts'
 
 function responsiveOption(base, width) {
-  if (!base) return base
-  // 根据容器宽度缩放字号和间距
+  if (!base || width === 0) return base
   const scale = width < 250 ? 0.7 : width < 350 ? 0.8 : width < 500 ? 0.9 : 1.0
   if (scale >= 1) return base
 
-  const opt = JSON.parse(JSON.stringify(base))
-  // 缩放 grid
+  // 保留原 option 引用，直接修改数值属性（不深拷贝以免丢失函数）
+  const opt = Array.isArray(base) ? [...base] : Object.assign({}, base)
+  const scaleVal = (v) => typeof v === 'number' ? Math.max(4, Math.round(v * scale)) : v
+
   if (opt.grid) {
-    ['left','right','top','bottom'].forEach(k => {
-      if (typeof opt.grid[k] === 'number') opt.grid[k] = Math.round(opt.grid[k] * scale)
-    })
+    ['left','right','top','bottom'].forEach(k => { if (typeof opt.grid[k] === 'number') opt.grid[k] = scaleVal(opt.grid[k]) })
   }
-  // 缩放 xAxis/yAxis 标签
   ;['xAxis','yAxis'].forEach(axisKey => {
     const axes = Array.isArray(opt[axisKey]) ? opt[axisKey] : opt[axisKey] ? [opt[axisKey]] : []
     axes.forEach(ax => {
-      if (ax.axisLabel && typeof ax.axisLabel.fontSize === 'number') {
-        ax.axisLabel.fontSize = Math.max(8, Math.round(ax.axisLabel.fontSize * scale))
-      }
-      if (ax.nameTextStyle && typeof ax.nameTextStyle.fontSize === 'number') {
-        ax.nameTextStyle.fontSize = Math.max(8, Math.round(ax.nameTextStyle.fontSize * scale))
-      }
+      if (ax.axisLabel && typeof ax.axisLabel.fontSize === 'number') ax.axisLabel.fontSize = scaleVal(ax.axisLabel.fontSize)
+      if (ax.nameTextStyle && typeof ax.nameTextStyle.fontSize === 'number') ax.nameTextStyle.fontSize = scaleVal(ax.nameTextStyle.fontSize)
     })
   })
-  // 缩放图例
   if (opt.legend) {
-    if (typeof opt.legend.bottom === 'number') opt.legend.bottom = Math.round(opt.legend.bottom * scale)
-    if (opt.legend.textStyle && typeof opt.legend.textStyle.fontSize === 'number') {
-      opt.legend.textStyle.fontSize = Math.max(8, Math.round(opt.legend.textStyle.fontSize * scale))
-    }
+    if (typeof opt.legend.bottom === 'number') opt.legend.bottom = scaleVal(opt.legend.bottom)
+    if (opt.legend.textStyle && typeof opt.legend.textStyle.fontSize === 'number') opt.legend.textStyle.fontSize = scaleVal(opt.legend.textStyle.fontSize)
+    if (opt.legend.itemWidth) opt.legend.itemWidth = scaleVal(opt.legend.itemWidth)
+    if (opt.legend.itemHeight) opt.legend.itemHeight = scaleVal(opt.legend.itemHeight)
   }
-  // 缩放 series 内 label
   if (opt.series) {
     opt.series.forEach(s => {
-      if (s.label && typeof s.label.fontSize === 'number') {
-        s.label.fontSize = Math.max(8, Math.round(s.label.fontSize * scale))
-      }
+      if (s.label && typeof s.label.fontSize === 'number') s.label.fontSize = scaleVal(s.label.fontSize)
     })
   }
   return opt

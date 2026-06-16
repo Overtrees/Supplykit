@@ -62,21 +62,21 @@ export default function DashboardPage({ onAlert }) {
       <div className="small muted">{periodMeta.date ? periodMeta.date : ''}</div>
     </div>
 
-    <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:16 }}>
+    <div className="card-grid" style={{marginBottom:16}}>
       <Card title={periodLabel[periodTab]+' GMV'} value={'¥'+Number(periodMeta.gmv||0).toLocaleString()} sub={periodMeta.orders+' 单'} />
       <Card title="待发货" value={dashboard?.summary?.pending_count||0} badge={dashboard?.summary?.pending_count>3?<span className="pill danger">积压</span>:null} />
       <Card title="库存健康度" value={(dashboard?.health_index?.score||0)+'分'} sub={dashboard?.health_index?.healthy+'健康 / '+dashboard?.health_index?.warning+'偏低'} badge={<span className={'pill '+(dashboard?.health_index?.level==='danger'?'danger':dashboard?.health_index?.level==='warning'?'warning':'success')}>{dashboard?.health_index?.level==='danger'?'危险':dashboard?.health_index?.level==='warning'?'关注':'良好'}</span>} />
       <Card title="待处理" value={errCount+(dashboard?.summary?.active_alerts||0)} sub={errCount+' 异常 · '+(dashboard?.summary?.active_alerts||0)+' 告警'} badge={errCount>0 ? <span className="pill danger" style={{background:'#ef4444',color:'#fff'}}>需处理</span> : null} />
     </div>
 
-    <div style={{ display:'grid', gridTemplateColumns:'1.3fr 1fr', gap:16, marginBottom:16 }}>
+    <div className="chart-row">
       <div className="card"><div className="section-title">{periodLabel[periodTab]} GMV·订单趋势</div>
         {periodTrend.length === 0 ? <div className="small muted" style={{ padding: '40px 0', textAlign: 'center' }}>暂无{periodLabel[periodTab]}数据</div> : <Chart option={periodTrendOption} height={200} />}
       </div>
       <div className="card"><div className="section-title">订单漏斗 下单→完成</div><Chart option={funnelOption} height={200} /></div>
     </div>
 
-    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:16, marginBottom:16 }}>
+    <div className="chart-row-3">
       <div className="card"><div className="section-title">店铺 GMV</div><Chart option={storeOption} height={170} /></div>
       <div className="card"><div className="section-title">商品分类分布</div>
         {dashboard?.category_distribution

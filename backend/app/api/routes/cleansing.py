@@ -141,6 +141,17 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
     order_no_seen = set() if not is_inv else None
     dedup = {} if not is_inv else None
 
+    # 加载数据库中已有的订单号和 SKU，用于跨文件去重
+    existing_orders = set()
+    existing_skus = set()
+    try:
+        for o in db.table("orders").select("order_no").execute().data:
+            existing_orders.add(o.get('order_no',''))
+        for i in db.table("inventory").select("sku").execute().data:
+            existing_skus.add(i.get('sku',''))
+    except Exception:
+        pass
+
     for idx, row in enumerate(rows):
         row_errors = []
         data = {}
@@ -181,6 +192,11 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
         # 去重处理（订单按order_no，库存按sku）
         if is_inv:
             sku_val = sku or f"AUTO-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}-{success}"
+            # 检查数据库中是否已存在
+            if sku_val in existing_skus:
+                errors.append({'error_type': 'duplicate_sku', 'field_name': 'sku',
+                               'raw_value': sku_val, 'error_message': 'SKU已存在于数据库'})
+                failed += 1; continue
             if sku_val in sku_seen:
                 failed += 1; continue
             sku_seen.add(sku_val)
@@ -190,6 +206,11 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
             if not order_no:
                 order_no = f"AUTO-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}-{success}"
                 data['order_no'] = order_no
+            # 检查数据库中是否已存在
+            if order_no in existing_orders:
+                errors.append({'error_type': 'duplicate_order', 'field_name': 'order_no',
+                               'raw_value': order_no, 'error_message': '订单号已存在于数据库'})
+                failed += 1; continue
             if order_no in dedup:
                 dedup[order_no] += 1
                 order_no = f"{order_no}-{dedup[order_no]}"

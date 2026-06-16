@@ -46,9 +46,12 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
   ]
 
   const paramFields=[
-    {k:'lead_time_days',l:'前置期(天)',h:'物流平均4.5天+生产平均5.5天'},
+    {k:'lead_time_days',l:'前置期(天)',h:'生产+到仓总天数，常规4-7天'},
+    {k:'target_turnover_days',l:'目标周转(天)',h:'补货后目标周转天数，B仓15天免仓储费'},
+    {k:'max_turnover_days',l:'最大周转(天)',h:'补货后不能超过此天数，底线'},
     {k:'safety_multiplier',l:'安全线倍数',h:'基础安全库存的放大倍数'},
-    {k:'max_turnover_days',l:'最大周转(天)',h:'补货后不能超过此天数'},
+    {k:'b_to_c_days',l:'B→C调拨(天)',h:'B仓分拨到C仓时效，BBCC模式1-3天'},
+    {k:'c_safety_days',l:'C仓安全库存(天)',h:'C仓储备天数，保证不断货'},
   ]
 
   return <div className='card'>

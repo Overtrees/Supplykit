@@ -2,7 +2,12 @@ import React, { useState, useEffect } from 'react'
 import { api } from '../api/client'
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
-const SYS_FIELDS = [
+const INV_FIELDS = [
+  {t:'sku',l:'SKU',tp:'string'},{t:'product_name',l:'商品名称',tp:'string'},
+  {t:'store',l:'店铺',tp:'string'},{t:'warehouse',l:'仓库',tp:'string'},
+  {t:'available_qty',l:'可用库存',tp:'number'},{t:'locked_qty',l:'锁定库存',tp:'number'},
+  {t:'in_transit_qty',l:'在途',tp:'number'},{t:'safety_qty',l:'安全线',tp:'number'},
+]
   {t:'order_no',l:'订单号',tp:'string'},{t:'source_order_id',l:'原始单号',tp:'string'},
   {t:'store',l:'店铺',tp:'string'},{t:'warehouse',l:'仓库',tp:'string'},
   {t:'sku',l:'SKU',tp:'string'},{t:'product_name',l:'商品名称',tp:'string'},
@@ -120,6 +125,10 @@ export default function CleansingPage() {
 
     {s === 0 && <div style={{textAlign:'center',padding:40}}>
       <div style={{fontSize:28,marginBottom:12,opacity:.3}}>🧹</div>
+      <div style={{display:'flex',justifyContent:'center',gap:8,marginBottom:12}}>
+        <button onClick={()=>setTt('order')} style={{padding:'6px 16px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',background:tt==='order'?'#1d4ed8':'#fff',color:tt==='order'?'#fff':'#64748b',borderColor:tt==='order'?'#1d4ed8':'#e2e8f0',fontWeight:tt==='order'?600:400}}>📋 导入订单</button>
+        <button onClick={()=>setTt('inventory')} style={{padding:'6px 16px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',background:tt==='inventory'?'#059669':'#fff',color:tt==='inventory'?'#fff':'#64748b',borderColor:tt==='inventory'?'#059669':'#e2e8f0',fontWeight:tt==='inventory'?600:400}}>📦 导入库存</button>
+      </div>
       <label style={{display:'inline-block',padding:'10px 24px',background:'#1d4ed8',color:'#fff',borderRadius:10,cursor:'pointer',fontSize:14,fontWeight:600}}>
         {bs?'识别中...':'选择文件'}
         <input type="file" accept=".csv,.xlsx" style={{display:'none'}} onChange={e=>{const fi=e.target.files[0];if(fi)detect(fi)}} />
@@ -161,7 +170,7 @@ export default function CleansingPage() {
         <div style={{fontSize:11,color:'#94a3b8',flexShrink:0}}>→</div>
         <select value={mp[c.name]?.target||''} onChange={e=>{const v=e.target.value;const matchedCf=cf.find(f=>f.t===v);setMp(p=>({...p,[c.name]:{target:v||c.name,type:matchedCf?matchedCf.tp:'string'}}))}} style={{flex:1,fontSize:12,padding:'6px 8px',border:'1px solid #e2e8f0',borderRadius:6}}>
           <option value="">不映射</option>
-          <optgroup label="系统字段">{SYS_FIELDS.map(sf => <option key={sf.t} value={sf.t}>{sf.l}</option>)}</optgroup>
+          <optgroup label="系统字段">{(tt==='inventory'?INV_FIELDS:SYS_FIELDS).map(sf => <option key={sf.t} value={sf.t}>{sf.l}</option>)}</optgroup>
           {cf.length > 0 && <optgroup label="自定义字段">{cf.map(f => <option key={f.t} value={f.t}>{f.l}</option>)}</optgroup>}
         </select>
         <select value={mp[c.name]?.type||''} onChange={e=>{const v=e.target.value;setMp(p=>({...p,[c.name]:{...p[c.name],type:v}}))}} style={{flexShrink:0,fontSize:11,padding:'5px',border:'1px solid #e2e8f0',borderRadius:6}}>

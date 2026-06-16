@@ -134,9 +134,12 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
     errors = []
     success = 0
     failed = 0
-    orders_to_insert = []
-    order_no_seen = set()
-    dedup = {}
+    is_inv = (target == 'inventory')
+    orders_to_insert = [] if not is_inv else None
+    inv_to_insert = [] if is_inv else None
+    sku_seen = set()
+    order_no_seen = set() if not is_inv else None
+    dedup = {} if not is_inv else None
 
     for idx, row in enumerate(rows):
         row_errors = []
@@ -165,17 +168,24 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
         if not data.get('ordered_at'):
             data['ordered_at'] = datetime.utcnow().strftime('%Y-%m-%d')
 
-        # 订单号处理
-        order_no = data.get('order_no', '')
-        if not order_no:
-            order_no = f"AUTO-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}-{success}"
-            data['order_no'] = order_no
-        if order_no in dedup:
-            dedup[order_no] += 1
-            order_no = f"{order_no}-{dedup[order_no]}"
+        # 去重处理（订单按order_no，库存按sku）
+        if is_inv:
+            sku_val = sku or f"AUTO-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}-{success}"
+            if sku_val in sku_seen:
+                failed += 1; continue
+            sku_seen.add(sku_val)
+            data['sku'] = sku_val
         else:
-            dedup[order_no] = 0
-        data['order_no'] = order_no
+            order_no = data.get('order_no', '')
+            if not order_no:
+                order_no = f"AUTO-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}-{success}"
+                data['order_no'] = order_no
+            if order_no in dedup:
+                dedup[order_no] += 1
+                order_no = f"{order_no}-{dedup[order_no]}"
+            else:
+                dedup[order_no] = 0
+            data['order_no'] = order_no
 
         # 记录行错误（不影响继续处理，只是标记）
         for e in row_errors:
@@ -190,27 +200,42 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
             except: pass
 
         # ─── 写入目标 ──────────────────────────────────────────────
-        if order_no not in order_no_seen:
-            order_no_seen.add(order_no)
-            orders_to_insert.append({
-                "order_no": order_no, "store": str(data.get('store', '未知'))[:100],
-                "sku": sku[:100],
+        if is_inv:
+            inv_to_insert.append({
+                "sku": str(data.get('sku', ''))[:100],
                 "product_name": str(data.get('product_name', ''))[:200],
-                "quantity": int(float(data.get('quantity', 0))),
-                "unit_price": float(data.get('unit_price', 0)),
-                "total_amount": float(data.get('total_amount', 0)),
-                "order_status": str(data.get('order_status', '已完成'))[:50],
-                "ordered_at": str(data.get('ordered_at', ''))[:50],
+                "store": str(data.get('store', '未知'))[:100],
+                "warehouse": str(data.get('warehouse', ''))[:100],
+                "available_qty": int(float(data.get('available_qty', 0))),
+                "locked_qty": int(float(data.get('locked_qty', 0))),
+                "in_transit_qty": int(float(data.get('in_transit_qty', 0))),
+                "safety_qty": int(float(data.get('safety_qty', 0))),
             })
             success += 1
         else:
-            failed += 1
-            errors.append({'error_type': 'duplicate_order', 'field_name': 'order_no',
-                           'raw_value': order_no, 'error_message': '重复订单号'})
+            if order_no not in order_no_seen:
+                order_no_seen.add(order_no)
+                orders_to_insert.append({
+                    "order_no": order_no, "store": str(data.get('store', '未知'))[:100],
+                    "sku": sku[:100],
+                    "product_name": str(data.get('product_name', ''))[:200],
+                    "quantity": int(float(data.get('quantity', 0))),
+                    "unit_price": float(data.get('unit_price', 0)),
+                    "total_amount": float(data.get('total_amount', 0)),
+                    "order_status": str(data.get('order_status', '已完成'))[:50],
+                    "ordered_at": str(data.get('ordered_at', ''))[:50],
+                })
+                success += 1
+            else:
+                failed += 1
+                errors.append({'error_type': 'duplicate_order', 'field_name': 'order_no',
+                               'raw_value': order_no, 'error_message': '重复订单号'})
 
-    if orders_to_insert:
+    insert_table = 'inventory' if is_inv else 'orders'
+    data_list = inv_to_insert if is_inv else orders_to_insert
+    if data_list:
         try:
-            db.table("orders").insert(orders_to_insert).execute()
+            db.table(insert_table).insert(data_list).execute()
             # 触犯事件
             try:
                 from app.core.events import bus

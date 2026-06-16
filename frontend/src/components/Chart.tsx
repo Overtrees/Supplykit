@@ -3,7 +3,7 @@ import * as echarts from 'echarts'
 export default function Chart({ option, height = 260 }) {
   const ref = React.useRef(null)
   useEffect(() => {
-    if (!ref.current || !window.echarts) return
+    if (!ref.current) return
     const existing = echarts.getInstanceByDom(ref.current)
     if (existing) existing.dispose()
     const chart = echarts.init(ref.current)

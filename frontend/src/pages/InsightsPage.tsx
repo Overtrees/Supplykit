@@ -130,7 +130,7 @@ export default function InsightsPage() {
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table>
-                <thead><tr>{['','SKU','商品','店铺','现有','安全线','在途','日销7','日销14','日销28','可撑(天)','建议补','紧急度','已下单'].map(h => <th key={h}>{h}</th>)}</tr></thead>
+                <thead><tr>{['','SKU','商品','店铺','现有','安全线','在途','日销7','日销14','日销28','可撑(天)','建议补','安全(天)','紧急度','已下单'].map(h => <th key={h}>{h}</th>)}</tr></thead>
                 <tbody>
                   {replen.filter(x => !ordered.includes(x.sku+'|'+x.store)).map((x, i) => (
                     <tr key={i}>
@@ -144,6 +144,7 @@ export default function InsightsPage() {
                       <td style={{fontSize:11,fontWeight:replenDays===28?600:400}}>{x.daily_sales_28}</td>
                       <td style={{color: x.days_to_empty < 5 ? '#ef4444' : x.days_to_empty < 10 ? '#f59e0b' : '#374151'}}>{x.days_to_empty > 999 ? '∞' : x.days_to_empty}</td>
                       <td style={{ fontWeight: 600, color: '#059669' }}>+{x.suggested_qty}</td>
+                      <td style={{fontSize:11}}>{x.safety_days || '-'}</td>
                       <td><span className={`pill ${x.urgency === '紧急' ? 'danger' : x.urgency === '仓储费风险' ? 'warning' : x.urgency === '建议' ? 'info' : 'info'}`}>{x.urgency}</span></td>
                       <td><span onClick={()=>toggleOrdered(x.sku, x.store)} style={{cursor:'pointer',fontSize:18,opacity:0.5}}>☐</span></td>
                     </tr>

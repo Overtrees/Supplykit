@@ -52,9 +52,10 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', db = get_db(
         sel_ds = {28: ds28, 14: ds14, 7: ds7}[days]
 
         # 当前周期计算
-        # safety_multiplier: 安全库存天数（基于日销的动态安全库存）
-        # 例如 3 = 预留 3 天日销作为安全库存，0 = 不设安全库存
-        safety_days = float(cfg.get('safety_multiplier', '3'))
+        # 安全库存天数：SKU 级优先，无则用全局默认
+        # 按 ABC 分类建议：A类7天 / B类5天 / C类3天
+        sku_safety_days = float(inv.get('safety_days') or 0)
+        safety_days = sku_safety_days if sku_safety_days > 0 else float(cfg.get('safety_multiplier', '3'))
         effective_safety = round(sel_ds * safety_days) if sel_ds > 0 else 0
         suggested = max(round(sel_ds * lead_time + effective_safety - avail - transit), 0) if sel_ds > 0 else 0
         days_to_empty = round(avail / sel_ds, 1) if sel_ds > 0 else 999
@@ -80,6 +81,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', db = get_db(
             "sku": sku, "product_name": inv.get("product_name") or p.get("product_name", ""),
             "store": inv.get("store"), "category": p.get("category", ""),
             "available_qty": avail, "safety_qty": safety, "in_transit_qty": transit,
+            "safety_days": safety_days,
             "daily_sales": sel_ds,
             "daily_sales_7": ds7, "daily_sales_14": ds14, "daily_sales_28": ds28,
             "suggested_qty": suggested,

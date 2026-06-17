@@ -327,6 +327,7 @@ def init_db(path=None):
             locked_qty INTEGER DEFAULT 0,
             in_transit_qty INTEGER DEFAULT 0,
             safety_qty INTEGER DEFAULT 0,
+            safety_days REAL DEFAULT 0,
             raw_data TEXT DEFAULT '',
             source TEXT DEFAULT '',
             owner_id TEXT DEFAULT '',

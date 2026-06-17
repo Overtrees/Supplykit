@@ -112,7 +112,7 @@ def compare_replenishment_sources(days: int = 28, db = get_db()):
 
 @router.get('/purchase')
 def get_purchase_suggestions(db = get_db()):
-    replen = get_replenishment_suggestions(db)
+    replen = get_replenishment_suggestions(db=db)
     suppliers = db.table("suppliers").select("*").eq("status", "active").execute().data
     if not suppliers:
         return {"suggestions": replen, "suppliers": []}
@@ -184,7 +184,7 @@ def get_insight_summary(db = get_db()):
     low_stock = len([x for x in inv if int(x.get("available_qty") or 0) < int(x.get("safety_qty") or 0)])
     out_of_stock = len([x for x in inv if int(x.get("available_qty") or 0) == 0])
 
-    replen = get_replenishment_suggestions(db)
+    replen = get_replenishment_suggestions(db=db)
     urgent = len([x for x in replen if x["urgency"] == "紧急"])
 
     slow = get_slow_moving_products(db)

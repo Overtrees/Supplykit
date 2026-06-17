@@ -304,7 +304,7 @@ def init_db(path=None):
             quantity INTEGER DEFAULT 0,
             unit_price REAL DEFAULT 0,
             total_amount REAL DEFAULT 0,
-            order_type TEXT DEFAULT '',
+            data_source TEXT DEFAULT '',
             order_status TEXT DEFAULT '',
             ordered_at TEXT DEFAULT '',
             platform TEXT DEFAULT '',

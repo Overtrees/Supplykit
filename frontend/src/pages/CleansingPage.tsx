@@ -179,8 +179,8 @@ export default function CleansingPage() {
 
     {s === 1 && <div>
       <div style={{fontSize:13,marginBottom:12}}>已识别 {cols.length} 列 · {tr} 行 · 目标: {tt}{tt==='order' && <span style={{marginLeft:8,display:'inline-flex',gap:4,verticalAlign:'middle'}}>
-        <span onClick={()=>setMp(p=>({...p,_meta:{order_type:'sale'}}))} style={{padding:'2px 8px',fontSize:11,borderRadius:99,border:'1px solid',cursor:'pointer',background:mp?._meta?.order_type==='sale'?'var(--primary)':'#fff',color:mp?._meta?.order_type==='sale'?'#fff':'var(--muted)',borderColor:mp?._meta?.order_type==='sale'?'var(--primary)':'var(--border)'}}>📈 销售订单</span>
-        <span onClick={()=>setMp(p=>({...p,_meta:{order_type:'purchase'}}))} style={{padding:'2px 8px',fontSize:11,borderRadius:99,border:'1px solid',cursor:'pointer',background:mp?._meta?.order_type==='purchase'?'var(--primary)':'#fff',color:mp?._meta?.order_type==='purchase'?'#fff':'var(--muted)',borderColor:mp?._meta?.order_type==='purchase'?'var(--primary)':'var(--border)'}}>📦 采购单</span>
+        <span onClick={()=>setMp(p=>({...p,_meta:{data_source:'jdzx_sale'}}))} style={{padding:'2px 8px',fontSize:11,borderRadius:99,border:'1px solid',cursor:'pointer',background:mp?._meta?.data_source==='jdzx_sale'?'var(--primary)':'#fff',color:mp?._meta?.data_source==='jdzx_sale'?'#fff':'var(--muted)',borderColor:mp?._meta?.data_source==='jdzx_sale'?'var(--primary)':'var(--border)'}}>📈 商智日销</span>
+        <span onClick={()=>setMp(p=>({...p,_meta:{data_source:'jd_po'}}))} style={{padding:'2px 8px',fontSize:11,borderRadius:99,border:'1px solid',cursor:'pointer',background:mp?._meta?.data_source==='jd_po'?'var(--primary)':'#fff',color:mp?._meta?.data_source==='jd_po'?'#fff':'var(--muted)',borderColor:mp?._meta?.data_source==='jd_po'?'var(--primary)':'var(--border)'}}>📦 京东采购单</span>
       </span>}</div>
       {/* 模板区域 */}
       <div style={{display:'flex',gap:8,marginBottom:12,alignItems:'center',flexWrap:'wrap'}}>

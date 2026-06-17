@@ -156,7 +156,7 @@ export default function CleansingPage() {
   }, [tt])
 
   const btn = (label, onClick, color='var(--primary)') => <button onClick={onClick} disabled={!!bs}
-    style={{padding:'8px 20px',background:bs?'var(--muted2)':color,color:'#fff',border:'none',borderRadius:8,cursor:bs?'not-allowed':'pointer',fontSize:13,fontWeight:600}}>{label}</button>
+    style={{padding:'8px 20px',background:bs?'var(--muted2)':color,color:'var(--card)',border:'none',borderRadius:8,cursor:bs?'not-allowed':'pointer',fontSize:13,fontWeight:600}}>{label}</button>
 
   return <div className="card">
     <div className="step-indicator">
@@ -167,10 +167,10 @@ export default function CleansingPage() {
     {s === 0 && <div style={{textAlign:'center',padding:40}}>
       <div style={{fontSize:28,marginBottom:12,opacity:.3}}>🧹</div>
       <div style={{display:'flex',justifyContent:'center',gap:8,marginBottom:12}}>
-        <button onClick={()=>setTt('order')} style={{padding:'6px 16px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',background:tt==='order'?'var(--primary)':'#fff',color:tt==='order'?'#fff':'var(--muted)',borderColor:tt==='order'?'var(--primary)':'var(--border)',fontWeight:tt==='order'?600:400}}>📋 导入订单</button>
-        <button onClick={()=>setTt('inventory')} style={{padding:'6px 16px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',background:tt==='inventory'?'var(--success)':'#fff',color:tt==='inventory'?'#fff':'var(--muted)',borderColor:tt==='inventory'?'var(--success)':'var(--border)',fontWeight:tt==='inventory'?600:400}}>📦 导入库存</button>
+        <button onClick={()=>setTt('order')} style={{padding:'6px 16px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',background:tt==='order'?'var(--primary)':'var(--card)',color:tt==='order'?'#fff':'var(--muted)',borderColor:tt==='order'?'var(--primary)':'var(--border)',fontWeight:tt==='order'?600:400}}>📋 导入订单</button>
+        <button onClick={()=>setTt('inventory')} style={{padding:'6px 16px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',background:tt==='inventory'?'var(--success)':'var(--card)',color:tt==='inventory'?'#fff':'var(--muted)',borderColor:tt==='inventory'?'var(--success)':'var(--border)',fontWeight:tt==='inventory'?600:400}}>📦 导入库存</button>
       </div>
-      <label style={{display:'inline-block',padding:'10px 24px',background:'var(--primary)',color:'#fff',borderRadius:10,cursor:'pointer',fontSize:14,fontWeight:600}}>
+      <label style={{display:'inline-block',padding:'10px 24px',background:'var(--primary)',color:'var(--card)',borderRadius:10,cursor:'pointer',fontSize:14,fontWeight:600}}>
         {bs?'识别中...':'选择文件'}
         <input type="file" accept=".csv,.xlsx" style={{display:'none'}} onChange={e=>{const fi=e.target.files[0];if(fi)detect(fi)}} />
       </label>
@@ -179,8 +179,8 @@ export default function CleansingPage() {
 
     {s === 1 && <div>
       <div style={{fontSize:13,marginBottom:12}}>已识别 {cols.length} 列 · {tr} 行 · 目标: {tt}{tt==='order' && <span style={{marginLeft:8,display:'inline-flex',gap:4,verticalAlign:'middle'}}>
-        <span onClick={()=>setMp(p=>({...p,_meta:{data_source:'jdzx_sale'}}))} style={{padding:'2px 8px',fontSize:11,borderRadius:99,border:'1px solid',cursor:'pointer',background:mp?._meta?.data_source==='jdzx_sale'?'var(--primary)':'#fff',color:mp?._meta?.data_source==='jdzx_sale'?'#fff':'var(--muted)',borderColor:mp?._meta?.data_source==='jdzx_sale'?'var(--primary)':'var(--border)'}}>📈 商智日销</span>
-        <span onClick={()=>setMp(p=>({...p,_meta:{data_source:'jd_po'}}))} style={{padding:'2px 8px',fontSize:11,borderRadius:99,border:'1px solid',cursor:'pointer',background:mp?._meta?.data_source==='jd_po'?'var(--primary)':'#fff',color:mp?._meta?.data_source==='jd_po'?'#fff':'var(--muted)',borderColor:mp?._meta?.data_source==='jd_po'?'var(--primary)':'var(--border)'}}>📦 京东采购单</span>
+        <span onClick={()=>setMp(p=>({...p,_meta:{data_source:'jdzx_sale'}}))} style={{padding:'2px 8px',fontSize:11,borderRadius:99,border:'1px solid',cursor:'pointer',background:mp?._meta?.data_source==='jdzx_sale'?'var(--primary)':'var(--card)',color:mp?._meta?.data_source==='jdzx_sale'?'#fff':'var(--muted)',borderColor:mp?._meta?.data_source==='jdzx_sale'?'var(--primary)':'var(--border)'}}>📈 商智日销</span>
+        <span onClick={()=>setMp(p=>({...p,_meta:{data_source:'jd_po'}}))} style={{padding:'2px 8px',fontSize:11,borderRadius:99,border:'1px solid',cursor:'pointer',background:mp?._meta?.data_source==='jd_po'?'var(--primary)':'var(--card)',color:mp?._meta?.data_source==='jd_po'?'#fff':'var(--muted)',borderColor:mp?._meta?.data_source==='jd_po'?'var(--primary)':'var(--border)'}}>📦 京东采购单</span>
       </span>}</div>
       {/* 模板区域 */}
       <div style={{display:'flex',gap:8,marginBottom:12,alignItems:'center',flexWrap:'wrap'}}>
@@ -189,9 +189,9 @@ export default function CleansingPage() {
           {Array.isArray(templates) && templates.filter(t => t.doc_type === tt).map(t => <option key={t.id} value={JSON.stringify(t.mapping)}>{t.name}</option>)}
           {Array.isArray(templates) && templates.filter(t => t.doc_type !== tt).length > 0 && <option disabled style={{color:'var(--muted2)',fontSize:11}}>── {tt==='order'?'库存':'订单'}模板（{templates.filter(t=>t.doc_type!==tt).length}个） ──</option>}
         </select>
-        <button onClick={()=>{const s=document.getElementById('tmplSelect');if(s.value)try{setMp(JSON.parse(s.value))}catch(e){}}} style={{padding:'6px 14px',fontSize:12,border:'1px solid #e2e8f0',borderRadius:6,background:'#fff',cursor:'pointer'}}>应用</button>
+        <button onClick={()=>{const s=document.getElementById('tmplSelect');if(s.value)try{setMp(JSON.parse(s.value))}catch(e){}}} style={{padding:'6px 14px',fontSize:12,border:'1px solid #e2e8f0',borderRadius:6,background:'var(--card)',cursor:'pointer'}}>应用</button>
         <input id="tmplName" placeholder="新模板名称" style={{width:120,fontSize:12,padding:'6px 8px',border:'1px solid #e2e8f0',borderRadius:6,outline:'none'}}/>
-        <button onClick={async()=>{const n=document.getElementById('tmplName').value;if(!n)return toast.error('请输入模板名称');await api.post('/api/cleansing/templates',{name:n,doc_type:tt,mapping:mp});document.getElementById('tmplName').value='';loadTemplates();toast.success('模板已保存')}} style={{padding:'6px 14px',fontSize:12,background:'var(--primary)',color:'#fff',border:'none',borderRadius:6,cursor:'pointer'}}>保存</button>
+        <button onClick={async()=>{const n=document.getElementById('tmplName').value;if(!n)return toast.error('请输入模板名称');await api.post('/api/cleansing/templates',{name:n,doc_type:tt,mapping:mp});document.getElementById('tmplName').value='';loadTemplates();toast.success('模板已保存')}} style={{padding:'6px 14px',fontSize:12,background:'var(--primary)',color:'var(--card)',border:'none',borderRadius:6,cursor:'pointer'}}>保存</button>
       </div>
       {Array.isArray(cf) && <div style={{marginBottom:10,border:'1px solid #e2e8f0',borderRadius:12,padding:12,background:'#fafafa'}}>
         <div style={{fontSize:12,fontWeight:600,marginBottom:8}}>自定义字段</div>
@@ -202,7 +202,7 @@ export default function CleansingPage() {
           </select>
           <button onClick={()=>delField(i)} style={{background:'#fee2e2',border:'none',borderRadius:6,cursor:'pointer',padding:'4px 8px',fontSize:12,color:'#dc2626'}}>删除</button>
         </div>)}
-        <button onClick={addField} style={{padding:'5px 14px',fontSize:12,border:'1px dashed #94a3b8',borderRadius:8,background:'#fff',cursor:'pointer',color:'var(--muted)',width:'100%'}}>+ 添加自定义字段</button>
+        <button onClick={addField} style={{padding:'5px 14px',fontSize:12,border:'1px dashed #94a3b8',borderRadius:8,background:'var(--card)',cursor:'pointer',color:'var(--muted)',width:'100%'}}>+ 添加自定义字段</button>
       </div>}
       {cols.map(c => {
         const matched = ALIAS[c.name]
@@ -257,8 +257,8 @@ export default function CleansingPage() {
       </div>
       <div style={{display:'flex',gap:8,justifyContent:'center'}}>
         <button onClick={()=>{setS(0);setF(null);setCols([]);setTr(0);setMp({});setPv(null);setRes(null)}}
-          style={{padding:'8px 20px',background:'var(--muted)',color:'#fff',border:'none',borderRadius:8,cursor:'pointer',fontSize:13,fontWeight:600}}>重新开始</button>
-        <label style={{display:'inline-block',padding:'8px 20px',background:'var(--success)',color:'#fff',borderRadius:8,cursor:'pointer',fontSize:13,fontWeight:600}}>
+          style={{padding:'8px 20px',background:'var(--muted)',color:'var(--card)',border:'none',borderRadius:8,cursor:'pointer',fontSize:13,fontWeight:600}}>重新开始</button>
+        <label style={{display:'inline-block',padding:'8px 20px',background:'var(--success)',color:'var(--card)',borderRadius:8,cursor:'pointer',fontSize:13,fontWeight:600}}>
           导入相同格式 📁
           <input type="file" accept=".csv,.xlsx" style={{display:'none'}} onChange={e=>{
             const fi=e.target.files[0]

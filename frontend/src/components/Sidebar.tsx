@@ -10,7 +10,7 @@ export default function Sidebar({ page, onNavigate, lowStock, errCount }) {
       {/* 侧边栏 — 全屏 */}
       <div onClick={onClose} style={{
         position:'fixed', inset:0, width:'100%',
-        background:'var(--sidebar)', color:'#fff', zIndex:99999999,
+        background:'var(--sidebar)', color:'var(--card)', zIndex:99999999,
         display: sidebarOpen ? 'flex' : 'none',
         flexDirection:'column', overflow:'hidden',
         paddingTop:'env(safe-area-inset-top,0)', paddingBottom:'env(safe-area-inset-bottom,0)',
@@ -41,10 +41,10 @@ export default function Sidebar({ page, onNavigate, lowStock, errCount }) {
                 <span style={{ fontSize:18, width:24, textAlign:'center', flexShrink:0 }}>{item.icon}</span>
                 <span>{item.label}</span>
                 {item.id === 'quality' && errCount > 0 && (
-                  <span style={{ marginLeft:'auto', background:'#ef4444', color:'#fff', fontSize:10, borderRadius:99, padding:'1px 7px', minWidth:18, textAlign:'center' }}>{errCount}</span>
+                  <span style={{ marginLeft:'auto', background:'#ef4444', color:'var(--card)', fontSize:10, borderRadius:99, padding:'1px 7px', minWidth:18, textAlign:'center' }}>{errCount}</span>
                 )}
                 {item.id === 'inv' && lowStock > 0 && (
-                  <span style={{ marginLeft:'auto', background:'#f59e0b', color:'#fff', fontSize:10, borderRadius:99, padding:'1px 7px', minWidth:18, textAlign:'center' }}>{lowStock}</span>
+                  <span style={{ marginLeft:'auto', background:'#f59e0b', color:'var(--card)', fontSize:10, borderRadius:99, padding:'1px 7px', minWidth:18, textAlign:'center' }}>{lowStock}</span>
                 )}
               </div>
             )

@@ -20,14 +20,14 @@ const submit = async (type, file) => {
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-        <label style={{ background:'#fff', border:'1px dashed #cbd5e1', borderRadius:16, padding:20, cursor:'pointer', textAlign:'center', transition:'border 0.15s' }}
+        <label style={{ background:'var(--card)', border:'1px dashed #cbd5e1', borderRadius:16, padding:20, cursor:'pointer', textAlign:'center', transition:'border 0.15s' }}
           onMouseEnter={e => e.currentTarget.style.borderColor='#1d4ed8'} onMouseLeave={e => e.currentTarget.style.borderColor='#cbd5e1'}>
           <div style={{ fontSize:18, marginBottom:6, opacity:0.4 }}>📄</div>
           <div style={{ fontSize:14, fontWeight:600, marginBottom:6 }}>导入订单</div>
           <div style={{ fontSize:12, color:'#64748b' }}>{busy === 'orders' ? '上传中...' : 'CSV / XLSX · 中文列名自动映射'}</div>
           <input type="file" accept=".csv,.xlsx" style={{ display:'none' }} onChange={e => submit('orders', e.target.files?.[0])} />
         </label>
-        <label style={{ background:'#fff', border:'1px dashed #cbd5e1', borderRadius:16, padding:20, cursor:'pointer', textAlign:'center', transition:'border 0.15s' }}
+        <label style={{ background:'var(--card)', border:'1px dashed #cbd5e1', borderRadius:16, padding:20, cursor:'pointer', textAlign:'center', transition:'border 0.15s' }}
           onMouseEnter={e => e.currentTarget.style.borderColor='#1d4ed8'} onMouseLeave={e => e.currentTarget.style.borderColor='#cbd5e1'}>
           <div style={{ fontSize:18, marginBottom:6, opacity:0.4 }}>📦</div>
           <div style={{ fontSize:14, fontWeight:600, marginBottom:6 }}>导入库存</div>
@@ -35,7 +35,7 @@ const submit = async (type, file) => {
           <input type="file" accept=".csv,.xlsx" style={{ display:'none' }} onChange={e => submit('inventory', e.target.files?.[0])} />
         </label>
       </div>
-      <div style={{ background:'#fff', borderRadius:16, border:'1px solid #f1f5f9', padding:16 }}>
+      <div style={{ background:'var(--card)', borderRadius:16, border:'1px solid #f1f5f9', padding:16 }}>
         <div style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'0.1em', color:'#94a3b8', marginBottom:12 }}>导入日志</div>
         {importLogs.length === 0 ? (
           <div style={{ color:'#94a3b8', fontSize:13, textAlign:'center' }}>暂无导入记录</div>

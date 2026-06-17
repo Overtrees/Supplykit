@@ -41,7 +41,7 @@ export default function OrdersPage() {
           placeholder="搜索单号/商品/SKU" enterKeyHint="search" inputMode="search" autoCorrect="off" />
         {sq && <span className="cancel" onClick={()=>{setSq('');doSearch()}}>清除</span>}
       </div>
-      <select value={ss} onChange={e=>{setSs(e.target.value);setOrderFilter(sq,e.target.value)}} style={{fontSize:16,padding:'8px 12px',border:'1px solid var(--border)',borderRadius:10,outline:'none',background:'#fff'}}>
+      <select value={ss} onChange={e=>{setSs(e.target.value);setOrderFilter(sq,e.target.value)}} style={{fontSize:16,padding:'8px 12px',border:'1px solid var(--border)',borderRadius:10,outline:'none',background:'var(--card)'}}>
         {STATUSES.map(s => <option key={s} value={s}>{s||'全部状态'}</option>)}
       </select>
       {(orderSearch||orderStatus) && <button onClick={()=>{setSq('');setSs('');setOrderFilter('','')}} className="btn btn-ghost" style={{fontSize:14}}>重置</button>}

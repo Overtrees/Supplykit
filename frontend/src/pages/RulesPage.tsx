@@ -116,8 +116,8 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
 
     {tab==='params'&&<div>
       <div style={{display:'flex',gap:8,marginBottom:12}}>
-        <span onClick={()=>{setCfg(p=>({...p,replenishment_mode:'bbcc'}));loadSeasons('bbcc')}} style={{padding:'4px 14px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',background:(cfg.replenishment_mode||'bbcc')==='bbcc'?'var(--primary)':'#fff',color:(cfg.replenishment_mode||'bbcc')==='bbcc'?'#fff':'var(--muted)',borderColor:(cfg.replenishment_mode||'bbcc')==='bbcc'?'var(--primary)':'var(--border)'}}>📦 BBCC 送仓</span>
-        <span onClick={()=>{setCfg(p=>({...p,replenishment_mode:'traditional'}));loadSeasons('traditional')}} style={{padding:'4px 14px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',background:cfg.replenishment_mode==='traditional'?'var(--primary)':'#fff',color:cfg.replenishment_mode==='traditional'?'#fff':'var(--muted)',borderColor:cfg.replenishment_mode==='traditional'?'var(--primary)':'var(--border)'}}>🏭 传统多仓</span>
+        <span onClick={()=>{setCfg(p=>({...p,replenishment_mode:'bbcc'}));loadSeasons('bbcc')}} style={{padding:'4px 14px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',background:(cfg.replenishment_mode||'bbcc')==='bbcc'?'var(--primary)':'var(--card)',color:(cfg.replenishment_mode||'bbcc')==='bbcc'?'#fff':'var(--muted)',borderColor:(cfg.replenishment_mode||'bbcc')==='bbcc'?'var(--primary)':'var(--border)'}}>📦 BBCC 送仓</span>
+        <span onClick={()=>{setCfg(p=>({...p,replenishment_mode:'traditional'}));loadSeasons('traditional')}} style={{padding:'4px 14px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',background:cfg.replenishment_mode==='traditional'?'var(--primary)':'var(--card)',color:cfg.replenishment_mode==='traditional'?'#fff':'var(--muted)',borderColor:cfg.replenishment_mode==='traditional'?'var(--primary)':'var(--border)'}}>🏭 传统多仓</span>
       </div>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:16}}>
         {paramFields.filter(f => (cfg.replenishment_mode||'bbcc')==='bbcc' || !['b_to_c_days','c_safety_days'].includes(f.k)).map(({k,l,h})=><label key={k} style={{fontSize:12}}>
@@ -138,7 +138,7 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
         </label>
         <button onClick={()=>setSeasons(p=>p.filter((_,j)=>j!==i))} style={{background:'#fee2e2',border:'none',borderRadius:6,cursor:'pointer',padding:'4px 8px',fontSize:12,color:'#dc2626'}}>删除</button>
       </div>)}
-      <button onClick={()=>setSeasons(p=>[...p,{key:'new',name:'新活动',factor:1.2,enabled:true}])} style={{padding:'4px 12px',fontSize:12,border:'1px dashed #94a3b8',borderRadius:8,background:'#fff',cursor:'pointer',color:'var(--muted)',width:'100%',marginBottom:16}}>+ 添加活动</button>
+      <button onClick={()=>setSeasons(p=>[...p,{key:'new',name:'新活动',factor:1.2,enabled:true}])} style={{padding:'4px 12px',fontSize:12,border:'1px dashed #94a3b8',borderRadius:8,background:'var(--card)',cursor:'pointer',color:'var(--muted)',width:'100%',marginBottom:16}}>+ 添加活动</button>
 
       <button disabled={saving} onClick={async()=>{setSaving(true);const m=cfg.replenishment_mode||'bbcc';try{await api.put('/api/replenishment-config',cfg);await api.put('/api/replenishment-config/seasons?mode='+m,{items:seasons});await loadCfg();await loadSeasons(m);toast.success('参数已保存')}catch(e){toast.error('保存失败: '+e.message)}setSaving(false)}} style={{...ST.primary,opacity:saving?0.6:1}}>{saving?'⏳ 保存中...':'💾 保存所有参数'}</button>
       <span className='small muted' style={{marginLeft:8,fontSize:11}}>更新后补货建议 & 规则引擎适用</span>
@@ -146,5 +146,5 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
   </div>
 }
 
-const ST={primary:{padding:'6px 16px',background:'var(--primary)',color:'#fff',border:'none',borderRadius:8,cursor:'pointer',fontSize:13},secondary:{padding:'6px 16px',background:'#fff',border:'1px solid var(--border)',borderRadius:8,cursor:'pointer',fontSize:13},edit:{fontSize:12,padding:'4px 10px',border:'1px solid var(--border)',borderRadius:6,cursor:'pointer',background:'#fff'},danger:{fontSize:12,padding:'4px 10px',border:'1px solid var(--danger)',borderRadius:6,cursor:'pointer',background:'#fff',color:'var(--danger)'}}
-const IS={width:'100%',padding:'6px 8px',fontSize:12,border:'1px solid #e2e8f0',borderRadius:6,marginTop:4,outline:'none',background:'#fff',boxSizing:'border-box'}
+const ST={primary:{padding:'6px 16px',background:'var(--primary)',color:'var(--card)',border:'none',borderRadius:8,cursor:'pointer',fontSize:13},secondary:{padding:'6px 16px',background:'var(--card)',border:'1px solid var(--border)',borderRadius:8,cursor:'pointer',fontSize:13},edit:{fontSize:12,padding:'4px 10px',border:'1px solid var(--border)',borderRadius:6,cursor:'pointer',background:'var(--card)'},danger:{fontSize:12,padding:'4px 10px',border:'1px solid var(--danger)',borderRadius:6,cursor:'pointer',background:'var(--card)',color:'var(--danger)'}}
+const IS={width:'100%',padding:'6px 8px',fontSize:12,border:'1px solid #e2e8f0',borderRadius:6,marginTop:4,outline:'none',background:'var(--card)',boxSizing:'border-box'}

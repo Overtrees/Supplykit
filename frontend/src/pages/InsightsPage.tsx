@@ -87,7 +87,7 @@ export default function InsightsPage() {
       )}
 
       {/* Tab bar */}
-      <div style={{ display: 'flex', gap: 0, background: '#fff', borderRadius: 12, padding: 4, border: '1px solid #f1f5f9' }}>
+      <div style={{ display: 'flex', gap: 0, background: 'var(--card)', borderRadius: 12, padding: 4, border: '1px solid #f1f5f9' }}>
         {tabs.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={btnStyle(t.id)}>
             {t.label}{t.count > 0 ? ` (${t.count})` : ''}
@@ -101,7 +101,7 @@ export default function InsightsPage() {
           <div className="section-title" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
             <span>
               补货建议{replen.length > 0 && <span className="small muted" style={{ marginLeft: 8 }}>· 低于安全线的商品</span>}
-              <span style={{marginLeft:12,display:'inline-flex',gap:2,background:'#f1f5f9',borderRadius:99,padding:2}}>
+              <span style={{marginLeft:12,display:'inline-flex',gap:2,background:'var(--border)',borderRadius:99,padding:2}}>
                 {[7,14,28].map(d => (
                   <span key={d} onClick={()=>{setReplenDays(d);loadReplen(d)}}
                     style={{padding:'2px 10px',fontSize:11,borderRadius:99,cursor:'pointer',
@@ -122,7 +122,7 @@ export default function InsightsPage() {
                   URL.revokeObjectURL(url)
                 } catch(e) { toast.error('导出失败: '+e.message) }
               }}
-                style={{padding:'5px 14px',fontSize:12,background:'var(--success)',color:'#fff',border:'none',borderRadius:6,cursor:'pointer',fontWeight:600}}>📥 导出采购单</button>
+                style={{padding:'5px 14px',fontSize:12,background:'var(--success)',color:'var(--card)',border:'none',borderRadius:6,cursor:'pointer',fontWeight:600}}>📥 导出采购单</button>
             </div>
           </div>
           {replen.filter(x => !ordered.includes(x.sku+'|'+x.store)).length === 0 ? (

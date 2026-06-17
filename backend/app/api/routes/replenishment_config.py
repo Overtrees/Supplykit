@@ -19,9 +19,10 @@ def update_config(data: dict, db=get_db()):
 
 
 @router.get('/seasons')
-def get_seasons(db=get_db()):
+def get_seasons(mode: str = 'bbcc', db=get_db()):
     import json
-    val = db.table('replenishment_config').select('*').eq('key', 'season_config').execute().data
+    key = f'season_config_{mode}'
+    val = db.table('replenishment_config').select('*').eq('key', key).execute().data
     if val and val[0].get('value'):
         return json.loads(val[0]['value'])
     return [
@@ -31,15 +32,15 @@ def get_seasons(db=get_db()):
     ]
 
 @router.put('/seasons')
-def update_seasons(data: dict, db=get_db()):
+def update_seasons(data: dict, mode: str = 'bbcc', db=get_db()):
     import json
     items = data.get('items', data.get('seasons', []))
     val = json.dumps(list(items), ensure_ascii=False)
-    # 使用原始 SQL 实现 upsert（INSERT OR REPLACE）
+    key = f'season_config_{mode}'
     from app.core.database import get_conn
     conn = get_conn()
     conn.execute("INSERT OR REPLACE INTO replenishment_config (key,value,updated_at) VALUES (?,?,datetime('now'))",
-                 ['season_config', val])
+                 [key, val])
     conn.commit()
     return items
 @router.get('/calculate')

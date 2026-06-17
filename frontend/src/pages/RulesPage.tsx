@@ -21,8 +21,8 @@ export default function RulesPage() {
 
   const load=async()=>{try{const r=await fetch(API+'/api/rules');setRules(await r.json())}catch(e){}}
   const loadCfg=async()=>{try{const r=await api.get('/api/replenishment-config');setCfg(r.data||{})}catch(e){}}
-  const loadSeasons=async()=>{try{const r=await api.get('/api/replenishment-config/seasons');setSeasons(r.data||[])}catch(e){}}
-  useEffect(()=>{load();loadCfg();loadSeasons()},[])
+  const loadSeasons=async(mode)=>{try{const m=mode||cfg.replenishment_mode||'bbcc';const r=await api.get('/api/replenishment-config/seasons?mode='+m);setSeasons(r.data||[])}catch(e){}}
+  useEffect(()=>{load();loadCfg();loadSeasons(cfg.replenishment_mode)},[])
 
   const save=async()=>{const cj=JSON.stringify({left:cond.left,op:cond.op,right:cond.rightType==='field'?cond.right:parseFloat(cond.right)||0})
     const isNew = !editing || !editing.id
@@ -116,8 +116,8 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
 
     {tab==='params'&&<div>
       <div style={{display:'flex',gap:8,marginBottom:12}}>
-        <span onClick={()=>setCfg(p=>({...p,replenishment_mode:'bbcc'}))} style={{padding:'4px 14px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',background:(cfg.replenishment_mode||'bbcc')==='bbcc'?'var(--primary)':'#fff',color:(cfg.replenishment_mode||'bbcc')==='bbcc'?'#fff':'var(--muted)',borderColor:(cfg.replenishment_mode||'bbcc')==='bbcc'?'var(--primary)':'var(--border)'}}>📦 BBCC 送仓</span>
-        <span onClick={()=>setCfg(p=>({...p,replenishment_mode:'traditional'}))} style={{padding:'4px 14px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',background:cfg.replenishment_mode==='traditional'?'var(--primary)':'#fff',color:cfg.replenishment_mode==='traditional'?'#fff':'var(--muted)',borderColor:cfg.replenishment_mode==='traditional'?'var(--primary)':'var(--border)'}}>🏭 传统多仓</span>
+        <span onClick={()=>{setCfg(p=>({...p,replenishment_mode:'bbcc'}));loadSeasons('bbcc')}} style={{padding:'4px 14px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',background:(cfg.replenishment_mode||'bbcc')==='bbcc'?'var(--primary)':'#fff',color:(cfg.replenishment_mode||'bbcc')==='bbcc'?'#fff':'var(--muted)',borderColor:(cfg.replenishment_mode||'bbcc')==='bbcc'?'var(--primary)':'var(--border)'}}>📦 BBCC 送仓</span>
+        <span onClick={()=>{setCfg(p=>({...p,replenishment_mode:'traditional'}));loadSeasons('traditional')}} style={{padding:'4px 14px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',background:cfg.replenishment_mode==='traditional'?'var(--primary)':'#fff',color:cfg.replenishment_mode==='traditional'?'#fff':'var(--muted)',borderColor:cfg.replenishment_mode==='traditional'?'var(--primary)':'var(--border)'}}>🏭 传统多仓</span>
       </div>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:16}}>
         {paramFields.filter(f => (cfg.replenishment_mode||'bbcc')==='bbcc' || !['b_to_c_days','c_safety_days'].includes(f.k)).map(({k,l,h})=><label key={k} style={{fontSize:12}}>
@@ -140,7 +140,7 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
       </div>)}
       <button onClick={()=>setSeasons(p=>[...p,{key:'new',name:'新活动',factor:1.2,enabled:true}])} style={{padding:'4px 12px',fontSize:12,border:'1px dashed #94a3b8',borderRadius:8,background:'#fff',cursor:'pointer',color:'#64748b',width:'100%',marginBottom:16}}>+ 添加活动</button>
 
-      <button disabled={saving} onClick={async()=>{setSaving(true);try{await api.put('/api/replenishment-config',cfg);await api.put('/api/replenishment-config/seasons',{items:seasons});await loadCfg();await loadSeasons();toast.success('参数已保存')}catch(e){toast.error('保存失败: '+e.message)}setSaving(false)}} style={{...ST.primary,opacity:saving?0.6:1}}>{saving?'⏳ 保存中...':'💾 保存所有参数'}</button>
+      <button disabled={saving} onClick={async()=>{setSaving(true);const m=cfg.replenishment_mode||'bbcc';try{await api.put('/api/replenishment-config',cfg);await api.put('/api/replenishment-config/seasons?mode='+m,{items:seasons});await loadCfg();await loadSeasons(m);toast.success('参数已保存')}catch(e){toast.error('保存失败: '+e.message)}setSaving(false)}} style={{...ST.primary,opacity:saving?0.6:1}}>{saving?'⏳ 保存中...':'💾 保存所有参数'}</button>
       <span className='small muted' style={{marginLeft:8,fontSize:11}}>更新后补货建议 & 规则引擎适用</span>
     </div>}
   </div>

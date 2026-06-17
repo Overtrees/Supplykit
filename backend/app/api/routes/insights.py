@@ -36,12 +36,14 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', db = get_db(
     cfg = {r['key']: r['value'] for r in cfg_rows}
     mode = cfg.get('replenishment_mode', 'bbcc')
     if mode == 'bbcc':
-        # BBCC 模式：生产到B仓 + B→C调拨 + C仓安全
         lead_time = int(cfg.get('lead_time_days', '7'))
         lead_time = lead_time + int(cfg.get('b_to_c_days', '3')) + int(cfg.get('c_safety_days', '5'))
     else:
-        # 传统多仓模式：仅生产到仓
         lead_time = int(cfg.get('lead_time_days', '7'))
+    # 活动系数（按模式独立存储）
+    season_key = f'season_config_{mode}'
+    season_val = db.table('replenishment_config').select('*').eq('key', season_key).execute().data
+    season_config = json.loads(season_val[0]['value']) if season_val and season_val[0].get('value') else []
 
     suggestions = []
     for inv in items:

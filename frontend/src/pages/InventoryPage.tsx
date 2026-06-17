@@ -3,6 +3,7 @@ import { useAppStore } from '../store/useAppStore'
 import EmptyState from '../components/EmptyState'
 import { useToast } from '../components/Toast'
 import ConfirmDialog from '../components/ConfirmDialog'
+const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
 export default function InventoryPage({ highlightSku }) {
   const toast = useToast()
   const { inventory, loadAll } = useAppStore()
@@ -19,7 +20,7 @@ export default function InventoryPage({ highlightSku }) {
   const delInv = async () => {
     if (!confirmDel) return
     try {
-      const r = await fetch(`https://overtrees.pythonanywhere.com/api/inventory/${confirmDel}`, {method:'DELETE'})
+      const r = await fetch(`${API}/api/inventory/${confirmDel}`, {method:'DELETE'})
       if (r.ok) { toast.success('已删除'); setConfirmDel(null); loadAll() }
       else toast.error('删除失败')
     } catch(e) { toast.error('删除失败: '+e.message) }
@@ -44,7 +45,7 @@ export default function InventoryPage({ highlightSku }) {
         <td className="mono col-sku">{x.sku}</td><td className="col-name">{x.product_name}</td>
         <td className="col-qty">{x.available_qty}</td><td className="col-qty">{x.locked_qty}</td><td className="col-qty">{x.in_transit_qty}</td><td className="col-qty">{x.safety_qty}</td>
         <td className="col-qty"><input type='number' min='0' max='30' step='1'
-          value={x.safety_days || ''} placeholder='全局' onChange={e=>{const v=parseFloat(e.target.value)||0;fetch('https://overtrees.pythonanywhere.com/api/inventory/'+x.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({safety_days:v})})}}
+          value={x.safety_days || ''} placeholder='全局' onChange={e=>{const v=parseFloat(e.target.value)||0;fetch(API+'/api/inventory/'+x.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({safety_days:v})})}}
           style={{width:48,fontSize:11,textAlign:'center',padding:'2px',border:'1px solid #e2e8f0',borderRadius:4,outline:'none'}} /></td>
         <td><span onClick={()=>setConfirmDel(x.id)} style={{cursor:'pointer',fontSize:18,opacity:0.4,padding:'8px'}} title='删除'>🗑️</span></td>
       </tr>})}</tbody></table>

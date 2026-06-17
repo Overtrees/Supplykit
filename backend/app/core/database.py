@@ -296,7 +296,7 @@ def init_db(path=None):
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS orders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            order_no TEXT UNIQUE NOT NULL,
+            order_no TEXT NOT NULL,
             store TEXT DEFAULT '',
             warehouse TEXT DEFAULT '',
             sku TEXT DEFAULT '',
@@ -317,6 +317,7 @@ def init_db(path=None):
             created_at TEXT DEFAULT (datetime('now')),
             updated_at TEXT DEFAULT (datetime('now'))
         );
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_no_sku ON orders(order_no, sku);
         CREATE TABLE IF NOT EXISTS inventory (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             sku TEXT NOT NULL,

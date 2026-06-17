@@ -4,6 +4,8 @@ import EmptyState from '../components/EmptyState'
 import { useToast } from '../components/Toast'
 import ConfirmDialog from '../components/ConfirmDialog'
 
+const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
+
 const STATUSES = ['','已完成','待发货','已发货','待确认','申请退款']
 
 export default function OrdersPage() {
@@ -19,7 +21,7 @@ export default function OrdersPage() {
   const delOrder = async () => {
     if (!confirmDel) return
     try {
-      const r = await fetch(`https://overtrees.pythonanywhere.com/api/orders/${confirmDel}`, {method:'DELETE'})
+      const r = await fetch(`${API}/api/orders/${confirmDel}`, {method:'DELETE'})
       if (r.ok) { toast.success('已删除'); setConfirmDel(null); setOrderPage(orderPage, sq, ss) }
       else toast.error('删除失败')
     } catch(e) { toast.error('删除失败: '+e.message) }

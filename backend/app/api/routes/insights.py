@@ -6,19 +6,19 @@ router = APIRouter(prefix="/api/insights", tags=["insights"])
 
 
 @router.get('/replenishment')
-def get_replenishment_suggestions(days: int = 28, db = get_db()):
-    """补货建议，支持 days=7/14/28 切换"""
+def get_replenishment_suggestions(days: int = 28, source: str = '', db = get_db()):
+    """补货建议，支持 days=7/14/28 切换，source='jdzx_sale'/'jd_po' 过滤数据源"""
     from datetime import timedelta
     items = db.table("inventory").select("*").execute().data
     products = {p["sku"]: p for p in db.table("products").select("*").execute().data}
     orders = db.table("orders").select("*").execute().data
 
-    # 三周期日销预计算（使用所有可用数据源）
-    # 商智日销(jdzx_sale)最准确，京东采购单(jd_po)次之，有哪个用哪个
+    # 三周期日销预计算（可选按数据源过滤）
     def calc_sales(cutoff_days):
         cutoff = (datetime.utcnow() - timedelta(days=cutoff_days)).strftime('%Y-%m-%d')
         sku_s = {}
         for o in orders:
+            if source and o.get('data_source','') != source: continue
             sku = o.get('sku', '')
             if not sku: continue
             dt = str(o.get('ordered_at', ''))[:10]
@@ -85,6 +85,16 @@ def get_replenishment_suggestions(days: int = 28, db = get_db()):
 
     suggestions.sort(key=lambda x: x['days_to_empty'])
     return suggestions
+
+
+@router.get('/replenishment/compare')
+def compare_replenishment_sources(days: int = 28, db = get_db()):
+    """对比不同数据源的补货建议：综合 / 商智日销 / 京东采购单"""
+    return {
+        'all': get_replenishment_suggestions(days=days, source='', db=db),
+        'jdzx_sale': get_replenishment_suggestions(days=days, source='jdzx_sale', db=db),
+        'jd_po': get_replenishment_suggestions(days=days, source='jd_po', db=db),
+    }
 
 
 @router.get('/purchase')

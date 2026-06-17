@@ -31,7 +31,7 @@ export default function Sidebar({ page, onNavigate, lowStock, errCount }) {
           {NAV.map(item => {
             const active = page === item.id
             return (
-              <div key={item.id} onClick={() => { onNavigate(item.id); setSidebarOpen(false) }} style={{
+              <div key={item.id} onClick={(e) => { e.stopPropagation(); onNavigate(item.id); setSidebarOpen(false) }} style={{
                 display:'flex', alignItems:'center', gap:12, padding:'12px 16px', margin:'2px 4px',
                 borderRadius:10, cursor:'pointer', fontSize:14, transition:'all 0.12s',
                 color: active ? '#fff' : 'rgba(255,255,255,0.65)',

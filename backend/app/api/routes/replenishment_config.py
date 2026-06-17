@@ -14,11 +14,7 @@ def get_config(db=get_db()):
 @router.put("")
 def update_config(data: dict, db=get_db()):
     for k, v in data.items():
-        from app.core.database import get_conn
-        conn = get_conn()
-        conn.execute("INSERT OR REPLACE INTO replenishment_config (key,value,updated_at) VALUES (?,?,datetime('now'))",
-                     [k, str(v)])
-        conn.commit()
+        db.table("replenishment_config").upsert({"key": k, "value": str(v), "updated_at": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}, conflict_col='key')
     return get_config(db)
 
 
@@ -41,11 +37,7 @@ def update_seasons(data: dict, mode: str = 'bbcc', db=get_db()):
     items = data.get('items', data.get('seasons', []))
     val = json.dumps(list(items), ensure_ascii=False)
     key = f'season_config_{mode}'
-    from app.core.database import get_conn
-    conn = get_conn()
-    conn.execute("INSERT OR REPLACE INTO replenishment_config (key,value,updated_at) VALUES (?,?,datetime('now'))",
-                 [key, val])
-    conn.commit()
+    db.table("replenishment_config").upsert({"key": key, "value": val, "updated_at": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}, conflict_col='key')
     return items
 @router.get('/calculate')
 def calculate(db=get_db()):

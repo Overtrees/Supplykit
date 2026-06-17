@@ -249,6 +249,18 @@ class TableRef:
     def update(self, data):
         return UpdateBuilder(self.table, self.conn, data)
 
+    def upsert(self, row, conflict_col='id'):
+        """INSERT OR REPLACE（SQLite 版 upsert）"""
+        if not row: raise Exception("upsert requires a dict")
+        cols = list(row.keys())
+        placeholders = ", ".join(["?"] * len(cols))
+        col_names = ", ".join(f'"{c}"' for c in cols)
+        sql = f'INSERT OR REPLACE INTO "{self.table}" ({col_names}) VALUES ({placeholders})'
+        params = [row.get(c) for c in cols]
+        self.conn.execute(sql, params)
+        self.conn.commit()
+        return ExecuteResult([])
+
     def delete(self):
         return DeleteBuilder(self.table, self.conn)
 

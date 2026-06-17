@@ -36,14 +36,20 @@ export default function DashboardPage({ onAlert }) {
 
   const funnelOption = useMemo(() => {
     const f = dashboard?.funnel || []
+    const names = f.map(x => x.name)
+    const values = f.map(x => x.value)
     return {
-      tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: (p) => {
+        const idx = p[0]?.dataIndex ?? 0; const item = f[idx]
+        return `${item.name}<br/>数量: ${item.value}单<br/>占比: ${item.percentage}%<br/>转化率: ${item.conversion}%`
+      }},
+      grid: { left: 10, right: 56, top: 4, bottom: 6 },
+      xAxis: { type: 'value', show: false },
+      yAxis: { type: 'category', data: names, axisLabel: { fontSize: 10, width: 56, overflow: 'truncate' } },
       series: [{
-        type: 'funnel', left: '5%', top: 16, bottom: 6, width: '90%',
-        minSize: '15%', maxSize: '100%', sort: 'descending', gap: 2,
-        label: { show: true, fontSize: 10, position: 'outside', formatter: (p) => `${p.name}  ${p.value}单` },
-        itemStyle: { borderColor: '#fff', borderWidth: 1 },
-        data: f.map((x,i) => ({ ...x, value: x.value, itemStyle: { color: ['var(--primary)','#06b6d4','#0ea5e9','#14b8a6','#10b981'][i % 5] } }))
+        type: 'bar', data: values.map((v, i) => ({ value: v, itemStyle: { color: ['var(--primary)','#06b6d4','#0ea5e9','#14b8a6','#10b981'][i % 5], borderRadius: [0, 4, 4, 0] } })),
+        barWidth: '60%',
+        label: { show: true, position: 'right', fontSize: 10, formatter: (p) => `${p.value}单` }
       }]
     }
   }, [dashboard])

@@ -28,7 +28,7 @@ export default function Chart({ option, height = 260 }) {
           ...(dark ? {
             textStyle: { color: '#f1f5f9' },
             title: { textStyle: { color: '#f1f5f9' } },
-            legend: { ...option.legend, textStyle: { ...option.legend?.textStyle, color: '#94a3b8' } },
+            ...(option.legend ? { legend: { ...option.legend, textStyle: { ...(option.legend.textStyle || {}), color: '#94a3b8' } } } : {}),
           } : {}),
         }
         chart.setOption(opt)

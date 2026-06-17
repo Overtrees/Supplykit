@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from app.core.database import get_db
 from datetime import datetime
+import json
 
 router = APIRouter(prefix="/api/insights", tags=["insights"])
 

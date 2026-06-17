@@ -20,9 +20,9 @@ export default function RulesPage() {
   const [f,setF] = useState({name:'',event:'inventory.changed',alert_type:'',alert_title:'',alert_desc:'',severity:'warning',condition_json:'{}'})
 
   const load=async()=>{try{const r=await fetch(API+'/api/rules');setRules(await r.json())}catch(e){}}
-  const loadCfg=async()=>{try{const r=await api.get('/api/replenishment-config');setCfg(r.data||{})}catch(e){}}
+  const loadCfg=async()=>{try{const r=await api.get('/api/replenishment-config');setCfg(r.data||{});return r.data||{}}catch(e){return {}}}
   const loadSeasons=async(mode)=>{try{const m=mode||cfg.replenishment_mode||'bbcc';const r=await api.get('/api/replenishment-config/seasons?mode='+m);setSeasons(r.data||[])}catch(e){}}
-  useEffect(()=>{load();loadCfg();loadSeasons(cfg.replenishment_mode)},[])
+  useEffect(()=>{load();loadCfg().then(d=>loadSeasons(d.replenishment_mode))},[])
 
   const save=async()=>{const cj=JSON.stringify({left:cond.left,op:cond.op,right:cond.rightType==='field'?cond.right:parseFloat(cond.right)||0})
     const isNew = !editing || !editing.id

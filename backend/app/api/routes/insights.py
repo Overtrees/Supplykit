@@ -52,7 +52,10 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', db = get_db(
         sel_ds = {28: ds28, 14: ds14, 7: ds7}[days]
 
         # 当前周期计算
-        suggested = max(round(sel_ds * lead_time + safety - avail - transit), 0) if sel_ds > 0 else 0
+        # safety_multiplier: 安全线倍数，1.0=保留原样，0=不纳入安全库存，1.5=放大50%
+        sm = float(cfg.get('safety_multiplier', '1.0'))
+        effective_safety = round(safety * sm)
+        suggested = max(round(sel_ds * lead_time + effective_safety - avail - transit), 0) if sel_ds > 0 else 0
         days_to_empty = round(avail / sel_ds, 1) if sel_ds > 0 else 999
 
         # B仓超15天仓储费风险告警
@@ -80,7 +83,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', db = get_db(
             "daily_sales_7": ds7, "daily_sales_14": ds14, "daily_sales_28": ds28,
             "suggested_qty": suggested,
             "days_to_empty": days_to_empty,
-            "urgency": "仓储费风险" if days_to_empty > max_turnover else ("紧急" if days_to_empty < safety/(sel_ds or 1)/2 else ("建议" if suggested > 0 else "正常")),
+            "urgency": "仓储费风险" if days_to_empty > max_turnover else ("紧急" if days_to_empty < effective_safety/(sel_ds or 1)/2 else ("建议" if suggested > 0 else "正常")),
         })
 
     suggestions.sort(key=lambda x: x['days_to_empty'])

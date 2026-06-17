@@ -178,7 +178,10 @@ export default function CleansingPage() {
     </div>}
 
     {s === 1 && <div>
-      <div style={{fontSize:13,marginBottom:12}}>已识别 {cols.length} 列 · {tr} 行 · 目标: {tt}</div>
+      <div style={{fontSize:13,marginBottom:12}}>已识别 {cols.length} 列 · {tr} 行 · 目标: {tt}{tt==='order' && <span style={{marginLeft:8,display:'inline-flex',gap:4,verticalAlign:'middle'}}>
+        <span onClick={()=>setMp(p=>({...p,_meta:{order_type:'sale'}}))} style={{padding:'2px 8px',fontSize:11,borderRadius:99,border:'1px solid',cursor:'pointer',background:mp?._meta?.order_type==='sale'?'var(--primary)':'#fff',color:mp?._meta?.order_type==='sale'?'#fff':'var(--muted)',borderColor:mp?._meta?.order_type==='sale'?'var(--primary)':'var(--border)'}}>📈 销售订单</span>
+        <span onClick={()=>setMp(p=>({...p,_meta:{order_type:'purchase'}}))} style={{padding:'2px 8px',fontSize:11,borderRadius:99,border:'1px solid',cursor:'pointer',background:mp?._meta?.order_type==='purchase'?'var(--primary)':'#fff',color:mp?._meta?.order_type==='purchase'?'#fff':'var(--muted)',borderColor:mp?._meta?.order_type==='purchase'?'var(--primary)':'var(--border)'}}>📦 采购单</span>
+      </span>}</div>
       {/* 模板区域 */}
       <div style={{display:'flex',gap:8,marginBottom:12,alignItems:'center',flexWrap:'wrap'}}>
         <select id="tmplSelect" style={{flex:1,fontSize:12,padding:'6px 8px',border:'1px solid #e2e8f0',borderRadius:6,minWidth:140}}>

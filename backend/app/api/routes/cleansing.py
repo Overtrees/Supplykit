@@ -126,6 +126,8 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
         mapping_config = json.loads(mapping_json) if mapping_json else {}
     except json.JSONDecodeError:
         return {'ok': False, 'error': '映射配置格式错误', 'success': 0, 'failed': 0, 'file': filename}
+    # 从映射中提取 order_type（前端通过自定义字段传入，或默认空）
+    order_type = mapping_config.get('_meta', {}).get('order_type', '')
 
     # 加载用于校验和推断的参考数据
     products_map = {p["sku"]: p for p in db.table("products").select("*").execute().data}
@@ -256,6 +258,7 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                     "total_amount": float(data.get('total_amount', 0)),
                     "order_status": str(data.get('order_status', '已完成'))[:50],
                     "ordered_at": str(data.get('ordered_at', ''))[:50],
+                    "order_type": order_type,
                 })
                 success += 1
             else:

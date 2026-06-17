@@ -52,9 +52,10 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', db = get_db(
         sel_ds = {28: ds28, 14: ds14, 7: ds7}[days]
 
         # 当前周期计算
-        # safety_multiplier: 安全线倍数，1.0=保留原样，0=不纳入安全库存，1.5=放大50%
-        sm = float(cfg.get('safety_multiplier', '1.0'))
-        effective_safety = round(safety * sm)
+        # safety_multiplier: 安全库存天数（基于日销的动态安全库存）
+        # 例如 3 = 预留 3 天日销作为安全库存，0 = 不设安全库存
+        safety_days = float(cfg.get('safety_multiplier', '3'))
+        effective_safety = round(sel_ds * safety_days) if sel_ds > 0 else 0
         suggested = max(round(sel_ds * lead_time + effective_safety - avail - transit), 0) if sel_ds > 0 else 0
         days_to_empty = round(avail / sel_ds, 1) if sel_ds > 0 else 999
 

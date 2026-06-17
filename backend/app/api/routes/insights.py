@@ -34,9 +34,14 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', db = get_db(
 
     cfg_rows = db.table("replenishment_config").select("*").execute().data
     cfg = {r['key']: r['value'] for r in cfg_rows}
-    lead_time = int(cfg.get('lead_time_days', '10'))
-    # BBCC 模式：总前置期 = 生产到B仓 + B→C调拨 + C仓安全库存
-    lead_time = lead_time + int(cfg.get('b_to_c_days', '0')) + int(cfg.get('c_safety_days', '0'))
+    mode = cfg.get('replenishment_mode', 'bbcc')
+    if mode == 'bbcc':
+        # BBCC 模式：生产到B仓 + B→C调拨 + C仓安全
+        lead_time = int(cfg.get('lead_time_days', '7'))
+        lead_time = lead_time + int(cfg.get('b_to_c_days', '3')) + int(cfg.get('c_safety_days', '5'))
+    else:
+        # 传统多仓模式：仅生产到仓
+        lead_time = int(cfg.get('lead_time_days', '7'))
 
     suggestions = []
     for inv in items:

@@ -115,8 +115,12 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
     </>}
 
     {tab==='params'&&<div>
+      <div style={{display:'flex',gap:8,marginBottom:12}}>
+        <span onClick={()=>setCfg(p=>({...p,replenishment_mode:'bbcc'}))} style={{padding:'4px 14px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',background:(cfg.replenishment_mode||'bbcc')==='bbcc'?'var(--primary)':'#fff',color:(cfg.replenishment_mode||'bbcc')==='bbcc'?'#fff':'var(--muted)',borderColor:(cfg.replenishment_mode||'bbcc')==='bbcc'?'var(--primary)':'var(--border)'}}>📦 BBCC 送仓</span>
+        <span onClick={()=>setCfg(p=>({...p,replenishment_mode:'traditional'}))} style={{padding:'4px 14px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',background:cfg.replenishment_mode==='traditional'?'var(--primary)':'#fff',color:cfg.replenishment_mode==='traditional'?'#fff':'var(--muted)',borderColor:cfg.replenishment_mode==='traditional'?'var(--primary)':'var(--border)'}}>🏭 传统多仓</span>
+      </div>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:16}}>
-        {paramFields.map(({k,l,h})=><label key={k} style={{fontSize:12}}>
+        {paramFields.filter(f => (cfg.replenishment_mode||'bbcc')==='bbcc' || !['b_to_c_days','c_safety_days'].includes(f.k)).map(({k,l,h})=><label key={k} style={{fontSize:12}}>
           {l}<input value={cfg[k]||''} onChange={e=>setCfg(p=>({...p,[k]:e.target.value}))} style={IS}/>
           <div className='small muted' style={{fontSize:11}}>{h}</div>
         </label>)}

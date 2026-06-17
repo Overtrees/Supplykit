@@ -43,9 +43,9 @@ export default function DashboardPage({ onAlert }) {
         const idx = p[0]?.dataIndex ?? 0; const item = f[idx]
         return `${item.name}<br/>数量: ${item.value}单<br/>占比: ${item.percentage}%<br/>转化率: ${item.conversion}%`
       }},
-      grid: { left: 10, right: 56, top: 4, bottom: 6 },
+      grid: { containLabel: true, top: 4, bottom: 6 },
       xAxis: { type: 'value', show: false },
-      yAxis: { type: 'category', data: names, axisLabel: { fontSize: 10, width: 56, overflow: 'truncate' } },
+      yAxis: { type: 'category', data: names, axisLabel: { fontSize: 10 } },
       series: [{
         type: 'bar', data: values.map((v, i) => ({ value: v, itemStyle: { color: ['var(--primary)','#06b6d4','#0ea5e9','#14b8a6','#10b981'][i % 5], borderRadius: [0, 4, 4, 0] } })),
         barWidth: '60%',

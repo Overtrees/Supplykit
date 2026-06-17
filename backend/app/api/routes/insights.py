@@ -13,12 +13,12 @@ def get_replenishment_suggestions(days: int = 28, db = get_db()):
     products = {p["sku"]: p for p in db.table("products").select("*").execute().data}
     orders = db.table("orders").select("*").execute().data
 
-    # 三周期日销预计算（只取商智消费者日销）
+    # 三周期日销预计算（使用所有可用数据源）
+    # 商智日销(jdzx_sale)最准确，京东采购单(jd_po)次之，有哪个用哪个
     def calc_sales(cutoff_days):
         cutoff = (datetime.utcnow() - timedelta(days=cutoff_days)).strftime('%Y-%m-%d')
         sku_s = {}
         for o in orders:
-            if o.get('data_source','') != 'jdzx_sale': continue
             sku = o.get('sku', '')
             if not sku: continue
             dt = str(o.get('ordered_at', ''))[:10]

@@ -68,7 +68,7 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
     </div>
 
     {tab==='rules'&&<>
-      {editing!==null&&<div style={{background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:12,padding:16,marginBottom:16}}>
+      {editing!==null&&<div style={{background:'var(--bg)',border:'1px solid #e2e8f0',borderRadius:12,padding:16,marginBottom:16}}>
         <div style={{fontWeight:600,marginBottom:12}}>{editing.id?'编辑规则':'新建规则'}</div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
           {ruleFields.map(({k,l,h,pl,tp})=><label key={k} style={{fontSize:12,display:'block'}}>
@@ -136,7 +136,7 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
           <input type='checkbox' checked={s.enabled!==false} onChange={e=>setSeasons(p=>p.map((x,j)=>j===i?{...x,enabled:e.target.checked}:x))} style={{accentColor:'var(--primary)'}}/>
           启用
         </label>
-        <button onClick={()=>setSeasons(p=>p.filter((_,j)=>j!==i))} style={{background:'#fee2e2',border:'none',borderRadius:6,cursor:'pointer',padding:'4px 8px',fontSize:12,color:'#dc2626'}}>删除</button>
+        <button onClick={()=>setSeasons(p=>p.filter((_,j)=>j!==i))} style={{background:'rgba(225,29,72,0.12)',border:'none',borderRadius:6,cursor:'pointer',padding:'4px 8px',fontSize:12,color:'var(--danger)'}}>删除</button>
       </div>)}
       <button onClick={()=>setSeasons(p=>[...p,{key:'new',name:'新活动',factor:1.2,enabled:true}])} style={{padding:'4px 12px',fontSize:12,border:'1px dashed #94a3b8',borderRadius:8,background:'var(--card)',cursor:'pointer',color:'var(--muted)',width:'100%',marginBottom:16}}>+ 添加活动</button>
 

@@ -30,7 +30,7 @@ export default function DashboardPage({ onAlert }) {
     tooltip: { trigger: 'axis', valueFormatter: (v) => '¥' + Number(v).toLocaleString('zh-CN', {minimumFractionDigits:2,maximumFractionDigits:2}) },
     xAxis: { type: 'category', data: dashboard?.stores?.map(i => i.name) || [], axisLabel: { fontSize: 9 } },
     yAxis: { type: 'value', axisLabel: { fontSize: 9, formatter: (v) => v >= 10000 ? (v/10000).toFixed(0) + 'W' : v }, max: (v) => Math.ceil(v.max * 1.2 / 1000) * 1000 },
-    series: [{ type: 'bar', data: dashboard?.stores?.map(i => Math.round(i.gmv * 100) / 100) || [], itemStyle: { color:'#0f766e' } }],
+    series: [{ type: 'bar', data: dashboard?.stores?.map(i => Math.round(i.gmv * 100) / 100) || [], itemStyle: { color:'var(--success)' } }],
     grid: { containLabel: true, top: 8, bottom: 16 }
   }), [dashboard])
 
@@ -43,7 +43,7 @@ export default function DashboardPage({ onAlert }) {
         minSize: '15%', maxSize: '100%', sort: 'descending', gap: 2,
         label: { show: true, fontSize: 10, position: 'outside', formatter: (p) => `${p.name}  ${p.value}单` },
         itemStyle: { borderColor: '#fff', borderWidth: 1 },
-        data: f.map((x,i) => ({ ...x, value: x.value, itemStyle: { color: ['#3b82f6','#06b6d4','#0ea5e9','#14b8a6','#10b981'][i % 5] } }))
+        data: f.map((x,i) => ({ ...x, value: x.value, itemStyle: { color: ['var(--primary)','#06b6d4','#0ea5e9','#14b8a6','#10b981'][i % 5] } }))
       }]
     }
   }, [dashboard])

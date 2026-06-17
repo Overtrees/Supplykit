@@ -40,7 +40,7 @@ export default function InventoryPage({ highlightSku }) {
       <table><thead><tr>{['店铺','仓库','SKU','商品','可用','锁定','在途','安全线','安全天数',''].map(h=><th key={h}>{h}</th>)}</tr></thead>
       <tbody>{fl.map(x => {
         const isHL = highlightSku && x.sku === highlightSku
-        return <tr key={x.id} id={'hl-'+x.sku} style={isHL ? {background:'#fef3c7',outline:'2px solid #f59e0b'} : {}}>
+        return <tr key={x.id} id={'hl-'+x.sku} style={isHL ? {background:'rgba(245,158,11,0.15)',outline:'2px solid #f59e0b'} : {}}>
         <td className="col-store">{x.store||'-'}</td><td className="col-store">{x.warehouse||'-'}</td>
         <td className="mono col-sku">{x.sku}</td><td className="col-name">{x.product_name}</td>
         <td className="col-qty">{x.available_qty}</td><td className="col-qty">{x.locked_qty}</td><td className="col-qty">{x.in_transit_qty}</td><td className="col-qty">{x.safety_qty}</td>

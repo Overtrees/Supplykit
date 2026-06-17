@@ -80,8 +80,8 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', db = get_db(
                         "severity":"warning","source":"replenishment_engine",
                         "related_sku":sku,"status":"active"
                     }).execute()
-            except Exception:
-                pass
+            except Exception as e:
+                import logging; logging.warning('B仓告警创建失败: %s', e)
 
         p = products.get(sku, {})
         suggestions.append({

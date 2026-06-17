@@ -14,7 +14,11 @@ def get_config(db=get_db()):
 @router.put("")
 def update_config(data: dict, db=get_db()):
     for k, v in data.items():
-        db.table("replenishment_config").update({"value": str(v)}).eq("key", k).execute()
+        from app.core.database import get_conn
+        conn = get_conn()
+        conn.execute("INSERT OR REPLACE INTO replenishment_config (key,value,updated_at) VALUES (?,?,datetime('now'))",
+                     [k, str(v)])
+        conn.commit()
     return get_config(db)
 
 

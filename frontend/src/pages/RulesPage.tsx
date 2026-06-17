@@ -24,8 +24,9 @@ export default function RulesPage() {
   useEffect(()=>{load();loadCfg();loadSeasons()},[])
 
   const save=async()=>{const cj=JSON.stringify({left:cond.left,op:cond.op,right:cond.rightType==='field'?cond.right:parseFloat(cond.right)||0})
-    const url=editing?API+'/api/rules/'+editing.id:API+'/api/rules'
-    const m=editing?'PUT':'POST'
+    const isNew = !editing || !editing.id
+    const url=isNew ? API+'/api/rules' : API+'/api/rules/'+editing.id
+    const m=isNew?'POST':'PUT'
     await fetch(url,{method:m,headers:{'Content-Type':'application/json'},body:JSON.stringify({...f,condition_json:cj})})
     setEditing(null);setF({name:'',event:'inventory.changed',alert_type:'',alert_title:'',alert_desc:'',severity:'warning',condition_json:'{}'});load()
   }

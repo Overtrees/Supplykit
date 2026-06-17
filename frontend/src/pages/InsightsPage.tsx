@@ -6,7 +6,7 @@ const pillStyle = (cond, yes = 'danger', no = 'info') => ({
   display: 'inline-block', padding: '2px 8px', borderRadius: 99,
   fontSize: 12, fontWeight: 600,
   background: cond ? '#fff1f2' : '#eff6ff',
-  color: cond ? '#e11d48' : '#1d4ed8',
+  color: cond ? 'var(--danger)' : 'var(--primary)',
 })
 
 export default function InsightsPage() {
@@ -73,10 +73,10 @@ export default function InsightsPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10 }}>
           {[
             { label: '库存商品', value: summary.total_products },
-            { label: '低库存', value: summary.low_stock, color: '#f59e0b' },
-            { label: '紧急补货', value: summary.urgent_replenish, color: summary.urgent_replenish > 0 ? '#ef4444' : '#059669' },
-            { label: '滞销', value: summary.slow_moving, color: summary.slow_moving > 0 ? '#ef4444' : '#059669' },
-            { label: '冷淡', value: summary.cold_count, color: summary.cold_count > 0 ? '#f59e0b' : '#94a3b8' },
+            { label: '低库存', value: summary.low_stock, color: 'var(--warning)' },
+            { label: '紧急补货', value: summary.urgent_replenish, color: summary.urgent_replenish > 0 ? '#ef4444' : 'var(--success)' },
+            { label: '滞销', value: summary.slow_moving, color: summary.slow_moving > 0 ? '#ef4444' : 'var(--success)' },
+            { label: '冷淡', value: summary.cold_count, color: summary.cold_count > 0 ? 'var(--warning)' : 'var(--muted2)' },
           ].map((c, i) => (
             <div key={i} className="card" style={{ textAlign: 'center', containerType:'inline-size' }}>
               <div className="small muted">{c.label}</div>
@@ -105,8 +105,8 @@ export default function InsightsPage() {
                 {[7,14,28].map(d => (
                   <span key={d} onClick={()=>{setReplenDays(d);loadReplen(d)}}
                     style={{padding:'2px 10px',fontSize:11,borderRadius:99,cursor:'pointer',
-                      background:replenDays===d?'#1d4ed8':'transparent',
-                      color:replenDays===d?'#fff':'#64748b',fontWeight:replenDays===d?600:400}}>{d}天</span>
+                      background:replenDays===d?'var(--primary)':'transparent',
+                      color:replenDays===d?'#fff':'var(--muted)',fontWeight:replenDays===d?600:400}}>{d}天</span>
                 ))}
               </span>
             </span>
@@ -122,7 +122,7 @@ export default function InsightsPage() {
                   URL.revokeObjectURL(url)
                 } catch(e) { toast.error('导出失败: '+e.message) }
               }}
-                style={{padding:'5px 14px',fontSize:12,background:'#059669',color:'#fff',border:'none',borderRadius:6,cursor:'pointer',fontWeight:600}}>📥 导出采购单</button>
+                style={{padding:'5px 14px',fontSize:12,background:'var(--success)',color:'#fff',border:'none',borderRadius:6,cursor:'pointer',fontWeight:600}}>📥 导出采购单</button>
             </div>
           </div>
           {replen.filter(x => !ordered.includes(x.sku+'|'+x.store)).length === 0 ? (
@@ -134,16 +134,16 @@ export default function InsightsPage() {
                 <tbody>
                   {replen.filter(x => !ordered.includes(x.sku+'|'+x.store)).map((x, i) => (
                     <tr key={i}>
-                      <td style={{fontSize:11,color:'#94a3b8'}}>{i+1}</td>
+                      <td style={{fontSize:11,color:'var(--muted2)'}}>{i+1}</td>
                       <td className="mono" style={{ fontSize: 12 }}>{x.sku}</td>
                       <td>{x.product_name}</td><td>{x.store}</td>
-                      <td style={{ color: x.available_qty === 0 ? '#ef4444' : '#374151', fontWeight: 600 }}>{x.available_qty}</td>
+                      <td style={{ color: x.available_qty === 0 ? '#ef4444' : 'var(--text)', fontWeight: 600 }}>{x.available_qty}</td>
                       <td>{x.safety_qty}</td><td>{x.in_transit_qty}</td>
                       <td style={{fontSize:11}}>{x.daily_sales_7}</td>
                       <td style={{fontSize:11}}>{x.daily_sales_14}</td>
                       <td style={{fontSize:11,fontWeight:replenDays===28?600:400}}>{x.daily_sales_28}</td>
-                      <td style={{color: x.days_to_empty < 5 ? '#ef4444' : x.days_to_empty < 10 ? '#f59e0b' : '#374151'}}>{x.days_to_empty > 999 ? '∞' : x.days_to_empty}</td>
-                      <td style={{ fontWeight: 600, color: '#059669' }}>+{x.suggested_qty}</td>
+                      <td style={{color: x.days_to_empty < 5 ? '#ef4444' : x.days_to_empty < 10 ? 'var(--warning)' : 'var(--text)'}}>{x.days_to_empty > 999 ? '∞' : x.days_to_empty}</td>
+                      <td style={{ fontWeight: 600, color: 'var(--success)' }}>+{x.suggested_qty}</td>
                       <td style={{fontSize:11}}>{x.safety_days || '-'}</td>
                       <td><span className={`pill ${x.urgency === '紧急' ? 'danger' : x.urgency === '仓储费风险' ? 'warning' : x.urgency === '建议' ? 'info' : 'info'}`}>{x.urgency}</span></td>
                       <td><span onClick={()=>toggleOrdered(x.sku, x.store)} style={{cursor:'pointer',fontSize:18,opacity:0.5}}>☐</span></td>
@@ -183,7 +183,7 @@ export default function InsightsPage() {
                     <tr key={i}>
                       <td className="mono" style={{ fontSize: 12 }}>{x.sku}</td>
                       <td>{x.product_name}</td>
-                      <td style={{ fontWeight: 600, color: '#059669' }}>+{x.suggested_qty}</td>
+                      <td style={{ fontWeight: 600, color: 'var(--success)' }}>+{x.suggested_qty}</td>
                       <td>{x.supplier_name || '-'}</td>
                       <td><span className={`pill ${x.supplier_score >= 80 ? 'success' : x.supplier_score >= 60 ? 'warning' : 'danger'}`}>{x.supplier_score}</span></td>
                       <td><span className={`pill ${x.urgency === '紧急' ? 'danger' : x.urgency === '关注' ? 'warning' : 'info'}`}>{x.urgency}</span></td>
@@ -212,8 +212,8 @@ export default function InsightsPage() {
                       <tr key={i}>
                         <td className="mono" style={{ fontSize: 12 }}>{x.sku}</td>
                         <td>{x.product_name}</td><td>{x.store}</td><td>{x.category}</td>
-                        <td style={{ fontSize: 12, color: '#64748b' }}>{x.last_order_date}</td>
-                        <td style={{ fontWeight: 600, color: x.days_since_last_order >= 90 ? '#ef4444' : x.days_since_last_order >= 30 ? '#f59e0b' : '#64748b' }}>{x.days_since_last_order}天</td>
+                        <td style={{ fontSize: 12, color: 'var(--muted)' }}>{x.last_order_date}</td>
+                        <td style={{ fontWeight: 600, color: x.days_since_last_order >= 90 ? '#ef4444' : x.days_since_last_order >= 30 ? 'var(--warning)' : 'var(--muted)' }}>{x.days_since_last_order}天</td>
                         <td>{x.available_qty}</td>
                         <td><span className={`pill ${x.level === '滞销' ? 'danger' : x.level === '冷淡' ? 'warning' : 'info'}`}>{x.level}</span></td>
                       </tr>

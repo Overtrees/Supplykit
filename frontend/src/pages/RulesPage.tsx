@@ -61,8 +61,8 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
   return <div className='card'>
     <div className='section-title' style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
       <div style={{display:'flex',gap:8}}>
-        <button onClick={()=>setTab('rules')} style={{fontSize:13,fontWeight:tab==='rules'?700:400,padding:'4px 12px',border:'none',borderRadius:6,background:tab==='rules'?'#1d4ed8':'transparent',color:tab==='rules'?'#fff':'#64748b',cursor:'pointer'}}>⚙️ 规则</button>
-        <button onClick={()=>setTab('params')} style={{fontSize:13,fontWeight:tab==='params'?700:400,padding:'4px 12px',border:'none',borderRadius:6,background:tab==='params'?'#059669':'transparent',color:tab==='params'?'#fff':'#64748b',cursor:'pointer'}}>📊 补货参数</button>
+        <button onClick={()=>setTab('rules')} style={{fontSize:13,fontWeight:tab==='rules'?700:400,padding:'4px 12px',border:'none',borderRadius:6,background:tab==='rules'?'var(--primary)':'transparent',color:tab==='rules'?'#fff':'var(--muted)',cursor:'pointer'}}>⚙️ 规则</button>
+        <button onClick={()=>setTab('params')} style={{fontSize:13,fontWeight:tab==='params'?700:400,padding:'4px 12px',border:'none',borderRadius:6,background:tab==='params'?'var(--success)':'transparent',color:tab==='params'?'#fff':'var(--muted)',cursor:'pointer'}}>📊 补货参数</button>
       </div>
       {tab==='rules'&&<button onClick={()=>{setEditing({});setF({name:'',event:'inventory.changed',alert_type:'',alert_title:'',alert_desc:'',severity:'warning',condition_json:'{}'})}} style={ST.primary}>+ 新建</button>}
     </div>
@@ -101,7 +101,7 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
 
       {rules.map(rule=><div key={rule.id} style={{padding:'10px 14px',border:'1px solid #e5e7eb',borderRadius:10,marginBottom:6,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
         <div><div style={{fontWeight:600,fontSize:14}}>{rule.name}</div>
-          <div style={{fontSize:12,color:'#94a3b8',marginTop:2}}>
+          <div style={{fontSize:12,color:'var(--muted2)',marginTop:2}}>
             <span className={'pill '+(rule.is_active?'success':'warning')}>{rule.is_active?'启用':'停用'}</span>
             <span className={'pill '+sevCls(rule.severity)}>{sevLbl(rule.severity)}</span>
             <span className='small muted' style={{marginLeft:6}}>{rule.event}</span>
@@ -133,12 +133,12 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
         <input type='number' value={s.factor} onChange={e=>setSeasons(p=>p.map((x,j)=>j===i?{...x,factor:parseFloat(e.target.value)||1}:x))} step='0.1' min='1' max='3' style={{width:70,fontSize:12,padding:'5px 8px',border:'1px solid #e2e8f0',borderRadius:6,outline:'none'}}/>
         <span className='small muted' style={{fontSize:11}}>倍销售</span>
         <label style={{fontSize:12,display:'flex',alignItems:'center',gap:4}}>
-          <input type='checkbox' checked={s.enabled!==false} onChange={e=>setSeasons(p=>p.map((x,j)=>j===i?{...x,enabled:e.target.checked}:x))} style={{accentColor:'#1d4ed8'}}/>
+          <input type='checkbox' checked={s.enabled!==false} onChange={e=>setSeasons(p=>p.map((x,j)=>j===i?{...x,enabled:e.target.checked}:x))} style={{accentColor:'var(--primary)'}}/>
           启用
         </label>
         <button onClick={()=>setSeasons(p=>p.filter((_,j)=>j!==i))} style={{background:'#fee2e2',border:'none',borderRadius:6,cursor:'pointer',padding:'4px 8px',fontSize:12,color:'#dc2626'}}>删除</button>
       </div>)}
-      <button onClick={()=>setSeasons(p=>[...p,{key:'new',name:'新活动',factor:1.2,enabled:true}])} style={{padding:'4px 12px',fontSize:12,border:'1px dashed #94a3b8',borderRadius:8,background:'#fff',cursor:'pointer',color:'#64748b',width:'100%',marginBottom:16}}>+ 添加活动</button>
+      <button onClick={()=>setSeasons(p=>[...p,{key:'new',name:'新活动',factor:1.2,enabled:true}])} style={{padding:'4px 12px',fontSize:12,border:'1px dashed #94a3b8',borderRadius:8,background:'#fff',cursor:'pointer',color:'var(--muted)',width:'100%',marginBottom:16}}>+ 添加活动</button>
 
       <button disabled={saving} onClick={async()=>{setSaving(true);const m=cfg.replenishment_mode||'bbcc';try{await api.put('/api/replenishment-config',cfg);await api.put('/api/replenishment-config/seasons?mode='+m,{items:seasons});await loadCfg();await loadSeasons(m);toast.success('参数已保存')}catch(e){toast.error('保存失败: '+e.message)}setSaving(false)}} style={{...ST.primary,opacity:saving?0.6:1}}>{saving?'⏳ 保存中...':'💾 保存所有参数'}</button>
       <span className='small muted' style={{marginLeft:8,fontSize:11}}>更新后补货建议 & 规则引擎适用</span>

@@ -161,7 +161,7 @@ export default function CleansingPage() {
   return <div className="card">
     <div className="step-indicator">
       {['上传文件','字段映射','预览确认','完成'].map((l,i) => <span key={i} className={'step'+(s===i?' active':'')+(s>i?' done':'')}>{s>i?'✓ ':''}{l}</span>)}
-      {bs && <span className="step" style={{color:'#1d4ed8'}}>⏳ {bs}...</span>}
+      {bs && <span className="step" style={{color:'var(--primary)'}}>⏳ {bs}...</span>}
     </div>
 
     {s === 0 && <div style={{textAlign:'center',padding:40}}>
@@ -170,7 +170,7 @@ export default function CleansingPage() {
         <button onClick={()=>setTt('order')} style={{padding:'6px 16px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',background:tt==='order'?'var(--primary)':'#fff',color:tt==='order'?'#fff':'var(--muted)',borderColor:tt==='order'?'var(--primary)':'var(--border)',fontWeight:tt==='order'?600:400}}>📋 导入订单</button>
         <button onClick={()=>setTt('inventory')} style={{padding:'6px 16px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',background:tt==='inventory'?'var(--success)':'#fff',color:tt==='inventory'?'#fff':'var(--muted)',borderColor:tt==='inventory'?'var(--success)':'var(--border)',fontWeight:tt==='inventory'?600:400}}>📦 导入库存</button>
       </div>
-      <label style={{display:'inline-block',padding:'10px 24px',background:'#1d4ed8',color:'#fff',borderRadius:10,cursor:'pointer',fontSize:14,fontWeight:600}}>
+      <label style={{display:'inline-block',padding:'10px 24px',background:'var(--primary)',color:'#fff',borderRadius:10,cursor:'pointer',fontSize:14,fontWeight:600}}>
         {bs?'识别中...':'选择文件'}
         <input type="file" accept=".csv,.xlsx" style={{display:'none'}} onChange={e=>{const fi=e.target.files[0];if(fi)detect(fi)}} />
       </label>
@@ -187,11 +187,11 @@ export default function CleansingPage() {
         <select id="tmplSelect" style={{flex:1,fontSize:12,padding:'6px 8px',border:'1px solid #e2e8f0',borderRadius:6,minWidth:140}}>
           <option value="">加载映射模板...</option>
           {Array.isArray(templates) && templates.filter(t => t.doc_type === tt).map(t => <option key={t.id} value={JSON.stringify(t.mapping)}>{t.name}</option>)}
-          {Array.isArray(templates) && templates.filter(t => t.doc_type !== tt).length > 0 && <option disabled style={{color:'#94a3b8',fontSize:11}}>── {tt==='order'?'库存':'订单'}模板（{templates.filter(t=>t.doc_type!==tt).length}个） ──</option>}
+          {Array.isArray(templates) && templates.filter(t => t.doc_type !== tt).length > 0 && <option disabled style={{color:'var(--muted2)',fontSize:11}}>── {tt==='order'?'库存':'订单'}模板（{templates.filter(t=>t.doc_type!==tt).length}个） ──</option>}
         </select>
         <button onClick={()=>{const s=document.getElementById('tmplSelect');if(s.value)try{setMp(JSON.parse(s.value))}catch(e){}}} style={{padding:'6px 14px',fontSize:12,border:'1px solid #e2e8f0',borderRadius:6,background:'#fff',cursor:'pointer'}}>应用</button>
         <input id="tmplName" placeholder="新模板名称" style={{width:120,fontSize:12,padding:'6px 8px',border:'1px solid #e2e8f0',borderRadius:6,outline:'none'}}/>
-        <button onClick={async()=>{const n=document.getElementById('tmplName').value;if(!n)return toast.error('请输入模板名称');await api.post('/api/cleansing/templates',{name:n,doc_type:tt,mapping:mp});document.getElementById('tmplName').value='';loadTemplates();toast.success('模板已保存')}} style={{padding:'6px 14px',fontSize:12,background:'#1d4ed8',color:'#fff',border:'none',borderRadius:6,cursor:'pointer'}}>保存</button>
+        <button onClick={async()=>{const n=document.getElementById('tmplName').value;if(!n)return toast.error('请输入模板名称');await api.post('/api/cleansing/templates',{name:n,doc_type:tt,mapping:mp});document.getElementById('tmplName').value='';loadTemplates();toast.success('模板已保存')}} style={{padding:'6px 14px',fontSize:12,background:'var(--primary)',color:'#fff',border:'none',borderRadius:6,cursor:'pointer'}}>保存</button>
       </div>
       {Array.isArray(cf) && <div style={{marginBottom:10,border:'1px solid #e2e8f0',borderRadius:12,padding:12,background:'#fafafa'}}>
         <div style={{fontSize:12,fontWeight:600,marginBottom:8}}>自定义字段</div>
@@ -202,7 +202,7 @@ export default function CleansingPage() {
           </select>
           <button onClick={()=>delField(i)} style={{background:'#fee2e2',border:'none',borderRadius:6,cursor:'pointer',padding:'4px 8px',fontSize:12,color:'#dc2626'}}>删除</button>
         </div>)}
-        <button onClick={addField} style={{padding:'5px 14px',fontSize:12,border:'1px dashed #94a3b8',borderRadius:8,background:'#fff',cursor:'pointer',color:'#64748b',width:'100%'}}>+ 添加自定义字段</button>
+        <button onClick={addField} style={{padding:'5px 14px',fontSize:12,border:'1px dashed #94a3b8',borderRadius:8,background:'#fff',cursor:'pointer',color:'var(--muted)',width:'100%'}}>+ 添加自定义字段</button>
       </div>}
       {cols.map(c => {
         const matched = ALIAS[c.name]
@@ -212,7 +212,7 @@ export default function CleansingPage() {
           {c.name}
           {matched && sf && <span className="small muted" style={{display:'block',fontSize:11}}>→ {sf.l} ({sf.t})</span>}
         </div>
-        <div style={{fontSize:11,color:'#94a3b8',flexShrink:0}}>→</div>
+        <div style={{fontSize:11,color:'var(--muted2)',flexShrink:0}}>→</div>
         <select value={mp[c.name]?.target||''} onChange={e=>{const v=e.target.value;const matchedCf=cf.find(f=>f.t===v);setMp(p=>({...p,[c.name]:{target:v||c.name,type:matchedCf?matchedCf.tp:'string'}}))}} style={{flex:1,fontSize:12,padding:'6px 8px',border:'1px solid #e2e8f0',borderRadius:6}}>
           <option value="">不映射</option>
           <optgroup label="系统字段">{(tt==='inventory'?INV_FIELDS:SYS_FIELDS).map(sf => <option key={sf.t} value={sf.t}>{sf.l}</option>)}</optgroup>
@@ -223,9 +223,9 @@ export default function CleansingPage() {
         </select>
       </div>})}
       <div style={{marginTop:12,display:'flex',gap:8,justifyContent:'flex-end'}}>
-        {btn('← 返回', ()=>{setS(0);setF(null);setCols([]);setMp({})}, '#64748b')}
+        {btn('← 返回', ()=>{setS(0);setF(null);setCols([]);setMp({})}, 'var(--muted)')}
         <div style={{flex:1}}></div>
-        {btn('一键执行 ⚡', quickExecute, '#059669')}
+        {btn('一键执行 ⚡', quickExecute, 'var(--success)')}
         {btn('预览 →', preview)}
       </div>
     </div>}
@@ -242,8 +242,8 @@ export default function CleansingPage() {
         </>})()}
       </div>}
       <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
-        {btn('← 返回', ()=>setS(1), '#64748b')}
-        {btn('确认写入 ('+pv.total+' 条)', doExecute, '#059669')}
+        {btn('← 返回', ()=>setS(1), 'var(--muted)')}
+        {btn('确认写入 ('+pv.total+' 条)', doExecute, 'var(--success)')}
       </div>
     </div>}
 
@@ -252,13 +252,13 @@ export default function CleansingPage() {
       <div style={{fontWeight:700,fontSize:18,marginBottom:4}}>{res.success>0?'清洗完成':'清洗完成（无新增）'}</div>
       <div className="small muted" style={{marginBottom:16}}>{res.message||'目标: '+res.target+' · 文件: '+res.file}</div>
       <div style={{display:'flex',justifyContent:'center',gap:24,marginBottom:16}}>
-        <div><div style={{fontSize:24,fontWeight:700,color:'#059669'}}>{res.success}</div><div className="small muted">成功</div></div>
-        <div><div style={{fontSize:24,fontWeight:700,color:res.failed>0?'#e11d48':'#94a3b8'}}>{res.failed}</div><div className="small muted">跳过</div></div>
+        <div><div style={{fontSize:24,fontWeight:700,color:'var(--success)'}}>{res.success}</div><div className="small muted">成功</div></div>
+        <div><div style={{fontSize:24,fontWeight:700,color:res.failed>0?'var(--danger)':'var(--muted2)'}}>{res.failed}</div><div className="small muted">跳过</div></div>
       </div>
       <div style={{display:'flex',gap:8,justifyContent:'center'}}>
         <button onClick={()=>{setS(0);setF(null);setCols([]);setTr(0);setMp({});setPv(null);setRes(null)}}
-          style={{padding:'8px 20px',background:'#64748b',color:'#fff',border:'none',borderRadius:8,cursor:'pointer',fontSize:13,fontWeight:600}}>重新开始</button>
-        <label style={{display:'inline-block',padding:'8px 20px',background:'#059669',color:'#fff',borderRadius:8,cursor:'pointer',fontSize:13,fontWeight:600}}>
+          style={{padding:'8px 20px',background:'var(--muted)',color:'#fff',border:'none',borderRadius:8,cursor:'pointer',fontSize:13,fontWeight:600}}>重新开始</button>
+        <label style={{display:'inline-block',padding:'8px 20px',background:'var(--success)',color:'#fff',borderRadius:8,cursor:'pointer',fontSize:13,fontWeight:600}}>
           导入相同格式 📁
           <input type="file" accept=".csv,.xlsx" style={{display:'none'}} onChange={e=>{
             const fi=e.target.files[0]

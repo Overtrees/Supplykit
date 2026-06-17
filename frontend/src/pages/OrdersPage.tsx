@@ -36,7 +36,7 @@ export default function OrdersPage() {
     {/* iOS 风格搜索栏 */}
     <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}}>
       <div className="search-bar">
-        <span style={{fontSize:16,color:'#94a3b8',flexShrink:0}}>🔍</span>
+        <span style={{fontSize:16,color:'var(--muted2)',flexShrink:0}}>🔍</span>
         <input value={sq} onChange={e=>setSq(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')doSearch()}}
           placeholder="搜索单号/商品/SKU" enterKeyHint="search" inputMode="search" autoCorrect="off" />
         {sq && <span className="cancel" onClick={()=>{setSq('');doSearch()}}>清除</span>}

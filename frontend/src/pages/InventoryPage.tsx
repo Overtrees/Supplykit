@@ -30,7 +30,7 @@ export default function InventoryPage({ highlightSku }) {
     <div className="section-title" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
       <span>库存 <span className="small muted">共 {inventory.length} 条</span></span>
       <div className="search-bar" style={{maxWidth:240,flex:'none'}}>
-        <span style={{fontSize:16,color:'#94a3b8',flexShrink:0}}>🔍</span>
+        <span style={{fontSize:16,color:'var(--muted2)',flexShrink:0}}>🔍</span>
         <input value={s} onChange={e=>setS(e.target.value)} placeholder="搜索SKU/商品名" enterKeyHint="search" autoCorrect="off" />
       </div>
     </div>

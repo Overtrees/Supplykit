@@ -45,7 +45,7 @@ export default function Sidebar({ page, onNavigate, lowStock, errCount }) {
         {NAV.map(item => {
           const active = page === item.id
           const badge = item.badge ? (item.id === 'order' ? lowStock : item.id === 'quality' ? errCount : null) : null
-          return <div key={item.id} onClick={() => { onNavigate(item.id); setSidebarOpen(false) }} style={{
+          return <div key={item.id} onClick={() => { onNavigate(item.id); onClose() }} style={{
             display:'flex', alignItems:'center', gap:12, padding:'12px 20px', margin:'2px 8px', borderRadius:10,
             fontSize:14, cursor:'pointer', fontWeight: active ? 600 : 400,
             color: active ? '#fff' : 'rgba(255,255,255,0.6)',

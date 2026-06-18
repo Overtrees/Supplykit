@@ -8,7 +8,7 @@ export default function Sidebar({ page, onNavigate, lowStock, errCount }) {
   return (
     <>
       {/* 侧边栏 — 全屏 */}
-      <div onClick={onClose} style={{
+      <div onClick={onClose} className="fade-in" style={{
         position:'fixed', inset:0, width:'100%',
         background:'var(--sidebar)', color:'var(--card)', zIndex:99999999,
         display: sidebarOpen ? 'flex' : 'none',

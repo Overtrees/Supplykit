@@ -15,14 +15,13 @@ export default function Sidebar({ page, onNavigate, lowStock, errCount }) {
         }} />
       )}
 
-      {/* 里层面板 — 始终 DOM 中，transform 滑入滑出 */}
+      {/* 里层面板 */}
       <div style={{
         position:'fixed', top:0, right:0, bottom:0, width:280,
         background:'var(--sidebar)', color:'#fff', zIndex:99999999,
-        display:'flex', flexDirection:'column', overflow:'hidden',
+        display: sidebarOpen ? 'flex' : 'none', flexDirection:'column', overflow:'hidden',
         paddingTop:'env(safe-area-inset-top,0)',
         paddingBottom:'env(safe-area-inset-bottom,0)',
-        transform: sidebarOpen ? 'translateX(0)' : 'translateX(100%)',
       }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'16px 20px', borderBottom:'1px solid rgba(255,255,255,0.08)', flexShrink:0 }}>
           <div style={{ display:'flex', alignItems:'center', gap:10 }}>

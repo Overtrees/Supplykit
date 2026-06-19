@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react"
+import { AnimatePresence, motion } from "framer-motion"
 import { useAppStore } from './store/useAppStore'
 import { ToastProvider } from './components/Toast'
 import ProductPage from './pages/ProductPage'
@@ -25,8 +26,6 @@ export const NAV = [
   { id:'quality',label:'异常',icon:'⚠️'},
 ]
 
-const TRANSITION_DURATION = 300 // ms
-
 function renderPage(pageId, onNavigate, highlightSku) {
   const wrap = (el) => <ErrorBoundary key={pageId}>{el}</ErrorBoundary>
   switch (pageId) {
@@ -44,10 +43,14 @@ function renderPage(pageId, onNavigate, highlightSku) {
   }
 }
 
+const pageTransition = {
+  initial: { x: '30%', opacity: 0 },
+  animate: { x: 0, opacity: 1 },
+  exit: { x: '-20%', opacity: 0.4 },
+}
+
 export default function App() {
   const [page, setPage] = useState('dash')
-  const [leavingPage, setLeavingPage] = useState(null)
-  const [transitioning, setTransitioning] = useState(false)
   const [highlightSku, setHighlightSku] = useState('')
   const { inventory, qualityLogs, startPolling, stopAll, setSidebarOpen } = useAppStore()
   useKeyboard({
@@ -57,16 +60,10 @@ export default function App() {
   useEffect(() => { startPolling(); return () => stopAll() }, [])
 
   const navigate = useCallback((newPage, sku) => {
-    if (newPage === page || transitioning) return
+    if (newPage === page) return
     if (sku) setHighlightSku(sku)
-    setLeavingPage(page)
     setPage(newPage)
-    setTransitioning(true)
-    setTimeout(() => {
-      setTransitioning(false)
-      setLeavingPage(null)
-    }, TRANSITION_DURATION)
-  }, [page, transitioning])
+  }, [page])
 
   const handleMenuClick = useCallback(() => setSidebarOpen(true), [])
 
@@ -76,31 +73,21 @@ export default function App() {
   return (
     <ToastProvider>
       <Sidebar page={page} onNavigate={navigate} lowStock={lowStock} errCount={errCount} />
-      <div style={{ position:'relative', minHeight:'100vh', background:'var(--bg)' }}>
-        {/* 离开中的页面 — 向左滑出 */}
-        {leavingPage && (
-          <div key={`exit-${leavingPage}`} style={{
-            position:'fixed', inset:0, zIndex:10, overflow:'hidden',
-            animation: `slideOutLeft ${TRANSITION_DURATION}ms cubic-bezier(0.4,0,0.2,1) forwards`,
-          }}>
+      <div style={{ minHeight:'100vh', background:'var(--bg)', position:'relative', overflow:'hidden' }}>
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={page}
+            variants={pageTransition}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={{ duration:0.28, ease:[0.4,0,0.2,1] }}
+          >
             <PageShell onMenuClick={handleMenuClick}>
-              {renderPage(leavingPage, navigate, '')}
+              {renderPage(page, navigate, highlightSku)}
             </PageShell>
-          </div>
-        )}
-        {/* 当前页面 — 从右侧滑入 / 静态展示 */}
-        <div key={`enter-${page}`} style={{
-          position: transitioning ? 'fixed' : 'relative',
-          inset:0, zIndex: transitioning ? 20 : 1,
-          overflow: transitioning ? 'hidden' : 'visible',
-          animation: transitioning
-            ? `slideInRight ${TRANSITION_DURATION}ms cubic-bezier(0.4,0,0.2,1) forwards`
-            : 'none',
-        }}>
-          <PageShell onMenuClick={handleMenuClick}>
-            {renderPage(page, navigate, highlightSku)}
-          </PageShell>
-        </div>
+          </motion.div>
+        </AnimatePresence>
       </div>
     </ToastProvider>
   )

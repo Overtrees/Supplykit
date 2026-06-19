@@ -35,7 +35,8 @@ export default function App() {
 
   // 同步 body/html 背景色到当前视图，安全区颜色始终一致
   useEffect(() => {
-    const bg = sidebarOpen ? '#1e293b' : 'var(--bg, #f8fafc)'
+    const pageBg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#f8fafc'
+    const bg = sidebarOpen ? '#1e293b' : pageBg
     document.documentElement.style.backgroundColor = bg
     document.body.style.backgroundColor = bg
   }, [sidebarOpen])

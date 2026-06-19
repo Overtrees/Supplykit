@@ -40,6 +40,11 @@ export default function App() {
       document.documentElement.style.backgroundColor = bg
       document.body.style.backgroundColor = bg
     }
+    return () => {
+      // 清理内联样式，让 CSS 变量跟媒体查询走
+      document.documentElement.style.backgroundColor = ''
+      document.body.style.backgroundColor = ''
+    }
   }, [page])
 
   // 每页 mount 时锁定背景色，消除从 sidebar 进页面的闪烁
@@ -49,6 +54,10 @@ export default function App() {
       if (bg && bg !== 'transparent' && bg !== 'rgba(0,0,0,0)') {
         document.documentElement.style.backgroundColor = bg
         document.body.style.backgroundColor = bg
+      }
+      return () => {
+        document.documentElement.style.backgroundColor = ''
+        document.body.style.backgroundColor = ''
       }
     }, [])
     return children

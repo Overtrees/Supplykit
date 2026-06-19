@@ -9,15 +9,18 @@ export default function Sidebar({ page, onNavigate, lowStock, errCount }) {
 
   if (!sidebarOpen) return null
 
-  const close = () => {
+  const close = (nextPage) => {
     if (ref.current) {
       ref.current.style.background = getComputedStyle(document.body).backgroundColor
     }
     setSidebarOpen(false)
+    if (nextPage && nextPage !== page) {
+      setTimeout(() => onNavigate(nextPage), 0)
+    }
   }
 
   return (
-    <div ref={ref} onClick={close} style={{
+    <div ref={ref} onClick={() => close()} style={{
       position:'fixed', inset:0, width:'100%', background:'var(--sidebar)', color:'#fff', zIndex:99999999,
       display:'flex', flexDirection:'column', overflow:'hidden',
       paddingTop:'env(safe-area-inset-top,0)', paddingBottom:'env(safe-area-inset-bottom,0)',
@@ -37,7 +40,7 @@ export default function Sidebar({ page, onNavigate, lowStock, errCount }) {
       <div style={{ flex:1, overflow:'auto', padding:'8px 0' }}>
         {NAV.map(item => {
           const active = page === item.id
-          return <div key={item.id} onClick={() => { onNavigate(item.id); close() }} style={{
+          return <div key={item.id} onClick={() => close(item.id)} style={{
             display:'flex', alignItems:'center', gap:12, padding:'12px 20px', margin:'2px 8px', borderRadius:10,
             fontSize:14, cursor:'pointer', fontWeight: active ? 600 : 400,
             color: active ? '#fff' : 'rgba(255,255,255,0.6)',

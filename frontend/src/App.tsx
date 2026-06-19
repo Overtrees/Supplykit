@@ -77,21 +77,17 @@ export default function App() {
         willChange: 'transform',
       }}>
         {/* sidebar-view: 全屏宽，深色背景 */}
-        <div className="sidebar-view" style={{
+        <div className="view" style={{
           width: '100vw', flexShrink: 0,
           background: '#1e293b', color: '#fff',
           display: 'flex', flexDirection: 'column',
           minHeight: '100svh',
-          overflowY: 'auto',
-          WebkitOverflowScrolling: 'touch',
-          paddingTop: 'env(safe-area-inset-top, 0px)',
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}>
           <Sidebar page={page} onNavigate={navigate} lowStock={lowStock} errCount={errCount} />
         </div>
 
         {/* main-view: 全屏宽，页面背景 */}
-        <div className="main-view" style={{
+        <div className="view" style={{
           width: '100vw', flexShrink: 0,
           background: 'var(--bg)',
           display: 'flex', flexDirection: 'column',

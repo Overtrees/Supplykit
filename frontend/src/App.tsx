@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react"
+import React, { useState, useEffect, useCallback, useLayoutEffect } from "react"
 import { useAppStore } from './store/useAppStore'
 import { ToastProvider } from './components/Toast'
 import ProductPage from './pages/ProductPage'
@@ -32,6 +32,21 @@ export default function App() {
     'esc': () => setSidebarOpen(false)
   })
   useEffect(() => { startPolling(); return () => stopAll() }, [])
+
+  // 同步设置 html/body 背景色 + 顶部渐变，消除首帧闪烁
+  useLayoutEffect(() => {
+    const bg = getComputedStyle(document.body).backgroundColor
+    if (bg && bg !== 'transparent' && bg !== 'rgba(0,0,0,0)') {
+      document.documentElement.style.backgroundColor = bg
+      document.body.style.backgroundColor = bg
+      const old = document.querySelector('[data-bg-sync]')
+      if (old) old.remove()
+      const s = document.createElement('style')
+      s.setAttribute('data-bg-sync', '')
+      s.textContent = `body::before{background:linear-gradient(to bottom,${bg},transparent)!important}`
+      document.head.appendChild(s)
+    }
+  }, [page])
 
   const navigate = useCallback((newPage, sku) => {
     if (sku) setHighlightSku(sku)

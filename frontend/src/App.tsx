@@ -33,18 +33,12 @@ export default function App() {
   })
   useEffect(() => { startPolling(); return () => stopAll() }, [])
 
-  // 同步设置 html/body 背景色 + 顶部渐变，消除首帧闪烁
+  // 同步锁定 html/body 背景色，消除首帧闪烁
   useLayoutEffect(() => {
     const bg = getComputedStyle(document.body).backgroundColor
     if (bg && bg !== 'transparent' && bg !== 'rgba(0,0,0,0)') {
       document.documentElement.style.backgroundColor = bg
       document.body.style.backgroundColor = bg
-      const old = document.querySelector('[data-bg-sync]')
-      if (old) old.remove()
-      const s = document.createElement('style')
-      s.setAttribute('data-bg-sync', '')
-      s.textContent = `body::before{background:linear-gradient(to bottom,${bg},transparent)!important}`
-      document.head.appendChild(s)
     }
   }, [page])
 

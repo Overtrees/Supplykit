@@ -26,6 +26,9 @@ export const NAV = [
 export default function App() {
   const [page, setPage] = useState('dash')
   const [highlightSku, setHighlightSku] = useState('')
+  const [isDarkMode, setIsDarkMode] = useState(
+    () => window.matchMedia('(prefers-color-scheme: dark)').matches
+  )
   const { inventory, qualityLogs, startPolling, stopAll, setSidebarOpen, wsStatus } = useAppStore()
   useKeyboard({
     'meta+b': () => { const s = useAppStore.getState(); s.setSidebarOpen(!s.sidebarOpen) },
@@ -33,7 +36,15 @@ export default function App() {
   })
   useEffect(() => { startPolling(); return () => stopAll() }, [])
 
-  // 同步锁定 html/body 背景色，消除首帧闪烁
+  // 监听系统深浅色切换
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const handler = e => setIsDarkMode(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+
+  // 锁定 html/body 背景色，跟随页面切换和深浅色
   useLayoutEffect(() => {
     const bg = getComputedStyle(document.body).backgroundColor
     if (bg && bg !== 'transparent' && bg !== 'rgba(0,0,0,0)') {
@@ -41,27 +52,10 @@ export default function App() {
       document.body.style.backgroundColor = bg
     }
     return () => {
-      // 清理内联样式，让 CSS 变量跟媒体查询走
       document.documentElement.style.backgroundColor = ''
       document.body.style.backgroundColor = ''
     }
-  }, [page])
-
-  // 每页 mount 时锁定背景色，消除从 sidebar 进页面的闪烁
-  function PageLock({ children }) {
-    useLayoutEffect(() => {
-      const bg = getComputedStyle(document.body).backgroundColor
-      if (bg && bg !== 'transparent' && bg !== 'rgba(0,0,0,0)') {
-        document.documentElement.style.backgroundColor = bg
-        document.body.style.backgroundColor = bg
-      }
-      return () => {
-        document.documentElement.style.backgroundColor = ''
-        document.body.style.backgroundColor = ''
-      }
-    }, [])
-    return children
-  }
+  }, [page, isDarkMode])
 
   const navigate = useCallback((newPage, sku) => {
     if (sku) setHighlightSku(sku)
@@ -72,7 +66,7 @@ export default function App() {
   const errCount = (qualityLogs||[]).length
 
   const renderPage = (pageId) => {
-    const wrap = (el) => <ErrorBoundary key={pageId}><PageLock>{el}</PageLock></ErrorBoundary>
+    const wrap = (el) => <ErrorBoundary key={pageId}>{el}</ErrorBoundary>
     switch (pageId) {
       case 'dash': return wrap(<DashboardPage onAlert={(s)=>{navigate('inv',s)}} />)
       case 'products': return wrap(<ProductPage />)

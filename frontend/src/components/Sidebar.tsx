@@ -1,31 +1,16 @@
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import { NAV } from '../App'
 import { useAppStore } from '../store/useAppStore'
 
 export default function Sidebar({ page, onNavigate, lowStock, errCount }) {
   const sidebarOpen = useAppStore(s => s.sidebarOpen)
   const setSidebarOpen = useAppStore(s => s.setSidebarOpen)
-  const [anim, setAnim] = useState('')
 
-  useEffect(() => {
-    if (sidebarOpen) setTimeout(() => setAnim('enter'), 10)
-    else setAnim('')
-  }, [sidebarOpen])
-
-  const onClose = () => {
-    setAnim('exit')
-    setTimeout(() => { setSidebarOpen(false); setAnim('') }, 260)
-  }
-
-  const tx = anim === 'exit' ? 'translateX(-100%)' : anim === 'enter' ? 'translateX(0)' : 'translateX(100%)'
-
-  if (!sidebarOpen && anim !== 'exit') return null
+  if (!sidebarOpen) return null
 
   return (
-    <div onClick={onClose} style={{
+    <div onClick={() => setSidebarOpen(false)} style={{
       position:'fixed', inset:0, width:'100%', background:'var(--sidebar)', color:'#fff', zIndex:99999999,
-      transform: tx,
-      transition:'transform 0.25s cubic-bezier(0.4,0,0.2,1)',
       display:'flex', flexDirection:'column', overflow:'hidden',
       paddingTop:'env(safe-area-inset-top,0)', paddingBottom:'env(safe-area-inset-bottom,0)',
     }}>
@@ -34,7 +19,7 @@ export default function Sidebar({ page, onNavigate, lowStock, errCount }) {
           <div style={{ width:32, height:32, borderRadius:8, background:'var(--primary)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700 }}>供</div>
           <span style={{ fontWeight:700, fontSize:16, letterSpacing:'-0.02em' }}>SupplyChain</span>
         </div>
-        <button onClick={(e) => { e.stopPropagation(); onClose() }} style={{
+        <button onClick={(e) => { e.stopPropagation(); setSidebarOpen(false) }} style={{
           width:32, height:32, display:'flex', alignItems:'center', justifyContent:'center',
           borderRadius:8, cursor:'pointer', border:'none',
           background:'rgba(255,255,255,0.08)', color:'rgba(255,255,255,0.6)',
@@ -44,18 +29,16 @@ export default function Sidebar({ page, onNavigate, lowStock, errCount }) {
       <div style={{ flex:1, overflow:'auto', padding:'8px 0' }}>
         {NAV.map(item => {
           const active = page === item.id
-          const badge = item.badge ? (item.id === 'order' ? lowStock : item.id === 'quality' ? errCount : null) : null
-          return <div key={item.id} onClick={() => { onNavigate(item.id); onClose() }} style={{
+          return <div key={item.id} onClick={() => { onNavigate(item.id); setSidebarOpen(false) }} style={{
             display:'flex', alignItems:'center', gap:12, padding:'12px 20px', margin:'2px 8px', borderRadius:10,
             fontSize:14, cursor:'pointer', fontWeight: active ? 600 : 400,
             color: active ? '#fff' : 'rgba(255,255,255,0.6)',
             background: active ? 'rgba(255,255,255,0.1)' : 'transparent',
-            transition:'all 0.12s',
           }}>
             <span style={{ fontSize:20, flexShrink:0 }}>{item.icon}</span>
             <span style={{ flex:1 }}>{item.label}</span>
-            {item.badge === 'err' && errCount > 0 && <span style={{ background:'var(--danger)', color:'#fff', fontSize:11, padding:'1px 7px', borderRadius:99, fontWeight:600 }}>{errCount}</span>}
-            {item.badge === 'stock' && lowStock > 0 && <span style={{ background:'var(--warning)', color:'#fff', fontSize:11, padding:'1px 7px', borderRadius:99, fontWeight:600 }}>{lowStock}</span>}
+            {item.id === 'quality' && errCount > 0 && <span style={{ background:'var(--danger)', color:'#fff', fontSize:11, padding:'1px 7px', borderRadius:99, fontWeight:600 }}>{errCount}</span>}
+            {item.id === 'inv' && lowStock > 0 && <span style={{ background:'var(--warning)', color:'#fff', fontSize:11, padding:'1px 7px', borderRadius:99, fontWeight:600 }}>{lowStock}</span>}
           </div>
         })}
       </div>

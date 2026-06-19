@@ -10,12 +10,8 @@ export default function Sidebar({ page, onNavigate, lowStock, errCount }) {
   if (!sidebarOpen) return null
 
   const close = () => {
-    if (ref.current) ref.current.style.background = 'transparent'
-    // 同步锁定页面背景，防 sidebar 卸载后闪色
-    const bg = getComputedStyle(document.body).backgroundColor
-    if (bg && bg !== 'transparent' && bg !== 'rgba(0,0,0,0)') {
-      document.documentElement.style.backgroundColor = bg
-      document.body.style.backgroundColor = bg
+    if (ref.current) {
+      ref.current.style.background = getComputedStyle(document.body).backgroundColor
     }
     setSidebarOpen(false)
   }

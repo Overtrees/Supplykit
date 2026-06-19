@@ -6,9 +6,22 @@ export default function Sidebar({ page, onNavigate, lowStock, errCount }) {
   const sidebarOpen = useAppStore(s => s.sidebarOpen)
   const setSidebarOpen = useAppStore(s => s.setSidebarOpen)
 
+  const setPageSafe = () => {
+    document.documentElement.style.setProperty('--safe-bg', 'var(--bg)')
+  }
+
+  const navigateAndClose = (pageId) => {
+    setPageSafe()
+    requestAnimationFrame(() => {
+      onNavigate(pageId)
+      setSidebarOpen(false)
+    })
+  }
+
   const close = (e) => {
     e.stopPropagation()
-    setSidebarOpen(false)
+    setPageSafe()
+    requestAnimationFrame(() => setSidebarOpen(false))
   }
 
   return (
@@ -26,7 +39,7 @@ export default function Sidebar({ page, onNavigate, lowStock, errCount }) {
               <div style={{ width:32, height:32, borderRadius:8, background:'var(--primary)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700 }}>供</div>
               <span style={{ fontWeight:700, fontSize:16, letterSpacing:'-0.02em' }}>SupplyChain</span>
             </div>
-            <button onClick={(e) => { e.stopPropagation(); setSidebarOpen(false) }} style={{
+            <button onClick={close} style={{
               width:32, height:32, display:'flex', alignItems:'center', justifyContent:'center',
               borderRadius:8, cursor:'pointer', border:'none',
               background:'rgba(255,255,255,0.08)', color:'rgba(255,255,255,0.6)', fontSize:16,
@@ -36,7 +49,7 @@ export default function Sidebar({ page, onNavigate, lowStock, errCount }) {
         <div style={{ flex:1, overflow:'auto', padding:'8px 0' }}>
           {NAV.map(item => {
             const active = page === item.id
-            return <div key={item.id} onClick={(e) => { e.stopPropagation(); onNavigate(item.id); setSidebarOpen(false) }} style={{
+            return <div key={item.id} onClick={(e) => { e.stopPropagation(); navigateAndClose(item.id) }} style={{
               display:'flex', alignItems:'center', gap:12, padding:'12px 20px', margin:'2px 8px', borderRadius:10,
               fontSize:14, cursor:'pointer', fontWeight: active ? 600 : 400,
               color: active ? '#fff' : 'rgba(255,255,255,0.6)',

@@ -29,7 +29,7 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(
     () => window.matchMedia('(prefers-color-scheme: dark)').matches
   )
-  const { inventory, qualityLogs, startPolling, stopAll, setSidebarOpen, wsStatus } = useAppStore()
+  const { inventory, qualityLogs, startPolling, stopAll, setSidebarOpen, sidebarOpen, wsStatus } = useAppStore()
   useKeyboard({
     'meta+b': () => { const s = useAppStore.getState(); s.setSidebarOpen(!s.sidebarOpen) },
     'esc': () => setSidebarOpen(false)
@@ -56,6 +56,16 @@ export default function App() {
       document.body.style.backgroundColor = ''
     }
   }, [page, isDarkMode])
+
+  // 兜底：sidebar 开关时同步 --safe-bg
+  useEffect(() => {
+    document.documentElement.style.setProperty('--safe-bg', sidebarOpen ? 'var(--sidebar)' : 'var(--bg)')
+  }, [sidebarOpen])
+
+  const openSidebar = useCallback(() => {
+    document.documentElement.style.setProperty('--safe-bg', 'var(--sidebar)')
+    setSidebarOpen(true)
+  }, [])
 
   const navigate = useCallback((newPage, sku) => {
     if (sku) setHighlightSku(sku)
@@ -88,7 +98,7 @@ export default function App() {
       <header>
         <div className="header-inner">
           <div className="header-left">
-            <button className="menu-btn" onClick={() => setSidebarOpen(true)}>
+            <button className="menu-btn" onClick={openSidebar}>
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="4" width="16" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="9.25" width="16" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="14.5" width="16" height="1.5" rx=".75" fill="currentColor"/></svg>
             </button>
           </div>

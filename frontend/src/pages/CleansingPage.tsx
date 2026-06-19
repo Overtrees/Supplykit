@@ -184,20 +184,20 @@ export default function CleansingPage() {
       </span>}</div>
       {/* 模板区域 */}
       <div style={{display:'flex',gap:8,marginBottom:12,alignItems:'center',flexWrap:'wrap'}}>
-        <select id="tmplSelect" style={{flex:1,fontSize:12,padding:'6px 8px',border:'1px solid #e2e8f0',borderRadius:6,minWidth:140}}>
+        <select id="tmplSelect" style={{flex:1,fontSize:16,padding:'6px 8px',border:'1px solid #e2e8f0',borderRadius:6,minWidth:140}}>
           <option value="">加载映射模板...</option>
           {Array.isArray(templates) && templates.filter(t => t.doc_type === tt).map(t => <option key={t.id} value={JSON.stringify(t.mapping)}>{t.name}</option>)}
           {Array.isArray(templates) && templates.filter(t => t.doc_type !== tt).length > 0 && <option disabled style={{color:'var(--muted2)',fontSize:11}}>── {tt==='order'?'库存':'订单'}模板（{templates.filter(t=>t.doc_type!==tt).length}个） ──</option>}
         </select>
         <button onClick={()=>{const s=document.getElementById('tmplSelect');if(s.value)try{setMp(JSON.parse(s.value))}catch(e){}}} style={{padding:'6px 14px',fontSize:12,border:'1px solid #e2e8f0',borderRadius:6,background:'var(--card)',cursor:'pointer'}}>应用</button>
-        <input id="tmplName" placeholder="新模板名称" style={{width:120,fontSize:12,padding:'6px 8px',border:'1px solid #e2e8f0',borderRadius:6,outline:'none'}}/>
+        <input id="tmplName" placeholder="新模板名称" style={{width:120,fontSize:16,padding:'6px 8px',border:'1px solid #e2e8f0',borderRadius:6,outline:'none'}}/>
         <button onClick={async()=>{const n=document.getElementById('tmplName').value;if(!n)return toast.error('请输入模板名称');await api.post('/api/cleansing/templates',{name:n,doc_type:tt,mapping:mp});document.getElementById('tmplName').value='';loadTemplates();toast.success('模板已保存')}} style={{padding:'6px 14px',fontSize:12,background:'var(--primary)',color:'var(--card)',border:'none',borderRadius:6,cursor:'pointer'}}>保存</button>
       </div>
       {Array.isArray(cf) && <div style={{marginBottom:10,border:'1px solid #e2e8f0',borderRadius:12,padding:12,background:'var(--bg)'}}>
         <div style={{fontSize:12,fontWeight:600,marginBottom:8}}>自定义字段</div>
         {cf.map((f,i) => <div key={i} style={{display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
-          <input value={f.l} onChange={e=>{const v=e.target.value;setCf(p=>p.map((x,k)=>k===i?{...x,l:v}:x))}} placeholder="字段名" style={{flex:1,fontSize:12,padding:'5px 8px',border:'1px solid #e2e8f0',borderRadius:6,outline:'none'}}/>
-          <select value={f.tp} onChange={e=>{const v=e.target.value;setCf(p=>p.map((x,k)=>k===i?{...x,tp:v}:x))}} style={{fontSize:11,padding:'5px',border:'1px solid #e2e8f0',borderRadius:6}}>
+          <input value={f.l} onChange={e=>{const v=e.target.value;setCf(p=>p.map((x,k)=>k===i?{...x,l:v}:x))}} placeholder="字段名" style={{flex:1,fontSize:16,padding:'5px 8px',border:'1px solid #e2e8f0',borderRadius:6,outline:'none'}}/>
+          <select value={f.tp} onChange={e=>{const v=e.target.value;setCf(p=>p.map((x,k)=>k===i?{...x,tp:v}:x))}} style={{fontSize:14,padding:'5px',border:'1px solid #e2e8f0',borderRadius:6}}>
             <option value="string">文本</option><option value="number">数字</option><option value="date">日期</option>
           </select>
           <button onClick={()=>delField(i)} style={{background:'rgba(225,29,72,0.12)',border:'none',borderRadius:6,cursor:'pointer',padding:'4px 8px',fontSize:12,color:'var(--danger)'}}>删除</button>
@@ -213,12 +213,12 @@ export default function CleansingPage() {
           {matched && sf && <span className="small muted" style={{display:'block',fontSize:11}}>→ {sf.l} ({sf.t})</span>}
         </div>
         <div style={{fontSize:11,color:'var(--muted2)',flexShrink:0}}>→</div>
-        <select value={mp[c.name]?.target||''} onChange={e=>{const v=e.target.value;const matchedCf=cf.find(f=>f.t===v);setMp(p=>({...p,[c.name]:{target:v||c.name,type:matchedCf?matchedCf.tp:'string'}}))}} style={{flex:1,fontSize:12,padding:'6px 8px',border:'1px solid #e2e8f0',borderRadius:6}}>
+        <select value={mp[c.name]?.target||''} onChange={e=>{const v=e.target.value;const matchedCf=cf.find(f=>f.t===v);setMp(p=>({...p,[c.name]:{target:v||c.name,type:matchedCf?matchedCf.tp:'string'}}))}} style={{flex:1,fontSize:16,padding:'6px 8px',border:'1px solid #e2e8f0',borderRadius:6}}>
           <option value="">不映射</option>
           <optgroup label="系统字段">{(tt==='inventory'?INV_FIELDS:SYS_FIELDS).map(sf => <option key={sf.t} value={sf.t}>{sf.l}</option>)}</optgroup>
           {cf.length > 0 && <optgroup label="自定义字段">{cf.map(f => <option key={f.t} value={f.t}>{f.l}</option>)}</optgroup>}
         </select>
-        <select value={mp[c.name]?.type||''} onChange={e=>{const v=e.target.value;setMp(p=>({...p,[c.name]:{...p[c.name],type:v}}))}} style={{flexShrink:0,fontSize:11,padding:'5px',border:'1px solid #e2e8f0',borderRadius:6}}>
+        <select value={mp[c.name]?.type||''} onChange={e=>{const v=e.target.value;setMp(p=>({...p,[c.name]:{...p[c.name],type:v}}))}} style={{flexShrink:0,fontSize:14,padding:'5px',border:'1px solid #e2e8f0',borderRadius:6}}>
           <option value="string">文本</option><option value="number">数字</option><option value="date">日期</option>
         </select>
       </div>})}

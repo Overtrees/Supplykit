@@ -33,12 +33,14 @@ export default function App() {
   })
   useEffect(() => { startPolling(); return () => stopAll() }, [])
 
-  // 同步 body/html 背景色到当前视图，安全区颜色始终一致
+  // 同步 body/html 背景色 + 浏览器 chrome 色到当前视图
   useEffect(() => {
     const pageBg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#f8fafc'
     const bg = sidebarOpen ? '#1e293b' : pageBg
     document.documentElement.style.backgroundColor = bg
     document.body.style.backgroundColor = bg
+    const themeMeta = document.querySelector('meta[name="theme-color"]')
+    if (themeMeta) themeMeta.setAttribute('content', bg)
   }, [sidebarOpen])
 
   const navigate = useCallback((newPage, sku) => {

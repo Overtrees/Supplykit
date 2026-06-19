@@ -11,8 +11,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','SF Pro Text'
 ::view-transition-old(root){animation:0.15s ease-out both vt-out}
 ::view-transition-new(root){animation:0.2s ease-out both vt-in}
 
-/* 标题栏 — 粘性定位 */
-header{position:sticky;top:0;z-index:2;padding-top:env(safe-area-inset-top,0px);background:transparent}
+/* 标题栏 */
+header{padding-top:env(safe-area-inset-top,0px);background:transparent}
 .header-inner{display:flex;justify-content:space-between;align-items:center;padding:12px 20px}
 .header-left{display:flex;align-items:center;gap:10px}
 .menu-btn{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:50%;cursor:pointer;border:none;background:rgba(128,128,128,0.12);color:var(--text);flex-shrink:0}

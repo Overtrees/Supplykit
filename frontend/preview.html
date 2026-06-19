@@ -45,6 +45,8 @@
     .sidebar-item-badge.amber{background:#f59e0b;color:#fff}
     .menu-btn{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:8px;cursor:pointer;border:none;background:rgba(255,255,255,0.12);color:#fff;font-size:18px;transition:all 0.15s;margin-right:10px;flex-shrink:0}
     .menu-btn:hover{background:rgba(255,255,255,0.2)}
+    @keyframes slideInRight{from{transform:translateX(100%)}to{transform:translateX(0)}}
+    @keyframes slideOutLeft{from{transform:translateX(0);opacity:1}to{transform:translateX(-25%);opacity:.6}}
     .mapping-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid #f1f5f9;border-radius:10px;margin-bottom:6px;background:#fff;transition:all 0.12s}
     .mapping-row:hover{border-color:#cbd5e1;background:#fafafa}
     .mapping-src{flex:1;font-size:13px;font-weight:500;min-width:0;word-break:break-all}
@@ -141,6 +143,24 @@
           </div>
         </div>
       </>
+    }
+
+    // ─── 页面外壳（每页独立 header + 满屏卡片）───────────────────────────────
+    function PageShell({ children, onMenuClick, wsStatus }) {
+      return <div style={{minHeight:'100vh',background:'#f3f6fb',display:'flex',flexDirection:'column',fontFamily:'system-ui,sans-serif',WebkitFontSmoothing:'antialiased'}}>
+        <div style={{paddingTop:'env(safe-area-inset-top,0)',background:'transparent',flexShrink:0}}>
+          <div style={{padding:'14px 20px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <button onClick={onMenuClick} style={{width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:8,cursor:'pointer',border:'none',background:'rgba(0,0,0,0.06)',color:'#0f172a',fontSize:18,flexShrink:0}}>☰</button>
+              <div style={{fontSize:18,fontWeight:800,lineHeight:1.3}}>SupplyChain</div>
+            </div>
+            <div className="small" style={{color:wsStatus==='connected'?'#86efac':wsStatus==='closed'?'#fcd34d':'#f87171'}}>WS: {wsStatus==='connected'?'实时':wsStatus==='closed'?'轮询':'断开'}</div>
+          </div>
+        </div>
+        <div className="wrap" style={{flex:1,width:'100%',maxWidth:1280,margin:'0 auto',padding:'20px calc(20px + env(safe-area-inset-bottom, 0px))',overflowY:'auto'}}>
+          {children}
+        </div>
+      </div>
     }
 
     // ─── 清洗页面 ────────────────────────────────────────────────────────────
@@ -559,8 +579,19 @@
       const [wsStatus, setWsStatus] = useState('idle')
       const [logs, setLogs] = useState([])
       const [busy, setBusy] = useState('')
+      const [leavingPage, setLeavingPage] = useState(null)
+      const [transitioning, setTransitioning] = useState(false)
 
-      const loadAll = async () => {
+      const navigate = useCallback(function(newPage) {
+        if (newPage === page || transitioning) return
+        setLeavingPage(page)
+        setPage(newPage)
+        setTransitioning(true)
+        setTimeout(function() {
+          setTransitioning(false)
+          setLeavingPage(null)
+        }, 300)
+      }, [page, transitioning])
         const safeFetch = async (url, fallback=[]) => {
           try { const r = await fetch(url); return await r.json() }
           catch(e) { console.warn('fetch failed:', url, e); return fallback }
@@ -657,103 +688,103 @@
         }
       }, [dashboard])
 
-      return <>
-        <Sidebar open={sidebarOpen} onClose={()=>setSidebarOpen(false)} page={page} onNavigate={setPage} lowStock={lowStock} errCount={errCount} />
-        <div>
-          <div className="header" style={{padding:'14px 20px',display:'flex',justifyContent:'space-between',alignItems:'center',position:'relative',zIndex:1}}>
-            <div style={{display:'flex',alignItems:'center'}}>
-              <button className="menu-btn" onClick={()=>setSidebarOpen(true)}>☰</button>
-              <div>
-                <div style={{fontSize:20,fontWeight:800,lineHeight:1.3}}>SupplyChain V1 Preview</div>
-                <div className="small muted">CSV / XLSX 导入 · 实时看板 · 低库存告警 · 字段清洗</div>
-              </div>
+      // 渲染页面内容
+      var renderContent = function(pageId) {
+        // 复用页面 ID 到组件的映射（同之前 conditional render 逻辑）
+        if (pageId === 'dash') return <>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+            <div style={{display:'flex',gap:4}}>
+              {['today','week','month'].map(function(k) { return <button key={k} onClick={function(){setPeriodTab(k)}}
+                style={{fontSize:12,padding:'4px 14px',borderRadius:99,border:'1px solid',cursor:'pointer',
+                  background:periodTab===k?'#1d4ed8':'#fff',color:periodTab===k?'#fff':'#64748b',
+                  borderColor:periodTab===k?'#1d4ed8':'#e2e8f0',fontWeight:periodTab===k?600:400}}>{periodLabel[k]}</button> })}
             </div>
-            <div className="small" style={{color:wsStatus==='connected'?'#86efac':wsStatus==='closed'?'#fcd34d':'#f87171'}}>WS: {wsStatus==='connected'?'实时':wsStatus==='closed'?'轮询':'断开'}</div>
+            <div className="small muted">{periodMeta.date ? '截至 '+periodMeta.date : ''}</div>
           </div>
-          <div className="wrap">
-            {page === 'dash' && <>
-              {/* 时段切换条 */}
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
-                <div style={{display:'flex',gap:4}}>
-                  {['today','week','month'].map(k => (
-                    <button key={k} onClick={()=>setPeriodTab(k)}
-                      style={{fontSize:12,padding:'4px 14px',borderRadius:99,border:'1px solid',cursor:'pointer',
-                        background:periodTab===k?'#1d4ed8':'#fff',color:periodTab===k?'#fff':'#64748b',
-                        borderColor:periodTab===k?'#1d4ed8':'#e2e8f0',fontWeight:periodTab===k?600:400}}>{periodLabel[k]}</button>
-                  ))}
+          <div className="grid4" style={{marginBottom:16}}>
+            <Card title={periodLabel[periodTab]+' GMV'} value={'¥'+Number(periodMeta.gmv||0).toLocaleString()} sub={(periodMeta.orders||0)+' 单 / 总额 ¥'+Number(dashboard?.summary?.gmv||0).toLocaleString()} />
+            <Card title="待发货" value={dashboard?.summary?.pending_count||0} badge={dashboard?.summary?.pending_count>3?<span className="pill danger">积压</span>:null} />
+            <Card title="库存健康度" value={(dashboard?.health_index?.score||0)+'分'}
+              sub={(dashboard?.health_index?.healthy||0)+'健康 / '+(dashboard?.health_index?.warning||0)+'偏低 / '+(dashboard?.health_index?.out_of_stock||0)+'缺货'}
+              badge={<span className={'pill '+(dashboard?.health_index?.level==='danger'?'danger':dashboard?.health_index?.level==='warning'?'warning':'success')}>
+                {dashboard?.health_index?.level==='danger'?'危险':dashboard?.health_index?.level==='warning'?'关注':'良好'}</span>} />
+            <Card title={errCount>0||dashboard?.summary?.active_alerts>0?'⚠️ 待处理异常':'待处理异常'}
+              value={String(errCount + (dashboard?.summary?.active_alerts||0))}
+              sub={(dashboard?.summary?.active_alerts||0)+' 告警 · '+(errCount||0)+' 数据异常'}
+              badge={errCount>0||dashboard?.summary?.active_alerts>0?<span className="pill danger" style={{background:'#ef4444',color:'#fff'}}>需处理</span>:null} />
+          </div>
+          <div className="grid2" style={{marginBottom:16}}>
+            <div className="card"><div className="section-title">{periodLabel[periodTab]} GMV·订单趋势</div>
+              <Chart option={periodTrendOption} height={200} /></div>
+            <div className="card"><div className="section-title">订单漏斗 下单→完成</div>
+              <Chart option={funnelOption} height={200} /></div>
+          </div>
+          <div className="grid3" style={{marginBottom:16}}>
+            <div className="card"><div className="section-title">店铺 GMV</div><Chart option={storeOption} height={170} /></div>
+            <div className="card"><div className="section-title">商品分类分布</div>
+              {dashboard?.category_distribution ? <Chart option={{tooltip:{trigger:'item'},series:[{type:'pie',radius:['40%','70%'],data:dashboard.category_distribution,label:{fontSize:11}}]}} height={170} /> : <div className="small muted">暂无数据</div>}
+            </div>
+            <div className="card"><div className="section-title">低库存 & 补货告警</div>
+              {alerts.length===0?<div className="small muted" style={{padding:12,textAlign:'center'}}>暂无告警</div>:alerts.slice(0,6).map(function(x) {return <div key={x.id} style={{padding:'6px 0',borderBottom:'1px solid #f1f5f9',fontSize:13}}>
+                <div style={{display:'flex',justifyContent:'space-between',gap:8}}>
+                  <span style={{fontWeight:600,fontSize:12}}>{x.title}</span>
+                  <span className={'pill '+(x.alert_type==='replenish'||x.severity==='error'?'danger':x.severity==='warning'?'warning':'info')}>{x.alert_type==='replenish'?'补货':x.severity}</span>
                 </div>
-                <div className="small muted">{periodMeta.date ? `截至 ${periodMeta.date}` : ''}</div>
-              </div>
-              {/* KPI 卡片 */}
-              <div className="grid4" style={{marginBottom:16}}>
-                <Card title={`${periodLabel[periodTab]} GMV`} value={`¥${Number(periodMeta.gmv||0).toLocaleString()}`} sub={`${periodMeta.orders||0} 单 / 总额 ¥${Number(dashboard?.summary?.gmv||0).toLocaleString()}`} />
-                <Card title="待发货" value={dashboard?.summary?.pending_count||0} badge={dashboard?.summary?.pending_count>3?<span className="pill danger">积压</span>:null} />
-                <Card title="库存健康度" value={`${dashboard?.health_index?.score||0}分`}
-                  sub={`${dashboard?.health_index?.healthy||0}健康 / ${dashboard?.health_index?.warning||0}偏低 / ${dashboard?.health_index?.out_of_stock||0}缺货`}
-                  badge={<span className={`pill ${dashboard?.health_index?.level==='danger'?'danger':dashboard?.health_index?.level==='warning'?'warning':'success'}`}>
-                    {dashboard?.health_index?.level==='danger'?'危险':dashboard?.health_index?.level==='warning'?'关注':'良好'}</span>} />
-                <Card title={errCount>0||dashboard?.summary?.active_alerts>0?'⚠️ 待处理异常':'待处理异常'}
-                  value={(errCount + (dashboard?.summary?.active_alerts||0)).toString()}
-                  sub={`${dashboard?.summary?.active_alerts||0} 告警 · ${errCount||0} 数据异常`}
-                  badge={errCount>0||dashboard?.summary?.active_alerts>0?<span className="pill danger" style={{background:'#ef4444',color:'#fff'}}>需处理</span>:null} />
-              </div>
-              {/* 图表行：趋势 + 漏斗 */}
-              <div className="grid2" style={{marginBottom:16}}>
-                <div className="card"><div className="section-title">{periodLabel[periodTab]} GMV·订单趋势</div>
-                  <Chart option={periodTrendOption} height={200} /></div>
-                <div className="card"><div className="section-title">订单漏斗 下单→完成</div>
-                  <Chart option={funnelOption} height={200} /></div>
-              </div>
-              {/* 分布 + 告警 */}
-              <div className="grid3" style={{marginBottom:16}}>
-                <div className="card"><div className="section-title">店铺 GMV</div><Chart option={storeOption} height={170} /></div>
-                <div className="card"><div className="section-title">商品分类分布</div>
-                  {dashboard?.category_distribution ? <Chart option={{tooltip:{trigger:'item'},series:[{type:'pie',radius:['40%','70%'],data:dashboard.category_distribution,label:{fontSize:11}}]}} height={170} /> : <div className="small muted">暂无数据</div>}
-                </div>
-                <div className="card"><div className="section-title">低库存 & 补货告警</div>
-                  {alerts.length===0?<div className="small muted" style={{padding:12,textAlign:'center'}}>暂无告警</div>:alerts.slice(0,6).map(x=><div key={x.id} style={{padding:'6px 0',borderBottom:'1px solid #f1f5f9',fontSize:13}}>
-                    <div style={{display:'flex',justifyContent:'space-between',gap:8}}>
-                      <span style={{fontWeight:600,fontSize:12}}>{x.title}</span>
-                      <span className={`pill ${x.alert_type==='replenish'||x.severity==='error'?'danger':x.severity==='warning'?'warning':'info'}`}>{x.alert_type==='replenish'?'补货':x.severity}</span>
-                    </div>
-                    <div className="small muted" style={{fontSize:11}}>{x.description}</div>
-                  </div>)}
-                  {alerts.length>6 && <div className="small muted" style={{textAlign:'center',padding:6}}>还有 {alerts.length-6} 条...</div>}
-                </div>
-              </div>
-            </>}
-            {page === 'insights' && <InsightsPage />}
-            {page === 'products' && <ProductPage />}
-            {page === 'suppliers' && <SupplierPage />}
-            {page === 'orders' && <div className="card"><div className="section-title" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-              <span>订单 <span className="small muted">共 {orderTotal} 条</span></span>
-              <div style={{display:'flex',gap:6,alignItems:'center'}}>
-                <button onClick={()=>{setOrderPage(Math.max(1,orderPage-1));setTimeout(loadLatest,0)}} disabled={orderPage<=1}
-                  style={{fontSize:11,padding:'4px 10px',border:'1px solid #e2e8f0',borderRadius:6,background:orderPage<=1?'#f1f5f9':'#fff',cursor:orderPage<=1?'not-allowed':'pointer'}}>‹ 上一页</button>
-                <span className="small muted" style={{fontSize:12}}>{orderPage}</span>
-                <button onClick={()=>{setOrderPage(orderPage+1);setTimeout(loadLatest,0)}}
-                  style={{fontSize:11,padding:'4px 10px',border:'1px solid #e2e8f0',borderRadius:6,background:'#fff',cursor:'pointer'}}>下一页 ›</button>
-              </div>
-            </div><div style={{overflowX:'auto'}}><table><thead><tr>{['订单号','店铺','仓库','商品','金额','状态','日期'].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{orders.map(x=><tr key={x.id}><td className="mono" style={{fontSize:12}}>{x.order_no}</td><td>{x.store||'-'}</td><td>{x.warehouse||'-'}</td><td>{x.product_name}</td><td>¥{Number(x.total_amount).toLocaleString()}</td><td>{x.order_status}</td><td>{x.ordered_at}</td></tr>)}</tbody></table></div></div>}
-            {page === 'inv' && <div className="card"><div className="section-title">库存</div><div style={{overflowX:'auto'}}><table><thead><tr>{['店铺','仓库','SKU','商品','可用','锁定','在途','安全线'].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{inventory.map(x=><tr key={x.id}><td>{x.store||'-'}</td><td>{x.warehouse||'-'}</td><td className="mono" style={{fontSize:12}}>{x.sku}</td><td>{x.product_name}</td><td>{x.available_qty}</td><td>{x.locked_qty}</td><td>{x.in_transit_qty}</td><td>{x.safety_qty}</td></tr>)}</tbody></table></div></div>}
-            {page === 'cleansing' && <CleansingPage />}
-            {page === 'import' && <div className="card" style={{marginBottom:16}}>
-              <div className="section-title">导入与实时刷新</div>
-              <div className="grid22" style={{marginBottom:12}}>
-                <label style={{border:'1px dashed #cbd5e1',borderRadius:12,padding:16,cursor:'pointer'}}>
-                  <div style={{fontSize:14,fontWeight:700,marginBottom:6}}>导入订单 CSV / XLSX</div>
-                  <div className="small muted">{busy==='orders'?'上传中...':'支持中文列名与英文字段名'}</div>
-                  <input type="file" accept=".csv,.xlsx" style={{display:'none'}} onChange={e=>upload('orders',e.target.files?.[0])} />
-                </label>
-                <label style={{border:'1px dashed #cbd5e1',borderRadius:12,padding:16,cursor:'pointer'}}>
-                  <div style={{fontSize:14,fontWeight:700,marginBottom:6}}>导入库存 CSV / XLSX</div>
-                  <div className="small muted">{busy==='inventory'?'上传中...':'导入后自动重建低库存告警'}</div>
-                  <input type="file" accept=".csv,.xlsx" style={{display:'none'}} onChange={e=>upload('inventory',e.target.files?.[0])} />
-                </label>
-              </div>
-              <div><div style={{fontSize:13,fontWeight:700,marginBottom:8}}>实时导入日志</div>{logs.length===0?<div className="small muted">暂无日志</div>:logs.map((x,idx)=><div key={idx} style={{fontSize:12,background:'#f8fafc',border:'1px solid #e5e7eb',borderRadius:10,padding:'8px 10px',marginBottom:8}}><div style={{fontWeight:700}}>{x.type}</div><div className="muted">{JSON.stringify(x.payload)}</div></div>)}</div>
-            </div>}
-            {page === 'quality' && <div className="card"><div className="section-title">数据质量日志</div>{qualityLogs.length===0?<div className="small muted">暂无异常</div>:<table><thead><tr>{['类型','字段','消息','级别','时间'].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{qualityLogs.map(x=><tr key={x.id}><td>{x.issue_type}</td><td>{x.field_name||'-'}</td><td>{x.issue_message}</td><td><span className={`pill ${levelClass(x.severity)}`}>{x.severity}</span></td><td className="small mono">{x.created_at||'-'}</td></tr>)}</tbody></table>}</div>}
+                <div className="small muted" style={{fontSize:11}}>{x.description}</div>
+              </div>})}
+              {alerts.length>6 && <div className="small muted" style={{textAlign:'center',padding:6}}>还有 {alerts.length-6} 条...</div>}
+            </div>
+          </div>
+        </>
+        if (pageId === 'insights') return <InsightsPage />
+        if (pageId === 'products') return <ProductPage />
+        if (pageId === 'suppliers') return <SupplierPage />
+        if (pageId === 'orders') return <div className="card"><div className="section-title" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <span>订单 <span className="small muted">共 {orderTotal} 条</span></span>
+          <div style={{display:'flex',gap:6,alignItems:'center'}}>
+            <button onClick={function(){setOrderPage(Math.max(1,orderPage-1));setTimeout(loadLatest,0)}} disabled={orderPage<=1}
+              style={{fontSize:11,padding:'4px 10px',border:'1px solid #e2e8f0',borderRadius:6,background:orderPage<=1?'#f1f5f9':'#fff',cursor:orderPage<=1?'not-allowed':'pointer'}}>‹ 上一页</button>
+            <span className="small muted" style={{fontSize:12}}>{orderPage}</span>
+            <button onClick={function(){setOrderPage(orderPage+1);setTimeout(loadLatest,0)}}
+              style={{fontSize:11,padding:'4px 10px',border:'1px solid #e2e8f0',borderRadius:6,background:'#fff',cursor:'pointer'}}>下一页 ›</button>
+          </div>
+        </div><div style={{overflowX:'auto'}}><table><thead><tr>{['订单号','店铺','仓库','商品','金额','状态','日期'].map(function(h){return <th key={h}>{h}</th>})}</tr></thead><tbody>{orders.map(function(x) {return <tr key={x.id}><td className="mono" style={{fontSize:12}}>{x.order_no}</td><td>{x.store||'-'}</td><td>{x.warehouse||'-'}</td><td>{x.product_name}</td><td>¥{Number(x.total_amount).toLocaleString()}</td><td>{x.order_status}</td><td>{x.ordered_at}</td></tr>})}</tbody></table></div></div>
+        if (pageId === 'inv') return <div className="card"><div className="section-title">库存</div><div style={{overflowX:'auto'}}><table><thead><tr>{['店铺','仓库','SKU','商品','可用','锁定','在途','安全线'].map(function(h){return <th key={h}>{h}</th>})}</tr></thead><tbody>{inventory.map(function(x) {return <tr key={x.id}><td>{x.store||'-'}</td><td>{x.warehouse||'-'}</td><td className="mono" style={{fontSize:12}}>{x.sku}</td><td>{x.product_name}</td><td>{x.available_qty}</td><td>{x.locked_qty}</td><td>{x.in_transit_qty}</td><td>{x.safety_qty}</td></tr>})}</tbody></table></div></div>
+        if (pageId === 'cleansing') return <CleansingPage />
+        if (pageId === 'import') return <div className="card" style={{marginBottom:16}}>
+          <div className="section-title">导入与实时刷新</div>
+          <div className="grid22" style={{marginBottom:12}}>
+            <label style={{border:'1px dashed #cbd5e1',borderRadius:12,padding:16,cursor:'pointer'}}>
+              <div style={{fontSize:14,fontWeight:700,marginBottom:6}}>导入订单 CSV / XLSX</div>
+              <div className="small muted">{busy==='orders'?'上传中...':'支持中文列名与英文字段名'}</div>
+              <input type="file" accept=".csv,.xlsx" style={{display:'none'}} onChange={function(e){upload('orders',e.target.files?.[0])}} />
+            </label>
+            <label style={{border:'1px dashed #cbd5e1',borderRadius:12,padding:16,cursor:'pointer'}}>
+              <div style={{fontSize:14,fontWeight:700,marginBottom:6}}>导入库存 CSV / XLSX</div>
+              <div className="small muted">{busy==='inventory'?'上传中...':'导入后自动重建低库存告警'}</div>
+              <input type="file" accept=".csv,.xlsx" style={{display:'none'}} onChange={function(e){upload('inventory',e.target.files?.[0])}} />
+            </label>
+          </div>
+          <div><div style={{fontSize:13,fontWeight:700,marginBottom:8}}>实时导入日志</div>{logs.length===0?<div className="small muted">暂无日志</div>:logs.map(function(x,idx){return <div key={idx} style={{fontSize:12,background:'#f8fafc',border:'1px solid #e5e7eb',borderRadius:10,padding:'8px 10px',marginBottom:8}}><div style={{fontWeight:700}}>{x.type}</div><div className="muted">{JSON.stringify(x.payload)}</div></div>})}</div>
+        </div>
+        if (pageId === 'quality') return <div className="card"><div className="section-title">数据质量日志</div>{qualityLogs.length===0?<div className="small muted">暂无异常</div>:<table><thead><tr>{['类型','字段','消息','级别','时间'].map(function(h){return <th key={h}>{h}</th>})}</tr></thead><tbody>{qualityLogs.map(function(x) {return <tr key={x.id}><td>{x.issue_type}</td><td>{x.field_name||'-'}</td><td>{x.issue_message}</td><td><span className={'pill '+levelClass(x.severity)}>{x.severity}</span></td><td className="small mono">{x.created_at||'-'}</td></tr>})}</tbody></table>}</div>
+        return null
+      }
+
+      return <>
+        <Sidebar open={sidebarOpen} onClose={function(){setSidebarOpen(false)}} page={page} onNavigate={navigate} lowStock={lowStock} errCount={errCount} />
+        <div style={{position:'relative',minHeight:'100vh',background:'#f3f6fb'}}>
+          {/* 离开中的页面 */}
+          {leavingPage && <div key={'exit-'+leavingPage} style={{position:'fixed',inset:0,zIndex:10,overflow:'hidden',animation:'slideOutLeft 300ms cubic-bezier(0.4,0,0.2,1) forwards'}}>
+            <PageShell onMenuClick={function(){setSidebarOpen(true)}} wsStatus={wsStatus}>
+              {renderContent(leavingPage)}
+            </PageShell>
+          </div>}
+          {/* 当前页面 */}
+          <div key={'enter-'+page} style={{position:transitioning?'fixed':'relative',inset:0,zIndex:transitioning?20:1,overflow:transitioning?'hidden':'visible',animation:transitioning?'slideInRight 300ms cubic-bezier(0.4,0,0.2,1) forwards':'none'}}>
+            <PageShell onMenuClick={function(){setSidebarOpen(true)}} wsStatus={wsStatus}>
+              {renderContent(page)}
+            </PageShell>
           </div>
         </div>
       </>

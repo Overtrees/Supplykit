@@ -11,7 +11,7 @@ export default function Sidebar({ page, onNavigate, lowStock, errCount }) {
   }
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', flex:1, paddingTop:'env(safe-area-inset-top,0px)', paddingBottom:'env(safe-area-inset-bottom,0px)' }}>
+    <div style={{ display:'flex', flexDirection:'column', flex:1 }}>
       {/* 头部 */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'16px 20px', flexShrink:0 }}>
         <div style={{ display:'flex', alignItems:'center', gap:10 }}>

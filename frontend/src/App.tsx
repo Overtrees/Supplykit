@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from "react"
-import { AnimatePresence, motion } from "framer-motion"
 import { useAppStore } from './store/useAppStore'
 import { ToastProvider } from './components/Toast'
 import ProductPage from './pages/ProductPage'
@@ -25,36 +24,6 @@ export const NAV = [
   { id:'quality',label:'异常',icon:'⚠️'},
 ]
 
-function renderPage(pageId, onNavigate, highlightSku) {
-  const wrap = (el) => <ErrorBoundary key={pageId}>{el}</ErrorBoundary>
-  switch (pageId) {
-    case 'dash': return wrap(<DashboardPage onAlert={(s)=>{onNavigate('inv',s)}} />)
-    case 'products': return wrap(<ProductPage />)
-    case 'suppliers': return wrap(<SupplierPage />)
-    case 'orders': return wrap(<OrdersPage />)
-    case 'inv': return wrap(<InventoryPage highlightSku={highlightSku || ''} />)
-    case 'insights': return wrap(<InsightsPage />)
-    case 'cleansing': return wrap(<CleansingPage />)
-    case 'rules': return wrap(<RulesPage />)
-    case 'import': return wrap(<UploadPanel onImport={(t)=>onNavigate(t==='orders'?'orders':'inv')} />)
-    case 'quality': return wrap(<QualityPage />)
-    default: return null
-  }
-}
-
-const pageTransition = {
-  initial: { x: '100%', opacity: 0.9, scale: 1 },
-  animate: { x: 0, opacity: 1, scale: 1 },
-  exit: { x: '-25%', opacity: 0, scale: 0.98 },
-}
-
-const springTransition = {
-  type: 'spring' as const,
-  damping: 28,
-  stiffness: 280,
-  mass: 0.9,
-}
-
 export default function App() {
   const [page, setPage] = useState('dash')
   const [highlightSku, setHighlightSku] = useState('')
@@ -66,35 +35,37 @@ export default function App() {
   useEffect(() => { startPolling(); return () => stopAll() }, [])
 
   const navigate = useCallback((newPage, sku) => {
-    if (newPage === page) return
     if (sku) setHighlightSku(sku)
     setPage(newPage)
-  }, [page])
-
-  const handleMenuClick = useCallback(() => setSidebarOpen(true), [])
+  }, [])
 
   const lowStock = (inventory||[]).filter(x => Number(x.available_qty) < Number(x.safety_qty)).length
   const errCount = (qualityLogs||[]).length
+
+  const renderPage = (pageId) => {
+    const wrap = (el) => <ErrorBoundary key={pageId}>{el}</ErrorBoundary>
+    switch (pageId) {
+      case 'dash': return wrap(<DashboardPage onAlert={(s)=>{navigate('inv',s)}} />)
+      case 'products': return wrap(<ProductPage />)
+      case 'suppliers': return wrap(<SupplierPage />)
+      case 'orders': return wrap(<OrdersPage />)
+      case 'inv': return wrap(<InventoryPage highlightSku={highlightSku || ''} />)
+      case 'insights': return wrap(<InsightsPage />)
+      case 'cleansing': return wrap(<CleansingPage />)
+      case 'rules': return wrap(<RulesPage />)
+      case 'import': return wrap(<UploadPanel onImport={(t)=>navigate(t==='orders'?'orders':'inv')} />)
+      case 'quality': return wrap(<QualityPage />)
+      default: return null
+    }
+  }
 
   return (
     <ToastProvider>
       <Sidebar page={page} onNavigate={navigate} lowStock={lowStock} errCount={errCount} />
       <div className="app-root">
-        <AnimatePresence mode="popLayout" initial={false}>
-          <motion.div
-            key={page}
-            className="page-wrap"
-            variants={pageTransition}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            transition={springTransition}
-          >
-            <PageShell onMenuClick={handleMenuClick}>
-              {renderPage(page, navigate, highlightSku)}
-            </PageShell>
-          </motion.div>
-        </AnimatePresence>
+        <PageShell key={page} onMenuClick={() => setSidebarOpen(true)}>
+          {renderPage(page)}
+        </PageShell>
       </div>
     </ToastProvider>
   )

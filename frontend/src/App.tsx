@@ -12,7 +12,6 @@ import OrdersPage from './pages/OrdersPage'
 import InventoryPage from './pages/InventoryPage'
 import QualityPage from './pages/QualityPage'
 import Sidebar from './components/Sidebar'
-import PageShell from './components/PageShell'
 import UploadPanel from './components/UploadPanel'
 import useKeyboard from './hooks/useKeyboard'
 import './version'
@@ -27,7 +26,7 @@ export const NAV = [
 export default function App() {
   const [page, setPage] = useState('dash')
   const [highlightSku, setHighlightSku] = useState('')
-  const { inventory, qualityLogs, startPolling, stopAll, setSidebarOpen } = useAppStore()
+  const { inventory, qualityLogs, startPolling, stopAll, setSidebarOpen, wsStatus } = useAppStore()
   useKeyboard({
     'meta+b': () => { const s = useAppStore.getState(); s.setSidebarOpen(!s.sidebarOpen) },
     'esc': () => setSidebarOpen(false)
@@ -62,11 +61,20 @@ export default function App() {
   return (
     <ToastProvider>
       <Sidebar page={page} onNavigate={navigate} lowStock={lowStock} errCount={errCount} />
-      <div className="app-root">
-        <PageShell key={page} onMenuClick={() => setSidebarOpen(true)}>
-          {renderPage(page)}
-        </PageShell>
-      </div>
+      <header>
+        <div className="header-inner">
+          <div className="header-left">
+            <button className="menu-btn" onClick={() => setSidebarOpen(true)}>☰</button>
+            <span className="header-title">SupplyChain</span>
+          </div>
+          <span className="header-status">
+            {wsStatus === 'connected' ? '🟢 实时' : wsStatus === 'polling' ? '🟡 轮询' : '🔴 断开'}
+          </span>
+        </div>
+      </header>
+      <main className="container">
+        {renderPage(page)}
+      </main>
     </ToastProvider>
   )
 }

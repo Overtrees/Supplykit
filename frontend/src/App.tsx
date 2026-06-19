@@ -44,9 +44,16 @@ function renderPage(pageId, onNavigate, highlightSku) {
 }
 
 const pageTransition = {
-  initial: { x: '30%', opacity: 0 },
-  animate: { x: 0, opacity: 1 },
-  exit: { x: '-20%', opacity: 0.4 },
+  initial: { x: '100%', opacity: 0.9, scale: 1 },
+  animate: { x: 0, opacity: 1, scale: 1 },
+  exit: { x: '-25%', opacity: 0, scale: 0.98 },
+}
+
+const springTransition = {
+  type: 'spring' as const,
+  damping: 28,
+  stiffness: 280,
+  mass: 0.9,
 }
 
 export default function App() {
@@ -73,15 +80,16 @@ export default function App() {
   return (
     <ToastProvider>
       <Sidebar page={page} onNavigate={navigate} lowStock={lowStock} errCount={errCount} />
-      <div style={{ minHeight:'100vh', background:'var(--bg)', position:'relative', overflow:'hidden' }}>
-        <AnimatePresence mode="wait" initial={false}>
+      <div style={{ height:'100dvh', background:'var(--bg)', overflow:'hidden', position:'relative' }}>
+        <AnimatePresence mode="popLayout" initial={false}>
           <motion.div
             key={page}
             variants={pageTransition}
             initial="initial"
             animate="animate"
             exit="exit"
-            transition={{ duration:0.28, ease:[0.4,0,0.2,1] }}
+            transition={springTransition}
+            style={{ position:'absolute', inset:0, background:'var(--bg)', display:'flex', flexDirection:'column' }}
           >
             <PageShell onMenuClick={handleMenuClick}>
               {renderPage(page, navigate, highlightSku)}

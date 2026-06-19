@@ -20,9 +20,10 @@ export default function PageShell({ children, onMenuClick }) {
         flexShrink: 0,
       }}>
         <div style={{
-          background: 'transparent', color: 'var(--text)',
+          background: 'var(--bg)', color: 'var(--text)',
           padding: '14px 20px',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          borderBottom: '1px solid var(--border)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <button onClick={onMenuClick} style={{
@@ -46,6 +47,8 @@ export default function PageShell({ children, onMenuClick }) {
         maxWidth: 1200, margin: '0 auto', width: '100%',
         padding: '20px 20px calc(20px + env(safe-area-inset-bottom, 0px))',
         overflowY: 'auto',
+        overscrollBehavior: 'none',
+        WebkitOverflowScrolling: 'touch',
       }}>
         {children}
       </div>

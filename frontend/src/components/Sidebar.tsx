@@ -9,10 +9,9 @@ export default function Sidebar({ page, onNavigate, lowStock, errCount }) {
   return (
     <div style={{
       position:'fixed', inset:0, width:'100%', color:'#fff',
-      zIndex:99999999, display:'flex', flexDirection:'column', overflow:'hidden',
+      zIndex:99999999, display: sidebarOpen ? 'flex' : 'none', flexDirection:'column', overflow:'hidden',
       paddingTop:'env(safe-area-inset-top,0)', paddingBottom:'env(safe-area-inset-bottom,0)',
-      ...(sidebarOpen ? { background:'var(--sidebar)', opacity:1, pointerEvents:'auto' }
-                       : { background:'transparent', opacity:0, pointerEvents:'none' }),
+      background:'var(--sidebar)',
     }}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'16px 20px', borderBottom:'1px solid rgba(255,255,255,0.08)', flexShrink:0 }}>
         <div style={{ display:'flex', alignItems:'center', gap:10 }}>

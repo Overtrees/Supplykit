@@ -81,7 +81,9 @@ export default function App() {
           width: '100vw', flexShrink: 0,
           background: '#1e293b', color: '#fff',
           display: 'flex', flexDirection: 'column',
-          minHeight: '100svh',
+          height: '100svh',
+          overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch',
         }}>
           <Sidebar page={page} onNavigate={navigate} lowStock={lowStock} errCount={errCount} />
         </div>
@@ -91,7 +93,9 @@ export default function App() {
           width: '100vw', flexShrink: 0,
           background: 'var(--bg)',
           display: 'flex', flexDirection: 'column',
-          minHeight: '100svh',
+          height: '100svh',
+          overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch',
         }}>
           <header>
             <div className="header-inner">
@@ -103,7 +107,7 @@ export default function App() {
               <span className="header-status">{wsStatus === 'connected' ? '🟢 实时' : wsStatus === 'polling' ? '🟡 轮询' : '🔴 断开'}</span>
             </div>
           </header>
-          <main className="container">
+          <main className="container" style={{flex:1}}>
             {renderPage(page)}
           </main>
         </div>

@@ -89,7 +89,7 @@ export default function App() {
             animate="animate"
             exit="exit"
             transition={springTransition}
-            style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column', overflow:'hidden', background:'var(--bg)' }}
+            style={{ display:'flex', flexDirection:'column', minHeight:'100%' }}
           >
             <PageShell onMenuClick={handleMenuClick}>
               {renderPage(page, navigate, highlightSku)}

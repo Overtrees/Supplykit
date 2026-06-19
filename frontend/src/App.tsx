@@ -76,21 +76,19 @@ export default function App() {
   return (
     <ToastProvider>
       <Sidebar page={page} onNavigate={navigate} lowStock={lowStock} errCount={errCount} />
-      <div className="page-slide" key={page}>
-        <header>
-          <div className="header-inner">
-            <div className="header-left">
-              <button className="menu-btn" onClick={() => setSidebarOpen(true)}>
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="4" width="16" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="9.25" width="16" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="14.5" width="16" height="1.5" rx=".75" fill="currentColor"/></svg>
-              </button>
-            </div>
-            <span className="header-status">{wsStatus === 'connected' ? '🟢 实时' : wsStatus === 'polling' ? '🟡 轮询' : '🔴 断开'}</span>
+      <header>
+        <div className="header-inner">
+          <div className="header-left">
+            <button className="menu-btn" onClick={() => setSidebarOpen(true)}>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="4" width="16" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="9.25" width="16" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="14.5" width="16" height="1.5" rx=".75" fill="currentColor"/></svg>
+            </button>
           </div>
-        </header>
-        <main className="container">
-          {renderPage(page)}
-        </main>
-      </div>
+          <span className="header-status">{wsStatus === 'connected' ? '🟢 实时' : wsStatus === 'polling' ? '🟡 轮询' : '🔴 断开'}</span>
+        </div>
+      </header>
+      <main className="container">
+        {renderPage(page)}
+      </main>
     </ToastProvider>
   )
 }

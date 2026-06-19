@@ -6,7 +6,7 @@ export default function PageShell({ children, onMenuClick }) {
 
   return (
     <div style={{
-      minHeight: '100vh',
+      minHeight: '100%',
       background: 'var(--bg)',
       display: 'flex',
       flexDirection: 'column',

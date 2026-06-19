@@ -1,15 +1,7 @@
 import React from 'react'
 import { NAV } from '../App'
-import { useAppStore } from '../store/useAppStore'
 
-export default function Sidebar({ page, onNavigate, lowStock, errCount }) {
-  const setSidebarOpen = useAppStore(s => s.setSidebarOpen)
-
-  const go = (id) => {
-    setSidebarOpen(false)
-    onNavigate(id)
-  }
-
+export default function Sidebar({ page, onClose, onNavigate, lowStock, errCount }) {
   return (
     <div style={{ display:'flex', flexDirection:'column', flex:1 }}>
       {/* 头部 */}
@@ -18,7 +10,7 @@ export default function Sidebar({ page, onNavigate, lowStock, errCount }) {
           <div style={{ width:36, height:36, borderRadius:10, background:'var(--primary)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, fontSize:16 }}>供</div>
           <span style={{ color:'#fff', fontWeight:700, fontSize:17 }}>SupplyChain</span>
         </div>
-        <button onClick={() => setSidebarOpen(false)} aria-label="关闭菜单" style={{ background:'rgba(255,255,255,0.12)', border:'none', borderRadius:8, color:'#fff', width:32, height:32, cursor:'pointer', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
+        <button onClick={onClose} aria-label="关闭菜单" style={{ background:'rgba(255,255,255,0.12)', border:'none', borderRadius:8, color:'#fff', width:32, height:32, cursor:'pointer', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
       </div>
 
       {/* 导航项 */}
@@ -26,7 +18,7 @@ export default function Sidebar({ page, onNavigate, lowStock, errCount }) {
         {NAV.map(item => {
           const active = page === item.id
           return (
-            <div key={item.id} onClick={() => go(item.id)} style={{
+            <div key={item.id} onClick={() => onNavigate(item.id)} style={{
               display:'flex', alignItems:'center', gap:12,
               padding:'13px 16px', borderRadius:12, marginBottom:4,
               background: active ? 'rgba(255,255,255,0.15)' : 'transparent',

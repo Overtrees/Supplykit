@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react"
+import React, { useState, useEffect, useCallback, useRef } from "react"
 import { useAppStore } from './store/useAppStore'
 import { ToastProvider } from './components/Toast'
 import ProductPage from './pages/ProductPage'
@@ -27,6 +27,27 @@ export default function App() {
   const [page, setPage] = useState('dash')
   const [highlightSku, setHighlightSku] = useState('')
   const { inventory, qualityLogs, startPolling, stopAll, sidebarOpen, setSidebarOpen, wsStatus } = useAppStore()
+
+  // View Transition 包装器：任何状态变更都走快照过渡
+  const withTransition = useCallback((fn) => {
+    return (...args) => {
+      const go = () => fn(...args)
+      if (document.startViewTransition) {
+        document.startViewTransition(go)
+      } else {
+        go()
+      }
+    }
+  }, [])
+
+  const openSidebar = withTransition(() => setSidebarOpen(true))
+  const closeSidebar = withTransition(() => setSidebarOpen(false))
+  const navAndClose = withTransition((id, sku) => {
+    setSidebarOpen(false)
+    if (sku) setHighlightSku(sku)
+    setPage(id)
+  })
+
   useKeyboard({
     'meta+b': () => { const s = useAppStore.getState(); s.setSidebarOpen(!s.sidebarOpen) },
     'esc': () => setSidebarOpen(false)
@@ -70,49 +91,34 @@ export default function App() {
 
   return (
     <ToastProvider>
-      {/* app-shell: 200vw flex 容器，transform 整体滑动 */}
-      <div className="app-shell" style={{
-        display: 'flex',
-        width: '200vw',
-        minHeight: '100svh',
-        transform: `translateX(${sidebarOpen ? '0' : '-50%'})`,
-        transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-        willChange: 'transform',
-      }}>
-        {/* sidebar-view */}
+      {/* 侧边栏覆盖层 — 用 position:fixed + View Transition 切换 */}
+      {sidebarOpen && (
         <div style={{
-          width: '100vw', flexShrink: 0,
-          background: '#1e293b', color: '#fff',
-          display: 'flex', flexDirection: 'column',
-          minHeight: '100svh',
-          paddingTop: 'env(safe-area-inset-top, 0px)',
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          position:'fixed', inset:0, zIndex:100,
+          background:'#1e293b', color:'#fff',
+          display:'flex', flexDirection:'column',
+          paddingTop:'env(safe-area-inset-top,0px)',
+          paddingBottom:'env(safe-area-inset-bottom,0px)',
+          overflowY:'auto', WebkitOverflowScrolling:'touch',
         }}>
-          <Sidebar page={page} onNavigate={navigate} lowStock={lowStock} errCount={errCount} />
+          <Sidebar page={page} onClose={closeSidebar} onNavigate={navAndClose} lowStock={lowStock} errCount={errCount} />
         </div>
+      )}
 
-        {/* main-view */}
-        <div style={{
-          width: '100vw', flexShrink: 0,
-          background: 'var(--bg)',
-          display: 'flex', flexDirection: 'column',
-          minHeight: '100svh',
-        }}>
-          <header>
-            <div className="header-inner">
-              <div className="header-left">
-                <button className="menu-btn" onClick={() => setSidebarOpen(true)}>
-                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="4" width="16" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="9.25" width="16" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="14.5" width="16" height="1.5" rx=".75" fill="currentColor"/></svg>
-                </button>
-              </div>
-              <span className="header-status">{wsStatus === 'connected' ? '🟢 实时' : wsStatus === 'polling' ? '🟡 轮询' : '🔴 断开'}</span>
-            </div>
-          </header>
-          <main className="container" style={{flex:1}}>
-            {renderPage(page)}
-          </main>
+      {/* 主内容 */}
+      <header>
+        <div className="header-inner">
+          <div className="header-left">
+            <button className="menu-btn" onClick={openSidebar}>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="4" width="16" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="9.25" width="16" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="14.5" width="16" height="1.5" rx=".75" fill="currentColor"/></svg>
+            </button>
+          </div>
+          <span className="header-status">{wsStatus === 'connected' ? '🟢 实时' : wsStatus === 'polling' ? '🟡 轮询' : '🔴 断开'}</span>
         </div>
-      </div>
+      </header>
+      <main className="container">
+        {renderPage(page)}
+      </main>
     </ToastProvider>
   )
 }

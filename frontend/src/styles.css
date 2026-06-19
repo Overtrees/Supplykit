@@ -1,7 +1,7 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html{background:var(--bg,#f8fafc);min-height:100%}
 :root{--primary:#1d4ed8;--success:#059669;--danger:#e11d48;--warning:#f59e0b;--info:#0f766e;--sidebar:#1e293b;--bg:#f8fafc;--card:#fff;--border:#e5e7eb;--text:#0f172a;--muted:#64748b;--muted2:#94a3b8}
-html,body,#root{margin:0;padding:0;min-height:100%;background:var(--bg,#f8fafc)}
+html,body,#root{margin:0;padding:0;min-height:100%;background:var(--bg,#f8fafc);overflow-x:hidden}
 body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','SF Pro Text','Helvetica Neue',sans-serif;min-height:100vh;min-height:100svh;color:var(--text);background:var(--bg,#f8fafc);-webkit-font-smoothing:antialiased;overscroll-behavior:none}
 
 /* 安全区补色 — 跟随页面背景 */

@@ -18,7 +18,6 @@ import UploadPanel from './components/UploadPanel'
 import useKeyboard from './hooks/useKeyboard'
 import './version'
 
-// 导航配置（也用于 Sidebar）
 export const NAV = [
   { id:'dash',label:'总览',icon:'📊'},{id:'products',label:'商品',icon:'🏷️'},{id:'suppliers',label:'供应商',icon:'🏭'},
   { id:'orders',label:'订单',icon:'📋'},{id:'inv',label:'库存',icon:'📦'},{id:'insights',label:'建议',icon:'💡'},
@@ -80,16 +79,16 @@ export default function App() {
   return (
     <ToastProvider>
       <Sidebar page={page} onNavigate={navigate} lowStock={lowStock} errCount={errCount} />
-      <div style={{ height:'100dvh', background:'var(--bg)', overflow:'hidden', position:'relative' }}>
+      <div className="app-root">
         <AnimatePresence mode="popLayout" initial={false}>
           <motion.div
             key={page}
+            className="page-wrap"
             variants={pageTransition}
             initial="initial"
             animate="animate"
             exit="exit"
             transition={springTransition}
-            style={{ display:'flex', flexDirection:'column', minHeight:'100%' }}
           >
             <PageShell onMenuClick={handleMenuClick}>
               {renderPage(page, navigate, highlightSku)}

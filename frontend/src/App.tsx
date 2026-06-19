@@ -70,31 +70,33 @@ export default function App() {
 
   return (
     <ToastProvider>
-      {/* 滑动容器：填满视口，绝对定位两视图严格等高等宽 */}
-      <div style={{ position:'relative', width:'100vw', height:'100svh', overflow:'hidden' }}>
-        {/* 侧边栏视图 */}
+      {/* app-shell: 200vw flex 容器，transform 整体滑动 */}
+      <div className="app-shell" style={{
+        display: 'flex',
+        width: '200vw',
+        minHeight: '100svh',
+        transform: `translateX(${sidebarOpen ? '0' : '-50%'})`,
+        transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+        willChange: 'transform',
+      }}>
+        {/* sidebar-view */}
         <div style={{
-          position:'absolute', inset:0, zIndex: sidebarOpen ? 2 : 1,
-          transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
-          transition: 'transform 0.25s cubic-bezier(0.4,0,0.2,1)',
-          background: '#1e293b', color:'#fff',
-          overflowY:'auto', WebkitOverflowScrolling:'touch',
-          paddingTop:'env(safe-area-inset-top,0px)',
-          paddingBottom:'env(safe-area-inset-bottom,0px)',
-          display:'flex', flexDirection:'column',
+          width: '100vw', flexShrink: 0,
+          background: '#1e293b', color: '#fff',
+          display: 'flex', flexDirection: 'column',
+          minHeight: '100svh',
+          paddingTop: 'env(safe-area-inset-top, 0px)',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}>
           <Sidebar page={page} onNavigate={navigate} lowStock={lowStock} errCount={errCount} />
         </div>
 
-        {/* 主视图 */}
+        {/* main-view */}
         <div style={{
-          position:'absolute', inset:0, zIndex: sidebarOpen ? 1 : 2,
-          transform: sidebarOpen ? 'translateX(100%)' : 'translateX(0)',
-          transition: 'transform 0.25s cubic-bezier(0.4,0,0.2,1)',
-          background:'var(--bg)',
-          overflowY:'auto', WebkitOverflowScrolling:'touch',
-          display:'flex', flexDirection:'column',
-          paddingTop:'env(safe-area-inset-top,0px)',
+          width: '100vw', flexShrink: 0,
+          background: 'var(--bg)',
+          display: 'flex', flexDirection: 'column',
+          minHeight: '100svh',
         }}>
           <header>
             <div className="header-inner">

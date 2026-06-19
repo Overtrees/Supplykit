@@ -42,6 +42,18 @@ export default function App() {
     }
   }, [page])
 
+  // 每页 mount 时锁定背景色，消除从 sidebar 进页面的闪烁
+  function PageLock({ children }) {
+    useLayoutEffect(() => {
+      const bg = getComputedStyle(document.body).backgroundColor
+      if (bg && bg !== 'transparent' && bg !== 'rgba(0,0,0,0)') {
+        document.documentElement.style.backgroundColor = bg
+        document.body.style.backgroundColor = bg
+      }
+    }, [])
+    return children
+  }
+
   const navigate = useCallback((newPage, sku) => {
     if (sku) setHighlightSku(sku)
     setPage(newPage)
@@ -51,7 +63,7 @@ export default function App() {
   const errCount = (qualityLogs||[]).length
 
   const renderPage = (pageId) => {
-    const wrap = (el) => <ErrorBoundary key={pageId}>{el}</ErrorBoundary>
+    const wrap = (el) => <ErrorBoundary key={pageId}><PageLock>{el}</PageLock></ErrorBoundary>
     switch (pageId) {
       case 'dash': return wrap(<DashboardPage onAlert={(s)=>{navigate('inv',s)}} />)
       case 'products': return wrap(<ProductPage />)

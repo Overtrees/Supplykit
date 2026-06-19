@@ -15,10 +15,17 @@ export default function Sidebar({ page, onNavigate, lowStock, errCount }) {
     setTimeout(() => setAnimatingOut(false), 260)
   }
 
-  // 导航跳转 → 瞬间销毁，零帧残留
+  // 导航跳转 → 瞬间销毁，零帧残留；支持 View Transition API 时做快照过渡
   const closeInstant = (id) => {
-    setSidebarOpen(false)
-    onNavigate(id)
+    const go = () => {
+      setSidebarOpen(false)
+      onNavigate(id)
+    }
+    if (document.startViewTransition) {
+      document.startViewTransition(go)
+    } else {
+      go()
+    }
   }
 
   const showPanel = sidebarOpen || animatingOut

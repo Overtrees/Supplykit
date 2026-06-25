@@ -114,8 +114,8 @@ backend/app/
 
 | 组件 | 位置 | 自动部署 |
 |------|------|---------|
-| 前端 | Cloudflare Pages | 推 main 自动构建 |
-| 后端 API | PythonAnywhere | 手动上传 + reload |
+| [前端](https://supplykit-frontend.pages.dev) | Cloudflare Pages | 推 main 自动构建 |
+| [后端 API](https://overtrees.pythonanywhere.com) | PythonAnywhere | 手动上传 + reload |
 | 数据库 | SQLite（本地文件） | 每天 2:00 自动备份 |
 
 ---

@@ -159,12 +159,6 @@ backend/app/
 
 ---
 
-## 工作流
-
-1. 改 `frontend/src/` 源码
-2. `git push` → Cloudflare Pages 自动部署
-3. 线上验证
-
 ---
 
 ## 定时任务

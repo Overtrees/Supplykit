@@ -1,5 +1,7 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, UploadFile, File
 from app.core.database import get_db
+import csv, io
+from openpyxl import load_workbook
 
 router = APIRouter(prefix="/api/inventory", tags=["inventory"])
 
@@ -95,13 +97,47 @@ def adjust_inventory(body: dict, db = get_db()):
         db.table("inventory").update({"available_qty": new_avail}).eq("id", iid).execute()
     
     inv["available_qty"] = new_avail
-    try:
-        from app.core.events import bus
-        bus.emit('inventory.changed', {
-            'inventory': inv,
-            'action': action,
-            'quantity': qty,
-        })
-    except Exception:
-        pass  # event bus errors should not block the response
     return {"ok": True}
+
+
+@router.post("/import")
+def import_inventory(file: UploadFile = File(...), db = get_db()):
+    content = file.file.read()
+    if file.filename.endswith('.csv'):
+        text = content.decode('utf-8-sig')
+        reader = csv.DictReader(io.StringIO(text))
+        rows = list(reader)
+    else:
+        wb = load_workbook(io.BytesIO(content), read_only=True)
+        ws = wb.active
+        headers = [c.value for c in next(ws.iter_rows(min_row=1, max_row=1))]
+        rows = []
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            rows.append({headers[i]: row[i] for i in range(len(headers)) if row[i] is not None})
+    ALIAS = {
+        'SKU': 'sku','商品编号': 'sku','商品名称': 'product_name','名称': 'product_name',
+        '店铺': 'store','仓库': 'warehouse',
+        '可用库存': 'available_qty','可用': 'available_qty',
+        '锁定库存': 'locked_qty','锁定': 'locked_qty',
+        '在途': 'in_transit_qty','在途库存': 'in_transit_qty',
+        '安全线': 'safety_qty','安全库存': 'safety_qty','安全天数': 'safety_days',
+    }
+    inserted = 0
+    for row in rows:
+        mapped = {}
+        for k, v in row.items():
+            target = ALIAS.get(k.strip(), k.strip())
+            mapped[target] = str(v).strip() if v else ''
+        if not mapped.get('sku'):
+            continue
+        mapped['available_qty'] = int(float(mapped.get('available_qty') or 0))
+        mapped['locked_qty'] = int(float(mapped.get('locked_qty') or 0))
+        mapped['in_transit_qty'] = int(float(mapped.get('in_transit_qty') or 0))
+        mapped['safety_qty'] = int(float(mapped.get('safety_qty') or 10))
+        mapped['safety_days'] = float(mapped.get('safety_days') or 0)
+        mapped['source'] = 'import'
+        db.table("inventory").upsert(mapped, conflict_columns=['sku', 'store', 'warehouse']).execute()
+        inserted += 1
+    from app.core.events import bus
+    bus.emit('inventory.imported', {'count': inserted})
+    return {'ok': True, 'imported': inserted, 'from_file': file.filename}

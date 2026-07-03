@@ -45,3 +45,43 @@ def delete_order(oid: int, db = get_db()):
     return {'ok': True}
 
 
+@router.post('/import')
+def import_orders(file: UploadFile = File(...), db = get_db()):
+    import openpyxl
+    content = file.file.read()
+    if file.filename.endswith('.csv'):
+        text = content.decode('utf-8-sig')
+        reader = csv.DictReader(io.StringIO(text))
+        rows = list(reader)
+    else:
+        wb = load_workbook(io.BytesIO(content), read_only=True)
+        ws = wb.active
+        headers = [c.value for c in next(ws.iter_rows(min_row=1, max_row=1))]
+        rows = []
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            rows.append({headers[i]: row[i] for i in range(len(headers)) if row[i] is not None})
+    ALIAS = {
+        '订单号': 'order_no','商品编号': 'sku','商品名称': 'product_name',
+        '数量': 'quantity','单价': 'unit_price','金额': 'total_amount',
+        '店铺': 'store','仓库': 'warehouse','状态': 'order_status',
+        '日期': 'ordered_at','平台': 'platform','供应商': 'supplier','备注': 'remark',
+    }
+    inserted = 0
+    for row in rows:
+        mapped = {}
+        for k, v in row.items():
+            target = ALIAS.get(k.strip(), k.strip())
+            mapped[target] = str(v).strip() if v else ''
+        if not mapped.get('order_no'):
+            continue
+        mapped['quantity'] = int(float(mapped.get('quantity') or 0))
+        mapped['unit_price'] = float(mapped.get('unit_price') or 0)
+        mapped['total_amount'] = float(mapped.get('total_amount') or 0)
+        mapped['data_source'] = 'import'
+        db.table("orders").upsert(mapped, conflict_columns=['order_no', 'sku']).execute()
+        inserted += 1
+    from app.core.events import bus
+    bus.emit('order.imported', {'count': inserted})
+    return {'ok': True, 'imported': inserted, 'from_file': file.filename}
+
+

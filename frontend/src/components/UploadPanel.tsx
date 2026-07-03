@@ -1,9 +1,11 @@
 import React, { useState } from 'react'
 import { useAppStore } from '../store/useAppStore'
 import { api } from '../api/client'
+import { useToast } from './Toast'
 export default function UploadPanel({ onImport }) {
   const [busy, setBusy] = useState('')
   const { importLogs, loadAll, addImportLog } = useAppStore()
+  const toast = useToast()
 const submit = async (type, file) => {
     if (!file) return
     const form = new FormData()
@@ -12,8 +14,13 @@ const submit = async (type, file) => {
     try {
       const url = type === 'orders' ? '/api/orders/import' : '/api/inventory/import'
       const res = await api.post(url, form, { headers: { 'Content-Type': 'multipart/form-data' } })
-      addImportLog({ type: type === 'orders' ? 'orders.imported' : 'inventory.imported', payload: res.data, file: file.name })
+      const data = res.data
+      if (!data.ok) { toast.error(data.error || '导入失败'); return }
+      addImportLog({ type: type === 'orders' ? 'orders.imported' : 'inventory.imported', payload: data, file: file.name })
+      toast.success(`导入成功: ${data.imported} 条`)
       await loadAll()
+    } catch(e) {
+      toast.error('导入异常: ' + (e.response?.data?.detail || e.message || '请求失败'))
     } finally { setBusy('') }
   }
 
@@ -53,5 +60,3 @@ const submit = async (type, file) => {
     </div>
   )
 }
-
-// ─── 侧边栏 ──────────────────────────────────────────────────────────────────

@@ -1,41 +1,49 @@
 """Seed data builder — inject sample data into SQLite.
 Run with: python seed_data.py (from backend/ directory)
+Uses dynamic relative dates so demo data always falls within rolling windows.
 """
 
 import os, sys
 sys.path.insert(0, os.path.dirname(__file__))
 
 from app.core.database import init_db, get_db
+from datetime import datetime, timedelta, timezone
 
 init_db()
 db = get_db()
 
+TODAY = datetime.now(timezone.utc).date()
+
 # ── Orders ──────────────────────────────────────────────
 # store=店铺维度  warehouse=仓库维度  沈阳是仓库，不混入 store
 SEED_ORDERS = [
-  {"order_no":"JD2401001","store":"数码旗舰店","sku":"SKU-001","product_name":"蓝牙耳机 Pro","quantity":2,"unit_price":299,"total_amount":598,"order_status":"已完成","ordered_at":"2024-01-15","platform":"jd"},
-  {"order_no":"JD2401002","store":"家电专卖店","sku":"SKU-005","product_name":"智能手表 S3","quantity":1,"unit_price":899,"total_amount":899,"order_status":"待发货","ordered_at":"2024-01-15","platform":"jd"},
-  {"order_no":"JD2401003","store":"数码旗舰店","sku":"SKU-002","product_name":"充电宝 20000mAh","quantity":3,"unit_price":159,"total_amount":477,"order_status":"已发货","ordered_at":"2024-01-14","platform":"jd"},
-  {"order_no":"JD2401004","store":"配件专营店","sku":"SKU-008","product_name":"手机壳 iPhone15","quantity":5,"unit_price":39,"total_amount":195,"order_status":"已完成","ordered_at":"2024-01-14","platform":"jd"},
-  {"order_no":"JD2401005","store":"家电专卖店","sku":"SKU-006","product_name":"无线充电器 15W","quantity":2,"unit_price":199,"total_amount":398,"order_status":"待确认","ordered_at":"2024-01-14","platform":"jd"},
-  {"order_no":"JD2401006","store":"数码旗舰店","sku":"SKU-003","product_name":"主动降噪耳机","quantity":1,"unit_price":599,"total_amount":599,"order_status":"申请退款","ordered_at":"2024-01-13","platform":"jd"},
-  {"order_no":"JD2401007","store":"数码旗舰店","sku":"SKU-004","product_name":"运动蓝牙耳机","quantity":1,"unit_price":449,"total_amount":449,"order_status":"已完成","ordered_at":"2024-01-12","platform":"jd"},
-  # 沈阳仓库订单 → store 归店铺，warehouse 标记仓库
-  {"order_no":"JD2401008","store":"数码旗舰店","warehouse":"沈阳","sku":"SKU-001","product_name":"蓝牙耳机 Pro","quantity":10,"unit_price":299,"total_amount":2990,"order_status":"已完成","ordered_at":"2024-06-19","platform":"jd"},
-  {"order_no":"JD2401009","store":"数码旗舰店","warehouse":"沈阳","sku":"SKU-002","product_name":"充电宝 20000mAh","quantity":5,"unit_price":159,"total_amount":795,"order_status":"已完成","ordered_at":"2024-06-19","platform":"jd"},
-  {"order_no":"JD2401010","store":"家电专卖店","warehouse":"沈阳","sku":"SKU-005","product_name":"智能手表 S3","quantity":2,"unit_price":899,"total_amount":1798,"order_status":"已完成","ordered_at":"2024-06-19","platform":"jd"},
-  {"order_no":"JD2401011","store":"数码旗舰店","warehouse":"沈阳","sku":"SKU-003","product_name":"主动降噪耳机","quantity":3,"unit_price":599,"total_amount":1797,"order_status":"已完成","ordered_at":"2024-06-19","platform":"jd"},
-  {"order_no":"JD2401012","store":"家电专卖店","warehouse":"沈阳","sku":"SKU-007","product_name":"桌面风扇","quantity":1,"unit_price":349,"total_amount":349,"order_status":"已完成","ordered_at":"2024-06-19","platform":"jd"},
-  {"order_no":"JD2401013","store":"家电专卖店","warehouse":"沈阳","sku":"SKU-006","product_name":"无线充电器 15W","quantity":2,"unit_price":199,"total_amount":398,"order_status":"已完成","ordered_at":"2024-06-19","platform":"jd"},
-  {"order_no":"JD2401014","store":"配件专营店","warehouse":"沈阳","sku":"SKU-009","product_name":"数据线 3合1","quantity":1,"unit_price":29,"total_amount":29,"order_status":"已完成","ordered_at":"2024-06-19","platform":"jd"},
-  {"order_no":"JD2401015","store":"配件专营店","warehouse":"沈阳","sku":"SKU-010","product_name":"钢化膜通用款","quantity":1,"unit_price":15,"total_amount":15,"order_status":"已完成","ordered_at":"2024-06-19","platform":"jd"},
-  {"order_no":"JD2401016","store":"数码旗舰店","warehouse":"沈阳","sku":"SKU-004","product_name":"运动蓝牙耳机","quantity":1,"unit_price":449,"total_amount":449,"order_status":"已完成","ordered_at":"2024-06-19","platform":"jd"},
-  {"order_no":"JD2401017","store":"配件专营店","warehouse":"沈阳","sku":"SKU-008","product_name":"手机壳 iPhone15","quantity":3,"unit_price":39,"total_amount":117,"order_status":"已完成","ordered_at":"2024-06-19","platform":"jd"},
-  {"order_no":"JD2401018","store":"家电专卖店","warehouse":"沈阳","sku":"SKU-005","product_name":"智能手表 S3","quantity":1,"unit_price":899,"total_amount":899,"order_status":"已完成","ordered_at":"2024-06-19","platform":"jd"},
-  {"order_no":"JD2401019","store":"数码旗舰店","warehouse":"沈阳","sku":"SKU-001","product_name":"蓝牙耳机 Pro","quantity":2,"unit_price":299,"total_amount":598,"order_status":"已完成","ordered_at":"2024-06-19","platform":"jd"},
-  {"order_no":"JD2401020","store":"数码旗舰店","warehouse":"沈阳","sku":"SKU-004","product_name":"运动蓝牙耳机","quantity":1,"unit_price":449,"total_amount":449,"order_status":"已完成","ordered_at":"2024-06-19","platform":"jd"},
-  {"order_no":"JD2401021","store":"家电专卖店","warehouse":"沈阳","sku":"SKU-007","product_name":"桌面风扇","quantity":1,"unit_price":349,"total_amount":349,"order_status":"已完成","ordered_at":"2024-06-19","platform":"jd"},
-  {"order_no":"JD2401022","store":"数码旗舰店","warehouse":"沈阳","sku":"SKU-002","product_name":"充电宝 20000mAh","quantity":2,"unit_price":159,"total_amount":318,"order_status":"已完成","ordered_at":"2024-06-19","platform":"jd"},
+  {"order_no":"DEMO-001","store":"数码旗舰店","sku":"SKU-001","product_name":"蓝牙耳机 Pro","quantity":2,"unit_price":299,"total_amount":598,"order_status":"已完成","ordered_at":str(TODAY - timedelta(days=2)),"platform":"jd"},
+  {"order_no":"DEMO-002","store":"家电专卖店","sku":"SKU-005","product_name":"智能手表 S3","quantity":1,"unit_price":899,"total_amount":899,"order_status":"待发货","ordered_at":str(TODAY - timedelta(days=1)),"platform":"jd"},
+  {"order_no":"DEMO-003","store":"数码旗舰店","sku":"SKU-002","product_name":"充电宝 20000mAh","quantity":3,"unit_price":159,"total_amount":477,"order_status":"已发货","ordered_at":str(TODAY - timedelta(days=3)),"platform":"jd"},
+  {"order_no":"DEMO-004","store":"配件专营店","sku":"SKU-008","product_name":"手机壳 iPhone15","quantity":5,"unit_price":39,"total_amount":195,"order_status":"已完成","ordered_at":str(TODAY - timedelta(days=4)),"platform":"jd"},
+  {"order_no":"DEMO-005","store":"家电专卖店","sku":"SKU-006","product_name":"无线充电器 15W","quantity":2,"unit_price":199,"total_amount":398,"order_status":"待确认","ordered_at":str(TODAY - timedelta(days=5)),"platform":"jd"},
+  {"order_no":"DEMO-006","store":"数码旗舰店","sku":"SKU-003","product_name":"主动降噪耳机","quantity":1,"unit_price":599,"total_amount":599,"order_status":"申请退款","ordered_at":str(TODAY - timedelta(days=6)),"platform":"jd"},
+  {"order_no":"DEMO-007","store":"数码旗舰店","sku":"SKU-004","product_name":"运动蓝牙耳机","quantity":1,"unit_price":449,"total_amount":449,"order_status":"已完成","ordered_at":str(TODAY - timedelta(days=7)),"platform":"jd"},
+  {"order_no":"DEMO-008","store":"数码旗舰店","warehouse":"沈阳","sku":"SKU-001","product_name":"蓝牙耳机 Pro","quantity":10,"unit_price":299,"total_amount":2990,"order_status":"已完成","ordered_at":str(TODAY - timedelta(days=10)),"platform":"jd"},
+  {"order_no":"DEMO-009","store":"数码旗舰店","warehouse":"沈阳","sku":"SKU-002","product_name":"充电宝 20000mAh","quantity":5,"unit_price":159,"total_amount":795,"order_status":"已完成","ordered_at":str(TODAY - timedelta(days=10)),"platform":"jd"},
+  {"order_no":"DEMO-010","store":"家电专卖店","warehouse":"沈阳","sku":"SKU-005","product_name":"智能手表 S3","quantity":2,"unit_price":899,"total_amount":1798,"order_status":"已完成","ordered_at":str(TODAY - timedelta(days=10)),"platform":"jd"},
+  {"order_no":"DEMO-011","store":"数码旗舰店","warehouse":"沈阳","sku":"SKU-003","product_name":"主动降噪耳机","quantity":3,"unit_price":599,"total_amount":1797,"order_status":"已完成","ordered_at":str(TODAY - timedelta(days=10)),"platform":"jd"},
+  {"order_no":"DEMO-012","store":"家电专卖店","warehouse":"沈阳","sku":"SKU-007","product_name":"桌面风扇","quantity":1,"unit_price":349,"total_amount":349,"order_status":"已完成","ordered_at":str(TODAY - timedelta(days=10)),"platform":"jd"},
+  {"order_no":"DEMO-013","store":"家电专卖店","warehouse":"沈阳","sku":"SKU-006","product_name":"无线充电器 15W","quantity":2,"unit_price":199,"total_amount":398,"order_status":"已完成","ordered_at":str(TODAY - timedelta(days=10)),"platform":"jd"},
+  {"order_no":"DEMO-014","store":"配件专营店","warehouse":"沈阳","sku":"SKU-009","product_name":"数据线 3合1","quantity":1,"unit_price":29,"total_amount":29,"order_status":"已完成","ordered_at":str(TODAY - timedelta(days=10)),"platform":"jd"},
+  {"order_no":"DEMO-015","store":"配件专营店","warehouse":"沈阳","sku":"SKU-010","product_name":"钢化膜通用款","quantity":1,"unit_price":15,"total_amount":15,"order_status":"已完成","ordered_at":str(TODAY - timedelta(days=10)),"platform":"jd"},
+  {"order_no":"DEMO-016","store":"数码旗舰店","warehouse":"沈阳","sku":"SKU-004","product_name":"运动蓝牙耳机","quantity":1,"unit_price":449,"total_amount":449,"order_status":"已完成","ordered_at":str(TODAY - timedelta(days=10)),"platform":"jd"},
+  {"order_no":"DEMO-017","store":"配件专营店","warehouse":"沈阳","sku":"SKU-008","product_name":"手机壳 iPhone15","quantity":3,"unit_price":39,"total_amount":117,"order_status":"已完成","ordered_at":str(TODAY - timedelta(days=10)),"platform":"jd"},
+  {"order_no":"DEMO-018","store":"家电专卖店","warehouse":"沈阳","sku":"SKU-005","product_name":"智能手表 S3","quantity":1,"unit_price":899,"total_amount":899,"order_status":"已完成","ordered_at":str(TODAY - timedelta(days=10)),"platform":"jd"},
+  {"order_no":"DEMO-019","store":"数码旗舰店","warehouse":"沈阳","sku":"SKU-001","product_name":"蓝牙耳机 Pro","quantity":2,"unit_price":299,"total_amount":598,"order_status":"已完成","ordered_at":str(TODAY - timedelta(days=10)),"platform":"jd"},
+  {"order_no":"DEMO-020","store":"数码旗舰店","warehouse":"沈阳","sku":"SKU-004","product_name":"运动蓝牙耳机","quantity":1,"unit_price":449,"total_amount":449,"order_status":"已完成","ordered_at":str(TODAY - timedelta(days=10)),"platform":"jd"},
+  {"order_no":"DEMO-021","store":"家电专卖店","warehouse":"沈阳","sku":"SKU-007","product_name":"桌面风扇","quantity":1,"unit_price":349,"total_amount":349,"order_status":"已完成","ordered_at":str(TODAY - timedelta(days=10)),"platform":"jd"},
+  {"order_no":"DEMO-022","store":"数码旗舰店","warehouse":"沈阳","sku":"SKU-002","product_name":"充电宝 20000mAh","quantity":2,"unit_price":159,"total_amount":318,"order_status":"已完成","ordered_at":str(TODAY - timedelta(days=10)),"platform":"jd"},
+  # 更久的历史订单（用于趋势线填充）
+  {"order_no":"DEMO-023","store":"数码旗舰店","sku":"SKU-001","product_name":"蓝牙耳机 Pro","quantity":2,"unit_price":299,"total_amount":598,"order_status":"已完成","ordered_at":str(TODAY - timedelta(days=15)),"platform":"jd"},
+  {"order_no":"DEMO-024","store":"数码旗舰店","sku":"SKU-002","product_name":"充电宝 20000mAh","quantity":1,"unit_price":159,"total_amount":159,"order_status":"已完成","ordered_at":str(TODAY - timedelta(days=20)),"platform":"jd"},
+  {"order_no":"DEMO-025","store":"家电专卖店","sku":"SKU-005","product_name":"智能手表 S3","quantity":1,"unit_price":899,"total_amount":899,"order_status":"已完成","ordered_at":str(TODAY - timedelta(days=25)),"platform":"jd"},
+  {"order_no":"DEMO-026","store":"数码旗舰店","sku":"SKU-003","product_name":"主动降噪耳机","quantity":1,"unit_price":599,"total_amount":599,"order_status":"已完成","ordered_at":str(TODAY - timedelta(days=28)),"platform":"jd"},
 ]
 
 SEED_PRODUCTS = [

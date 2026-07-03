@@ -79,7 +79,7 @@ export default function DashboardPage({ onAlert }) {
       <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title">{periodLabel[periodTab]} GMV·订单趋势</div>
         {periodTrend.length === 0 ? <div className="small muted" style={{ padding: '40px 0', textAlign: 'center' }}>暂无{periodLabel[periodTab]}数据</div> : <Chart option={periodTrendOption} height={200} />}
       </div>
-      <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title">订单漏斗 下单→完成</div><Chart option={funnelOption} height={200} /></div>
+      <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title">订单阶段转化</div><Chart option={funnelOption} height={200} /></div>
     </div>
 
     <div className="chart-row-3">

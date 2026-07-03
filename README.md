@@ -1,6 +1,45 @@
 # SupplyKit
 
+<p align="center">
+  <img src="https://img.shields.io/badge/React-18-61DAFB?logo=react" alt="React">
+  <img src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript" alt="TypeScript">
+  <img src="https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi" alt="FastAPI">
+  <img src="https://img.shields.io/badge/Cloudflare%20Pages-deployed-F38020?logo=cloudflare" alt="Cloudflare Pages">
+  <img src="https://img.shields.io/github/last-commit/Overtrees/Supplykit" alt="Last commit">
+  <img src="https://img.shields.io/badge/license-MIT-blue" alt="License">
+</p>
+
+<p align="center">
+  <a href="https://supplykit-frontend.pages.dev">🌐 在线体验</a> ·
+  <a href="#功能">功能</a> ·
+  <a href="#架构">架构</a> ·
+  <a href="#部署">部署</a>
+</p>
+
 供应链数据清洗与管理看板。单人工作流工具，预留多人协同接口。
+
+---
+
+## 快速开始
+
+```bash
+# 克隆仓库
+git clone https://github.com/Overtrees/Supplykit.git
+cd Supplykit
+
+# 前端
+cd frontend && npm install && npm run dev
+
+# 后端
+cd ../backend && pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
+
+环境变量（前端 `.env`）：
+
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| `VITE_API_BASE_URL` | 后端 API 地址 | `https://overtrees.pythonanywhere.com` |
 
 ---
 
@@ -136,3 +175,11 @@ backend/app/
 | 每天 02:00 | 数据库备份 |
 | 每天 03:00 | 清理 30 天前日志 |
 | 每天 04:00 | 规则评估（滞销识别等） |
+
+---
+
+<p align="center">
+  <a href="https://github.com/Overtrees/Supplykit">GitHub 仓库</a> ·
+  <a href="https://supplykit-frontend.pages.dev">在线体验</a> ·
+  <a href="https://overtrees.pythonanywhere.com/docs">API 文档</a>
+</p>

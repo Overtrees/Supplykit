@@ -82,6 +82,8 @@ def import_orders(file: UploadFile = File(...), db = get_db()):
         inserted += 1
     from app.core.events import bus
     bus.emit('order.imported', {'count': inserted})
+    if inserted:
+        bus.emit('order.created', {'items': [dict(r) for r in rows if r.get('order_no')], 'order_type': 'import'})
     return {'ok': True, 'imported': inserted, 'from_file': file.filename}
 
 

@@ -87,7 +87,7 @@ export default function InsightsPage() {
       )}
 
       {/* Tab bar */}
-      <div style={{ display: 'flex', gap: 0, background: 'var(--card)', borderRadius: 12, padding: 4, border: '1px solid #f1f5f9' }}>
+      <div style={{ display: 'flex', gap: 6 }}>
         {tabs.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} className={`btn btn-ghost`} style={{fontSize:12,background:tab===t.id?'var(--primary)':'transparent',color:tab===t.id?'#fff':''}}>
             {t.label}{t.count > 0 ? ` (${t.count})` : ''}
@@ -101,7 +101,7 @@ export default function InsightsPage() {
           <div className="section-title" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
             <span>
               补货建议{replen.length > 0 && <span className="small muted" style={{ marginLeft: 8 }}>· 低于安全线的商品</span>}
-              <span style={{marginLeft:12,display:'inline-flex',gap:2,background:'var(--border)',borderRadius:99,padding:2}}>
+              <span style={{marginLeft:12,display:'inline-flex',gap:4}}>
                 {[7,14,28].map(d => (
                   <span key={d} onClick={()=>{setReplenDays(d);loadReplen(d)}}
                     className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',

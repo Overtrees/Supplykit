@@ -324,6 +324,7 @@ export default function CleansingPage() {
           </div>
           <div style={{ fontSize:12, color: err ? 'var(--danger)' : 'var(--muted)' }}>
             {err ? err : `新增 ${imp} 条`}
+            {(x.payload?.failed || x.payload?.error_count) ? <span style={{marginLeft:8,fontSize:11,color:'var(--warning)',cursor:'pointer'}} onClick={()=>{try{document.querySelector('[data-page="quality"]')?.click()}catch(e){window.location.hash='#quality'}}}>⚠️ {x.payload.failed||x.payload.error_count} 条异常，点击查看</span> : ''}
           </div>
         </div>
       )})}

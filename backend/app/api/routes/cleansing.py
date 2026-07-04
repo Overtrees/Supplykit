@@ -188,8 +188,9 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                 errors.append({'error_type': 'duplicate_sku', 'field_name': 'sku',
                                'raw_value': sku_val, 'error_message': 'SKU已存在于数据库'})
                 try:
+                    if not db.table("quality_logs").select("id").eq("log_type","duplicate_sku").eq("message",f'SKU {sku_val} 已存在，跳过重复'[:100]).eq("source","cleansing").execute().data:
                     db.table("quality_logs").insert({"log_type":"duplicate_sku","level":"warning",
-                        "field_name":"sku","message":f'SKU {sku_val} 已存在，跳过重复',"source":"cleansing"}).execute()
+                            "field_name":"sku","message":f'SKU {sku_val} 已存在，跳过重复',"source":"cleansing"}).execute()
                 except: pass
                 failed += 1; continue
             if sku_val in sku_seen:
@@ -208,8 +209,9 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                 errors.append({'error_type': 'duplicate_order', 'field_name': 'order_no',
                                'raw_value': order_no, 'error_message': f'单号+SKU已存在: {order_no}/{sku_key}'})
                 try:
+                    if not db.table("quality_logs").select("id").eq("log_type","duplicate_order").eq("message",f'订单{order_no}商品{sku_key}已存在，跳过重复'[:100]).eq("source","cleansing").execute().data:
                     db.table("quality_logs").insert({"log_type":"duplicate_order","level":"warning",
-                        "field_name":"order_no","message":f'订单{order_no}商品{sku_key}已存在，跳过重复',"source":"cleansing"}).execute()
+                            "field_name":"order_no","message":f'订单{order_no}商品{sku_key}已存在，跳过重复',"source":"cleansing"}).execute()
                 except: pass
                 failed += 1; continue
             if order_no in dedup:
@@ -229,12 +231,13 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                     "raw_value": e['raw_value'], "error_message": e['error_message'],
                     "raw_data": json.dumps(row, ensure_ascii=False, default=str),
                 }).execute()
-                # 同步写入 quality_logs，让异常页可查
-                db.table("quality_logs").insert({
-                    "log_type": e['error_type'], "level": "warning",
-                    "field_name": e['field_name'], "message": e['error_message'],
-                    "source": "cleansing",
-                }).execute()
+                # 同步写入 quality_logs，让异常页可查（跳过已存在的）
+                if not db.table("quality_logs").select("id").eq("log_type",e['error_type']).eq("message",e['error_message'][:100]).eq("source","cleansing").execute().data:
+                    db.table("quality_logs").insert({
+                        "log_type": e['error_type'], "level": "warning",
+                        "field_name": e['field_name'], "message": e['error_message'],
+                        "source": "cleansing",
+                    }).execute()
             except: pass
 
         # ─── 写入目标 ──────────────────────────────────────────────

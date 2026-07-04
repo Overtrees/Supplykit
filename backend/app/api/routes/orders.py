@@ -67,6 +67,7 @@ def import_orders(file: UploadFile = File(...), db = get_db()):
         '日期': 'ordered_at','平台': 'platform','供应商': 'supplier','备注': 'remark',
     }
     inserted = 0
+    imported_items = []
     for row in rows:
         mapped = {}
         for k, v in row.items():
@@ -80,10 +81,11 @@ def import_orders(file: UploadFile = File(...), db = get_db()):
         mapped['data_source'] = 'import'
         db.table("orders").upsert(mapped, conflict_columns=['order_no', 'sku']).execute()
         inserted += 1
+        imported_items.append(mapped)
     from app.core.events import bus
     bus.emit('order.imported', {'count': inserted})
-    if inserted:
-        bus.emit('order.created', {'items': [dict(r) for r in rows if r.get('order_no')], 'order_type': 'import'})
+    if imported_items:
+        bus.emit('order.created', {'items': imported_items, 'order_type': 'import'})
     return {'ok': True, 'imported': inserted, 'from_file': file.filename}
 
 

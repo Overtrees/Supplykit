@@ -123,17 +123,19 @@ export default function CleansingPage() {
       const d = r.data
       if (!d.ok) { toast.error(d.error||'提交失败'); setBs(''); return }
       const totalRows = d.total_rows || '?'
+      let finished = false
       const poll = setInterval(async () => {
+        if (finished) return
         try {
           const sr = await api.get('/api/cleansing/task/'+d.task_id)
           const sd = sr.data
           if (sd.status === 'done') {
-            clearInterval(poll); setRes(sd.result); setS(3); setBs('')
+            finished = true; clearInterval(poll); setRes(sd.result); setS(3); setBs('')
             addImportLog({ type:'cleansing.done', payload:{...sd.result, from_file:f?.name||''} })
             toast.success('清洗完成')
-          } else if (sd.status === 'error') { clearInterval(poll); toast.error('失败: '+sd.error); setBs('') }
+          } else if (sd.status === 'error') { finished = true; clearInterval(poll); toast.error('失败: '+sd.error); setBs('') }
           else if (sd.progress !== undefined) { setBs(`清洗中... ${sd.progress}% (${Math.round(sd.progress/100*totalRows)}/${totalRows}条)`) }
-        } catch { clearInterval(poll); setBs('') }
+        } catch { finished = true; clearInterval(poll); setBs('') }
       }, 1000)
     } catch(e) { toast.error('请求异常: '+e.message); setBs('') }
   }

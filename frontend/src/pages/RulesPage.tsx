@@ -131,6 +131,7 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
           <div className='small muted' style={{fontSize:11}}>{h}</div>
         </label>)}
       </div>
+    </div>}
 
       {tab === 'purchase' && <div className='card' style={{padding:16,display:'flex',flexDirection:'column',gap:12}}>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:16}}>

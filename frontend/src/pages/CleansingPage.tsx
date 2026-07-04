@@ -276,9 +276,8 @@ export default function CleansingPage() {
       </div>}
 
     {s === 3 && res && <div style={{textAlign:'center',padding:40}}>
-      <div style={{fontSize:32,marginBottom:8}}>{res.success > 0 ? '✅' : '⚠️'}
-      {/* note: "> 0" with space to avoid esbuild parsing > as JSX closing */}</div>
-      <div style={{fontWeight:700,fontSize:18,marginBottom:4,color:res.error?'var(--danger)':''}>
+      <div style={{fontSize:32,marginBottom:8}}>{res.success > 0 ? "\u2705" : "\u26a0\ufe0f"}</div>
+      <div style={{fontWeight:700,fontSize:18,marginBottom:4,color:res.error ? "var(--danger)" : ""}}>
         {res.error ? '清洗失败' : (res.success > 0 ? '清洗完成' : '清洗完成（无新增）')}
       </div>
       <div className="small muted" style={{marginBottom:16}}>{res.error || res.message || ''}</div>

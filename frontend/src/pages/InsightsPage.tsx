@@ -23,9 +23,9 @@ export default function InsightsPage() {
   const [loading, setLoading] = useState(true)
   const [replenMode, setReplenMode] = useState(() => localStorage.getItem('c_replen_mode') || 'bbcc')
 
-  const switchMode = (m) => { setReplenMode(m); localStorage.setItem('c_replen_mode', m) }
-  const loadReplen = async (days) => {
-    try { const r = await api.get('/api/insights/replenishment?days=' + (days||replenDays) + '&mode=' + replenMode); setReplen(r.data || []) } catch(e) {}
+  const switchMode = (m) => { setReplenMode(m); localStorage.setItem('c_replen_mode', m); loadReplen(replenDays, m) }
+  const loadReplen = async (days, mode) => {
+    try { const r = await api.get('/api/insights/replenishment?days=' + (days||replenDays) + '&mode=' + (mode||replenMode)); setReplen(r.data || []) } catch(e) {}
   }
 
   // "已下单"标记 — localStorage 持久化
@@ -41,7 +41,7 @@ export default function InsightsPage() {
 
   useEffect(() => {
     Promise.all([
-      loadReplen(replenDays),
+      loadReplen(replenDays, replenMode),
       api.get('/api/insights/purchase'),
       api.get('/api/insights/summary'),
       api.get('/api/events'),
@@ -109,7 +109,7 @@ export default function InsightsPage() {
                 <span onClick={()=>switchMode('bbcc')} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',background:replenMode==='bbcc'?'var(--primary)':'transparent',color:replenMode==='bbcc'?'#fff':''}}>BBCC</span>
                 <span onClick={()=>switchMode('traditional')} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',background:replenMode==='traditional'?'var(--primary)':'transparent',color:replenMode==='traditional'?'#fff':''}}>传统</span>
                 {[7,14,28].map(d => (
-                  <span key={d} onClick={()=>{setReplenDays(d);loadReplen(d)}}
+                  <span key={d} onClick={()=>{setReplenDays(d);loadReplen(d, replenMode)}}
                     className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',
                       background:replenDays===d?'var(--primary)':'transparent',
                       color:replenDays===d?'#fff':'var(--muted)',fontWeight:replenDays===d?600:400}}>{d}天</span>

@@ -251,7 +251,13 @@ export default function CleansingPage() {
         </div>
         {(() => {
           if (!pv.preview?.length) return null
-          const keys = Object.keys(pv.preview[0]).filter(k => k !== '_source')
+          const keys = Object.keys(pv.preview[0]).filter(k => k !== '_source').filter(k => {
+            // 也在前端过滤：不映射的列不显示（双保险）
+            for (const cfg of Object.values(mp)) {
+              if (cfg && cfg.target === k) return true
+            }
+            return false
+          })
           return <div style={{marginBottom:12}}>
             <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>← 左右滑动查看所有已映射字段 →</div>
             <div style={{overflowX:"auto"}}>

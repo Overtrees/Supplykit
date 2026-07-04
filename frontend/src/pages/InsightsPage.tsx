@@ -133,9 +133,9 @@ export default function InsightsPage() {
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>库存健康，暂无补货建议</div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
-              <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 15 列 · 左右滑动查看</div>
+              <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 13 列 · 左右滑动查看</div>
               <table>
-                <thead><tr>{['','SKU','商品','店铺','现有','安全线','在途','日销7','日销14','日销28','可撑(天)','建议补','安全(天)','紧急度','已下单'].map(h => <th key={h}>{h}</th>)}</tr></thead>
+                <thead><tr>{['','SKU','商品','店铺','现有','安全线','在途','日销28','可撑(天)','建议补','实际补','备注',''].map(h => <th key={h} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{h}</th>)}</tr></thead>
                 <tbody>
                   {replen.filter(x => !ordered.includes(x.sku+'|'+x.store)).map((x, i) => (
                     <tr key={i}>
@@ -144,13 +144,11 @@ export default function InsightsPage() {
                       <td>{x.product_name}</td><td>{x.store}</td>
                       <td style={{ color: x.available_qty === 0 ? '#ef4444' : 'var(--text)', fontWeight: 600 }}>{x.available_qty}</td>
                       <td>{x.safety_qty}</td><td>{x.in_transit_qty}</td>
-                      <td style={{fontSize:11}}>{x.daily_sales_7}</td>
-                      <td style={{fontSize:11}}>{x.daily_sales_14}</td>
-                      <td style={{fontSize:11,fontWeight:replenDays===28?600:400}}>{x.daily_sales_28}</td>
+                      <td style={{fontSize:11,fontWeight:600}}>{x.daily_sales}</td>
                       <td style={{color: x.days_to_empty < 5 ? '#ef4444' : x.days_to_empty < 10 ? 'var(--warning)' : 'var(--text)'}}>{x.days_to_empty > 999 ? '∞' : x.days_to_empty}</td>
-                      <td style={{ fontWeight: 600, color: 'var(--success)' }}>+{x.suggested_qty}</td>
-                      <td style={{fontSize:11}}>{x.safety_days || '-'}</td>
-                      <td><span className={`pill ${x.urgency === '紧急' ? 'danger' : x.urgency === '仓储费风险' ? 'warning' : x.urgency === '建议' ? 'info' : 'info'}`}>{x.urgency}</span></td>
+                      <td style={{color:'var(--primary)',fontWeight:600}}>{x.raw_suggested || x.suggested_qty}</td>
+                      <td style={{color:'var(--success)',fontWeight:700}}>{x.suggested_qty > 0 ? x.suggested_qty : '-'}</td>
+                      <td style={{fontSize:10,maxWidth:120,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:'var(--muted2)'}} title={x.note || ''}>{x.note || '-'}</td>
                       <td><span onClick={()=>toggleOrdered(x.sku, x.store)} style={{cursor:'pointer',fontSize:18,opacity:0.5}}>☐</span></td>
                     </tr>
                   ))}

@@ -262,13 +262,13 @@ def sync_inventory_from_orders(db = get_db(), limit: int = 200):
 
 
 @router.get('/export-purchase')
-def export_purchase_excel(db = get_db()):
+def export_purchase_excel(days: int = 28, db = get_db()):
     """导出补货建议为采购单 Excel"""
     from openpyxl import Workbook
     from io import BytesIO
     from fastapi.responses import StreamingResponse
 
-    replen = get_replenishment_suggestions(db=db)
+    replen = get_replenishment_suggestions(days=days, db=db)
     suppliers = {s["supplier_code"]: s for s in db.table("suppliers").select("*").execute().data}
 
     wb = Workbook()

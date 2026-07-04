@@ -113,7 +113,7 @@ export default function InsightsPage() {
             <div style={{display:'flex',gap:6}}>
               <button onClick={async()=>{
                 try {
-                  const r = await fetch(API+'/api/insights/export-purchase')
+                  const r = await fetch(API+'/api/insights/export-purchase?days='+replenDays)
                   const blob = await r.blob()
                   const url = URL.createObjectURL(blob)
                   const a = document.createElement('a')

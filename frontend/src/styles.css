@@ -6,10 +6,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','SF Pro Text'
 
 /* View Transition — 整页快照滑入/滑出，安全区跟随 */
 ::view-transition{background-color:var(--bg,#f8fafc)}
-@keyframes vt-slide-left{from{transform:translateX(0)}to{transform:translateX(-30%)}}
-@keyframes vt-slide-right{from{transform:translateX(30%)}to{transform:translateX(0)}}
-::view-transition-old(root){animation:0.22s ease-out both vt-slide-left}
-::view-transition-new(root){animation:0.22s ease-out both vt-slide-right}
+@keyframes vt-slide-left{from{transform:translateX(0)}to{transform:translateX(-15%)}}
+@keyframes vt-slide-right{from{transform:translateX(15%)}to{transform:translateX(0)}}
+::view-transition-old(root){animation:0.06s ease-out both vt-slide-left}
+::view-transition-new(root){animation:0.06s ease-out both vt-slide-right}
 
 /* 标题栏 */
 header{padding-top:env(safe-area-inset-top,0px);background:transparent}
@@ -36,7 +36,8 @@ td.mono{word-break:break-all}.col-sku{min-width:80px;font-size:12px;word-break:b
 button:active{transform:scale(0.97)}
 input,select,button,textarea{font-family:inherit;font-size:16px}input[type="file"]{font-size:14px}
 .search-bar{display:flex;align-items:center;gap:8px;background:#e2e8f0;border-radius:10px;padding:8px 12px;flex:1;min-width:160px}.search-bar input{background:none;border:none;outline:none;font-size:16px;flex:1;min-width:0}.search-bar input::placeholder{color:#94a3b8}.search-bar .cancel{color:var(--primary);font-size:16px;cursor:pointer;white-space:nowrap}
-.skeleton{background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:8px;height:16px;margin-bottom:8px}@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.skeleton{background:#e2e8f0;border-radius:8px;height:16px;margin-bottom:8px}
+@media(prefers-color-scheme:dark){.skeleton{background:#334155}}
 .overflow-x-auto{overflow-x:auto;-webkit-overflow-scrolling:touch}
 
 /* 响应式卡片网格 */

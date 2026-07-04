@@ -7,7 +7,7 @@ const periodLabel = { today:'今日', week:'本周', month:'本月' }
 
 export default function DashboardPage({ onAlert }) {
   const [periodTab, setPeriodTab] = useState('month')
-  const { dashboard, inventory, qualityLogs, alerts, dataLoaded } = useAppStore()
+  const { dashboard, inventory, qualityLogs, alerts } = useAppStore()
   const periodTrend = dashboard?.periods?.[periodTab + '_trend'] || dashboard?.trend || []
   const periodMeta = dashboard?.periods?.[periodTab] || {}
 
@@ -54,18 +54,6 @@ export default function DashboardPage({ onAlert }) {
     }
   }, [dashboard])
 
-  if (!dashboard && !dataLoaded) return <div>
-    <div style={{ display:'flex', gap:4, marginBottom:12 }}>
-      {[1,2,3].map(i => <div key={i} className="skeleton" style={{width:56,height:30,borderRadius:99}} />)}
-    </div>
-    <div className="card-grid" style={{marginBottom:16}}>
-      {[1,2,3,4].map(i => <div key={i} className="card"><div className="skeleton" style={{width:'60%',height:14}}/><div className="skeleton" style={{width:'40%',height:24,marginTop:6}}/><div className="skeleton" style={{width:'30%',height:12,marginTop:4}}/></div>)}
-    </div>
-    <div className="chart-row">
-      <div className="card"><div className="skeleton" style={{width:'40%',height:16}}/><div className="skeleton" style={{width:'100%',height:200,marginTop:12}}/></div>
-      <div className="card"><div className="skeleton" style={{width:'40%',height:16}}/><div className="skeleton" style={{width:'100%',height:200,marginTop:12}}/></div>
-    </div>
-  </div>
   const lowStock = (inventory||[]).filter(x => Number(x.available_qty) < Number(x.safety_qty)).length
   const errCount = (qualityLogs||[]).length
   const alertsList = alerts || []

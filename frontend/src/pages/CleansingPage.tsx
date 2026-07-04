@@ -276,14 +276,15 @@ export default function CleansingPage() {
       </div>}
 
     {s === 3 && res && <div style={{textAlign:'center',padding:40}}>
-      <div style={{fontSize:32,marginBottom:8}}>{res.success>0?'✅':'⚠️'}</div>
+      <div style={{fontSize:32,marginBottom:8}}>{res.success > 0 ? '✅' : '⚠️'}
+      {/* note: "> 0" with space to avoid esbuild parsing > as JSX closing */}</div>
       <div style={{fontWeight:700,fontSize:18,marginBottom:4,color:res.error?'var(--danger)':''}>
-        {res.error ? '清洗失败' : (res.success>0 ? '清洗完成' : '清洗完成（无新增）')}
+        {res.error ? '清洗失败' : (res.success > 0 ? '清洗完成' : '清洗完成（无新增）')}
       </div>
       <div className="small muted" style={{marginBottom:16}}>{res.error || res.message || ''}</div>
       <div style={{display:'flex',justifyContent:'center',gap:24,marginBottom:16}}>
         <div><div style={{fontSize:24,fontWeight:700,color:'var(--success)'}}>{res.success}</div><div className="small muted">成功</div></div>
-        <div><div style={{fontSize:24,fontWeight:700,color:res.failed>0?'var(--danger)':'var(--muted2)'}}>{res.failed}</div><div className="small muted">跳过</div></div>
+        <div><div style={{fontSize:24,fontWeight:700,color:res.failed > 0 ? 'var(--danger)' : 'var(--muted2)'}}>{res.failed}</div><div className="small muted">跳过</div></div>
       </div>
       <div style={{display:'flex',gap:8,justifyContent:'center'}}>
         <button onClick={()=>{setS(0);setF(null);setCols([]);setTr(0);setMp({});setPv(null);setRes(null)}}

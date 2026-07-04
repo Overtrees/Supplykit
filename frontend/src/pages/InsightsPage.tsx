@@ -108,22 +108,20 @@ export default function InsightsPage() {
                       background:replenDays===d?'var(--primary)':'transparent',
                       color:replenDays===d?'#fff':'var(--muted)',fontWeight:replenDays===d?600:400}}>{d}天</span>
                 ))}
+                <button onClick={async()=>{
+                  try {
+                    const r = await fetch(API+'/api/insights/export-purchase?days='+replenDays)
+                    const blob = await r.blob()
+                    const url = URL.createObjectURL(blob)
+                    const a = document.createElement('a')
+                    a.href = url; a.download = '补货建议_'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'.xlsx'
+                    document.body.appendChild(a); a.click(); a.remove()
+                    URL.revokeObjectURL(url)
+                  } catch(e) { toast.error('导出失败: '+e.message) }
+                }}
+                  className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px'}}>导出</button>
               </span>
             </span>
-            <div style={{display:'flex',gap:6}}>
-              <button onClick={async()=>{
-                try {
-                  const r = await fetch(API+'/api/insights/export-purchase?days='+replenDays)
-                  const blob = await r.blob()
-                  const url = URL.createObjectURL(blob)
-                  const a = document.createElement('a')
-                  a.href = url; a.download = '采购建议_'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'.xlsx'
-                  document.body.appendChild(a); a.click(); a.remove()
-                  URL.revokeObjectURL(url)
-                } catch(e) { toast.error('导出失败: '+e.message) }
-              }}
-                className="btn btn-success" style={{fontSize:12}}>📥 导出采购单</button>
-            </div>
           </div>
           {replen.filter(x => !ordered.includes(x.sku+'|'+x.store)).length === 0 ? (
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>库存健康，暂无补货建议</div>

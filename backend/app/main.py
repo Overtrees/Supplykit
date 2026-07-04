@@ -57,6 +57,17 @@ app.include_router(quality_router)
 app.include_router(alerts_router)
 app.include_router(events_router)
 
+# ─── 健康检查 ───────────────────────────────────────────────────────────────
+@app.get('/api/health')
+def health():
+    try:
+        from app.core.database import get_db
+        db = get_db()
+        orders = db.table("orders").select("*").limit(1).execute().data
+        return {"status":"ok","db":True,"orders":len(orders)}
+    except Exception as e:
+        return {"status":"error","db":False,"error":str(e)[:100]}
+
 # ─── 临时 seed 端点 ───────────────────────────────────────────────
 @app.post("/api/seed")
 def _seed_data():

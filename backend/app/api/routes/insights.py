@@ -276,6 +276,24 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
         })
 
     result.sort(key=lambda x: x['days_to_empty'])
+    # 创建补货告警
+    for r in result:
+        if r['purchase_qty'] > 0 and r['days_to_empty'] < 14:
+            try:
+                ex = db.table("alerts").select("id").eq("alert_type","purchase_need").eq("related_sku",r['sku']).eq("status","active").execute().data
+                if not ex:
+                    db.table("alerts").insert({
+                        "alert_type":"purchase_need","title":f"需采购: {r['product_name']}",
+                        "description":f"可用{r['available_qty']}件, 建议采购{r['purchase_qty']}件, 可撑{r['days_to_empty']}天",
+                        "severity":"warning","source":"purchase_engine",
+                        "related_sku":r['sku'],"status":"active"
+                    }).execute()
+            except: pass
+        elif r['purchase_qty'] == 0:
+            try:
+                # 库存充足 → 关闭已有告警
+                db.table("alerts").update({"status":"closed"}).eq("alert_type","purchase_need").eq("related_sku",r['sku']).eq("status","active").execute()
+            except: pass
     return {"suggestions": result, "suppliers": len(suppliers)}
 
 

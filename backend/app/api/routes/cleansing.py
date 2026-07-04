@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
 from datetime import datetime
 import json, csv, io, re, os, uuid
 from openpyxl import load_workbook
+import logging
+logger = logging.getLogger(__name__)
 from app.core.database import get_db, submit_task, get_task, backup_db
 from app.api.routes.ws import broadcast
 from app.api.routes.insights import auto_adjust_inventory
@@ -297,7 +299,7 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                         'payload': {'success': success, 'failed': failed}
                     }
                 })
-            except: pass
+            except Exception as e: logger.warning(f"emit event: {e}")
             from app.core.database import submit_task
             from app.api.routes.insights import sync_inventory_from_orders
             submit_task(f"inv_sync_{datetime.utcnow().strftime('%H%M%S')}", sync_inventory_from_orders, 200)

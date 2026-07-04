@@ -91,7 +91,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             days_to_empty = round(avail / sel_ds, 1) if sel_ds > 0 else 999
             after_stock = avail + transit + suggested
             after_turnover = round(after_stock / sel_ds, 1) if sel_ds > 0 else 999
-            max_turnover = int(cfg.get('max_turnover_days', '15'))
+            max_turnover = int(raw.get('max_turnover_days', '15'))
             note = f"箱规{box}件, 实补{suggested}件（{suggested//box}箱）" if suggested > 0 else "无需补货"
             if suggested > 0:
                 note += f", 补后周转{after_turnover}天"
@@ -132,7 +132,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             days_to_empty = round(avail / sel_ds, 1) if sel_ds > 0 else 999
             after_stock = avail + transit + suggested
             after_turnover = round(after_stock / sel_ds, 1) if sel_ds > 0 else 999
-            max_turnover = int(cfg.get('max_turnover_days', '15'))
+            max_turnover = int(raw.get('max_turnover_days', '15'))
             note = f"箱规{box}件, 实补{suggested}件（{suggested//box}箱）" if suggested > 0 else "无需补货"
             if suggested > 0:
                 note += f", 补后周转{after_turnover}天"

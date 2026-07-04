@@ -56,12 +56,12 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
     {k:'ship_to_b_days',l:'发B仓时效(天)',h:'BBCC：我司发往京东B仓时效'},
     {k:'b_to_c_days',l:'B→C调拨(天)',h:'BBCC：京东B仓→C仓调拨时效'},
     {k:'c_safety_days',l:'C仓缓冲(天)',h:'BBCC：C仓防止调拨断货储备天数'},
-    {k:'max_turnover_days',l:'目标周转(天)',h: (cfg.replenishment_mode||'bbcc')==='traditional' ? '平台仓货品在库周转' : 'B仓免费存15天'},
     {k:'safety_multiplier',l:'安全库存天数',h:'预留N天日销作为安全库存'},
   ]
   const purchaseFields=[
     {k:'purchase_lead_days',l:'采购前置(天)',h:'供应商生产+送货到我司总天数'},
     {k:'moq',l:'MOQ最小起订(件)',h:'供应商最小起订量'},
+    {k:'max_turnover_days',l:'目标周转(天)',h:'我司货品在自有/三方仓'},
   ]
 
   return <div className='card'>

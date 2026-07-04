@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { api } from '../api/client'
 import { useToast } from '../components/Toast'
 import { useAppStore } from '../store/useAppStore'
@@ -115,13 +115,17 @@ export default function CleansingPage() {
     setBs('')
   }
 
+  const execLock = useRef(false)
   const doExecute = async () => {
+    if (execLock.current) return
+    execLock.current = true
+    try {
     setBs('清洗中...')
     const fd = new FormData(); fd.append('file', f); fd.append('mapping', JSON.stringify(mp)); fd.append('target', tt)
     try {
       const r = await api.post('/api/cleansing/execute-async', fd)
       const d = r.data
-      if (!d.ok) { toast.error(d.error||'提交失败'); setBs(''); return }
+      if (!d.ok) { toast.error(d.error||'提交失败'); setBs(''); execLock.current = false; return }
       const totalRows = d.total_rows || '?'
       let finished = false
       const poll = setInterval(async () => {
@@ -138,6 +142,7 @@ export default function CleansingPage() {
         } catch { finished = true; clearInterval(poll); setBs('') }
       }, 1000)
     } catch(e) { toast.error('请求异常: '+e.message); setBs('') }
+    } finally { execLock.current = false }
   }
 
   // 一键执行（跳过预览）
@@ -324,7 +329,7 @@ export default function CleansingPage() {
           </div>
           <div style={{ fontSize:12, color: err ? 'var(--danger)' : 'var(--muted)' }}>
             {err ? err : `新增 ${imp} 条`}
-            {(x.payload?.failed || x.payload?.error_count) ? <span style={{marginLeft:8,fontSize:11,color:'var(--warning)',cursor:'pointer'}} onClick={()=>{try{document.querySelector('[data-page="quality"]')?.click()}catch(e){window.location.hash='#quality'}}}>⚠️ {x.payload.failed||x.payload.error_count} 条异常，点击查看</span> : ''}
+            {(x.payload?.failed || x.payload?.error_count) ? <span style={{marginLeft:8,fontSize:11,color:'var(--warning)'}}>⚠️ {x.payload.failed||x.payload.error_count} 条异常（侧边栏 ⚠️ 查看）</span> : ''}
           </div>
         </div>
       )})}

@@ -59,7 +59,7 @@ def import_orders(file: UploadFile = File(...), db = get_db()):
             rows = list(csv.DictReader(io.StringIO(text)))
         else:
             from openpyxl import load_workbook
-            wb = load_workbook(io.BytesIO(content), read_only=True)
+            wb = load_workbook(io.BytesIO(content))
             ws = wb.active
             headers = [c.value for c in next(ws.iter_rows(min_row=1, max_row=1))]
             for row in ws.iter_rows(min_row=2, values_only=True):
@@ -92,17 +92,29 @@ def import_orders(file: UploadFile = File(...), db = get_db()):
         '单价': 'unit_price','价格': 'unit_price','采购价格': 'unit_price',
         '金额': 'total_amount','总金额': 'total_amount','采购金额': 'total_amount','实收金额': 'total_amount',
         '店铺': 'store','店铺名': 'store','门店': 'store',
-        '仓库': 'warehouse','京东仓库': 'warehouse','发货仓': 'warehouse',
+        '仓库': 'warehouse','京东仓库': 'warehouse','发货仓': 'warehouse','配送中心': 'warehouse',
         '状态': 'order_status','订单状态': 'order_status',
         '日期': 'ordered_at','订购时间': 'ordered_at','下单时间': 'ordered_at','入库时间': 'ordered_at',
-        '平台': 'platform','订单来源': 'platform','来源': 'platform',
+        '平台': 'platform','订单来源': 'platform','来源': 'platform','采购渠道': 'platform',
         '供应商': 'supplier','供应商名称': 'supplier','供应商简码': 'supplier_code',
         '备注': 'remark',
         '收货人': 'sender','收货负责人': 'sender',
         '收货电话': 'sender_phone','电话': 'sender_phone',
         '币种': 'currency','货币': 'currency',
         '品牌': 'brand','规格': 'spec','分类': 'category','商品分类': 'category',
-        '折扣': 'discount','运费': 'freight',
+        '折扣': 'discount','运费': 'freight','合同主体': 'contract_entity',
+        '订单属性': 'order_attr','详细地址': 'address',
+        '贴码建议': 'label_suggestion','京东贴码数量': 'label_qty',
+        '重码UPC': 'duplicate_upc','UPC码': 'upc',
+        '采购员': 'buyer','建单人': 'creator',
+        '预约时间': 'scheduled_at','预计关单时间': 'expected_close_at',
+        '波次数量': 'wave_qty','是否期货': 'is_futures',
+        '年': 'year','产品季': 'season','客户订单号': 'customer_order_no',
+        '是否多次发货': 'multi_ship','商品属性': 'product_attr',
+        '采购场景': 'purchase_scene','预计消化时间': 'expected_consume_at',
+        '采购原因': 'purchase_reason','供应商库房': 'supplier_warehouse',
+        '供应商库房编码': 'supplier_warehouse_code','物权转移': 'title_transfer',
+        '采购类型': 'purchase_type','ECLP出库单号': 'eclp_out_no',
     }
     inserted = 0
     imported_items = []

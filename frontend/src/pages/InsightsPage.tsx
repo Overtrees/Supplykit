@@ -215,7 +215,7 @@ export default function InsightsPage() {
                       <td style={{color:'var(--primary)',fontWeight:600}}>{x.raw_suggested || x.suggested_qty}</td>
                       <td style={{color:'var(--success)',fontWeight:700}}>{x.suggested_qty > 0 ? x.suggested_qty : '-'}</td>
                       <td style={{color: (x.after_turnover||0) > 15 ? '#ef4444' : 'var(--text)',fontWeight:600}}>{x.after_turnover ? x.after_turnover+'天' : '-'}</td>
-                      <td style={{fontSize:10,maxWidth:180,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:'var(--muted2)'}} title={x.note || ''}>{x.note || '-'}</td>
+                      <td className="col-name" style={{color:'var(--muted2)',fontSize:12}}>{x.note || '-'}</td>
                       <td><span onClick={()=>toggleOrdered(x.sku, x.store, x.product_name, x.suggested_qty)} style={{cursor:'pointer',fontSize:18,opacity:0.5}}>☐</span></td>
                     </tr>
                   ))}

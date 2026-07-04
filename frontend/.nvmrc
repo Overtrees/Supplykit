@@ -1,0 +1,2 @@
+# Cloudflare Pages build configuration
+node_version = "20"

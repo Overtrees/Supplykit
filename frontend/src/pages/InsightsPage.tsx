@@ -11,6 +11,23 @@ const pillStyle = (cond, yes = 'danger', no = 'info') => ({
   color: cond ? 'var(--danger)' : 'var(--primary)',
 })
 
+function Skeleton({ height = 16, width = '100%', style }) {
+  return <div className="skeleton" style={{ height, width, ...style }} />
+}
+
+function LoadingSkeleton() {
+  return <div className="card">
+    <Skeleton height={20} width="40%" />
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10, marginTop: 12 }}>
+      {[1,2,3,4,5].map(i => <div key={i} className="card" style={{ padding: 12 }}><Skeleton height={14} /><Skeleton height={24} width="60%" /></div>)}
+    </div>
+    <div style={{ display: 'flex', gap: 6, marginTop: 16 }}>
+      {[1,2,3,4].map(i => <Skeleton key={i} height={32} width={80} />)}
+    </div>
+    <Skeleton height={200} style={{ marginTop: 12 }} />
+  </div>
+}
+
 export default function InsightsPage() {
   const toast = useToast()
   const [tab, setTab] = useState('replen')
@@ -20,38 +37,75 @@ export default function InsightsPage() {
   const [summary, setSummary] = useState(null)
   const [activities, setActivities] = useState([])
   const [slowMoving, setSlowMoving] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [ordered, setOrdered] = useState([])
+
+  // 各区块加载状态
+  const [summaryLoading, setSummaryLoading] = useState(true)
+  const [replenLoading, setReplenLoading] = useState(true)
+  const [purchaseLoading, setPurchaseLoading] = useState(true)
+  const [slowLoading, setSlowLoading] = useState(true)
+  const [activityLoading, setActivityLoading] = useState(true)
+  const [initLoading, setInitLoading] = useState(true)
+
   const [replenMode, setReplenMode] = useState(() => localStorage.getItem('c_replen_mode') || 'bbcc')
 
   const switchMode = (m) => { setReplenMode(m); localStorage.setItem('c_replen_mode', m); loadReplen(replenDays, m) }
   const loadReplen = async (days, mode) => {
+    setReplenLoading(true)
     try { const r = await api.get('/api/insights/replenishment?days=' + (days||replenDays) + '&mode=' + (mode||replenMode)); setReplen(r.data || []) } catch(e) {}
+    setReplenLoading(false)
   }
 
-  // "已下单"标记 — localStorage 持久化
-  const [ordered, setOrdered] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('c_ordered') || '[]') } catch { return [] }
-  })
-  const toggleOrdered = (sku, store) => {
+  // 从后端加载已下单标记
+  const loadOrdered = async () => {
+    try {
+      const r = await api.get('/api/purchase-orders')
+      const items = r.data || []
+      setOrdered(items.map(x => x.sku + '|' + x.store))
+    } catch(e) {
+      // 后端不可用时 fallback 到 localStorage
+      try { const fallback = JSON.parse(localStorage.getItem('c_ordered') || '[]'); setOrdered(fallback) } catch { setOrdered([]) }
+    }
+  }
+
+  const toggleOrdered = async (sku, store, product_name, suggested_qty) => {
     const key = sku + '|' + store
-    const next = ordered.includes(key) ? ordered.filter(k => k !== key) : [...ordered, key]
-    setOrdered(next)
-    localStorage.setItem('c_ordered', JSON.stringify(next))
+    if (ordered.includes(key)) {
+      // 取消标记
+      setOrdered(prev => prev.filter(k => k !== key))
+      try { await api.delete('/api/purchase-orders?sku=' + encodeURIComponent(sku) + '&store=' + encodeURIComponent(store)) } catch(e) {}
+    } else {
+      // 标记已下单
+      setOrdered(prev => [...prev, key])
+      try {
+        await api.post('/api/purchase-orders?sku=' + encodeURIComponent(sku) + '&store=' + encodeURIComponent(store) + '&product_name=' + encodeURIComponent(product_name || '') + '&suggested_qty=' + (suggested_qty || 0))
+      } catch(e) {}
+    }
   }
 
   useEffect(() => {
-    Promise.all([
+    setInitLoading(true)
+    loadOrdered()
+
+    const promises = [
       loadReplen(replenDays, replenMode),
       api.get('/api/insights/purchase?days=' + replenDays + '&mode=' + replenMode),
       api.get('/api/insights/summary'),
       api.get('/api/events'),
       api.get('/api/insights/slow-moving'),
-    ]).then(([, p, s, ev, sm]) => {
-      setPurchase(p.data?.suggestions || p.data || [])
-      setSummary(s.data)
-      setActivities((ev.data || []).slice(0, 15))
-      setSlowMoving(sm.data || [])
-    }).catch(() => {}).finally(() => setLoading(false))
+    ]
+    Promise.allSettled(promises).then(([p, s, ev, sm]) => {
+      setReplenLoading(false)
+      if (p.status === 'fulfilled') setPurchase(p.value.data?.suggestions || p.value.data || [])
+      setPurchaseLoading(false)
+      if (s.status === 'fulfilled') setSummary(s.value.data)
+      setSummaryLoading(false)
+      if (ev.status === 'fulfilled') setActivities((ev.value.data || []).slice(0, 15))
+      setActivityLoading(false)
+      if (sm.status === 'fulfilled') setSlowMoving(sm.value.data || [])
+      setSlowLoading(false)
+      setInitLoading(false)
+    }).catch(() => setInitLoading(false))
   }, [])
 
   const tabs = [
@@ -68,12 +122,19 @@ export default function InsightsPage() {
     color: tab === id ? '#fff' : 'var(--muted)', cursor: 'pointer',
   })
 
-  if (loading) return <div className="card"><div className="muted">加载中...</div></div>
+  if (initLoading) return <LoadingSkeleton />
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {/* Summary cards */}
-      {summary && (
+      {summaryLoading ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10 }}>
+          {[1,2,3,4,5].map(i => <div key={i} className="card" style={{ padding: 12, textAlign: 'center' }}>
+            <Skeleton height={14} width="60%" style={{ margin: '0 auto' }} />
+            <Skeleton height={24} width="40%" style={{ margin: '6px auto 0' }} />
+          </div>)}
+        </div>
+      ) : (summary && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10 }}>
           {[
             { label: '库存商品', value: summary.total_products },
@@ -88,7 +149,7 @@ export default function InsightsPage() {
             </div>
           ))}
         </div>
-      )}
+      ))}
 
       {/* Tab bar */}
       <div style={{ display: 'flex', gap: 6, flexWrap:'wrap' }}>
@@ -129,7 +190,12 @@ export default function InsightsPage() {
               </span>
             </span>
           </div>
-          {replen.filter(x => !ordered.includes(x.sku+'|'+x.store)).length === 0 ? (
+          {replenLoading ? (
+            <div>
+              <Skeleton height={14} width="30%" style={{ marginBottom: 8 }} />
+              {[1,2,3,4,5].map(i => <Skeleton key={i} height={36} style={{ marginBottom: 4 }} />)}
+            </div>
+          ) : (replen.filter(x => !ordered.includes(x.sku+'|'+x.store)).length === 0 ? (
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>库存健康，暂无补货建议</div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
@@ -150,13 +216,13 @@ export default function InsightsPage() {
                       <td style={{color:'var(--success)',fontWeight:700}}>{x.suggested_qty > 0 ? x.suggested_qty : '-'}</td>
                       <td style={{color: (x.after_turnover||0) > 15 ? '#ef4444' : 'var(--text)',fontWeight:600}}>{x.after_turnover ? x.after_turnover+'天' : '-'}</td>
                       <td style={{fontSize:10,maxWidth:180,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:'var(--muted2)'}} title={x.note || ''}>{x.note || '-'}</td>
-                      <td><span onClick={()=>toggleOrdered(x.sku, x.store)} style={{cursor:'pointer',fontSize:18,opacity:0.5}}>☐</span></td>
+                      <td><span onClick={()=>toggleOrdered(x.sku, x.store, x.product_name, x.suggested_qty)} style={{cursor:'pointer',fontSize:18,opacity:0.5}}>☐</span></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          )}
+          ))}
           {/* 已下单区域 */}
           {ordered.length > 0 && <details style={{marginTop:12}}>
             <summary className="small muted" style={{cursor:'pointer',fontSize:12}}>已下单 {ordered.length} 项</summary>
@@ -176,7 +242,11 @@ export default function InsightsPage() {
       {tab === 'purchase' && (
         <div className="card">
           <div className="section-title">采购建议 <span className="small muted">· 含供应商匹配</span></div>
-          {purchase.length === 0 ? (
+          {purchaseLoading ? (
+            <div>
+              {[1,2,3,4].map(i => <Skeleton key={i} height={36} style={{ marginBottom: 4 }} />)}
+            </div>
+          ) : (purchase.length === 0 ? (
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>暂无采购建议</div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
@@ -197,7 +267,7 @@ export default function InsightsPage() {
                 </tbody>
               </table>
             </div>
-          )}
+          ))}
         </div>
       )}
 
@@ -205,7 +275,11 @@ export default function InsightsPage() {
       {tab === 'slow' && (
         <div className="card">
           <div className="section-title">滞销预警 <span className="small muted">· 超过 14 天未下单的商品</span></div>
-          {slowMoving.length === 0 ? (
+          {slowLoading ? (
+            <div>
+              {[1,2,3].map(i => <Skeleton key={i} height={36} style={{ marginBottom: 4 }} />)}
+            </div>
+          ) : (slowMoving.length === 0 ? (
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>暂无数据</div>
           ) : (
             <>
@@ -233,7 +307,7 @@ export default function InsightsPage() {
                 </div>
               )}
             </>
-          )}
+          ))}
         </div>
       )}
 
@@ -241,7 +315,11 @@ export default function InsightsPage() {
       {tab === 'activity' && (
         <div className="card">
           <div className="section-title">操作回溯 <span className="small muted">· 最近操作记录</span></div>
-          {activities.length === 0 ? (
+          {activityLoading ? (
+            <div>
+              {[1,2,3,4,5].map(i => <Skeleton key={i} height={32} style={{ marginBottom: 4 }} />)}
+            </div>
+          ) : (activities.length === 0 ? (
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>暂无操作记录</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -261,7 +339,7 @@ export default function InsightsPage() {
                 </div>
               ))}
             </div>
-          )}
+          ))}
         </div>
       )}
     </div>

@@ -28,6 +28,7 @@ from app.api.routes.replenishment_config import router as replenishment_config_r
 from app.api.routes.products import router as products_router
 from app.api.routes.suppliers import router as suppliers_router
 from app.api.routes.insights import router as insights_router
+from app.api.routes.purchase_orders import router as purchase_orders_router
 
 from app.core.events import register_core_handlers
 from app.core.database import init_db, backup_db
@@ -96,6 +97,7 @@ app.include_router(replenishment_config_router)
 app.include_router(products_router)
 app.include_router(suppliers_router)
 app.include_router(insights_router)
+app.include_router(purchase_orders_router)
 
 @app.get("/")
 def root():

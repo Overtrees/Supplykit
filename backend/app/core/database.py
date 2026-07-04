@@ -483,6 +483,18 @@ def init_db(path=None):
         INSERT OR IGNORE INTO replenishment_config(key,value) VALUES('season_618','1.5');
         INSERT OR IGNORE INTO replenishment_config(key,value) VALUES('season_1111','1.8');
         INSERT OR IGNORE INTO replenishment_config(key,value) VALUES('season_cny','1.6');
+        CREATE TABLE IF NOT EXISTS purchase_orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sku TEXT NOT NULL,
+            store TEXT DEFAULT '',
+            product_name TEXT DEFAULT '',
+            suggested_qty INTEGER DEFAULT 0,
+            status TEXT DEFAULT 'pending',
+            owner_id TEXT DEFAULT '',
+            created_at TEXT DEFAULT (datetime('now')),
+            updated_at TEXT DEFAULT (datetime('now'))
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_po_sku_store ON purchase_orders(sku, store);
         CREATE INDEX IF NOT EXISTS idx_events_type ON events(event_type);
         CREATE INDEX IF NOT EXISTS idx_quality_logs_level ON quality_logs(level);
     """)

@@ -293,9 +293,7 @@ export default function CleansingPage() {
     {/* ─── 历史记录 ─────────────────────────────────────────────── */}
     <ImportLog importLogs={importLogs} />
   </div>
-}
-
-function ImportLog({ importLogs }) {
+}const ImportLog = ({ importLogs }) => {
   if (!importLogs || importLogs.length === 0) return null
   return <div className="card" style={{marginTop:16}}>
     <div style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--muted2)', marginBottom:12 }}>操作记录</div>

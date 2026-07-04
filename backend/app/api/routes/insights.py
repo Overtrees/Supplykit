@@ -53,33 +53,54 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     season_config = json.loads(season_val[0]['value']) if season_val and season_val[0].get('value') else []
 
     suggestions = []
-    for inv in items:
-        sku = inv.get("sku", "")
-        avail = int(inv.get("available_qty") or 0)
-        safety = int(inv.get("safety_qty") or 0)
-        transit = int(inv.get("in_transit_qty") or 0)
 
-        # 三周期日销
-        ds7 = round(sales_7.get(sku, 0) / 7, 1)
-        ds14 = round(sales_14.get(sku, 0) / 14, 1)
-        ds28 = round(sales_28.get(sku, 0) / 28, 1)
-        sel_ds = {28: ds28, 14: ds14, 7: ds7}[days]
-
-        # 活动系数加成
-        active_factor = 1.0
-        for s in season_config:
-            if isinstance(s, dict) and s.get("enabled") and s.get("factor",1.0) > active_factor:
-                active_factor = float(s["factor"])
-        sel_ds = round(sel_ds * active_factor, 1)
-
-        # 当前周期计算
-        # 安全库存天数：SKU 级优先，无则用全局默认
-        # 按 ABC 分类建议：A类7天 / B类5天 / C类3天
-        sku_safety_days = float(inv.get('safety_days') or 0)
-        safety_days = sku_safety_days if sku_safety_days > 0 else float(cfg.get('safety_multiplier', '3'))
-        effective_safety = round(sel_ds * safety_days) if sel_ds > 0 else 0
-        suggested = max(round(sel_ds * lead_time + effective_safety - avail - transit), 0) if sel_ds > 0 else 0
-        days_to_empty = round(avail / sel_ds, 1) if sel_ds > 0 else 999
+    if mode == 'bbcc':
+        # BBCC 模式：全仓汇总，按 SKU 一条建议（送B仓，京东内配到C仓）
+        agg = {}
+        for inv in items:
+            sku = inv.get("sku", "")
+            if sku not in agg:
+                agg[sku] = {'available': 0, 'transit': 0, 'safety': 0, 'safety_days': 0, 'warehouses': set()}
+            agg[sku]['available'] += int(inv.get("available_qty") or 0)
+            agg[sku]['transit'] += int(inv.get("in_transit_qty") or 0)
+            agg[sku]['safety'] += int(inv.get("safety_qty") or 0)
+            sd = float(inv.get('safety_days') or 0)
+            if sd > agg[sku]['safety_days']: agg[sku]['safety_days'] = sd
+            if inv.get('warehouse'): agg[sku]['warehouses'].add(inv['warehouse'])
+        for sku, st in agg.items():
+            avail = st['available']; transit = st['transit']; safety = st['safety']
+            ds7 = round(sales_7.get(sku, 0) / 7, 1)
+            ds14 = round(sales_14.get(sku, 0) / 14, 1)
+            ds28 = round(sales_28.get(sku, 0) / 28, 1)
+            sel_ds = {28: ds28, 14: ds14, 7: ds7}[days]
+            sel_ds = round(sel_ds * active_factor, 1)
+            sku_safety_days = st['safety_days']
+            safety_days = sku_safety_days if sku_safety_days > 0 else float(cfg.get('safety_multiplier', '3'))
+            effective_safety = round(sel_ds * safety_days) if sel_ds > 0 else 0
+            suggested = max(round(sel_ds * lead_time + effective_safety - avail - transit), 0) if sel_ds > 0 else 0
+            days_to_empty = round(avail / sel_ds, 1) if sel_ds > 0 else 999
+            prod = products.get(sku, {})
+            suggestions.append({
+                "sku": sku, "product_name": prod.get('product_name', inv.get('product_name', '')),
+                "store": prod.get('store', ''), "category": prod.get('category', ''),
+                "available_qty": avail, "safety_qty": safety, "in_transit_qty": transit,
+                "daily_sales": sel_ds, "suggested_qty": suggested, "days_to_empty": days_to_empty,
+                "lead_time": lead_time, "safety_days": safety_days,
+                "urgency": "紧急" if days_to_empty < 3 else ("建议" if suggested > 0 else "正常"),
+                "warehouses": len(st['warehouses']),
+            })
+    else:
+        # 传统模式：按仓逐条计算（原逻辑）
+        for inv in items:
+            sku = inv.get("sku", "")
+            avail = int(inv.get("available_qty") or 0)
+            safety = int(inv.get("safety_qty") or 0)
+            transit = int(inv.get("in_transit_qty") or 0)
+            ds7 = round(sales_7.get(sku, 0) / 7, 1)
+            ds14 = round(sales_14.get(sku, 0) / 14, 1)
+            ds28 = round(sales_28.get(sku, 0) / 28, 1)
+            sel_ds = {28: ds28, 14: ds14, 7: ds7}[days]
+            sel_ds = round(sel_ds * active_factor, 1)
 
         # B仓超15天仓储费风险告警
         max_turnover = int(cfg.get('max_turnover_days', '15'))

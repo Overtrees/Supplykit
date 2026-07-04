@@ -65,6 +65,13 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
         ds28 = round(sales_28.get(sku, 0) / 28, 1)
         sel_ds = {28: ds28, 14: ds14, 7: ds7}[days]
 
+        # 活动系数加成
+        active_factor = 1.0
+        for s in season_config:
+            if isinstance(s, dict) and s.get("enabled") and s.get("factor",1.0) > active_factor:
+                active_factor = float(s["factor"])
+        sel_ds = round(sel_ds * active_factor, 1)
+
         # 当前周期计算
         # 安全库存天数：SKU 级优先，无则用全局默认
         # 按 ABC 分类建议：A类7天 / B类5天 / C类3天

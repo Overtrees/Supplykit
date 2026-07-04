@@ -86,24 +86,24 @@ export default function InsightsPage() {
   useEffect(() => {
     setInitLoading(true)
     loadOrdered()
-
-    const promises = [
-      loadReplen(replenDays, replenMode),
+    // 补货建议独立加载（自带 loading 管理）
+    loadReplen(replenDays, replenMode)
+    // 其余 4 组数据同时加载
+    const otherPromises = [
       api.get('/api/insights/purchase?days=' + replenDays + '&mode=' + replenMode),
       api.get('/api/insights/summary'),
       api.get('/api/events'),
       api.get('/api/insights/slow-moving'),
     ]
-    Promise.allSettled(promises).then(([replenR, purchaseR, summaryR, eventsR, slowR]) => {
-      setReplenLoading(false)
-      setPurchaseLoading(false)
+    Promise.allSettled(otherPromises).then(([purchaseR, summaryR, eventsR, slowR]) => {
       if (purchaseR.status === 'fulfilled') setPurchase(purchaseR.value.data?.suggestions || purchaseR.value.data || [])
-      setSummaryLoading(false)
+      setPurchaseLoading(false)
       if (summaryR.status === 'fulfilled') setSummary(summaryR.value.data)
-      setActivityLoading(false)
+      setSummaryLoading(false)
       if (eventsR.status === 'fulfilled') setActivities((eventsR.value.data || []).slice(0, 15))
-      setSlowLoading(false)
+      setActivityLoading(false)
       if (slowR.status === 'fulfilled') setSlowMoving(slowR.value.data || [])
+      setSlowLoading(false)
       setInitLoading(false)
     }).catch(() => setInitLoading(false))
   }, [])

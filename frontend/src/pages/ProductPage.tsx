@@ -10,4 +10,4 @@ return<div className='card' style={{containerType:'inline-size'}}><div className
 {fl.length===0?<EmptyState icon='🏷️' title={s?'无匹配商品':'暂无商品'} desc={s?'换个关键词试试':''}/>:<div style={{overflowX:"auto"}}>
 <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 6 列 · 左右滑动查看</div>
 <table><thead><tr>{['SKU','名称','店铺','分类','单价','状态'].map(h=><th key={h}>{h}</th>)}</tr></thead>
-<tbody>{fl.map(x=><tr key={x.id}><td className='mono col-sku'>{x.sku}</td><td className='col-name'>{x.product_name}</td><td className='col-store'>{x.store}</td><td className='col-store'>{x.category}</td><td className='col-price'>¥{x.price}</td><td><span className={'pill '+(x.status==='active'?'success':'warning')}>{x.status}</span></td></tr>)}</tbody></table></div>}</div>}
+<tbody>{fl.map(x=><tr key={x.id}><td className='mono col-sku'>{x.sku}</td><td className='col-name'>{x.product_name}</td><td className='col-store'>{x.store}</td><td className='col-store'>{x.category}</td><td className='col-price'>¥{x.price}</td><td><span className={'pill '+(x.status==='active'?'success':'warning')}>{x.status==='active'?'在售':x.status}</span></td></tr>)}</tbody></table></div>}</div>}

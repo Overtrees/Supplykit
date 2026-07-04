@@ -188,16 +188,12 @@ def compare_replenishment_sources(days: int = 28, db = get_db()):
 @router.get('/purchase')
 def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
     """采购建议：按 SKU 汇总全仓、按供应商归并、独立于补货计算"""
-    # 1. 读取当前 mode 的采购配置
+    # 1. 读取全库配置（采购参数不按 mode 区分，全局统一）
     raw = {r['key']: r['value'] for r in db.table("replenishment_config").select("*").execute().data}
-    cfg = {}
-    for k, v in raw.items():
-        if k.startswith(f'mode_{mode}_'):
-            cfg[k[len(f'mode_{mode}_'):]] = v
 
-    purchase_lead_time = int(cfg.get('purchase_lead_days', '7'))
-    moq_default = int(cfg.get('moq', '50'))
-    safety_mult = float(cfg.get('safety_multiplier', '3'))
+    purchase_lead_time = int(raw.get('purchase_lead_days', '7'))
+    moq_default = int(raw.get('moq', '50'))
+    safety_mult = float(raw.get('safety_multiplier', '3'))
 
     # 2. 活动系数
     season_key = f'season_config_{mode}'

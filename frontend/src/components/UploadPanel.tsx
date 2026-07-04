@@ -17,8 +17,8 @@ const submit = async (type, file) => {
       const data = res.data
       if (!data.ok) { toast.error(data.error || '导入失败' + (data.diagnose ? ` (${data.diagnose.bytes}字节, 列:${data.diagnose.sample_columns})` : '')); return }
       addImportLog({ type: type === 'orders' ? 'orders.imported' : 'inventory.imported', payload: data, file: file.name })
-      const detail = data.total_rows ? ` (共${data.total_rows}行, 跳过${data.skipped||0}行)` : ''
-      toast.success(`导入成功: ${data.imported} 条${detail}`)
+      const detail = data.total_rows ? ` (共${data.total_rows}行, 新增${data.imported}条, 重复${data.duplicates||0}条, 跳过${data.skipped||0}行)` : ''
+      toast.success(`导入完成: 新增 ${data.imported} 条${detail}`)
       await loadAll()
     } catch(e) {
       toast.error('导入异常: ' + (e.response?.data?.detail || e.message || '请求失败'))

@@ -89,6 +89,7 @@ def import_orders(file: UploadFile = File(...), db = get_db()):
     inserted = 0
     imported_items = []
     skipped = 0
+    duplicates = 0
     for row in rows:
         mapped = {}
         raw_extra = {}
@@ -114,12 +115,20 @@ def import_orders(file: UploadFile = File(...), db = get_db()):
             skipped += 1
             continue
 
+        # 查重：同 order_no + sku 已存在则为重复
+        o, s = mapped.get('order_no',''), mapped.get('sku','')
+        existing = db.table("orders").select("id").eq("order_no", o).eq("sku", s).execute().data
+        is_dup = len(existing) > 0
+
         mapped['data_source'] = 'import'
         if raw_extra:
             mapped['raw_data'] = json.dumps(raw_extra, ensure_ascii=False)
 
         db.table("orders").upsert(mapped)
-        inserted += 1
+        if is_dup:
+            duplicates += 1
+        else:
+            inserted += 1
         imported_items.append(mapped)
 
     from app.core.events import bus
@@ -127,7 +136,7 @@ def import_orders(file: UploadFile = File(...), db = get_db()):
     if imported_items:
         bus.emit('order.created', {'items': imported_items, 'order_type': 'import'})
     return {
-        'ok': True, 'imported': inserted, 'from_file': file.filename,
+        'ok': True, 'imported': inserted, 'duplicates': duplicates, 'from_file': file.filename,
         'total_rows': len(rows), 'skipped': skipped,
         'columns_mapped': [k for k in (imported_items[0] if imported_items else {}).keys() if k != 'raw_data'],
         'columns_rawdata': list(raw_extra.keys()) if imported_items and raw_extra else [],

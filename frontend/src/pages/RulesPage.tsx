@@ -20,7 +20,7 @@ export default function RulesPage() {
   const [f,setF] = useState({name:'',event:'inventory.changed',alert_type:'',alert_title:'',alert_desc:'',severity:'warning',condition_json:'{}'})
 
   const load=async()=>{try{const r=await fetch(API+'/api/rules');setRules(await r.json())}catch(e){}}
-  const loadCfg=async(mode)=>{try{const m=mode||cfg.replenishment_mode||'bbcc';const r=await api.get('/api/replenishment-config?mode='+m);setCfg(p=>({...p,...r.data,replenishment_mode:m}));return r.data||{}}catch(e){return {}}}
+  const loadCfg=async(mode)=>{try{const m=mode||cfg.replenishment_mode||'bbcc';const r=await api.get('/api/replenishment-config?mode='+m);setCfg({...r.data,replenishment_mode:m});return r.data||{}}catch(e){return {}}}
   const loadSeasons=async(mode)=>{try{const m=mode||cfg.replenishment_mode||'bbcc';const r=await api.get('/api/replenishment-config/seasons?mode='+m);setSeasons(r.data||[])}catch(e){}}
   useEffect(()=>{load();loadCfg().then(d=>loadSeasons())},[])
 
@@ -140,7 +140,12 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
       </div>)}
       <button onClick={()=>setSeasons(p=>[...p,{key:'new',name:'新活动',factor:1.2,enabled:true}])} className="btn btn-ghost" style={{fontSize:12,padding:'4px 12px',width:'100%'}}>+ 添加活动</button>
 
-      <button disabled={saving} onClick={async()=>{setSaving(true);const m=cfg.replenishment_mode||'bbcc';try{await api.put('/api/replenishment-config?mode='+m,cfg);await api.put('/api/replenishment-config/seasons?mode='+m,{items:seasons});await loadCfg(m);toast.success('参数已保存')}catch(e){toast.error('保存失败: '+e.message)}setSaving(false)}} className="btn btn-primary" style={{opacity:saving?0.6:1}}>{saving?'⏳ 保存中...':'💾 保存参数'}</button>
+      <button disabled={saving} onClick={async()=>{setSaving(true);const m=cfg.replenishment_mode||'bbcc';try{
+        const toSave = {}
+        paramFields.forEach(f => { if (cfg[f.k] !== undefined) toSave[f.k] = cfg[f.k] })
+        await api.put('/api/replenishment-config?mode='+m, toSave)
+        await api.put('/api/replenishment-config/seasons?mode='+m,{items:seasons})
+        await loadCfg(m);toast.success('参数已保存')}catch(e){toast.error('保存失败: '+e.message)}setSaving(false)}} className="btn btn-primary" style={{opacity:saving?0.6:1}}>{saving?'⏳ 保存中...':'💾 保存参数'}</button>
       <span className='small muted' style={{marginLeft:8,fontSize:11}}>更新后补货建议 & 规则引擎适用</span>
     </div>}
   </div>

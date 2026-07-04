@@ -1,15 +1,37 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 from app.core.database import get_db
 
 router = APIRouter(prefix="/api/inventory", tags=["inventory"])
 
+
 @router.get("")
-def list_inventory(db = get_db(), store: str = ""):
+def list_inventory(db = get_db(), store: str = '', page: int = 0, page_size: int = 0):
+    """库存列表 — 支持分页和店铺过滤"""
     q = db.table("inventory").select("*")
     if store:
         q = q.eq("store", store)
-    data = q.order("id", desc=True).execute().data
-    return data
+
+    # 分页（page=0 或 page_size=0 时返回全部）
+    if page > 0 and page_size > 0:
+        # 总条数
+        count_q = db.table("inventory").select("count(*)")
+        if store:
+            count_q = count_q.eq("store", store)
+        cr = count_q.execute()
+        total = cr.count if hasattr(cr, 'count') else len(cr.data or [])
+        q = q.order("id", desc=True).limit(page_size).offset((page - 1) * page_size)
+        data = q.execute().data or []
+        return {
+            'items': data,
+            'total': total,
+            'page': page,
+            'page_size': page_size,
+            'total_pages': max(1, (total + page_size - 1) // page_size),
+        }
+
+    # 不分页（保持向后兼容）
+    return q.order("id", desc=True).execute().data
+
 
 @router.post("")
 def create_inventory(body: dict, db = get_db()):
@@ -37,6 +59,7 @@ def create_inventory(body: dict, db = get_db()):
             pass
     return inv or {"ok": True}
 
+
 @router.put("/{iid}")
 def update_inventory(iid: int, body: dict, db = get_db()):
     db.table("inventory").update(body).eq("id", iid).execute()
@@ -52,7 +75,6 @@ def update_inventory(iid: int, body: dict, db = get_db()):
             })
         except Exception:
             pass
-        # 直接写入事件（不依赖事件总线）
         try:
             from app.api.routes.events import create_event
             create_event(db, 'stock.changed', 'inventory', str(inv['id']),
@@ -60,7 +82,6 @@ def update_inventory(iid: int, body: dict, db = get_db()):
                          {'available_qty': inv.get('available_qty'), 'action': 'update'})
         except Exception:
             pass
-        # 直接检查并触发规则
         try:
             from app.core.rules import evaluate
             evaluate('inventory.changed', {'inv': inv, 'db': db, 'sku': inv.get('sku','')})
@@ -68,10 +89,12 @@ def update_inventory(iid: int, body: dict, db = get_db()):
             pass
     return {"ok": True}
 
+
 @router.delete("/{iid}")
 def delete_inventory(iid: int, db = get_db()):
     db.table("inventory").delete().eq("id", iid).execute()
     return {"ok": True}
+
 
 @router.post("/adjust")
 def adjust_inventory(body: dict, db = get_db()):
@@ -93,6 +116,5 @@ def adjust_inventory(body: dict, db = get_db()):
     elif action == "set":
         new_avail = qty
         db.table("inventory").update({"available_qty": new_avail}).eq("id", iid).execute()
-    
     inv["available_qty"] = new_avail
     return {"ok": True}

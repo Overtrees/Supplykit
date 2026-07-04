@@ -497,6 +497,13 @@ def init_db(path=None):
         CREATE UNIQUE INDEX IF NOT EXISTS idx_po_sku_store ON purchase_orders(sku, store);
         CREATE INDEX IF NOT EXISTS idx_events_type ON events(event_type);
         CREATE INDEX IF NOT EXISTS idx_quality_logs_level ON quality_logs(level);
+        CREATE INDEX IF NOT EXISTS idx_orders_ordered_at ON orders(ordered_at);
+        CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(order_status);
+        CREATE INDEX IF NOT EXISTS idx_orders_store ON orders(store);
+        CREATE INDEX IF NOT EXISTS idx_orders_sku ON orders(sku);
+        CREATE INDEX IF NOT EXISTS idx_orders_data_source ON orders(data_source);
+        CREATE INDEX IF NOT EXISTS idx_inventory_store ON inventory(store);
+        CREATE INDEX IF NOT EXISTS idx_events_created_at ON events(created_at);
     """)
     # 兼容旧表：补加可能缺失的列
     try: conn.execute("ALTER TABLE products ADD COLUMN box_qty INTEGER DEFAULT 1")

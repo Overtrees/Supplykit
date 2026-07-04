@@ -66,8 +66,8 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
   ]
 
   return <div className='card'>
-    <div className='section-title' style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-      <div style={{display:'flex',gap:8}}>
+    <div className='section-title' style={{display:'flex',flexWrap:'wrap',gap:6}}>
+      <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
         <button onClick={()=>setTab('rules')} className="btn btn-ghost" style={{fontSize:13,background:tab==='rules'?'var(--primary)':'transparent',color:tab==='rules'?'#fff':''}}>⚙️ 规则</button>
         <button onClick={()=>{loadCfg(cfg.replenishment_mode||'bbcc');setTab('params')}} className="btn btn-ghost" style={{fontSize:13,background:tab==='params'?'var(--success)':'transparent',color:tab==='params'?'#fff':''}}>📊 补货参数</button>
         <button onClick={async()=>{try{const r=await api.get('/api/replenishment-config');if(r.data)setCfg(p=>({...r.data,replenishment_mode:p.replenishment_mode||'bbcc'}))}catch(e){};setTab('purchase')}} className="btn btn-ghost" style={{fontSize:13,background:tab==='purchase'?'var(--primary)':'transparent',color:tab==='purchase'?'#fff':''}}>🛒 采购参数</button>

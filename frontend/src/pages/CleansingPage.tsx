@@ -321,4 +321,4 @@ export default function CleansingPage() {
       )})}
     </div>
   </div>
-}
+};

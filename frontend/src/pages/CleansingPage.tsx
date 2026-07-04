@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { api } from '../api/client'
 import { useToast } from '../components/Toast'
+import { useAppStore } from '../store/useAppStore'
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
 const INV_FIELDS = [
@@ -48,6 +49,8 @@ const ALIAS = {
 
 export default function CleansingPage() {
   const toast = useToast()
+  const importLogs = useAppStore(s => s.importLogs)
+  const addImportLog = useAppStore(s => s.addImportLog)
   const [s,setS] = useState(0)
   const [f,setF] = useState(null)
   const [cols,setCols] = useState([])
@@ -124,8 +127,11 @@ export default function CleansingPage() {
         try {
           const sr = await api.get('/api/cleansing/task/'+d.task_id)
           const sd = sr.data
-          if (sd.status === 'done') { clearInterval(poll); setRes(sd.result); setS(3); setBs(''); toast.success('清洗完成') }
-          else if (sd.status === 'error') { clearInterval(poll); toast.error('失败: '+sd.error); setBs('') }
+          if (sd.status === 'done') {
+            clearInterval(poll); setRes(sd.result); setS(3); setBs('')
+            addImportLog({ type:'cleansing.done', payload:{...sd.result, from_file:f?.name||''} })
+            toast.success('清洗完成')
+          } else if (sd.status === 'error') { clearInterval(poll); toast.error('失败: '+sd.error); setBs('') }
           else if (sd.progress !== undefined) { setBs(`清洗中... ${sd.progress}% (${Math.round(sd.progress/100*totalRows)}/${totalRows}条)`) }
         } catch { clearInterval(poll); setBs('') }
       }, 1000)
@@ -267,5 +273,38 @@ export default function CleansingPage() {
         </label>
       </div>
     </div>}
+
+    {/* ─── 历史记录 ─────────────────────────────────────────────── */}
+    <ImportLog importLogs={importLogs} />
+  </div>
+}
+
+function ImportLog({ importLogs }) {
+  if (!importLogs || importLogs.length === 0) return null
+  return <div className="card" style={{marginTop:16}}>
+    <div style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--muted2)', marginBottom:12 }}>操作记录</div>
+    <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+      {importLogs.map((x, idx) => {
+        const p = x.payload || x
+        const name = p?.from_file || x.file || '—'
+        const imp = p?.imported ?? 0
+        const dup = p?.duplicates ?? 0
+        const skp = p?.skipped ?? 0
+        const err = p?.error
+        const ok = !err
+        return (
+        <div key={idx} style={{ fontSize:13, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:12, padding:'10px 14px' }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:2 }}>
+            <span style={{ fontWeight:600, fontSize:13, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'65%' }} title={name}>{name}</span>
+            <span style={{ fontSize:12, fontWeight:600, color: err ? 'var(--danger)' : (ok ? 'var(--success)' : 'var(--muted)') }}>
+              {err ? `异常` : `完成`}
+            </span>
+          </div>
+          <div style={{ fontSize:12, color: err ? 'var(--danger)' : 'var(--muted)' }}>
+            {err ? err : `新增 ${imp} 条${dup > 0 ? ` · ${dup} 重复` : ''}${skp > 0 ? ` · ${skp} 跳过` : ''}`}
+          </div>
+        </div>
+      )})}
+    </div>
   </div>
 }

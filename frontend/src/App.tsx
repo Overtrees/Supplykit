@@ -12,14 +12,13 @@ import OrdersPage from './pages/OrdersPage'
 import InventoryPage from './pages/InventoryPage'
 import QualityPage from './pages/QualityPage'
 import Sidebar from './components/Sidebar'
-import UploadPanel from './components/UploadPanel'
 import useKeyboard from './hooks/useKeyboard'
 import './version'
 
 export const NAV = [
   { id:'dash',label:'总览',icon:'📊'},{id:'products',label:'商品',icon:'🏷️'},{id:'suppliers',label:'供应商',icon:'🏭'},
   { id:'orders',label:'订单',icon:'📋'},{id:'inv',label:'库存',icon:'📦'},{id:'insights',label:'建议',icon:'💡'},
-  { id:'cleansing',label:'清洗',icon:'🧹'},{id:'rules',label:'规则',icon:'⚙️'},{id:'import',label:'导入数据',icon:'📤'},
+  { id:'cleansing',label:'清洗',icon:'🧹'},{id:'rules',label:'规则',icon:'⚙️'},
   { id:'quality',label:'异常',icon:'⚠️'},
 ]
 
@@ -83,7 +82,6 @@ export default function App() {
       case 'insights': return wrap(<InsightsPage />)
       case 'cleansing': return wrap(<CleansingPage />)
       case 'rules': return wrap(<RulesPage />)
-      case 'import': return wrap(<UploadPanel onImport={(t)=>navigate(t==='orders'?'orders':'inv')} />)
       case 'quality': return wrap(<QualityPage />)
       default: return null
     }

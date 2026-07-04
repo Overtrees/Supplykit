@@ -16,16 +16,16 @@ TODAY = datetime.now(timezone.utc).date()
 
 # ── 商品（珠江桥牌调味品为主） ──────────────────────────────────
 SEED_PRODUCTS = [
-  {"sku":"SKU-001","product_name":"珠江桥牌 特级鲜酱油 500ml","store":"珠江桥牌（京东自营）","category":"酱油","price":18.9,"status":"active"},
-  {"sku":"SKU-002","product_name":"珠江桥牌 金标生抽王 500ml","store":"珠江桥牌（京东自营）","category":"酱油","price":12.8,"status":"active"},
-  {"sku":"SKU-003","product_name":"珠江桥牌 蚝油 挤瓶装 510g","store":"珠江桥牌（京东自营）","category":"酱料","price":15.5,"status":"active"},
-  {"sku":"SKU-004","product_name":"珠江桥牌 白灼汁 300ml","store":"珠江桥牌（京东自营）","category":"调味汁","price":9.9,"status":"active"},
-  {"sku":"SKU-005","product_name":"珠江桥牌 老抽王 500ml","store":"珠江桥牌（京东自营）","category":"酱油","price":11.5,"status":"active"},
-  {"sku":"SKU-006","product_name":"珠江桥牌 柱侯酱 240g","store":"广州调味食材专营店","category":"酱料","price":8.8,"status":"active"},
-  {"sku":"SKU-007","product_name":"珠江桥牌 辣椒酱 230g","store":"广州调味食材专营店","category":"酱料","price":10.5,"status":"active"},
-  {"sku":"SKU-008","product_name":"珠江桥牌 拌面酱 200g","store":"华南食品旗舰店","category":"酱料","price":12.9,"status":"active"},
-  {"sku":"SKU-009","product_name":"珠江桥牌 芝麻油 220ml","store":"华南食品旗舰店","category":"食用油","price":16.8,"status":"active"},
-  {"sku":"SKU-010","product_name":"珠江桥牌 饺子醋 300ml","store":"珠江桥牌（京东自营）","category":"调味汁","price":7.5,"status":"active"},
+  {"sku":"SKU-001","product_name":"珠江桥牌 特级鲜酱油 500ml","store":"珠江桥牌（京东自营）","category":"酱油","price":18.9,"box_qty":12,"status":"active"},
+  {"sku":"SKU-002","product_name":"珠江桥牌 金标生抽王 500ml","store":"珠江桥牌（京东自营）","category":"酱油","price":12.8,"box_qty":12,"status":"active"},
+  {"sku":"SKU-003","product_name":"珠江桥牌 蚝油 挤瓶装 510g","store":"珠江桥牌（京东自营）","category":"酱料","price":15.5,"box_qty":12,"status":"active"},
+  {"sku":"SKU-004","product_name":"珠江桥牌 白灼汁 300ml","store":"珠江桥牌（京东自营）","category":"调味汁","price":9.9,"box_qty":12,"status":"active"},
+  {"sku":"SKU-005","product_name":"珠江桥牌 老抽王 500ml","store":"珠江桥牌（京东自营）","category":"酱油","price":11.5,"box_qty":12,"status":"active"},
+  {"sku":"SKU-006","product_name":"珠江桥牌 柱侯酱 240g","store":"广州调味食材专营店","category":"酱料","price":8.8,"box_qty":24,"status":"active"},
+  {"sku":"SKU-007","product_name":"珠江桥牌 辣椒酱 230g","store":"广州调味食材专营店","category":"酱料","price":10.5,"box_qty":24,"status":"active"},
+  {"sku":"SKU-008","product_name":"珠江桥牌 拌面酱 200g","store":"华南食品旗舰店","category":"酱料","price":12.9,"box_qty":24,"status":"active"},
+  {"sku":"SKU-009","product_name":"珠江桥牌 芝麻油 220ml","store":"华南食品旗舰店","category":"食用油","price":16.8,"box_qty":24,"status":"active"},
+  {"sku":"SKU-010","product_name":"珠江桥牌 饺子醋 300ml","store":"珠江桥牌（京东自营）","category":"调味汁","price":7.5,"box_qty":24,"status":"active"},
 ]
 
 # ── 供应商 ──────────────────────────────────────────────────

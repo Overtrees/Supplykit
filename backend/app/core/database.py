@@ -354,6 +354,7 @@ def init_db(path=None):
             store TEXT DEFAULT '',
             category TEXT DEFAULT '',
             price REAL DEFAULT 0,
+            box_qty INTEGER DEFAULT 1,
             status TEXT DEFAULT 'active',
             owner_id TEXT DEFAULT '',
             created_at TEXT DEFAULT (datetime('now')),

@@ -125,6 +125,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             max_turnover = int(cfg.get('max_turnover_days', '15'))
             max_allowed = round(sel_ds * max_turnover) if sel_ds > 0 else 0
             suggested = min(suggested, max_allowed) if max_allowed > 0 else suggested
+            p = products.get(sku, {})
             box = int(p.get('box_qty', 1) or 1)
             box_qty = (suggested + box - 1) // box * box if suggested > 0 else 0
             suggested = box_qty
@@ -132,7 +133,6 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             gap_tr = raw_suggested - suggested
             note_tr = f"目标周转{max_turnover}天" + (f", 按前置期{lead_time}天算需{raw_suggested}件" if gap_tr > 0 else "")
             note_tr += f", 箱规{box}件, 实际下{box_qty}件（{box_qty//box}箱）" if suggested > 0 else ", 无需补货"
-            p = products.get(sku, {})
             suggestions.append({
                 "sku": sku, "product_name": inv.get("product_name") or p.get("product_name", ""),
                 "store": inv.get("store"), "category": p.get("category", ""),

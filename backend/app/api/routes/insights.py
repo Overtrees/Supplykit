@@ -420,6 +420,43 @@ def sync_inventory_from_orders(db = get_db(), limit: int = 200):
     return {'ok': True, 'synced': count, 'scanned': len(orders)}
 
 
+@router.get('/export-orders')
+def export_orders_excel(db = get_db()):
+    from openpyxl import Workbook
+    from io import BytesIO
+    from fastapi.responses import StreamingResponse
+    orders = db.table("orders").select("*").order("id", desc=True).execute().data or []
+    wb = Workbook()
+    ws = wb.active; ws.title = "订单"
+    headers = ['订单号','店铺','仓库','SKU','商品名称','数量','单价','金额','状态','日期','平台','供应商','备注']
+    ws.append(headers)
+    for o in orders:
+        ws.append([o.get('order_no',''),o.get('store',''),o.get('warehouse',''),o.get('sku',''),
+                   o.get('product_name',''),o.get('quantity',0),o.get('unit_price',0),
+                   o.get('total_amount',0),o.get('order_status',''),o.get('ordered_at',''),
+                   o.get('platform',''),o.get('supplier',''),o.get('remark','')])
+    buf = BytesIO(); wb.save(buf); buf.seek(0)
+    return StreamingResponse(buf, media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                             headers={'Content-Disposition':'attachment; filename=orders.xlsx'})
+
+@router.get('/export-inventory')
+def export_inventory_excel(db = get_db()):
+    from openpyxl import Workbook
+    from io import BytesIO
+    from fastapi.responses import StreamingResponse
+    items = db.table("inventory").select("*").order("id", desc=True).execute().data or []
+    wb = Workbook()
+    ws = wb.active; ws.title = "库存"
+    headers = ['SKU','商品名称','店铺','仓库','可用','锁定','在途','安全线','安全天数']
+    ws.append(headers)
+    for i in items:
+        ws.append([i.get('sku',''),i.get('product_name',''),i.get('store',''),i.get('warehouse',''),
+                   i.get('available_qty',0),i.get('locked_qty',0),i.get('in_transit_qty',0),
+                   i.get('safety_qty',0),i.get('safety_days',0)])
+    buf = BytesIO(); wb.save(buf); buf.seek(0)
+    return StreamingResponse(buf, media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                             headers={'Content-Disposition':'attachment; filename=inventory.xlsx'})
+
 @router.get('/export-purchase')
 def export_purchase_excel(days: int = 28, mode: str = 'bbcc', db = get_db()):
     """导出补货建议为采购单 Excel"""

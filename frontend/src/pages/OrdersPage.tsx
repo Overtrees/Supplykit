@@ -31,6 +31,8 @@ export default function OrdersPage() {
   return <div className="card">
     <div className="section-title" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
       <span>订单 <span className="small muted">共 {orderTotal} 条</span></span>
+      <button onClick={async()=>{try{const r=await fetch(API+'/api/insights/export-orders');const b=await r.blob();const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='orders_'+new Date().toISOString().slice(0,10)+'.xlsx';document.body.appendChild(a);a.click();a.remove()}catch(e){toast.error('导出失败')}}}
+        className="btn btn-ghost" style={{fontSize:12,padding:'4px 12px'}}>📥 导出</button>
     </div>
 
     {/* iOS 风格搜索栏 */}

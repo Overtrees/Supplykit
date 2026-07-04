@@ -129,6 +129,7 @@ export default function InsightsPage() {
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>库存健康，暂无补货建议</div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
+              <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 15 列 · 左右滑动查看</div>
               <table>
                 <thead><tr>{['','SKU','商品','店铺','现有','安全线','在途','日销7','日销14','日销28','可撑(天)','建议补','安全(天)','紧急度','已下单'].map(h => <th key={h}>{h}</th>)}</tr></thead>
                 <tbody>
@@ -176,6 +177,7 @@ export default function InsightsPage() {
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>暂无采购建议</div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
+              <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 6 列 · 左右滑动查看</div>
               <table>
                 <thead><tr>{['SKU','商品','建议补量','推荐供应商','评分','紧急度'].map(h => <th key={h}>{h}</th>)}</tr></thead>
                 <tbody>
@@ -205,6 +207,7 @@ export default function InsightsPage() {
           ) : (
             <>
               <div style={{ overflowX: 'auto' }}>
+                <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 8 列 · 左右滑动查看</div>
                 <table>
                   <thead><tr>{['SKU','商品','店铺','分类','最近下单','天数','库存','状态'].map(h => <th key={h}>{h}</th>)}</tr></thead>
                   <tbody>

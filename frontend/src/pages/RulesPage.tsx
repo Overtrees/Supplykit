@@ -50,8 +50,9 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
     {k:'alert_desc',l:'告警描述',h:'可用变量：{avail} {safety} {sku}',pl:'可用 {avail} < 安全线 {safety}'},
   ]
 
+  const L = (cfg.replenishment_mode||'bbcc')==='bbcc' ? '供应商生产+送货到我司仓总天数' : '供应商生产+送货到我司仓+我司发往全国仓总天数'
   const paramFields=[
-    {k:'lead_time_days',l:'生产到司(天)',h:'供应商生产+送货到我司总天数'},
+    {k:'lead_time_days',l:'前置期(天)',h:L},
     {k:'ship_to_b_days',l:'发B仓时效(天)',h:'BBCC：我司发往京东B仓时效'},
     {k:'b_to_c_days',l:'B→C调拨(天)',h:'BBCC：京东B仓→C仓调拨时效'},
     {k:'c_safety_days',l:'C仓缓冲(天)',h:'BBCC：C仓防止调拨断货储备天数'},

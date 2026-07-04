@@ -18,7 +18,7 @@ const submit = async (type, file) => {
       if (!data.ok) { toast.error(data.error || '导入失败' + (data.diagnose ? ` (${data.diagnose.bytes}字节, 列:${data.diagnose.sample_columns})` : '')); return }
       addImportLog({ type: type === 'orders' ? 'orders.imported' : 'inventory.imported', payload: data, file: file.name })
       const detail = data.total_rows ? ` (共${data.total_rows}行, 新增${data.imported}条, 重复${data.duplicates||0}条, 跳过${data.skipped||0}行)` : ''
-      toast.success(`导入完成: 新增 ${data.imported} 条${detail}`)
+      toast.success(`导入成功: 新增 ${data.imported} 条${detail}`)
       await loadAll()
     } catch(e) {
       toast.error('导入异常: ' + (e.response?.data?.detail || e.message || '请求失败'))
@@ -48,32 +48,26 @@ const submit = async (type, file) => {
         {importLogs.length === 0 ? (
           <div style={{ color:'var(--muted2)', fontSize:13, textAlign:'center' }}>暂无导入记录</div>
         ) : (
-          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
             {[...importLogs].reverse().map((x, idx) => {
               const p = x.payload || x
               const name = p?.from_file || x.file || '—'
               const imp = p?.imported ?? 0
               const dup = p?.duplicates ?? 0
               const skp = p?.skipped ?? 0
-              const tot = p?.total_rows ?? 0
-              const cols = p?.columns_mapped
-              const extras = p?.columns_rawdata
+              const err = p?.error
+              const ok = imp > 0 || (imp === 0 && dup > 0 && !err)
               return (
               <div key={idx} style={{ fontSize:13, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:12, padding:'10px 14px' }}>
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
-                  <span style={{ fontWeight:600, fontSize:14, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'60%' }} title={name}>{name}</span>
-                  <span style={{ fontSize:11, color: imp > 0 ? 'var(--success)' : 'var(--muted)' }}>
-                    +{imp}{dup > 0 ? ` · ${dup}重复` : ''}{skp > 0 ? ` · ${skp}跳过` : ''}
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:2 }}>
+                  <span style={{ fontWeight:600, fontSize:13, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'65%' }} title={name}>{name}</span>
+                  <span style={{ fontSize:12, fontWeight:600, color: err ? 'var(--danger)' : (ok ? 'var(--success)' : 'var(--muted)') }}>
+                    {err ? `导入异常` : ok ? `导入完成` : `导入异常`}
                   </span>
                 </div>
-                {tot > 0 && <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:4 }}>
-                  <span className="small muted">共{tot}行</span>
-                  {cols?.length > 0 && <span className="small muted" style={{ color:'var(--info)' }}>映射{cols.length}列</span>}
-                  {extras?.length > 0 && <span className="small muted" style={{ color:'var(--muted2)' }}>原始{extras.length}列</span>}
-                </div>}
-                {cols?.length > 0 && <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>
-                  {cols.map(c => <span key={c} style={{ fontSize:10, padding:'1px 6px', borderRadius:4, background:'rgba(29,78,216,0.08)', color:'var(--primary)', whiteSpace:'nowrap' }}>{c}</span>)}
-                </div>}
+                <div style={{ fontSize:12, color: err ? 'var(--danger)' : 'var(--muted)' }}>
+                  {err ? err : `新增 ${imp} 条${dup > 0 ? ` · ${dup} 条重复` : ''}${skp > 0 ? ` · ${skp} 行跳过` : ''}`}
+                </div>
               </div>
             )})}
           </div>

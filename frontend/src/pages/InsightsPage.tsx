@@ -42,7 +42,7 @@ export default function InsightsPage() {
   useEffect(() => {
     Promise.all([
       loadReplen(replenDays, replenMode),
-      api.get('/api/insights/purchase'),
+      api.get('/api/insights/purchase?days=' + replenDays + '&mode=' + replenMode),
       api.get('/api/insights/summary'),
       api.get('/api/events'),
       api.get('/api/insights/slow-moving'),

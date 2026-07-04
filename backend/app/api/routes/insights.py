@@ -125,8 +125,8 @@ def compare_replenishment_sources(days: int = 28, db = get_db()):
 
 
 @router.get('/purchase')
-def get_purchase_suggestions(db = get_db()):
-    replen = get_replenishment_suggestions(db=db)
+def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
+    replen = get_replenishment_suggestions(days=days, mode=mode, db=db)
     suppliers = db.table("suppliers").select("*").eq("status", "active").execute().data
     if not suppliers:
         return {"suggestions": replen, "suppliers": []}

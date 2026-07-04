@@ -48,7 +48,7 @@ export default function InventoryPage({ highlightSku }) {
         <td className="col-qty"><input type='number' min='0' max='30' step='1'
           value={x.safety_days || ''} placeholder='全局' onChange={e=>{const v=parseFloat(e.target.value)||0;fetch(API+'/api/inventory/'+x.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({safety_days:v})})}}
           style={{width:48,fontSize:11,textAlign:'center',padding:'2px',border:'1px solid #e2e8f0',borderRadius:4,outline:'none'}} /></td>
-        <td><span onClick={()=>setConfirmDel(x.id)} style={{cursor:'pointer',fontSize:18,opacity:0.4,padding:'8px'}} title='删除'>🗑️</span></td>
+        <td><span onClick={()=>setConfirmDel(x.id)} className="btn btn-ghost" style={{fontSize:16,padding:'4px 8px',opacity:0.5,minHeight:0}} title='删除'>🗑️</span></td>
       </tr>})}</tbody></table>
     </div>}
     <ConfirmDialog open={!!confirmDel} title='删除库存记录' desc='删除后不可恢复' confirmLabel='删除' onConfirm={delInv} onCancel={()=>setConfirmDel(null)} />

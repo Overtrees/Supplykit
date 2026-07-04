@@ -30,7 +30,7 @@ SEED_PRODUCTS = [
 
 # ── 供应商 ──────────────────────────────────────────────────
 SEED_SUPPLIERS = [
-  {"supplier_code":"gzscymy","supplier_name":"广东珠江桥生物科技股份有限公司","contact_person":"陈志强","contact_phone":"020-83568899","score":92},
+  {"supplier_code":"gdzhujiang","supplier_name":"广东珠江桥生物科技股份有限公司","contact_person":"陈志强","contact_phone":"020-83568899","score":92},
   {"supplier_code":"szdzkj","supplier_name":"深圳冠华食品包装有限公司","contact_person":"林晓燕","contact_phone":"0755-82889911","score":85},
   {"supplier_code":"shpjkj","supplier_name":"上海鑫源调味品贸易有限公司","contact_person":"赵建国","contact_phone":"021-64882233","score":78},
 ]

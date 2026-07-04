@@ -61,7 +61,7 @@ export default function OrdersPage() {
           <td className="col-price">¥{Number(x.total_amount).toLocaleString()}</td>
           <td><span className={`pill ${x.order_status==='已完成'?'success':x.order_status==='待发货'?'warning':x.order_status==='已发货'?'info':x.order_status==='申请退款'?'danger':''}`}>{x.order_status}</span></td>
           <td className="col-date">{x.ordered_at}</td>
-          <td><span onClick={()=>setConfirmDel(x.id)} style={{cursor:'pointer',fontSize:18,opacity:0.4,padding:'8px'}} title='删除'>🗑️</span></td>
+          <td><span onClick={()=>setConfirmDel(x.id)} className="btn btn-ghost" style={{fontSize:16,padding:'4px 8px',opacity:0.5,minHeight:0}} title='删除'>🗑️</span></td>
         </tr>)}
       </tbody></table>
     </div>}

@@ -61,10 +61,10 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
   return <div className='card'>
     <div className='section-title' style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
       <div style={{display:'flex',gap:8}}>
-        <button onClick={()=>setTab('rules')} style={{fontSize:13,fontWeight:tab==='rules'?700:400,padding:'4px 12px',border:'none',borderRadius:6,background:tab==='rules'?'var(--primary)':'transparent',color:tab==='rules'?'#fff':'var(--muted)',cursor:'pointer'}}>⚙️ 规则</button>
-        <button onClick={()=>setTab('params')} style={{fontSize:13,fontWeight:tab==='params'?700:400,padding:'4px 12px',border:'none',borderRadius:6,background:tab==='params'?'var(--success)':'transparent',color:tab==='params'?'#fff':'var(--muted)',cursor:'pointer'}}>📊 补货参数</button>
+        <button onClick={()=>setTab('rules')} className="btn btn-ghost" style={{fontSize:13,background:tab==='rules'?'var(--primary)':'transparent',color:tab==='rules'?'#fff':''}}>⚙️ 规则</button>
+        <button onClick={()=>setTab('params')} className="btn btn-ghost" style={{fontSize:13,background:tab==='params'?'var(--success)':'transparent',color:tab==='params'?'#fff':''}}>📊 补货参数</button>
       </div>
-      {tab==='rules'&&<button onClick={()=>{setEditing({});setF({name:'',event:'inventory.changed',alert_type:'',alert_title:'',alert_desc:'',severity:'warning',condition_json:'{}'})}} style={ST.primary}>+ 新建</button>}
+      {tab==='rules'&&<button onClick={()=>{setEditing({});setF({name:'',event:'inventory.changed',alert_type:'',alert_title:'',alert_desc:'',severity:'warning',condition_json:'{}'})}} className="btn btn-primary">+ 新建</button>}
     </div>
 
     {tab==='rules'&&<>
@@ -94,8 +94,8 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
           <div className='small muted' style={{marginTop:6,fontSize:11}}>当满足此条件时触发告警</div>
         </div>
         <div style={{marginTop:12,display:'flex',gap:8}}>
-          <button onClick={save} style={ST.primary}>保存</button>
-          <button onClick={()=>{setEditing(null);setF({name:'',event:'inventory.changed',alert_type:'',alert_title:'',alert_desc:'',severity:'warning',condition_json:'{}'})}} style={ST.secondary}>取消</button>
+          <button onClick={save} className="btn btn-primary">保存</button>
+          <button onClick={()=>{setEditing(null);setF({name:'',event:'inventory.changed',alert_type:'',alert_title:'',alert_desc:'',severity:'warning',condition_json:'{}'})}} className="btn btn-ghost">取消</button>
         </div>
       </div>}
 
@@ -107,8 +107,8 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
             <span className='small muted' style={{marginLeft:6}}>{rule.event}</span>
           </div></div>
         <div style={{display:'flex',gap:6}}>
-          <button onClick={()=>{setEditing(rule);setF({name:rule.name,event:rule.event,alert_type:rule.alert_type||'',alert_title:rule.alert_title||'',alert_desc:rule.alert_desc||'',severity:rule.severity||'warning',condition_json:rule.condition_json||'{}'})}} style={ST.edit}>编辑</button>
-          <button onClick={()=>del(rule.id)} style={ST.danger}>删除</button>
+          <button onClick={()=>{setEditing(rule);setF({name:rule.name,event:rule.event,alert_type:rule.alert_type||'',alert_title:rule.alert_title||'',alert_desc:rule.alert_desc||'',severity:rule.severity||'warning',condition_json:rule.condition_json||'{}'})}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 10px',minHeight:0}}>编辑</button>
+          <button onClick={()=>del(rule.id)} className="btn btn-danger" style={{fontSize:12,padding:'4px 10px',minHeight:0}}>删除</button>
         </div>
       </div>)}
       {rules.length===0&&<div className='small muted' style={{textAlign:'center',padding:40}}>暂无规则</div>}
@@ -116,8 +116,8 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
 
     {tab==='params'&&<div>
       <div style={{display:'flex',gap:8,marginBottom:12}}>
-        <span onClick={()=>{setCfg(p=>({...p,replenishment_mode:'bbcc'}));loadSeasons('bbcc')}} style={{padding:'4px 14px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',background:(cfg.replenishment_mode||'bbcc')==='bbcc'?'var(--primary)':'var(--card)',color:(cfg.replenishment_mode||'bbcc')==='bbcc'?'#fff':'var(--muted)',borderColor:(cfg.replenishment_mode||'bbcc')==='bbcc'?'var(--primary)':'var(--border)'}}>📦 BBCC 送仓</span>
-        <span onClick={()=>{setCfg(p=>({...p,replenishment_mode:'traditional'}));loadSeasons('traditional')}} style={{padding:'4px 14px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',background:cfg.replenishment_mode==='traditional'?'var(--primary)':'var(--card)',color:cfg.replenishment_mode==='traditional'?'#fff':'var(--muted)',borderColor:cfg.replenishment_mode==='traditional'?'var(--primary)':'var(--border)'}}>🏭 传统多仓</span>
+        <span onClick={()=>{setCfg(p=>({...p,replenishment_mode:'bbcc'}));loadSeasons('bbcc')}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 14px',background:(cfg.replenishment_mode||'bbcc')==='bbcc'?'var(--primary)':'transparent',color:(cfg.replenishment_mode||'bbcc')==='bbcc'?'#fff':''}}>📦 BBCC 送仓</span>
+        <span onClick={()=>{setCfg(p=>({...p,replenishment_mode:'traditional'}));loadSeasons('traditional')}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 14px',background:cfg.replenishment_mode==='traditional'?'var(--primary)':'transparent',color:cfg.replenishment_mode==='traditional'?'#fff':''}}>🏭 传统多仓</span>
       </div>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:16}}>
         {paramFields.filter(f => (cfg.replenishment_mode||'bbcc')==='bbcc' || !['b_to_c_days','c_safety_days'].includes(f.k)).map(({k,l,h})=><label key={k} style={{fontSize:12}}>
@@ -136,15 +136,14 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
           <input type='checkbox' checked={s.enabled!==false} onChange={e=>setSeasons(p=>p.map((x,j)=>j===i?{...x,enabled:e.target.checked}:x))} style={{accentColor:'var(--primary)'}}/>
           启用
         </label>
-        <button onClick={()=>setSeasons(p=>p.filter((_,j)=>j!==i))} style={{background:'rgba(225,29,72,0.12)',border:'none',borderRadius:6,cursor:'pointer',padding:'4px 8px',fontSize:12,color:'var(--danger)'}}>删除</button>
+        <button onClick={()=>setSeasons(p=>p.filter((_,j)=>j!==i))} className="btn btn-danger" style={{fontSize:12,padding:'4px 10px',minHeight:0}}>删除</button>
       </div>)}
-      <button onClick={()=>setSeasons(p=>[...p,{key:'new',name:'新活动',factor:1.2,enabled:true}])} style={{padding:'4px 12px',fontSize:12,border:'1px dashed #94a3b8',borderRadius:8,background:'var(--card)',cursor:'pointer',color:'var(--muted)',width:'100%',marginBottom:16}}>+ 添加活动</button>
+      <button onClick={()=>setSeasons(p=>[...p,{key:'new',name:'新活动',factor:1.2,enabled:true}])} className="btn btn-ghost" style={{fontSize:12,padding:'4px 12px',width:'100%'}}>+ 添加活动</button>
 
-      <button disabled={saving} onClick={async()=>{setSaving(true);const m=cfg.replenishment_mode||'bbcc';try{await api.put('/api/replenishment-config',cfg);await api.put('/api/replenishment-config/seasons?mode='+m,{items:seasons});await loadCfg();await loadSeasons(m);toast.success('参数已保存')}catch(e){toast.error('保存失败: '+e.message)}setSaving(false)}} style={{...ST.primary,opacity:saving?0.6:1}}>{saving?'⏳ 保存中...':'💾 保存所有参数'}</button>
+      <button disabled={saving} onClick={async()=>{setSaving(true);const m=cfg.replenishment_mode||'bbcc';try{await api.put('/api/replenishment-config',cfg);await api.put('/api/replenishment-config/seasons?mode='+m,{items:seasons});await loadCfg();await loadSeasons(m);toast.success('参数已保存')}catch(e){toast.error('保存失败: '+e.message)}setSaving(false)}} className="btn btn-primary" style={{opacity:saving?0.6:1}}>{saving?'⏳ 保存中...':'💾 保存所有参数'}</button>
       <span className='small muted' style={{marginLeft:8,fontSize:11}}>更新后补货建议 & 规则引擎适用</span>
     </div>}
   </div>
 }
 
-const ST={primary:{padding:'6px 16px',background:'var(--primary)',color:'var(--card)',border:'none',borderRadius:8,cursor:'pointer',fontSize:13},secondary:{padding:'6px 16px',background:'var(--card)',border:'1px solid var(--border)',borderRadius:8,cursor:'pointer',fontSize:13},edit:{fontSize:12,padding:'4px 10px',border:'1px solid var(--border)',borderRadius:6,cursor:'pointer',background:'var(--card)'},danger:{fontSize:12,padding:'4px 10px',border:'1px solid var(--danger)',borderRadius:6,cursor:'pointer',background:'var(--card)',color:'var(--danger)'}}
 const IS={width:'100%',padding:'6px 8px',fontSize:16,border:'1px solid #e2e8f0',borderRadius:6,marginTop:4,outline:'none',background:'var(--card)',boxSizing:'border-box'}

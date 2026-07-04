@@ -136,7 +136,7 @@ def import_inventory(file: UploadFile = File(...), db = get_db()):
         mapped['safety_qty'] = int(float(mapped.get('safety_qty') or 10))
         mapped['safety_days'] = float(mapped.get('safety_days') or 0)
         mapped['source'] = 'import'
-        db.table("inventory").upsert(mapped).execute()
+        db.table("inventory").upsert(mapped)
         inserted += 1
     from app.core.events import bus
     bus.emit('inventory.imported', {'count': inserted})

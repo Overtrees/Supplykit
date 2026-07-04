@@ -83,26 +83,29 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             effective_safety = round(sel_ds * safety_days) if sel_ds > 0 else 0
             suggested = max(round(sel_ds * lead_time + effective_safety - avail - transit), 0) if sel_ds > 0 else 0
             raw_suggested = suggested
-            max_turnover = int(cfg.get('max_turnover_days', '15'))
-            max_allowed = round(sel_ds * max_turnover) if sel_ds > 0 else 0
-            suggested = min(suggested, max_allowed) if max_allowed > 0 else suggested
             # 箱规向上取整
             prod = products.get(sku, {})
             box = int(prod.get('box_qty', 1) or 1)
             box_qty = (suggested + box - 1) // box * box if suggested > 0 else 0
             suggested = box_qty
             days_to_empty = round(avail / sel_ds, 1) if sel_ds > 0 else 999
-            gap = raw_suggested - suggested
-            note = f"目标周转{max_turnover}天" + (f", 按前置期{lead_time}天算需{raw_suggested}件" if gap > 0 else "")
-            note += f", 箱规{box}件, 实际下{box_qty}件（{box_qty//box}箱）" if suggested > 0 else ", 无需补货"
+            after_stock = avail + transit + suggested
+            after_turnover = round(after_stock / sel_ds, 1) if sel_ds > 0 else 999
+            max_turnover = int(cfg.get('max_turnover_days', '15'))
+            note = f"箱规{box}件, 实补{suggested}件（{suggested//box}箱）" if suggested > 0 else "无需补货"
+            if suggested > 0:
+                note += f", 补后周转{after_turnover}天"
+                note += f" > 目标{max_turnover}天" if after_turnover > max_turnover else f" < 目标{max_turnover}天"
+                note += ", 建议分批" if after_turnover > max_turnover else ", 周转正常"
             suggestions.append({
                 "sku": sku, "product_name": prod.get('product_name', ''),
                 "store": prod.get('store', ''), "category": prod.get('category', ''),
                 "available_qty": avail, "safety_qty": safety, "in_transit_qty": transit,
                 "daily_sales": sel_ds, "raw_suggested": raw_suggested, "suggested_qty": suggested,
-                "days_to_empty": days_to_empty, "lead_time": lead_time, "safety_days": safety_days,
+                "days_to_empty": days_to_empty, "after_turnover": after_turnover,
                 "urgency": "紧急" if days_to_empty < 3 else ("建议" if suggested > 0 else "正常"),
                 "warehouses": len(st['warehouses']), "note": note, "box_qty": box,
+                "lead_time": lead_time, "safety_days": safety_days,
             })
     else:
         # 传统模式：按仓逐条计算（原逻辑）
@@ -122,25 +125,26 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             effective_safety = round(sel_ds * safety_days) if sel_ds > 0 else 0
             suggested = max(round(sel_ds * lead_time + effective_safety - avail - transit), 0) if sel_ds > 0 else 0
             raw_suggested = suggested
-            max_turnover = int(cfg.get('max_turnover_days', '15'))
-            max_allowed = round(sel_ds * max_turnover) if sel_ds > 0 else 0
-            suggested = min(suggested, max_allowed) if max_allowed > 0 else suggested
             p = products.get(sku, {})
             box = int(p.get('box_qty', 1) or 1)
             box_qty = (suggested + box - 1) // box * box if suggested > 0 else 0
             suggested = box_qty
             days_to_empty = round(avail / sel_ds, 1) if sel_ds > 0 else 999
-            gap_tr = raw_suggested - suggested
-            note_tr = f"目标周转{max_turnover}天" + (f", 按前置期{lead_time}天算需{raw_suggested}件" if gap_tr > 0 else "")
-            note_tr += f", 箱规{box}件, 实际下{box_qty}件（{box_qty//box}箱）" if suggested > 0 else ", 无需补货"
+            after_stock = avail + transit + suggested
+            after_turnover = round(after_stock / sel_ds, 1) if sel_ds > 0 else 999
+            max_turnover = int(cfg.get('max_turnover_days', '15'))
+            note = f"箱规{box}件, 实补{suggested}件（{suggested//box}箱）" if suggested > 0 else "无需补货"
+            if suggested > 0:
+                note += f", 补后周转{after_turnover}天"
+                note += f" > 目标{max_turnover}天" if after_turnover > max_turnover else f" < 目标{max_turnover}天"
+                note += ", 建议分批" if after_turnover > max_turnover else ", 周转正常"
             suggestions.append({
                 "sku": sku, "product_name": inv.get("product_name") or p.get("product_name", ""),
                 "store": inv.get("store"), "category": p.get("category", ""),
                 "available_qty": avail, "safety_qty": safety, "in_transit_qty": transit,
-                "safety_days": safety_days,
                 "daily_sales": sel_ds, "raw_suggested": raw_suggested, "suggested_qty": suggested,
-                "days_to_empty": days_to_empty, "note": note_tr,
-                "urgency": "仓储费风险" if days_to_empty > max_turnover else ("紧急" if days_to_empty < effective_safety/(sel_ds or 1)/2 else ("建议" if suggested > 0 else "正常")),
+                "days_to_empty": days_to_empty, "after_turnover": after_turnover, "note": note,
+                "box_qty": box, "urgency": "紧急" if days_to_empty < 3 else ("建议" if suggested > 0 else "正常"),
             })
 
         # B仓超15天仓储费风险告警

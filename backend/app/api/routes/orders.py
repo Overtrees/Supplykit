@@ -118,7 +118,9 @@ def import_orders(file: UploadFile = File(...), db = get_db()):
     }
     inserted = 0
     imported_items = []
-    skipped = 0
+    # 获取 orders 表实际列名，过滤不存在的字段
+    cursor = db.conn.execute('PRAGMA table_info(orders)')
+    table_cols = {r[1] for r in cursor.fetchall()}
     for i, row in enumerate(rows):
         mapped = {}
         for k, v in row.items():
@@ -129,6 +131,11 @@ def import_orders(file: UploadFile = File(...), db = get_db()):
         if not mapped.get('order_no'):
             skipped += 1
             continue
+        # 过滤掉 orders 表不存在的列，其余塞入 raw_data
+        extra = {k: mapped[k] for k in list(mapped.keys()) if k not in table_cols}
+        for k in extra: del mapped[k]
+        if extra:
+            mapped['raw_data'] = json.dumps(extra, ensure_ascii=False)
         try:
             mapped['quantity'] = int(float(mapped.get('quantity') or 0))
             mapped['unit_price'] = float(mapped.get('unit_price') or 0)

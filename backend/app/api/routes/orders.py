@@ -93,13 +93,16 @@ def import_orders(file: UploadFile = File(...), db = get_db()):
     for row in rows:
         mapped = {}
         raw_extra = {}
+        file_provided = set()  # 记录文件实际提供了哪些 DB 字段
         for raw_col, raw_val in row.items():
             if raw_col is None: continue
             alias = ALIAS.get(raw_col.strip())
             if alias and alias in TABLE_COLS:
                 mapped[alias] = str(raw_val).strip() if raw_val is not None else ''
+                file_provided.add(alias)
             elif raw_col.strip() in TABLE_COLS:
                 mapped[raw_col.strip()] = str(raw_val).strip() if raw_val is not None else ''
+                file_provided.add(raw_col.strip())
             else:
                 raw_extra[raw_col.strip()] = str(raw_val).strip() if raw_val is not None else ''
 
@@ -117,8 +120,26 @@ def import_orders(file: UploadFile = File(...), db = get_db()):
 
         # 查重：同 order_no + sku 已存在则为重复
         o, s = mapped.get('order_no',''), mapped.get('sku','')
-        existing = db.table("orders").select("id").eq("order_no", o).eq("sku", s).execute().data
+        existing = db.table("orders").select("*").eq("order_no", o).eq("sku", s).execute().data
         is_dup = len(existing) > 0
+
+        if is_dup and existing:
+            # 重复记录→智能合并：只覆盖文件实际提供的字段，其余保持数据库原值
+            existing_row = existing[0]
+            for col in list(mapped.keys()):
+                if col in ('order_no', 'sku', 'data_source'):
+                    continue  # 键字段和来源标记始终使用文件值
+                if col not in file_provided:
+                    # 文件没提供该列 → 保持原值
+                    mapped[col] = existing_row.get(col, mapped.get(col))
+                else:
+                    # 文件提供了该列但值为空/0 → 也保持原值
+                    imported_val = mapped[col]
+                    existing_val = existing_row.get(col)
+                    if isinstance(imported_val, str) and not imported_val.strip():
+                        mapped[col] = existing_val if existing_val is not None else mapped[col]
+                    elif isinstance(imported_val, (int, float)) and imported_val == 0 and existing_val:
+                        mapped[col] = existing_val
 
         mapped['data_source'] = 'import'
         if raw_extra:

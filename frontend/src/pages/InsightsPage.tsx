@@ -102,7 +102,7 @@ export default function InsightsPage() {
       {/* 补货建议 */}
       {tab === 'replen' && (
         <div className="card">
-          <div className="section-title" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <div className="section-title" style={{display:'flex',flexWrap:'wrap',gap:6}}>
             <span>
               补货建议{replen.length > 0 && <span className="small muted" style={{ marginLeft: 8 }}>· 低于安全线的商品</span>}
               <span style={{marginLeft:12,display:'inline-flex',gap:4}}>

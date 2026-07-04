@@ -91,7 +91,7 @@ export default function InsightsPage() {
       )}
 
       {/* Tab bar */}
-      <div style={{ display: 'flex', gap: 6 }}>
+      <div style={{ display: 'flex', gap: 6, flexWrap:'wrap' }}>
         {tabs.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} className={`btn btn-ghost`} style={{fontSize:12,background:tab===t.id?'var(--primary)':'transparent',color:tab===t.id?'#fff':''}}>
             {t.label}{t.count > 0 ? ` (${t.count})` : ''}

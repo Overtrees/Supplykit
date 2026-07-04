@@ -188,6 +188,21 @@ def _rebuild():
         "funnel": _compute_funnel(orders),
         "health_index": _compute_health(inv),
     }
+    # 滞销识别
+    try:
+        from datetime import timedelta
+        co = (datetime.utcnow() - timedelta(days=14)).strftime('%Y-%m-%d')
+        for p in products:
+            sk = p.get('sku','')
+            if not sk: continue
+            rc = [o for o in orders if o.get('sku')==sk and (o.get('ordered_at','')[:10] or '') >= co]
+            if not rc:
+                is_ = sum(int(i.get('available_qty',0) or 0) for i in inv if i.get('sku')==sk)
+                if is_ > 0:
+                    ex = db.table("alerts").select("id").eq("alert_type","slow_moving").eq("related_sku",sk).eq("status","active").execute().data
+                    if not ex:
+                        db.table("alerts").insert({"alert_type":"slow_moving","title":f"滞销: {p.get('product_name',sk)}","description":"超过14天无销售","severity":"warning","source":"event_bus","status":"active","related_sku":sk}).execute()
+    except: pass
 
 
 def get_dashboard():

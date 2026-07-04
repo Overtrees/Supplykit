@@ -266,7 +266,26 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
             # 逐条 upsert 避免 UNIQUE 冲突（数据库已有相同 order_no+sku 时覆盖更新）
             for item in data_list:
                 db.table(insert_table).upsert(item)
-            # 触犯事件
+            # 超卖检查：写入的订单量 > 该 SKU 全仓可用库存
+            if not is_inv:
+                oversell_by_sku = {}
+                for o in data_list:
+                    sk = o.get('sku','')
+                    if sk:
+                        oversell_by_sku[sk] = oversell_by_sku.get(sk,0) + int(o.get('quantity',0) or 0)
+                for sku, total_qty in oversell_by_sku.items():
+                    try:
+                        inv_items = db.table("inventory").select("*").eq("sku",sku).execute().data or []
+                        avail = sum(int(i.get('available_qty',0) or 0) for i in inv_items)
+                        if total_qty > avail > 0:
+                            db.table("alerts").upsert({
+                                "alert_type":"oversell","title":f"超卖: {sku}","status":"active",
+                                "description":f"导入订单共{total_qty}件 > 可用库存{avail}件",
+                                "severity":"error","source":"cleansing",
+                                "related_sku":sku,
+                            }, conflict_col='alert_type')
+                    except: pass
+            # 触发事件
             try:
                 from app.core.events import bus
                 bus.emit('data.cleaned', {

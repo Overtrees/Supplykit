@@ -302,26 +302,24 @@ export default function CleansingPage() {
 }const ImportLog = ({ importLogs }) => {
   if (!importLogs || importLogs.length === 0) return null
   return <div className="card" style={{marginTop:16}}>
-    <div style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--muted2)', marginBottom:12 }}>操作记录</div>
+    <div style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--muted2)', marginBottom:12 }}>导入记录</div>
     <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
       {importLogs.map((x, idx) => {
         const p = x.payload || x
         const name = p?.from_file || x.file || '—'
         const imp = p?.imported ?? 0
-        const dup = p?.duplicates ?? 0
-        const skp = p?.skipped ?? 0
         const err = p?.error
         const ok = !err
         return (
         <div key={idx} style={{ fontSize:13, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:12, padding:'10px 14px' }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:2 }}>
             <span style={{ fontWeight:600, fontSize:13, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'65%' }} title={name}>{name}</span>
-            <span style={{ fontSize:12, fontWeight:600, color: err ? 'var(--danger)' : (ok ? 'var(--success)' : 'var(--muted)') }}>
-              {err ? `异常` : `完成`}
+            <span style={{ fontSize:12, fontWeight:600, color: ok ? 'var(--success)' : 'var(--danger)' }}>
+              {ok ? `导入成功` : `导入异常`}
             </span>
           </div>
           <div style={{ fontSize:12, color: err ? 'var(--danger)' : 'var(--muted)' }}>
-            {err ? err : `新增 ${imp} 条${dup > 0 ? ` · ${dup} 重复` : ''}${skp > 0 ? ` · ${skp} 跳过` : ''}`}
+            {err ? err : `新增 ${imp} 条`}
           </div>
         </div>
       )})}

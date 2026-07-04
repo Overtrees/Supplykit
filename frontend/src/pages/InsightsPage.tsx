@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { useToast } from '../components/Toast'
 
+const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
+
 const pillStyle = (cond, yes = 'danger', no = 'info') => ({
   display: 'inline-block', padding: '2px 8px', borderRadius: 99,
   fontSize: 12, fontWeight: 600,

@@ -56,8 +56,10 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
     {k:'safety_multiplier',l:'安全库存天数',h:'预留N天日销作为安全库存，3天默认'},
     {k:'b_to_c_days',l:'B→C调拨(天)',h:'BBCC模式：京东B仓→C仓调拨时效'},
     {k:'c_safety_days',l:'C仓缓冲(天)',h:'BBCC模式：C仓防止调拨断货储备天数'},
-    {k:'purchase_lead_days',l:'采购前置(天)',h:'采购建议用：供应商生产+送货到我司总天数'},
-    {k:'moq',l:'MOQ最小起订',h:'采购建议用：供应商最小起订量（件）'},
+  ]
+  const purchaseFields=[
+    {k:'purchase_lead_days',l:'采购前置(天)',h:'供应商生产+送货到我司总天数'},
+    {k:'moq',l:'MOQ最小起订(件)',h:'供应商最小起订量'},
   ]
 
   return <div className='card'>
@@ -65,6 +67,7 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
       <div style={{display:'flex',gap:8}}>
         <button onClick={()=>setTab('rules')} className="btn btn-ghost" style={{fontSize:13,background:tab==='rules'?'var(--primary)':'transparent',color:tab==='rules'?'#fff':''}}>⚙️ 规则</button>
         <button onClick={()=>setTab('params')} className="btn btn-ghost" style={{fontSize:13,background:tab==='params'?'var(--success)':'transparent',color:tab==='params'?'#fff':''}}>📊 补货参数</button>
+        <button onClick={()=>setTab('purchase')} className="btn btn-ghost" style={{fontSize:13,background:tab==='purchase'?'var(--primary)':'transparent',color:tab==='purchase'?'#fff':''}}>🛒 采购参数</button>
       </div>
       {tab==='rules'&&<button onClick={()=>{setEditing({});setF({name:'',event:'inventory.changed',alert_type:'',alert_title:'',alert_desc:'',severity:'warning',condition_json:'{}'})}} className="btn btn-primary">+ 新建</button>}
     </div>
@@ -128,6 +131,20 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
         </label>)}
       </div>
 
+      {tab === 'purchase' && <div className='card' style={{padding:16,display:'flex',flexDirection:'column',gap:12}}>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:16}}>
+          {purchaseFields.map(({k,l,h})=><label key={k} style={{fontSize:12}}>
+            {l}<input value={cfg[k]||''} onChange={e=>setCfg(p=>({...p,[k]:e.target.value}))} style={IS}/>
+            <div className='small muted' style={{fontSize:11}}>{h}</div>
+          </label>)}
+        </div>
+        <button disabled={saving} onClick={async()=>{setSaving(true);try{
+          const toSave = {}; purchaseFields.forEach(f => { if (cfg[f.k] !== undefined) toSave[f.k] = cfg[f.k] })
+          await api.put('/api/replenishment-config', toSave)
+          const r = await api.get('/api/replenishment-config'); setCfg({...r.data,replenishment_mode:cfg.replenishment_mode});
+          toast.success('采购参数已保存')
+        }catch(e){toast.error('保存失败: '+e.message)}setSaving(false)}} className='btn btn-primary'>{saving?'⏳ 保存中...':'💾 保存参数'}</button>
+      </div>}
       <div className='section-title' style={{marginTop:16,marginBottom:8}}>🏷️ 活动系数</div>
       {seasons.map((s,i)=><div key={s.key||i} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 12px',border:'1px solid #e5e7eb',borderRadius:10,marginBottom:6}}>
         <input value={s.name} onChange={e=>setSeasons(p=>p.map((x,j)=>j===i?{...x,name:e.target.value}:x))} placeholder='活动名称' style={{width:110,fontSize:16,padding:'5px 8px',border:'1px solid #e2e8f0',borderRadius:6,outline:'none'}}/>

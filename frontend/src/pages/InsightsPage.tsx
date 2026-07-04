@@ -189,10 +189,10 @@ export default function InsightsPage() {
                     <tr key={i}>
                       <td className="mono" style={{ fontSize: 12 }}>{x.sku}</td>
                       <td>{x.product_name}</td>
-                      <td style={{ fontWeight: 600, color: 'var(--success)' }}>+{x.suggested_qty}</td>
+                      <td style={{ fontWeight: 600, color: 'var(--success)' }}>+{x.purchase_qty}</td>
                       <td>{x.supplier_name || '-'}</td>
                       <td><span className={`pill ${x.supplier_score >= 80 ? 'success' : x.supplier_score >= 60 ? 'warning' : 'danger'}`}>{x.supplier_score}</span></td>
-                      <td><span className={`pill ${x.urgency === '紧急' ? 'danger' : x.urgency === '关注' ? 'warning' : 'info'}`}>{x.urgency}</span></td>
+                      <td><span className={`pill ${x.days_to_empty < 3 ? 'danger' : x.days_to_empty < 7 ? 'warning' : 'info'}`}>{x.days_to_empty < 3 ? '紧急' : x.days_to_empty < 7 ? '关注' : '正常'}</span></td>
                     </tr>
                   ))}
                 </tbody>

@@ -126,28 +126,94 @@ def compare_replenishment_sources(days: int = 28, db = get_db()):
 
 @router.get('/purchase')
 def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
-    replen = get_replenishment_suggestions(days=days, mode=mode, db=db)
-    suppliers = db.table("suppliers").select("*").eq("status", "active").execute().data
-    if not suppliers:
-        return {"suggestions": replen, "suppliers": []}
+    """采购建议：按 SKU 汇总全仓、按供应商归并、独立于补货计算"""
+    # 1. 读取当前 mode 的采购配置
+    raw = {r['key']: r['value'] for r in db.table("replenishment_config").select("*").execute().data}
+    cfg = {}
+    for k, v in raw.items():
+        if k.startswith(f'mode_{mode}_'):
+            cfg[k[len(f'mode_{mode}_'):]] = v
 
+    purchase_lead_time = int(cfg.get('purchase_lead_days', '7'))
+    moq_default = int(cfg.get('moq', '50'))
+    safety_mult = float(cfg.get('safety_multiplier', '3'))
+
+    # 2. 活动系数
+    season_key = f'season_config_{mode}'
+    sv = db.table('replenishment_config').select('*').eq('key', season_key).execute().data
+    season_config = json.loads(sv[0]['value']) if sv and sv[0].get('value') else []
+    active_factor = 1.0
+    for s in season_config:
+        if isinstance(s, dict) and s.get('enabled') and float(s.get('factor', 1.0)) > active_factor:
+            active_factor = float(s['factor'])
+
+    # 3. 计算日销（全仓汇总）
+    now = datetime.utcnow()
+    cutoff = (now - timedelta(days=days)).strftime('%Y-%m-%d')
+    sales_by_sku = {}
+    for o in db.table("orders").select("*").execute().data:
+        sku = o.get("sku", "")
+        dt = str(o.get("ordered_at", ""))[:10]
+        if dt >= cutoff:
+            sales_by_sku[sku] = sales_by_sku.get(sku, 0) + int(o.get('quantity', 0) or 0)
+    daily_sales = {k: round(v / days, 1) for k, v in sales_by_sku.items()}
+
+    # 4. 读取全仓库存（按 SKU 汇总）
+    inv_data = db.table("inventory").select("*").execute().data
+    stock_by_sku = {}
+    for i in inv_data:
+        s = i['sku']
+        if s not in stock_by_sku:
+            stock_by_sku[s] = {'available': 0, 'transit': 0, 'safety': 0, 'safety_days': 0}
+        stock_by_sku[s]['available'] += int(i.get('available_qty', 0) or 0)
+        stock_by_sku[s]['transit'] += int(i.get('in_transit_qty', 0) or 0)
+        stock_by_sku[s]['safety'] += int(i.get('safety_qty', 0) or 0)
+        sd = float(i.get('safety_days', 0) or 0)
+        if sd > stock_by_sku[s]['safety_days']:
+            stock_by_sku[s]['safety_days'] = sd
+
+    # 5. 供应商
+    suppliers = db.table("suppliers").select("*").eq("status", "active").execute().data
+    products = {p["sku"]: p for p in db.table("products").select("*").execute().data}
+
+    # 6. 逐 SKU 计算
     result = []
-    for item in replen:
+    for sku, st in stock_by_sku.items():
+        ds = round(daily_sales.get(sku, 0) * active_factor, 1)  # 含活动系数
+        avail = st['available']
+        transit = st['transit']
+        safety = st['safety']
+        safety_days = st['safety_days'] if st['safety_days'] > 0 else safety_mult
+        eff_safety = round(ds * safety_days) if ds > 0 else safety
+
+        # 采购建议量 = 日销×采购前置期 + 安全库存 - 可用 - 在途
+        purchase_qty = max(round(ds * purchase_lead_time + eff_safety - avail - transit), 0) if ds > 0 else 0
+        # 兜底 MOQ
+        purchase_qty = max(purchase_qty, moq_default) if purchase_qty > 0 else 0
+
+        days_to_empty = round(avail / ds, 1) if ds > 0 else 999
+
+        # 匹配供应商
+        prod = products.get(sku, {})
         best = None
         for s in suppliers:
-            if item.get("category") and item["category"] in (s.get("supplier_name") or ""):
-                best = s
-                break
+            if prod.get('category') and prod['category'] in (s.get('supplier_name') or ''):
+                best = s; break
         if not best and suppliers:
-            best = max(suppliers, key=lambda x: x.get("score") or 0)
+            best = max(suppliers, key=lambda x: x.get('score', 0))
 
         result.append({
-            **item,
-            "supplier_code": best["supplier_code"] if best else "",
-            "supplier_name": best["supplier_name"] if best else "",
-            "supplier_score": best["score"] if best else 0,
+            'sku': sku, 'product_name': prod.get('product_name', ''),
+            'store': prod.get('store', ''), 'category': prod.get('category', ''),
+            'available_qty': avail, 'safety_qty': safety, 'total_transit': transit,
+            'daily_sales': ds, 'purchase_qty': purchase_qty,
+            'days_to_empty': days_to_empty,
+            'supplier_code': best['supplier_code'] if best else '',
+            'supplier_name': best['supplier_name'] if best else '',
+            'supplier_score': best['score'] if best else 0,
         })
 
+    result.sort(key=lambda x: x['days_to_empty'])
     return {"suggestions": result, "suppliers": len(suppliers)}
 
 

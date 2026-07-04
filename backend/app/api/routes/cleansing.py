@@ -187,6 +187,10 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
             if db.table("inventory").select("id").eq("sku", sku_val).execute().data:
                 errors.append({'error_type': 'duplicate_sku', 'field_name': 'sku',
                                'raw_value': sku_val, 'error_message': 'SKU已存在于数据库'})
+                try:
+                    db.table("quality_logs").insert({"log_type":"duplicate_sku","level":"warning",
+                        "field_name":"sku","message":f'SKU已存在: {sku_val}',"source":"cleansing"}).execute()
+                except: pass
                 failed += 1; continue
             if sku_val in sku_seen:
                 failed += 1; continue
@@ -203,6 +207,10 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
             if dup_row:
                 errors.append({'error_type': 'duplicate_order', 'field_name': 'order_no',
                                'raw_value': order_no, 'error_message': f'单号+SKU已存在: {order_no}/{sku_key}'})
+                try:
+                    db.table("quality_logs").insert({"log_type":"duplicate_order","level":"warning",
+                        "field_name":"order_no","message":f'单号+SKU已存在: {order_no}/{sku_key}',"source":"cleansing"}).execute()
+                except: pass
                 failed += 1; continue
             if order_no in dedup:
                 dedup[order_no] += 1
@@ -220,6 +228,12 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                     "error_type": e['error_type'], "field_name": e['field_name'],
                     "raw_value": e['raw_value'], "error_message": e['error_message'],
                     "raw_data": json.dumps(row, ensure_ascii=False, default=str),
+                }).execute()
+                # 同步写入 quality_logs，让异常页可查
+                db.table("quality_logs").insert({
+                    "log_type": e['error_type'], "level": "warning",
+                    "field_name": e['field_name'], "message": e['error_message'],
+                    "source": "cleansing",
                 }).execute()
             except: pass
 

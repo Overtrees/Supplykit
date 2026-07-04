@@ -7,15 +7,20 @@ from collections import defaultdict
 router = APIRouter(prefix="/api/replenishment-config", tags=["replenishment"])
 
 @router.get("")
-def get_config(db=get_db()):
+def get_config(mode: str = None, db=get_db()):
     rows = db.table("replenishment_config").select("*").execute().data
-    return {r['key']: r['value'] for r in rows}
+    all_config = {r['key']: r['value'] for r in rows}
+    if mode:
+        prefix = f'mode_{mode}_'
+        return {k[len(prefix):]: v for k, v in all_config.items() if k.startswith(prefix)}
+    return all_config
 
 @router.put("")
-def update_config(data: dict, db=get_db()):
+def update_config(data: dict, mode: str = 'bbcc', db=get_db()):
+    prefix = f'mode_{mode}_'
     for k, v in data.items():
-        db.table("replenishment_config").upsert({"key": k, "value": str(v), "updated_at": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}, conflict_col='key')
-    return get_config(db)
+        db.table("replenishment_config").upsert({"key": prefix + k, "value": str(v), "updated_at": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}, conflict_col='key')
+    return {'ok': True, 'mode': mode}
 
 
 @router.get('/seasons')
@@ -40,9 +45,14 @@ def update_seasons(data: dict, mode: str = 'bbcc', db=get_db()):
     db.table("replenishment_config").upsert({"key": key, "value": val, "updated_at": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}, conflict_col='key')
     return items
 @router.get('/calculate')
-def calculate(db=get_db()):
+def calculate(mode: str = 'bbcc', db=get_db()):
+    prefix = f'mode_{mode}_'
     rows = db.table("replenishment_config").select("*").execute().data
-    cfg = {r['key']: r['value'] for r in rows}
+    raw = {r['key']: r['value'] for r in rows}
+    cfg = {}
+    for k, v in raw.items():
+        if k.startswith(prefix):
+            cfg[k[len(prefix):]] = v
     lt = int(cfg.get('lead_time_days','10'))
     sm = float(cfg.get('safety_multiplier','1.0'))
     cutoff = (datetime.utcnow()-timedelta(days=30)).strftime('%Y-%m-%d')

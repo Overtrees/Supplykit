@@ -56,7 +56,7 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
     {k:'ship_to_b_days',l:'发B仓时效(天)',h:'BBCC：我司发往京东B仓时效'},
     {k:'b_to_c_days',l:'B→C调拨(天)',h:'BBCC：京东B仓→C仓调拨时效'},
     {k:'c_safety_days',l:'C仓缓冲(天)',h:'BBCC：C仓防止调拨断货储备天数'},
-    {k:'max_turnover_days',l:'目标周转(天)',h:'补后周转对比参考，B仓免费15天'},
+    {k:'max_turnover_days',l:'目标周转(天)',h: (cfg.replenishment_mode||'bbcc')==='traditional' ? '平台仓货品在库周转' : 'B仓免费存15天'},
     {k:'safety_multiplier',l:'安全库存天数',h:'预留N天日销作为安全库存'},
   ]
   const purchaseFields=[

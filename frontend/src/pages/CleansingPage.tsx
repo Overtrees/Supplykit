@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { api } from '../api/client'
 import { useToast } from '../components/Toast'
-import { useAppStore } from '../store/useAppStore'
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
 const INV_FIELDS = [
@@ -49,8 +48,6 @@ const ALIAS = {
 
 export default function CleansingPage() {
   const toast = useToast()
-  const importLogs = useAppStore(s => s.importLogs)
-  const addImportLog = useAppStore(s => s.addImportLog)
   const [s,setS] = useState(0)
   const [f,setF] = useState(null)
   const [cols,setCols] = useState([])
@@ -135,7 +132,6 @@ export default function CleansingPage() {
           const sd = sr.data
           if (sd.status === 'done') {
             finished = true; clearInterval(poll); setRes(sd.result); setS(3); setBs('')
-            addImportLog({ type:'cleansing.done', payload:{...sd.result, imported:sd.result.success || 0, from_file:f?.name||''} })
             toast.success('清洗完成')
           } else if (sd.status === 'error') { finished = true; clearInterval(poll); toast.error('失败: '+sd.error); setBs('') }
           else if (sd.progress !== undefined) { setBs(`清洗中... ${sd.progress}% (${Math.round(sd.progress/100*totalRows)}/${totalRows}条)`) }
@@ -283,11 +279,12 @@ export default function CleansingPage() {
       </div>}
 
     {s === 3 && res && <div style={{textAlign:'center',padding:40}}>
-      <div style={{fontSize:32,marginBottom:8}}>{res.success > 0 ? "\u2705" : "\u26a0\ufe0f"}</div>
+      <div style={{fontSize:32,marginBottom:4}}>{res.success > 0 ? "\u2705" : "\u26a0\ufe0f"}</div>
+      {f?.name ? <div className="small muted" style={{fontSize:12,marginBottom:8}}>{f.name}</div> : ''}
       <div style={{fontWeight:700,fontSize:18,marginBottom:4,color:res.error ? "var(--danger)" : ""}}>
         {res.error ? '清洗失败' : (res.success > 0 ? '清洗完成' : '清洗完成（无新增）')}
       </div>
-      <div className="small muted" style={{marginBottom:16}}>{res.error || res.message || ''}</div>
+      <div className="small muted" style={{marginBottom:16}}>{res.error || res.message || ''}{res.error ? <span style={{marginLeft:6,fontSize:12,color:'var(--warning)'}}>（侧边栏 ⚠️ 查看详情）</span> : ''}</div>
       <div style={{display:'flex',justifyContent:'center',gap:24,marginBottom:16}}>
         <div><div style={{fontSize:24,fontWeight:700,color:'var(--success)'}}>{res.success}</div><div className="small muted">成功</div></div>
         <div><div style={{fontSize:24,fontWeight:700,color:res.failed > 0 ? 'var(--danger)' : 'var(--muted2)'}}>{res.failed}</div><div className="small muted">跳过</div></div>
@@ -305,34 +302,5 @@ export default function CleansingPage() {
       </div>
     </div>}
 
-    {/* ─── 历史记录 ─────────────────────────────────────────────── */}
-    <ImportLog importLogs={importLogs} />
-  </div>
-}const ImportLog = ({ importLogs }) => {
-  if (!importLogs || importLogs.length === 0) return null
-  return <div className="card" style={{marginTop:16}}>
-    <div style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--muted2)', marginBottom:12 }}>导入记录</div>
-    <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-      {importLogs.map((x, idx) => {
-        const p = x.payload || x
-        const name = p?.from_file || x.file || '—'
-        const imp = p?.imported ?? 0
-        const err = p?.error
-        const ok = !err
-        return (
-        <div key={idx} style={{ fontSize:13, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:12, padding:'10px 14px' }}>
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:2 }}>
-            <span style={{ fontWeight:600, fontSize:13, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'65%' }} title={name}>{name}</span>
-            <span style={{ fontSize:12, fontWeight:600, color: ok ? 'var(--success)' : 'var(--danger)' }}>
-              {ok ? `导入成功` : `导入异常`}
-            </span>
-          </div>
-          <div style={{ fontSize:12, color: err ? 'var(--danger)' : 'var(--muted)' }}>
-            {err ? err : `新增 ${imp} 条`}
-            {(x.payload?.failed || x.payload?.error_count) ? <span style={{marginLeft:8,fontSize:11,color:'var(--warning)'}}>⚠️ {x.payload.failed||x.payload.error_count} 条异常（侧边栏 ⚠️ 查看）</span> : ''}
-          </div>
-        </div>
-      )})}
-    </div>
   </div>
 };

@@ -51,6 +51,10 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     season_key = f'season_config_{mode}'
     season_val = db.table('replenishment_config').select('*').eq('key', season_key).execute().data
     season_config = json.loads(season_val[0]['value']) if season_val and season_val[0].get('value') else []
+    active_factor = 1.0
+    for s in season_config:
+        if isinstance(s, dict) and s.get("enabled") and float(s.get("factor", 1.0)) > active_factor:
+            active_factor = float(s["factor"])
 
     suggestions = []
 

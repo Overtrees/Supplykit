@@ -219,7 +219,7 @@ export default function CleansingPage() {
           {matched && sf && <span className="small muted" style={{display:'block',fontSize:11}}>→ {sf.l} ({sf.t})</span>}
         </div>
         <div style={{fontSize:11,color:'var(--muted2)',flexShrink:0}}>→</div>
-        <select value={mp[c.name]?.target||''} onChange={e=>{const v=e.target.value;const matchedCf=cf.find(f=>f.t===v);setMp(p=>({...p,[c.name]:{target:v||c.name,type:matchedCf?matchedCf.tp:'string'}}))}} style={{flex:1,fontSize:16,padding:'6px 8px',border:'1px solid #e2e8f0',borderRadius:6}}>
+        <select value={mp[c.name]?.target||''} onChange={e=>{const v=e.target.value;const matchedCf=cf.find(f=>f.t===v);setMp(p=>({...p,[c.name]:{target:v,type:matchedCf?matchedCf.tp:'string'}}))}} style={{flex:1,fontSize:16,padding:'6px 8px',border:'1px solid #e2e8f0',borderRadius:6}}>
           <option value="">不映射</option>
           <optgroup label="系统字段">{(tt==='inventory'?INV_FIELDS:SYS_FIELDS).map(sf => <option key={sf.t} value={sf.t}>{sf.l}</option>)}</optgroup>
           {cf.length > 0 && <optgroup label="自定义字段">{cf.map(f => <option key={f.t} value={f.t}>{f.l}</option>)}</optgroup>}

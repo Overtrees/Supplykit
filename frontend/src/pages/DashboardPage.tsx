@@ -96,7 +96,7 @@ export default function DashboardPage({ onAlert }) {
               <div key={x.id} onClick={() => onAlert && onAlert(x.related_sku)} style={{ padding: '6px 0', borderBottom: '1px solid #f1f5f9', fontSize: 13, cursor: 'pointer' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                   <span style={{ fontWeight: 600, fontSize: 12 }}>{x.title}</span>
-                  <span className={'pill '+(x.alert_type==='replenish'||x.severity==='error'?'danger':x.severity==='warning'?'warning':'info')}>{x.alert_type==='replenish'?'补货':x.severity}</span>
+                  <span className={'pill '+(x.alert_type==='replenish'||x.severity==='error'?'danger':x.severity==='warning'?'warning':'info')}>{x.alert_type==='replenish'?'补货':(x.severity==='warning'?'警告':x.severity==='error'?'错误':x.severity)}</span>
                 </div>
                 <div className="small muted" style={{ fontSize: 11 }}>{x.description}</div>
               </div>

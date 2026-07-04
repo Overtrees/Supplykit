@@ -192,6 +192,7 @@ def compare_replenishment_sources(days: int = 28, db = get_db()):
 @router.get('/purchase')
 def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
     """采购建议：按 SKU 汇总全仓、按供应商归并、独立于补货计算"""
+    from datetime import timedelta
     # 1. 读取全库配置（采购参数不按 mode 区分，全局统一）
     raw = {r['key']: r['value'] for r in db.table("replenishment_config").select("*").execute().data}
 

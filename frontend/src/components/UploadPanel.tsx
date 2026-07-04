@@ -15,7 +15,7 @@ const submit = async (type, file) => {
       const url = type === 'orders' ? '/api/orders/import' : '/api/inventory/import'
       const res = await api.post(url, form, { headers: { 'Content-Type': 'multipart/form-data' } })
       const data = res.data
-      if (!data.ok) { toast.error(data.error || '导入失败'); return }
+      if (!data.ok) { toast.error(data.error || '导入失败' + (data.diagnose ? ` (${data.diagnose.bytes}字节, 列:${data.diagnose.sample_columns})` : '')); return }
       addImportLog({ type: type === 'orders' ? 'orders.imported' : 'inventory.imported', payload: data, file: file.name })
       const detail = data.total_rows ? ` (共${data.total_rows}行, 跳过${data.skipped||0}行)` : ''
       toast.success(`导入成功: ${data.imported} 条${detail}`)

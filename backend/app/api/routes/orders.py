@@ -68,7 +68,19 @@ def import_orders(file: UploadFile = File(...), db = get_db()):
         return {'ok': False, 'error': f'解析文件失败: {e}', 'imported': 0, 'rows_raw': 0}
 
     if not rows:
-        return {'ok': False, 'error': '文件为空或未能解析出数据行', 'imported': 0}
+        # 诊断：看看文件到底读到了什么
+        cols_sample = []
+        try:
+            if (file.filename or '').endswith('.csv'):
+                sample_lines = text[:500].split('\n')
+                cols_sample = [sample_lines[0][:200]] if sample_lines else ['(empty)']
+            else:
+                cols_sample = [str(headers[:8])]
+        except: pass
+        return {'ok': False, 'error': '文件内容为空或格式无法解析', 'imported': 0, 'diagnose': {
+            'filename': file.filename, 'branch': 'csv' if (file.filename or '').endswith('.csv') else 'xlsx',
+            'bytes': len(content), 'sample_columns': cols_sample,
+        }}
 
     # 扩展列名映射（与前端清洗页对齐）
     ALIAS = {

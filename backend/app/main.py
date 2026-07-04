@@ -56,6 +56,27 @@ app.include_router(inventory_router)
 app.include_router(quality_router)
 app.include_router(alerts_router)
 app.include_router(events_router)
+
+# ─── 临时 seed 端点 ───────────────────────────────────────────────
+@app.post("/api/seed")
+def _seed_data():
+    import os as _os
+    _seed_path = _os.path.join(_os.path.dirname(__file__), '..', 'seed_data.py')
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("seed_data", _seed_path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    # 清空旧数据
+    from app.core.database import _local, DB_PATH
+    conn = _local.conn if hasattr(_local, 'conn') and _local.conn else None
+    if conn is None:
+        import sqlite3; conn = sqlite3.connect(DB_PATH)
+    for t in ['orders', 'inventory', 'products', 'suppliers', 'quality_logs', 'alerts', 'events', 'sync_tasks', 'cleansing_errors']:
+        try: conn.execute(f'DELETE FROM "{t}"')
+        except: pass
+    conn.commit()
+    mod.seed()
+    return {"ok": True, "message": "seeded"}
 app.include_router(sync_tasks_router)
 app.include_router(ws_router)
 app.include_router(cleansing_router)

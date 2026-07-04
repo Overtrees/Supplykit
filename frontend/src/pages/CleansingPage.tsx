@@ -164,8 +164,8 @@ export default function CleansingPage() {
     localStorage.setItem('c_last_tt', tt)
   }, [tt])
 
-  const btn = (label, onClick, color='var(--primary)') => <button onClick={onClick} disabled={!!bs}
-    style={{padding:'8px 20px',background:bs?'var(--muted2)':color,color:'var(--card)',border:'none',borderRadius:8,cursor:bs?'not-allowed':'pointer',fontSize:13,fontWeight:600}}>{label}</button>
+  const btn = (label, onClick, color='primary') => <button onClick={onClick} disabled={!!bs}
+    className={`btn btn-${bs?'ghost':color}`}>{label}</button>
 
   return <div className="card">
     <div className="step-indicator">
@@ -179,7 +179,7 @@ export default function CleansingPage() {
         <button onClick={()=>setTt('order')} style={{padding:'6px 16px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',background:tt==='order'?'var(--primary)':'var(--card)',color:tt==='order'?'#fff':'var(--muted)',borderColor:tt==='order'?'var(--primary)':'var(--border)',fontWeight:tt==='order'?600:400}}>📋 导入订单</button>
         <button onClick={()=>setTt('inventory')} style={{padding:'6px 16px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',background:tt==='inventory'?'var(--success)':'var(--card)',color:tt==='inventory'?'#fff':'var(--muted)',borderColor:tt==='inventory'?'var(--success)':'var(--border)',fontWeight:tt==='inventory'?600:400}}>📦 导入库存</button>
       </div>
-      <label style={{display:'inline-block',padding:'10px 24px',background:'var(--primary)',color:'var(--card)',borderRadius:10,cursor:'pointer',fontSize:14,fontWeight:600}}>
+      <label className="btn btn-primary">
         {bs?'识别中...':'选择文件'}
         <input type="file" accept=".csv,.xlsx" style={{display:'none'}} onChange={e=>{const fi=e.target.files[0];if(fi)detect(fi)}} />
       </label>
@@ -239,10 +239,10 @@ export default function CleansingPage() {
         </select>
       </div>})}
       <div style={{marginTop:12,display:'flex',gap:8,justifyContent:'flex-end'}}>
-        {btn('← 返回', ()=>{setS(0);setF(null);setCols([]);setMp({})}, 'var(--muted)')}
+        {btn('← 返回', ()=>{setS(0);setF(null);setCols([]);setMp({})}, 'ghost')}
         <div style={{flex:1}}></div>
-        {btn('一键执行 ⚡', quickExecute, 'var(--success)')}
-        {btn('预览 →', preview)}
+        {btn('⚡ 一键执行', quickExecute, 'success')}
+        {btn('预览 →', preview, 'primary')}
       </div>
     </div>}
 
@@ -273,8 +273,8 @@ export default function CleansingPage() {
           </div>
         })()}
         <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
-          {btn('← 返回', ()=>setS(1), 'var(--muted)')}
-          {btn('确认写入 ('+pv.total+' 条)', doExecute, 'var(--success)')}
+          {btn('← 返回', ()=>setS(1), 'ghost')}
+          {btn('确认写入 ('+pv.total+' 条)', doExecute, 'success')}
         </div>
       </div>}
 
@@ -291,8 +291,8 @@ export default function CleansingPage() {
       </div>
       <div style={{display:'flex',gap:8,justifyContent:'center'}}>
         <button onClick={()=>{setS(0);setF(null);setCols([]);setTr(0);setMp({});setPv(null);setRes(null)}}
-          style={{padding:'8px 20px',background:'var(--muted)',color:'var(--card)',border:'none',borderRadius:8,cursor:'pointer',fontSize:13,fontWeight:600}}>重新开始</button>
-        <label style={{display:'inline-block',padding:'8px 20px',background:'var(--success)',color:'var(--card)',borderRadius:8,cursor:'pointer',fontSize:13,fontWeight:600}}>
+          className="btn btn-ghost">重新开始</button>
+        <label className="btn btn-success">
           导入相同格式 📁
           <input type="file" accept=".csv,.xlsx" style={{display:'none'}} onChange={e=>{
             const fi=e.target.files[0]

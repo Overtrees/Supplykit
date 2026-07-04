@@ -30,9 +30,9 @@ SEED_PRODUCTS = [
 
 # ── 供应商 ──────────────────────────────────────────────────
 SEED_SUPPLIERS = [
-  {"supplier_code":"gzscymy","supplier_name":"广东珠江桥生物科技股份有限公司","contact_person":"陈志强","phone":"020-83568899","score":92},
-  {"supplier_code":"szdzkj","supplier_name":"深圳冠华食品包装有限公司","contact_person":"林晓燕","phone":"0755-82889911","score":85},
-  {"supplier_code":"shpjkj","supplier_name":"上海鑫源调味品贸易有限公司","contact_person":"赵建国","phone":"021-64882233","score":78},
+  {"supplier_code":"gzscymy","supplier_name":"广东珠江桥生物科技股份有限公司","contact_person":"陈志强","contact_phone":"020-83568899","score":92},
+  {"supplier_code":"szdzkj","supplier_name":"深圳冠华食品包装有限公司","contact_person":"林晓燕","contact_phone":"0755-82889911","score":85},
+  {"supplier_code":"shpjkj","supplier_name":"上海鑫源调味品贸易有限公司","contact_person":"赵建国","contact_phone":"021-64882233","score":78},
 ]
 
 # ── 订单 ──────────────────────────────────────────────────
@@ -63,6 +63,9 @@ SEED_ORDERS = [
   {"order_no":"DEMO-024","store":"珠江桥牌（京东自营）","sku":"SKU-002","product_name":"珠江桥牌 金标生抽王 500ml","quantity":80,"unit_price":12.8,"total_amount":1024,"order_status":"已完成","ordered_at":str(TODAY - timedelta(days=22)),"platform":"京东"},
   {"order_no":"DEMO-025","store":"华南食品旗舰店","sku":"SKU-008","product_name":"珠江桥牌 拌面酱 200g","quantity":60,"unit_price":12.9,"total_amount":774,"order_status":"已完成","ordered_at":str(TODAY - timedelta(days=25)),"platform":"拼多多"},
   {"order_no":"DEMO-026","store":"珠江桥牌（京东自营）","sku":"SKU-003","product_name":"珠江桥牌 蚝油 挤瓶装 510g","quantity":70,"unit_price":15.5,"total_amount":1085,"order_status":"已完成","ordered_at":str(TODAY - timedelta(days=28)),"platform":"京东"},
+  # 郑州仓
+  {"order_no":"DEMO-027","store":"珠江桥牌（京东自营）","warehouse":"郑州","sku":"SKU-003","product_name":"珠江桥牌 蚝油 挤瓶装 510g","quantity":2,"unit_price":15.5,"total_amount":31,"order_status":"已完成","ordered_at":str(TODAY - timedelta(days=8)),"platform":"京东"},
+  {"order_no":"DEMO-028","store":"华南食品旗舰店","warehouse":"郑州","sku":"SKU-009","product_name":"珠江桥牌 芝麻油 220ml","quantity":1,"unit_price":16.8,"total_amount":16.8,"order_status":"已完成","ordered_at":str(TODAY - timedelta(days=9)),"platform":"京东"},
 ]
 
 # ── 库存 ──────────────────────────────────────────────────

@@ -270,7 +270,9 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
     data_list = inv_to_insert if is_inv else orders_to_insert
     if data_list:
         try:
-            db.table(insert_table).insert(data_list).execute()
+            # 逐条 upsert 避免 UNIQUE 冲突（数据库已有相同 order_no+sku 时覆盖更新）
+            for item in data_list:
+                db.table(insert_table).upsert(item)
             # 触犯事件
             try:
                 from app.core.events import bus
@@ -288,7 +290,7 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
             from app.api.routes.insights import sync_inventory_from_orders
             submit_task(f"inv_sync_{datetime.utcnow().strftime('%H%M%S')}", sync_inventory_from_orders, 200)
         except Exception as e:
-            return {'ok': False, 'error': f'清洗写入失败: {str(e)[:200]}', 'success': 0, 'failed': 0}
+            return {'ok': False, 'error': f'清洗写入失败: {str(e)[:200]}', 'success': 0, 'failed': 0, 'file': filename, 'target': target}
 
     msg_parts = []
     if success > 0: msg_parts.append(f"成功导入 {success} 条")

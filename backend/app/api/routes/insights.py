@@ -106,6 +106,12 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             sel_ds = {28: ds28, 14: ds14, 7: ds7}[days]
             sel_ds = round(sel_ds * active_factor, 1)
 
+            sku_safety_days = float(inv.get('safety_days') or 0)
+            safety_days = sku_safety_days if sku_safety_days > 0 else float(cfg.get('safety_multiplier', '3'))
+            effective_safety = round(sel_ds * safety_days) if sel_ds > 0 else 0
+            suggested = max(round(sel_ds * lead_time + effective_safety - avail - transit), 0) if sel_ds > 0 else 0
+            days_to_empty = round(avail / sel_ds, 1) if sel_ds > 0 else 999
+
         # B仓超15天仓储费风险告警
         max_turnover = int(cfg.get('max_turnover_days', '15'))
         if days_to_empty > max_turnover and sel_ds > 0:

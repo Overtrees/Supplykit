@@ -131,7 +131,7 @@ export default function CleansingPage() {
           const sd = sr.data
           if (sd.status === 'done') {
             finished = true; clearInterval(poll); setRes(sd.result); setS(3); setBs('')
-            addImportLog({ type:'cleansing.done', payload:{...sd.result, from_file:f?.name||''} })
+            addImportLog({ type:'cleansing.done', payload:{...sd.result, imported:sd.result.success || 0, from_file:f?.name||''} })
             toast.success('清洗完成')
           } else if (sd.status === 'error') { finished = true; clearInterval(poll); toast.error('失败: '+sd.error); setBs('') }
           else if (sd.progress !== undefined) { setBs(`清洗中... ${sd.progress}% (${Math.round(sd.progress/100*totalRows)}/${totalRows}条)`) }

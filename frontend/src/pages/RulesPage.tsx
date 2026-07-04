@@ -12,6 +12,7 @@ const EVENTS = [
 export default function RulesPage() {
   const toast = useToast()
   const [saving, setSaving] = useState(false)
+  const IS={width:'100%',padding:'6px 8px',fontSize:16,border:'1px solid #e2e8f0',borderRadius:6,marginTop:4,outline:'none',background:'var(--card)',boxSizing:'border-box'}
   const [tab,setTab] = useState('rules')
   const [rules,setRules] = useState([])
   const [editing,setEditing] = useState(null)
@@ -170,5 +171,3 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
     }
   </div>
 }
-
-const IS={width:'100%',padding:'6px 8px',fontSize:16,border:'1px solid #e2e8f0',borderRadius:6,marginTop:4,outline:'none',background:'var(--card)',boxSizing:'border-box'}

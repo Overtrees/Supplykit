@@ -82,10 +82,9 @@ def import_orders(file: UploadFile = File(...), db = get_db()):
             'bytes': len(content), 'sample_columns': cols_sample,
         }}
 
-    # 扩展列名映射（与前端清洗页对齐）
+    # 扩展列名映射（仅映射 orders 表实际存在的列）
     ALIAS = {
         '订单号': 'order_no','订单编号': 'order_no','采购单号': 'order_no',
-        '原始单号': 'source_order_id','外部单号': 'source_order_id','平台订单号': 'source_order_id',
         '商品编号': 'sku','货号': 'sku','SKU': 'sku',
         '商品名称': 'product_name','产品名称': 'product_name','名称': 'product_name',
         '数量': 'quantity','采购数量': 'quantity','订货数量': 'quantity','原始采购数量': 'quantity',
@@ -96,31 +95,14 @@ def import_orders(file: UploadFile = File(...), db = get_db()):
         '状态': 'order_status','订单状态': 'order_status',
         '日期': 'ordered_at','订购时间': 'ordered_at','下单时间': 'ordered_at','入库时间': 'ordered_at',
         '平台': 'platform','订单来源': 'platform','来源': 'platform','采购渠道': 'platform',
-        '供应商': 'supplier','供应商名称': 'supplier','供应商简码': 'supplier_code',
-        '备注': 'remark',
-        '收货人': 'sender','收货负责人': 'sender',
-        '收货电话': 'sender_phone','电话': 'sender_phone',
-        '币种': 'currency','货币': 'currency',
-        '品牌': 'brand','规格': 'spec','分类': 'category','商品分类': 'category',
-        '折扣': 'discount','运费': 'freight','合同主体': 'contract_entity',
-        '订单属性': 'order_attr','详细地址': 'address',
-        '贴码建议': 'label_suggestion','京东贴码数量': 'label_qty',
-        '重码UPC': 'duplicate_upc','UPC码': 'upc',
-        '采购员': 'buyer','建单人': 'creator',
-        '预约时间': 'scheduled_at','预计关单时间': 'expected_close_at',
-        '波次数量': 'wave_qty','是否期货': 'is_futures',
-        '年': 'year','产品季': 'season','客户订单号': 'customer_order_no',
-        '是否多次发货': 'multi_ship','商品属性': 'product_attr',
-        '采购场景': 'purchase_scene','预计消化时间': 'expected_consume_at',
-        '采购原因': 'purchase_reason','供应商库房': 'supplier_warehouse',
-        '供应商库房编码': 'supplier_warehouse_code','物权转移': 'title_transfer',
-        '采购类型': 'purchase_type','ECLP出库单号': 'eclp_out_no',
+        '供应商': 'supplier','供应商名称': 'supplier',
+        '备注': 'remark','订货备注': 'remark',
     }
+    # orders 表实际列名，用于过滤未知字段
+    table_cols = {'order_no','store','warehouse','sku','product_name','quantity','unit_price','total_amount','data_source','order_status','ordered_at','platform','supplier','remark','parent_order_no','raw_data','source','owner_id'}
     inserted = 0
     imported_items = []
-    # 获取 orders 表实际列名，过滤不存在的字段
-    cursor = db.conn.execute('PRAGMA table_info(orders)')
-    table_cols = {r[1] for r in cursor.fetchall()}
+    skipped = 0
     for i, row in enumerate(rows):
         mapped = {}
         for k, v in row.items():

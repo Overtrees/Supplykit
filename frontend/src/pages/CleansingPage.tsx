@@ -170,7 +170,14 @@ export default function CleansingPage() {
   return <div className="card">
     <div className="step-indicator">
       {['上传文件','字段映射','预览确认','完成'].map((l,i) => <span key={i} className={'step'+(s===i?' active':'')+(s>i?' done':'')}>{s>i?'✓ ':''}{l}</span>)}
-      {bs && <span className="step" style={{color:'var(--primary)'}}>⏳ {bs}...</span>}
+      {bs && (bs.includes('%') ? <div className="step" style={{width:'100%'}}>
+        <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:4,color:'var(--primary)'}}>
+          <span>⏳ {bs.split('%')[0]}%</span><span>{bs.split('(')[1]?.replace(')','')||''}</span>
+        </div>
+        <div style={{height:6,background:'var(--border)',borderRadius:99,overflow:'hidden'}}>
+          <div style={{height:'100%',width:bs.split('%')[0]+'%',background:'var(--primary)',borderRadius:99,transition:'width 0.3s'}}></div>
+        </div>
+      </div> : <span className="step" style={{color:'var(--primary)'}}>⏳ {bs}...</span>)}
     </div>
 
     {s === 0 && <div style={{textAlign:'center',padding:40}}>

@@ -8,7 +8,7 @@ from app.core.database import get_db
 _cache = None
 _cache_ts = 0
 _cache_dirty = True
-_CACHE_TTL = 5
+_CACHE_TTL = 300
 
 
 def _parse_date(s):

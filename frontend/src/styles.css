@@ -68,6 +68,6 @@ input,select{background:var(--card);color:var(--text);border-color:var(--border)
 .btn-primary{background:rgba(59,130,246,0.75)}.btn-primary:hover{background:rgba(59,130,246,0.95)}
 .btn-success{background:rgba(52,211,153,0.75)}.btn-success:hover{background:rgba(52,211,153,0.95)}
 .btn-danger{background:rgba(251,113,133,0.75)}.btn-danger:hover{background:rgba(251,113,133,0.95)}
-.skeleton{background:linear-gradient(90deg,#334155 25%,#1e293b 50%,#334155 75%)}
+.skeleton{background: #334155}
 .card-value{color:var(--text)}
 }

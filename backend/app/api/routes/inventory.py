@@ -102,32 +102,52 @@ def adjust_inventory(body: dict, db = get_db()):
 
 @router.post("/import")
 def import_inventory(file: UploadFile = File(...), db = get_db()):
-    content = file.file.read()
-    if file.filename.endswith('.csv'):
-        text = content.decode('utf-8-sig')
-        reader = csv.DictReader(io.StringIO(text))
-        rows = list(reader)
-    else:
-        wb = load_workbook(io.BytesIO(content), read_only=True)
-        ws = wb.active
-        headers = [c.value for c in next(ws.iter_rows(min_row=1, max_row=1))]
-        rows = []
-        for row in ws.iter_rows(min_row=2, values_only=True):
-            rows.append({headers[i]: row[i] for i in range(len(headers)) if row[i] is not None})
+    try:
+        content = file.file.read()
+    except Exception as e:
+        return {'ok': False, 'error': f'读取文件失败: {e}', 'imported': 0}
+    rows = []
+    try:
+        if (file.filename or '').endswith('.csv'):
+            text = content.decode('utf-8-sig')
+            rows = list(csv.DictReader(io.StringIO(text)))
+        else:
+            wb = load_workbook(io.BytesIO(content))
+            ws = wb.active
+            headers = [c.value for c in next(ws.iter_rows(min_row=1, max_row=1))]
+            rows = []
+            for row in ws.iter_rows(min_row=2, values_only=True):
+                rows.append({headers[i]: row[i] for i in range(len(headers)) if row[i] is not None})
+    except Exception as e:
+        return {'ok': False, 'error': f'解析文件失败: {e}', 'imported': 0}
+    if not rows:
+        return {'ok': False, 'error': '文件内容为空', 'imported': 0}
+
+    TABLE_COLS = {'sku','product_name','store','warehouse',
+                  'available_qty','locked_qty','in_transit_qty',
+                  'safety_qty','safety_days','raw_data','source','owner_id'}
     ALIAS = {
-        'SKU': 'sku','商品编号': 'sku','商品名称': 'product_name','名称': 'product_name',
-        '店铺': 'store','仓库': 'warehouse',
-        '可用库存': 'available_qty','可用': 'available_qty',
-        '锁定库存': 'locked_qty','锁定': 'locked_qty',
-        '在途': 'in_transit_qty','在途库存': 'in_transit_qty',
-        '安全线': 'safety_qty','安全库存': 'safety_qty','安全天数': 'safety_days',
+        'SKU':'sku','商品编号':'sku','商品名称':'product_name','名称':'product_name',
+        '店铺':'store','仓库':'warehouse',
+        '可用库存':'available_qty','可用':'available_qty',
+        '锁定库存':'locked_qty','锁定':'locked_qty',
+        '在途':'in_transit_qty','在途库存':'in_transit_qty',
+        '安全线':'safety_qty','安全库存':'safety_qty','安全天数':'safety_days',
     }
+
     inserted = 0
     for row in rows:
         mapped = {}
-        for k, v in row.items():
-            target = ALIAS.get(k.strip(), k.strip())
-            mapped[target] = str(v).strip() if v else ''
+        raw_extra = {}
+        for raw_col, raw_val in row.items():
+            if raw_col is None: continue
+            alias = ALIAS.get(raw_col.strip())
+            if alias and alias in TABLE_COLS:
+                mapped[alias] = str(raw_val).strip() if raw_val is not None else ''
+            elif raw_col.strip() in TABLE_COLS:
+                mapped[raw_col.strip()] = str(raw_val).strip() if raw_val is not None else ''
+            else:
+                raw_extra[raw_col.strip()] = str(raw_val).strip() if raw_val is not None else ''
         if not mapped.get('sku'):
             continue
         mapped['available_qty'] = int(float(mapped.get('available_qty') or 0))
@@ -136,6 +156,8 @@ def import_inventory(file: UploadFile = File(...), db = get_db()):
         mapped['safety_qty'] = int(float(mapped.get('safety_qty') or 10))
         mapped['safety_days'] = float(mapped.get('safety_days') or 0)
         mapped['source'] = 'import'
+        if raw_extra:
+            mapped['raw_data'] = json.dumps(raw_extra, ensure_ascii=False)
         db.table("inventory").upsert(mapped)
         inserted += 1
     from app.core.events import bus

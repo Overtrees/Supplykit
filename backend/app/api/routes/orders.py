@@ -38,12 +38,10 @@ def batch_delete_orders(ids: str = '', db = get_db()):
         deleted = len(data)
     return {'ok': True, 'deleted': deleted}
 
-
 @router.delete('/{oid}')
 def delete_order(oid: int, db = get_db()):
     db.table("orders").delete().eq("id", oid).execute()
     return {'ok': True}
-
 
 @router.post('/import')
 def import_orders(file: UploadFile = File(...), db = get_db()):
@@ -51,73 +49,63 @@ def import_orders(file: UploadFile = File(...), db = get_db()):
         content = file.file.read()
     except Exception as e:
         return {'ok': False, 'error': f'读取文件失败: {e}', 'imported': 0}
-    
+
     rows = []
     try:
         if (file.filename or '').endswith('.csv'):
             text = content.decode('utf-8-sig')
             rows = list(csv.DictReader(io.StringIO(text)))
         else:
-            from openpyxl import load_workbook
             wb = load_workbook(io.BytesIO(content))
             ws = wb.active
             headers = [c.value for c in next(ws.iter_rows(min_row=1, max_row=1))]
             for row in ws.iter_rows(min_row=2, values_only=True):
                 rows.append({headers[i]: row[i] for i in range(len(headers)) if row[i] is not None})
     except Exception as e:
-        return {'ok': False, 'error': f'解析文件失败: {e}', 'imported': 0, 'rows_raw': 0}
-
+        return {'ok': False, 'error': f'解析文件失败: {e}', 'imported': 0}
     if not rows:
-        # 诊断：看看文件到底读到了什么
-        cols_sample = []
-        try:
-            if (file.filename or '').endswith('.csv'):
-                sample_lines = text[:500].split('\n')
-                cols_sample = [sample_lines[0][:200]] if sample_lines else ['(empty)']
-            else:
-                cols_sample = [str(headers[:8])]
-        except: pass
-        return {'ok': False, 'error': '文件内容为空或格式无法解析', 'imported': 0, 'diagnose': {
-            'filename': file.filename, 'branch': 'csv' if (file.filename or '').endswith('.csv') else 'xlsx',
-            'bytes': len(content), 'sample_columns': cols_sample,
-        }}
+        return {'ok': False, 'error': '文件内容为空', 'imported': 0}
 
-    # 扩展列名映射（仅映射 orders 表实际存在的列）
+    TABLE_COLS = {'order_no','store','warehouse','sku','product_name',
+                  'quantity','unit_price','total_amount','data_source',
+                  'order_status','ordered_at','platform','supplier','remark',
+                  'parent_order_no','raw_data','source','owner_id'}
     ALIAS = {
-        '订单号': 'order_no','订单编号': 'order_no','采购单号': 'order_no',
-        '商品编号': 'sku','货号': 'sku','SKU': 'sku',
-        '商品名称': 'product_name','产品名称': 'product_name','名称': 'product_name',
-        '数量': 'quantity','采购数量': 'quantity','订货数量': 'quantity','原始采购数量': 'quantity',
-        '单价': 'unit_price','价格': 'unit_price','采购价格': 'unit_price',
-        '金额': 'total_amount','总金额': 'total_amount','采购金额': 'total_amount','实收金额': 'total_amount',
-        '店铺': 'store','店铺名': 'store','门店': 'store',
-        '仓库': 'warehouse','京东仓库': 'warehouse','发货仓': 'warehouse','配送中心': 'warehouse',
-        '状态': 'order_status','订单状态': 'order_status',
-        '日期': 'ordered_at','订购时间': 'ordered_at','下单时间': 'ordered_at','入库时间': 'ordered_at',
-        '平台': 'platform','订单来源': 'platform','来源': 'platform','采购渠道': 'platform',
-        '供应商': 'supplier','供应商名称': 'supplier',
-        '备注': 'remark','订货备注': 'remark',
+        '订单号':'order_no','订单编号':'order_no','采购单号':'order_no',
+        '商品编号':'sku','货号':'sku','SKU':'sku','sku':'sku',
+        '商品名称':'product_name','产品名称':'product_name','名称':'product_name',
+        '数量':'quantity','采购数量':'quantity','订货数量':'quantity',
+        '单价':'unit_price','价格':'unit_price','采购价格':'unit_price',
+        '金额':'total_amount','总金额':'total_amount','采购金额':'total_amount','实收金额':'total_amount',
+        '店铺':'store','店铺名':'store','门店':'store',
+        '仓库':'warehouse','京东仓库':'warehouse','发货仓':'warehouse','配送中心':'warehouse',
+        '状态':'order_status','订单状态':'order_status',
+        '日期':'ordered_at','订购时间':'ordered_at','下单时间':'ordered_at','入库时间':'ordered_at',
+        '平台':'platform','订单来源':'platform','来源':'platform','采购渠道':'platform',
+        '供应商':'supplier','供应商名称':'supplier',
+        '备注':'remark','订货备注':'remark',
     }
-    # orders 表实际列名，用于过滤未知字段
-    table_cols = {'order_no','store','warehouse','sku','product_name','quantity','unit_price','total_amount','data_source','order_status','ordered_at','platform','supplier','remark','parent_order_no','raw_data','source','owner_id'}
+
     inserted = 0
     imported_items = []
     skipped = 0
-    for i, row in enumerate(rows):
+    for row in rows:
         mapped = {}
-        for k, v in row.items():
-            if k is None: continue
-            target = ALIAS.get(k.strip(), k.strip())
-            val = str(v).strip() if v is not None else ''
-            mapped[target] = val
+        raw_extra = {}
+        for raw_col, raw_val in row.items():
+            if raw_col is None: continue
+            alias = ALIAS.get(raw_col.strip())
+            if alias and alias in TABLE_COLS:
+                mapped[alias] = str(raw_val).strip() if raw_val is not None else ''
+            elif raw_col.strip() in TABLE_COLS:
+                mapped[raw_col.strip()] = str(raw_val).strip() if raw_val is not None else ''
+            else:
+                raw_extra[raw_col.strip()] = str(raw_val).strip() if raw_val is not None else ''
+
         if not mapped.get('order_no'):
             skipped += 1
             continue
-        # 过滤掉 orders 表不存在的列，其余塞入 raw_data
-        extra = {k: mapped[k] for k in list(mapped.keys()) if k not in table_cols}
-        for k in extra: del mapped[k]
-        if extra:
-            mapped['raw_data'] = json.dumps(extra, ensure_ascii=False)
+
         try:
             mapped['quantity'] = int(float(mapped.get('quantity') or 0))
             mapped['unit_price'] = float(mapped.get('unit_price') or 0)
@@ -125,10 +113,15 @@ def import_orders(file: UploadFile = File(...), db = get_db()):
         except ValueError:
             skipped += 1
             continue
+
         mapped['data_source'] = 'import'
+        if raw_extra:
+            mapped['raw_data'] = json.dumps(raw_extra, ensure_ascii=False)
+
         db.table("orders").upsert(mapped)
         inserted += 1
         imported_items.append(mapped)
+
     from app.core.events import bus
     bus.emit('order.imported', {'count': inserted})
     if imported_items:
@@ -136,6 +129,6 @@ def import_orders(file: UploadFile = File(...), db = get_db()):
     return {
         'ok': True, 'imported': inserted, 'from_file': file.filename,
         'total_rows': len(rows), 'skipped': skipped,
+        'columns_mapped': [k for k in (imported_items[0] if imported_items else {}).keys() if k != 'raw_data'],
+        'columns_rawdata': list(raw_extra.keys()) if imported_items and raw_extra else [],
     }
-
-

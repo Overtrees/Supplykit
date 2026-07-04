@@ -12,6 +12,7 @@ const EVENTS = [
 export default function RulesPage() {
   const toast = useToast()
   const [saving, setSaving] = useState(false)
+  const [loading, setLoading] = useState(true)
   const IS={width:'100%',padding:'6px 8px',fontSize:16,border:'1px solid #e2e8f0',borderRadius:6,marginTop:4,outline:'none',background:'var(--card)',boxSizing:'border-box'}
   const [tab,setTab] = useState('rules')
   const [rules,setRules] = useState([])
@@ -23,7 +24,7 @@ export default function RulesPage() {
   const load=async()=>{try{const r=await fetch(API+'/api/rules');setRules(await r.json())}catch(e){}}
   const loadCfg=async(mode)=>{try{const m=mode||cfg.replenishment_mode||'bbcc';const r=await api.get('/api/replenishment-config?mode='+m);setCfg({...r.data,replenishment_mode:m});return r.data||{}}catch(e){return {}}}
   const loadSeasons=async(mode)=>{try{const m=mode||cfg.replenishment_mode||'bbcc';const r=await api.get('/api/replenishment-config/seasons?mode='+m);setSeasons(r.data||[])}catch(e){}}
-  useEffect(()=>{load();loadCfg().then(d=>loadSeasons())},[])
+  useEffect(()=>{load();loadCfg().then(d=>loadSeasons()).finally(()=>setLoading(false))},[])
 
   const save=async()=>{const cj=JSON.stringify({left:cond.left,op:cond.op,right:cond.rightType==='field'?cond.right:parseFloat(cond.right)||0})
     const isNew = !editing || !editing.id
@@ -66,7 +67,11 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
   ]
 
   return <div className='card'>
-    <div className='section-title' style={{display:'flex',flexWrap:'wrap',gap:6}}>
+    {loading ? <><div className='section-title'><div className="skeleton" style={{width:200,height:20,display:'inline-block'}}/></div>
+      <div className="skeleton" style={{width:'100%',height:36,marginBottom:8}}/>
+      <div className="skeleton" style={{width:'100%',height:36,marginBottom:8}}/>
+      <div className="skeleton" style={{width:'100%',height:36}}/>
+    </> : <><div className='section-title' style={{display:'flex',flexWrap:'wrap',gap:6}}>
       <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
         <button onClick={()=>setTab('rules')} className="btn btn-ghost" style={{fontSize:13,background:tab==='rules'?'var(--primary)':'transparent',color:tab==='rules'?'#fff':''}}>⚙️ 规则</button>
         <button onClick={()=>{loadCfg(cfg.replenishment_mode||'bbcc');setTab('params')}} className="btn btn-ghost" style={{fontSize:13,background:tab==='params'?'var(--success)':'transparent',color:tab==='params'?'#fff':''}}>📊 补货参数</button>

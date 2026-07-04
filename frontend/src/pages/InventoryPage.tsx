@@ -6,7 +6,7 @@ import ConfirmDialog from '../components/ConfirmDialog'
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
 export default function InventoryPage({ highlightSku }) {
   const toast = useToast()
-  const { inventory, loadAll } = useAppStore()
+  const { inventory, loadAll, dataLoaded } = useAppStore()
   const [s, setS] = useState('')
   const [confirmDel, setConfirmDel] = useState(null)
   const fl = useMemo(() => {
@@ -26,6 +26,15 @@ export default function InventoryPage({ highlightSku }) {
     } catch(e) { toast.error('删除失败: '+e.message) }
     setConfirmDel(null)
   }
+  if (inventory.length === 0 && !dataLoaded) return <div className="card"><div className="section-title">库存</div>
+    {[1,2,3,4].map(i=><div key={i} style={{display:'flex',gap:8,padding:'8px 0',borderBottom:'1px solid #f1f5f9'}}>
+      <div className="skeleton" style={{width:50,height:14}}/><div className="skeleton" style={{width:50,height:14}}/>
+      <div className="skeleton" style={{width:70,height:14}}/><div className="skeleton" style={{flex:1,height:14}}/>
+      <div className="skeleton" style={{width:36,height:14}}/><div className="skeleton" style={{width:36,height:14}}/>
+      <div className="skeleton" style={{width:36,height:14}}/><div className="skeleton" style={{width:36,height:14}}/>
+    </div>)}
+  </div>
+
   return <div className="card">
     <div className="section-title" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
       <span>库存 <span className="small muted">共 {inventory.length} 条</span></span>

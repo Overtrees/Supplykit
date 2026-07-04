@@ -20,6 +20,7 @@ export const useAppStore = create((set, get) => ({
   orderSearch: '',
   orderStatus: '',
   orderLoading: false,
+  dataLoaded: false,
   sidebarOpen: false,
   setSidebarOpen: (v) => set({ sidebarOpen: v }),
 
@@ -46,6 +47,7 @@ export const useAppStore = create((set, get) => ({
         inventory: inventory.data?.items || inventory.data || [],
         qualityLogs: qualityLogs.data || [],
         alerts: alerts.data || [],
+        dataLoaded: true,
       })
     } catch (e) {
       console.error('loadAll failed:', e)

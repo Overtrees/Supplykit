@@ -12,7 +12,15 @@ const TYPE_LABEL = {
 const LEVEL_LABEL = { warning: '警告', error: '严重', info: '提示' }
 
 export default function QualityPage() {
-  const { qualityLogs } = useAppStore()
+  const { qualityLogs, dataLoaded } = useAppStore()
+
+  if (qualityLogs.length === 0 && !dataLoaded) return <div className="card"><div className="section-title">数据异常</div>
+    {[1,2,3].map(i=><div key={i} style={{display:'flex',gap:8,padding:'8px 0',borderBottom:'1px solid #f1f5f9'}}>
+      <div className="skeleton" style={{width:60,height:14}}/><div className="skeleton" style={{flex:1,height:14}}/>
+      <div className="skeleton" style={{width:36,height:14}}/><div className="skeleton" style={{width:44,height:14}}/>
+    </div>)}
+  </div>
+
   if (qualityLogs.length === 0) return <div className="card"><div className="section-title">数据异常</div><div className="small muted" style={{padding:24,textAlign:'center'}}>暂无异常</div></div>
 
   // 按日期分组

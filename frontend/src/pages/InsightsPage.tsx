@@ -94,16 +94,16 @@ export default function InsightsPage() {
       api.get('/api/events'),
       api.get('/api/insights/slow-moving'),
     ]
-    Promise.allSettled(promises).then(([p, s, ev, sm]) => {
+    Promise.allSettled(promises).then(([replenR, purchaseR, summaryR, eventsR, slowR]) => {
       setReplenLoading(false)
-      if (p.status === 'fulfilled') setPurchase(p.value.data?.suggestions || p.value.data || [])
       setPurchaseLoading(false)
-      if (s.status === 'fulfilled') setSummary(s.value.data)
+      if (purchaseR.status === 'fulfilled') setPurchase(purchaseR.value.data?.suggestions || purchaseR.value.data || [])
       setSummaryLoading(false)
-      if (ev.status === 'fulfilled') setActivities((ev.value.data || []).slice(0, 15))
+      if (summaryR.status === 'fulfilled') setSummary(summaryR.value.data)
       setActivityLoading(false)
-      if (sm.status === 'fulfilled') setSlowMoving(sm.value.data || [])
+      if (eventsR.status === 'fulfilled') setActivities((eventsR.value.data || []).slice(0, 15))
       setSlowLoading(false)
+      if (slowR.status === 'fulfilled') setSlowMoving(slowR.value.data || [])
       setInitLoading(false)
     }).catch(() => setInitLoading(false))
   }, [])

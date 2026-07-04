@@ -87,16 +87,16 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             max_allowed = round(sel_ds * max_turnover) if sel_ds > 0 else 0
             suggested = min(suggested, max_allowed) if max_allowed > 0 else suggested
             # 箱规向上取整
-            box = int(prod.get('box_qty', inv.get('box_qty', 1)) or 1)
+            prod = products.get(sku, {})
+            box = int(prod.get('box_qty', 1) or 1)
             box_qty = (suggested + box - 1) // box * box if suggested > 0 else 0
             suggested = box_qty
             days_to_empty = round(avail / sel_ds, 1) if sel_ds > 0 else 999
             gap = raw_suggested - suggested
             note = f"目标周转{max_turnover}天" + (f", 按前置期{lead_time}天算需{raw_suggested}件" if gap > 0 else "")
             note += f", 箱规{box}件, 实际下{box_qty}件（{box_qty//box}箱）" if suggested > 0 else ", 无需补货"
-            prod = products.get(sku, {})
             suggestions.append({
-                "sku": sku, "product_name": prod.get('product_name', inv.get('product_name', '')),
+                "sku": sku, "product_name": prod.get('product_name', ''),
                 "store": prod.get('store', ''), "category": prod.get('category', ''),
                 "available_qty": avail, "safety_qty": safety, "in_transit_qty": transit,
                 "daily_sales": sel_ds, "raw_suggested": raw_suggested, "suggested_qty": suggested,

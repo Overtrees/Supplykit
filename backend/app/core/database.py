@@ -483,6 +483,9 @@ def init_db(path=None):
         CREATE INDEX IF NOT EXISTS idx_events_type ON events(event_type);
         CREATE INDEX IF NOT EXISTS idx_quality_logs_level ON quality_logs(level);
     """)
+    # 兼容旧表：补加可能缺失的列
+    try: conn.execute("ALTER TABLE products ADD COLUMN box_qty INTEGER DEFAULT 1")
+    except: pass
     conn.commit()
     conn.close()
 def _seed_builtin_rules():

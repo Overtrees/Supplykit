@@ -48,13 +48,34 @@ const submit = async (type, file) => {
         {importLogs.length === 0 ? (
           <div style={{ color:'var(--muted2)', fontSize:13, textAlign:'center' }}>暂无导入记录</div>
         ) : (
-          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-            {importLogs.map((x, idx) => (
-              <div key={idx} style={{ fontSize:12, background:'var(--bg)', border:'1px solid #f1f5f9', borderRadius:10, padding:'8px 12px' }}>
-                <div style={{ fontWeight:600, marginBottom:2 }}>{x.type || 'manual.import'}</div>
-                <div style={{ color:'var(--muted)', fontSize:11 }}>{JSON.stringify(x.payload || x)}</div>
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            {[...importLogs].reverse().map((x, idx) => {
+              const p = x.payload || x
+              const name = p?.from_file || x.file || '—'
+              const imp = p?.imported ?? 0
+              const dup = p?.duplicates ?? 0
+              const skp = p?.skipped ?? 0
+              const tot = p?.total_rows ?? 0
+              const cols = p?.columns_mapped
+              const extras = p?.columns_rawdata
+              return (
+              <div key={idx} style={{ fontSize:13, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:12, padding:'10px 14px' }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
+                  <span style={{ fontWeight:600, fontSize:14, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'60%' }} title={name}>{name}</span>
+                  <span style={{ fontSize:11, color: imp > 0 ? 'var(--success)' : 'var(--muted)' }}>
+                    +{imp}{dup > 0 ? ` · ${dup}重复` : ''}{skp > 0 ? ` · ${skp}跳过` : ''}
+                  </span>
+                </div>
+                {tot > 0 && <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:4 }}>
+                  <span className="small muted">共{tot}行</span>
+                  {cols?.length > 0 && <span className="small muted" style={{ color:'var(--info)' }}>映射{cols.length}列</span>}
+                  {extras?.length > 0 && <span className="small muted" style={{ color:'var(--muted2)' }}>原始{extras.length}列</span>}
+                </div>}
+                {cols?.length > 0 && <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>
+                  {cols.map(c => <span key={c} style={{ fontSize:10, padding:'1px 6px', borderRadius:4, background:'rgba(29,78,216,0.08)', color:'var(--primary)', whiteSpace:'nowrap' }}>{c}</span>)}
+                </div>}
               </div>
-            ))}
+            )})}
           </div>
         )}
       </div>

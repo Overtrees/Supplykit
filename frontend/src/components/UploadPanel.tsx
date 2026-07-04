@@ -13,7 +13,7 @@ const submit = async (type, file) => {
     setBusy(type)
     try {
       const url = type === 'orders' ? '/api/orders/import' : '/api/inventory/import'
-      const res = await api.post(url, form, { headers: { 'Content-Type': 'multipart/form-data' } })
+      const res = await api.post(url, form)
       const data = res.data
       if (!data.ok) { toast.error(data.error || '导入失败' + (data.diagnose ? ` (${data.diagnose.bytes}字节, 列:${data.diagnose.sample_columns})` : '')); return }
       addImportLog({ type: type === 'orders' ? 'orders.imported' : 'inventory.imported', payload: data, file: file.name })

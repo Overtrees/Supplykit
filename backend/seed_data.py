@@ -84,6 +84,8 @@ SEED_INVENTORY = [
   {"sku":"SKU-008","product_name":"珠江桥牌 拌面酱 200g","store":"华南食品旗舰店","warehouse":"西安","available_qty":200,"locked_qty":30,"in_transit_qty":100,"safety_qty":150},
   {"sku":"SKU-009","product_name":"珠江桥牌 芝麻油 220ml","store":"华南食品旗舰店","warehouse":"西安","available_qty":6,"locked_qty":0,"in_transit_qty":80,"safety_qty":100},
   {"sku":"SKU-010","product_name":"珠江桥牌 饺子醋 300ml","store":"珠江桥牌（京东自营）","warehouse":"北京","available_qty":300,"locked_qty":50,"in_transit_qty":100,"safety_qty":200},
+  {"sku":"SKU-003","product_name":"珠江桥牌 蚝油 挤瓶装 510g","store":"珠江桥牌（京东自营）","warehouse":"郑州","available_qty":80,"locked_qty":5,"in_transit_qty":20,"safety_qty":40},
+  {"sku":"SKU-009","product_name":"珠江桥牌 芝麻油 220ml","store":"华南食品旗舰店","warehouse":"郑州","available_qty":60,"locked_qty":5,"in_transit_qty":15,"safety_qty":30},
 ]
 
 SEED_QUALITY_LOGS = [

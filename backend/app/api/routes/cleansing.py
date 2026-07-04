@@ -189,7 +189,7 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                                'raw_value': sku_val, 'error_message': 'SKU已存在于数据库'})
                 try:
                     db.table("quality_logs").insert({"log_type":"duplicate_sku","level":"warning",
-                        "field_name":"sku","message":f'SKU已存在: {sku_val}',"source":"cleansing"}).execute()
+                        "field_name":"sku","message":f'SKU {sku_val} 已存在，跳过重复',"source":"cleansing"}).execute()
                 except: pass
                 failed += 1; continue
             if sku_val in sku_seen:
@@ -209,7 +209,7 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                                'raw_value': order_no, 'error_message': f'单号+SKU已存在: {order_no}/{sku_key}'})
                 try:
                     db.table("quality_logs").insert({"log_type":"duplicate_order","level":"warning",
-                        "field_name":"order_no","message":f'单号+SKU已存在: {order_no}/{sku_key}',"source":"cleansing"}).execute()
+                        "field_name":"order_no","message":f'订单{order_no}商品{sku_key}已存在，跳过重复',"source":"cleansing"}).execute()
                 except: pass
                 failed += 1; continue
             if order_no in dedup:

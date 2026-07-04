@@ -47,10 +47,10 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     selected_sales = {28: sales_28, 14: sales_14, 7: sales_7}.get(days, sales_28)
 
     if mode == 'bbcc':
-        lead_time = int(cfg.get('lead_time_days', '7'))
-        lead_time = lead_time + int(cfg.get('ship_to_b_days', '3')) + int(cfg.get('b_to_c_days', '3')) + int(cfg.get('c_safety_days', '0'))
+        lead_time = int(cfg.get('lead_time_days', '0'))
+        lead_time = lead_time + int(cfg.get('ship_to_b_days', '0')) + int(cfg.get('b_to_c_days', '0')) + int(cfg.get('c_safety_days', '0'))
     else:
-        lead_time = int(cfg.get('lead_time_days', '7'))
+        lead_time = int(cfg.get('lead_time_days', '0'))
     # 活动系数（按模式独立存储）
     season_key = f'season_config_{mode}'
     season_val = db.table('replenishment_config').select('*').eq('key', season_key).execute().data
@@ -83,7 +83,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             sel_ds = {28: ds28, 14: ds14, 7: ds7}[days]
             sel_ds = round(sel_ds * active_factor, 1)
             sku_safety_days = st['safety_days']
-            safety_days = sku_safety_days if sku_safety_days > 0 else float(cfg.get('safety_multiplier', '3'))
+            safety_days = sku_safety_days if sku_safety_days > 0 else float(cfg.get('safety_multiplier', '0'))
             effective_safety = round(sel_ds * safety_days) if sel_ds > 0 else 0
             suggested = max(round(sel_ds * lead_time + effective_safety - avail - transit), 0) if sel_ds > 0 else 0
             raw_suggested = suggested
@@ -95,7 +95,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             days_to_empty = round(avail / sel_ds, 1) if sel_ds > 0 else 999
             after_stock = avail + transit + suggested
             after_turnover = round(after_stock / sel_ds, 1) if sel_ds > 0 else 999
-            max_turnover = int(cfg.get('max_turnover_days', '15'))
+            max_turnover = int(cfg.get('max_turnover_days', '0'))
             note = f"箱规{box}件, 实补{suggested}件（{suggested//box}箱）" if suggested > 0 else "无需补货"
             if suggested > 0:
                 note += f", 补后周转{after_turnover}天"
@@ -125,7 +125,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             sel_ds = round(sel_ds * active_factor, 1)
 
             sku_safety_days = float(inv.get('safety_days') or 0)
-            safety_days = sku_safety_days if sku_safety_days > 0 else float(cfg.get('safety_multiplier', '3'))
+            safety_days = sku_safety_days if sku_safety_days > 0 else float(cfg.get('safety_multiplier', '0'))
             effective_safety = round(sel_ds * safety_days) if sel_ds > 0 else 0
             suggested = max(round(sel_ds * lead_time + effective_safety - avail - transit), 0) if sel_ds > 0 else 0
             raw_suggested = suggested
@@ -136,7 +136,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             days_to_empty = round(avail / sel_ds, 1) if sel_ds > 0 else 999
             after_stock = avail + transit + suggested
             after_turnover = round(after_stock / sel_ds, 1) if sel_ds > 0 else 999
-            max_turnover = int(cfg.get('max_turnover_days', '15'))
+            max_turnover = int(cfg.get('max_turnover_days', '0'))
             note = f"箱规{box}件, 实补{suggested}件（{suggested//box}箱）" if suggested > 0 else "无需补货"
             if suggested > 0:
                 note += f", 补后周转{after_turnover}天"
@@ -200,9 +200,9 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
     # 1. 读取全库配置（采购参数不按 mode 区分，全局统一）
     raw = {r['key']: r['value'] for r in db.table("replenishment_config").select("*").execute().data}
 
-    purchase_lead_time = int(raw.get('purchase_lead_days', '7'))
-    moq_default = int(raw.get('moq', '50'))
-    safety_mult = float(raw.get('safety_multiplier', '3'))
+    purchase_lead_time = int(raw.get('purchase_lead_days', '0'))
+    moq_default = int(raw.get('moq', '0'))
+    safety_mult = float(raw.get('safety_multiplier', '0'))
 
     # 2. 活动系数
     season_key = f'season_config_{mode}'

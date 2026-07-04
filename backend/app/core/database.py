@@ -480,6 +480,7 @@ def init_db(path=None):
         INSERT OR IGNORE INTO replenishment_config(key,value) VALUES('purchase_lead_days','14');
         INSERT OR IGNORE INTO replenishment_config(key,value) VALUES('moq','50');
         INSERT OR IGNORE INTO replenishment_config(key,value) VALUES('ship_to_b_days','3');
+        INSERT OR IGNORE INTO replenishment_config(key,value) VALUES('b_to_c_days','3');
         INSERT OR IGNORE INTO replenishment_config(key,value) VALUES('season_618','1.5');
         INSERT OR IGNORE INTO replenishment_config(key,value) VALUES('season_1111','1.8');
         INSERT OR IGNORE INTO replenishment_config(key,value) VALUES('season_cny','1.6');

@@ -90,9 +90,9 @@ class TestReplenishmentFormula:
     """验证补货建议的核心计算逻辑（独立于数据库）"""
 
     def test_bbcc_lead_time(self):
-        """BBCC 前置期 = lead + ship_to_b + b_to_c + c_safety"""
-        lead = 7 + 3 + 3 + 5  # 默认值
-        assert lead == 18
+        """BBCC 前置期 = lead + ship_to_b + b_to_c + c_safety（无 c_safety 时=0）"""
+        lead = 10 + 3 + 3 + 0  # DB 种子值
+        assert lead == 16
 
     def test_traditional_lead_time(self):
         """传统前置期 = lead_time_days"""

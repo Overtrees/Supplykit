@@ -149,7 +149,6 @@ def _rebuild():
 
     # Per-store aggregation
     store_names = sorted(set(x.get("store") for x in orders if x.get("store")))
-    warehouse_names = sorted(set(x.get("warehouse") for x in orders if x.get("warehouse")))
     store_rows = []
     for s in store_names:
         so = [x for x in orders if x.get("store") == s]
@@ -160,16 +159,7 @@ def _rebuild():
             "orders": len(so),
             "low_stock": len([x for x in si if int(x.get("available_qty") or 0) < int(x.get("safety_qty") or 0)]),
         })
-    for w in warehouse_names:
-        wo = [x for x in orders if x.get("warehouse") == w]
-        wi = [x for x in inv if x.get("warehouse") == w]
-        store_rows.append({
-            "name": f"📦{w}",
-            "gmv": sum(float(x.get("total_amount") or 0) for x in wo if x.get("order_status") == "已完成"),
-            "orders": len(wo),
-            "low_stock": len([x for x in wi if int(x.get("available_qty") or 0) < int(x.get("safety_qty") or 0)]),
-        })
-
+    
     status_dist = defaultdict(int)
     for x in orders:
         status_dist[x.get("order_status") or "未知"] += 1

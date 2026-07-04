@@ -7,8 +7,7 @@ export default function Sidebar({ page, onClose, onNavigate, lowStock, errCount 
       {/* 头部 */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'16px 20px', flexShrink:0 }}>
         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-          <div style={{ width:36, height:36, borderRadius:10, background:'var(--primary)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, fontSize:16 }}>供</div>
-          <span style={{ color:'#fff', fontWeight:700, fontSize:17 }}>SupplyChain</span>
+          <span style={{ color:'#fff', fontWeight:700, fontSize:17 }}>媒介</span>
         </div>
         <button onClick={onClose} aria-label="关闭菜单" style={{ background:'rgba(255,255,255,0.12)', border:'none', borderRadius:8, color:'#fff', width:32, height:32, cursor:'pointer', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
       </div>

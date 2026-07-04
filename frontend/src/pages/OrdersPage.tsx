@@ -53,14 +53,14 @@ export default function OrdersPage() {
       ? <EmptyState icon='📋' title={orderSearch?'无匹配订单':'暂无订单'} desc={orderSearch?'换个关键词试试':''} />
       : <div style={{overflowX:"auto"}}>
         <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 7 列 · 左右滑动查看</div>
-      <table style={{minWidth:560}}><thead><tr>{['订单号','店铺','仓库','商品','金额','状态','日期',''].map(h=><th key={h} style={{whiteSpace:'nowrap',padding:'8px 6px'}}>{h}</th>)}</tr></thead>
+      <table><thead><tr>{['订单号','店铺','仓库','商品','金额','状态','日期',''].map(h=><th key={h}>{h}</th>)}</tr></thead>
       <tbody>
         {orders.map(x => <tr key={x.id}>
-          <td className="mono col-sku" style={{minWidth:100}}>{x.order_no}</td>
-          <td className="col-store" style={{minWidth:64}}>{x.store||'-'}</td><td className="col-store" style={{minWidth:64}}>{x.warehouse||'-'}</td><td className="col-name" style={{minWidth:120}}>{x.product_name}</td>
-          <td className="col-price" style={{minWidth:80}}>¥{Number(x.total_amount).toLocaleString()}</td>
-          <td style={{minWidth:72}}><span className={`pill ${x.order_status==='已完成'?'success':x.order_status==='待发货'?'warning':x.order_status==='已发货'?'info':x.order_status==='申请退款'?'danger':''}`}>{x.order_status}</span></td>
-          <td className="col-date" style={{minWidth:90}}>{x.ordered_at}</td>
+          <td className="mono col-sku">{x.order_no}</td>
+          <td className="col-store">{x.store||'-'}</td><td className="col-store">{x.warehouse||'-'}</td><td className="col-name">{x.product_name}</td>
+          <td className="col-price">¥{Number(x.total_amount).toLocaleString()}</td>
+          <td><span className={`pill ${x.order_status==='已完成'?'success':x.order_status==='待发货'?'warning':x.order_status==='已发货'?'info':x.order_status==='申请退款'?'danger':''}`}>{x.order_status}</span></td>
+          <td className="col-date">{x.ordered_at}</td>
           <td><span onClick={()=>setConfirmDel(x.id)} style={{cursor:'pointer',fontSize:18,opacity:0.4,padding:'8px'}} title='删除'>🗑️</span></td>
         </tr>)}
       </tbody></table>

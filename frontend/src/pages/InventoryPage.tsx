@@ -38,13 +38,13 @@ export default function InventoryPage({ highlightSku }) {
       ? <EmptyState icon='📦' title={s?'无匹配库存':'暂无库存数据'} desc={s?'换个关键词试试':'通过清洗导入或手动添加库存'} />
       : <div style={{overflowX:"auto"}}>
         <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 9 列 · 左右滑动查看</div>
-      <table style={{minWidth:640}}><thead><tr>{['店铺','仓库','SKU','商品','可用','锁定','在途','安全线','安全天数',''].map(h=><th key={h} style={{whiteSpace:'nowrap',padding:'8px 6px'}}>{h}</th>)}</tr></thead>
+      <table><thead><tr>{['店铺','仓库','SKU','商品','可用','锁定','在途','安全线','安全天数',''].map(h=><th key={h}>{h}</th>)}</tr></thead>
       <tbody>{fl.map(x => {
         const isHL = highlightSku && x.sku === highlightSku
         return <tr key={x.id} id={'hl-'+x.sku} style={isHL ? {background:'rgba(245,158,11,0.15)',outline:'2px solid #f59e0b'} : {}}>
-        <td className="col-store" style={{minWidth:64}}>{x.store||'-'}</td><td className="col-store" style={{minWidth:64}}>{x.warehouse||'-'}</td>
-        <td className="mono col-sku" style={{minWidth:80}}>{x.sku}</td><td className="col-name" style={{minWidth:100}}>{x.product_name}</td>
-        <td className="col-qty" style={{minWidth:44}}>{x.available_qty}</td><td className="col-qty" style={{minWidth:44}}>{x.locked_qty}</td><td className="col-qty" style={{minWidth:44}}>{x.in_transit_qty}</td><td className="col-qty" style={{minWidth:44}}>{x.safety_qty}</td>
+        <td className="col-store">{x.store||'-'}</td><td className="col-store">{x.warehouse||'-'}</td>
+        <td className="mono col-sku">{x.sku}</td><td className="col-name">{x.product_name}</td>
+        <td className="col-qty">{x.available_qty}</td><td className="col-qty">{x.locked_qty}</td><td className="col-qty">{x.in_transit_qty}</td><td className="col-qty">{x.safety_qty}</td>
         <td className="col-qty"><input type='number' min='0' max='30' step='1'
           value={x.safety_days || ''} placeholder='全局' onChange={e=>{const v=parseFloat(e.target.value)||0;fetch(API+'/api/inventory/'+x.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({safety_days:v})})}}
           style={{width:48,fontSize:11,textAlign:'center',padding:'2px',border:'1px solid #e2e8f0',borderRadius:4,outline:'none'}} /></td>

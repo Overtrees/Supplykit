@@ -1,6 +1,6 @@
 """In-memory dashboard cache, rebuilt on demand or invalidated by events."""
 
-import time
+import time, os
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from app.core.database import get_db
@@ -116,6 +116,18 @@ def _rebuild():
     """Full rebuild of dashboard data from database."""
     db = get_db()
     orders = db.table("orders").select("*").execute().data or []
+    
+    # 若数据库为空则自动 seed 演示数据
+    if not orders:
+        try:
+            import sys
+            sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+            from seed_data import seed
+            seed()
+            orders = db.table("orders").select("*").execute().data or []
+        except Exception as e:
+            print(f"[auto-seed] {e}")
+    
     inv = db.table("inventory").select("*").execute().data or []
     products = db.table("products").select("*").execute().data or []
     suppliers = db.table("suppliers").select("*").execute().data or []

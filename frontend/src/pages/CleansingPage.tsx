@@ -197,7 +197,14 @@ export default function CleansingPage() {
         </select>
         <button onClick={()=>{const s=document.getElementById('tmplSelect');if(s.value)try{setMp(JSON.parse(s.value))}catch(e){}}} style={{padding:'6px 14px',fontSize:12,border:'1px solid #e2e8f0',borderRadius:6,background:'var(--card)',cursor:'pointer'}}>应用</button>
         <input id="tmplName" placeholder="新模板名称" style={{width:120,fontSize:16,padding:'6px 8px',border:'1px solid #e2e8f0',borderRadius:6,outline:'none'}}/>
-        <button onClick={async()=>{const n=document.getElementById('tmplName').value;if(!n)return toast.error('请输入模板名称');await api.post('/api/cleansing/templates',{name:n,doc_type:tt,mapping:mp});document.getElementById('tmplName').value='';loadTemplates();toast.success('模板已保存')}} style={{padding:'6px 14px',fontSize:12,background:'var(--primary)',color:'var(--card)',border:'none',borderRadius:6,cursor:'pointer'}}>保存</button>
+        <button onClick={async()=>{
+          const n=document.getElementById('tmplName').value;if(!n)return toast.error('请输入模板名称');
+          try {
+            const r=await api.post('/api/cleansing/templates',{name:n,doc_type:tt,mapping:mp});
+            const msg=r?.data?.message||'模板已保存';
+            document.getElementById('tmplName').value='';loadTemplates();toast.success(msg);
+          } catch(e){toast.error('模板保存失败: '+(e.response?.data?.detail||e.message));}
+        }} style={{padding:'6px 14px',fontSize:12,background:'var(--primary)',color:'var(--card)',border:'none',borderRadius:6,cursor:'pointer'}}>保存</button>
       </div>
       {Array.isArray(cf) && <div style={{marginBottom:10,border:'1px solid #e2e8f0',borderRadius:12,padding:12,background:'var(--bg)'}}>
         <div style={{fontSize:12,fontWeight:600,marginBottom:8}}>自定义字段</div>
@@ -237,14 +244,20 @@ export default function CleansingPage() {
     </div>}
 
     {s === 2 && pv && <div>
-      <div className="section-title">清洗预览 · 前 {pv.preview?.length||0} 行{pv.total > 50 ? <span className="small muted"> · 共 {pv.total} 行，仅展示前 50 行</span> : ''}</div>
-      {pv.preview?.length > 0 && <div style={{overflowX:"auto",marginBottom:12}}>
+      <div className="section-title">
+        清洗预览 · 前 {pv.preview?.length||0} 行
+        {pv.total > 50 ? <span className="small muted"> · 共 {pv.total} 行，仅展示前 50 行</span> : ''}
+        {pv.preview?.length > 0 && <span className="small muted"> · {Object.keys(pv.preview[0]).filter(k=>k!=='_source').length} 列</span>}
+      </div>
+      {pv.preview?.length > 0 && <div>
+        <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>← 左右滑动查看所有已映射字段 →</div>
+        <div style={{overflowX:"auto",marginBottom:12}}>
         {(() => { const keys = Object.keys(pv.preview[0]).filter(k => k !== '_source'); return <>
         <table><thead><tr>{keys.map(h=>{
           const sf = SYS_FIELDS.find(x => x.t === h) || cf.find(x => x.t === h)
-          return <th key={h}>{sf ? sf.l : h}</th>
+          return <th key={h} style={{minWidth:80,whiteSpace:'nowrap'}}>{sf ? sf.l : h}</th>
         })}</tr></thead>
-        <tbody>{pv.preview.map((r,i)=><tr key={i}>{keys.map(k=><td key={k}>{String(r[k]||'')}</td>)}</tr>)}</tbody></table>
+        <tbody>{pv.preview.map((r,i)=><tr key={i}>{keys.map(k=><td key={k} style={{minWidth:80,whiteSpace:'nowrap',maxWidth:200,overflow:'hidden',textOverflow:'ellipsis'}}>{String(r[k]||'')}</td>)}</tr>)}</tbody></table>
         </>})()}
       </div>}
       <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>

@@ -140,8 +140,6 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
     orders_to_insert = [] if not is_inv else None
     inv_to_insert = [] if is_inv else None
     sku_seen = set()
-    order_no_seen = set() if not is_inv else None
-    dedup = {} if not is_inv else None
 
     for idx, row in enumerate(rows):
         row_errors = []
@@ -214,12 +212,6 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                                 "field_name":"order_no","message":f'订单{order_no}商品{sku_key}已存在，跳过重复',"source":"cleansing"}).execute()
                 except: pass
                 failed += 1; continue
-            if order_no in dedup:
-                dedup[order_no] += 1
-                order_no = f"{order_no}-{dedup[order_no]}"
-            else:
-                dedup[order_no] = 0
-            data['order_no'] = order_no
 
         # 记录行错误（不影响继续处理，只是标记）
         for e in row_errors:
@@ -254,24 +246,18 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
             })
             success += 1
         else:
-            if order_no not in order_no_seen:
-                order_no_seen.add(order_no)
-                orders_to_insert.append({
-                    "order_no": order_no, "store": str(data.get('store', '未知'))[:100],
-                    "sku": sku[:100],
-                    "product_name": str(data.get('product_name', ''))[:200],
-                    "quantity": int(float(data.get('quantity', 0))),
-                    "unit_price": float(data.get('unit_price', 0)),
-                    "total_amount": float(data.get('total_amount', 0)),
-                    "order_status": str(data.get('order_status', '已完成'))[:50],
-                    "ordered_at": str(data.get('ordered_at', ''))[:50],
-                    "data_source": data_source,
-                })
-                success += 1
-            else:
-                failed += 1
-                errors.append({'error_type': 'duplicate_order', 'field_name': 'order_no',
-                               'raw_value': order_no, 'error_message': '重复订单号'})
+            orders_to_insert.append({
+                "order_no": order_no, "store": str(data.get('store', '未知'))[:100],
+                "sku": sku[:100],
+                "product_name": str(data.get('product_name', ''))[:200],
+                "quantity": int(float(data.get('quantity', 0))),
+                "unit_price": float(data.get('unit_price', 0)),
+                "total_amount": float(data.get('total_amount', 0)),
+                "order_status": str(data.get('order_status', '已完成'))[:50],
+                "ordered_at": str(data.get('ordered_at', ''))[:50],
+                "data_source": data_source,
+            })
+            success += 1
 
     insert_table = 'inventory' if is_inv else 'orders'
     data_list = inv_to_insert if is_inv else orders_to_insert

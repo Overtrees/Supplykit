@@ -42,9 +42,6 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     sales_28 = calc_sales(28)
     selected_sales = {28: sales_28, 14: sales_14, 7: sales_7}.get(days, sales_28)
 
-    cfg_rows = db.table("replenishment_config").select("*").execute().data
-    cfg = {r['key']: r['value'] for r in cfg_rows}
-    mode = cfg.get('replenishment_mode', 'bbcc')
     if mode == 'bbcc':
         lead_time = int(cfg.get('lead_time_days', '7'))
         lead_time = lead_time + int(cfg.get('b_to_c_days', '3')) + int(cfg.get('c_safety_days', '5'))

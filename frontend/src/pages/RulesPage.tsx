@@ -66,12 +66,13 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
     {k:'max_turnover_days',l:'目标周转(天)',h:'我司货品在自有/三方仓'},
   ]
 
+  if (loading) return <div className='card'>
+    <div className='section-title'><div className="skeleton" style={{width:200,height:20}}/></div>
+    {[1,2,3].map(i=><div key={i} className="skeleton" style={{width:'100%',height:36,marginBottom:8}}/>)}
+  </div>
+
   return <div className='card'>
-    {loading ? <><div className='section-title'><div className="skeleton" style={{width:200,height:20,display:'inline-block'}}/></div>
-      <div className="skeleton" style={{width:'100%',height:36,marginBottom:8}}/>
-      <div className="skeleton" style={{width:'100%',height:36,marginBottom:8}}/>
-      <div className="skeleton" style={{width:'100%',height:36}}/>
-    </> : <><div className='section-title' style={{display:'flex',flexWrap:'wrap',gap:6}}>
+    <div className='section-title' style={{display:'flex',flexWrap:'wrap',gap:6}}>
       <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
         <button onClick={()=>setTab('rules')} className="btn btn-ghost" style={{fontSize:13,background:tab==='rules'?'var(--primary)':'transparent',color:tab==='rules'?'#fff':''}}>⚙️ 规则</button>
         <button onClick={()=>{loadCfg(cfg.replenishment_mode||'bbcc');setTab('params')}} className="btn btn-ghost" style={{fontSize:13,background:tab==='params'?'var(--success)':'transparent',color:tab==='params'?'#fff':''}}>📊 补货参数</button>

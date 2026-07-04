@@ -17,7 +17,8 @@ const submit = async (type, file) => {
       const data = res.data
       if (!data.ok) { toast.error(data.error || '导入失败'); return }
       addImportLog({ type: type === 'orders' ? 'orders.imported' : 'inventory.imported', payload: data, file: file.name })
-      toast.success(`导入成功: ${data.imported} 条`)
+      const detail = data.total_rows ? ` (共${data.total_rows}行, 跳过${data.skipped||0}行)` : ''
+      toast.success(`导入成功: ${data.imported} 条${detail}`)
       await loadAll()
     } catch(e) {
       toast.error('导入异常: ' + (e.response?.data?.detail || e.message || '请求失败'))

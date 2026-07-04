@@ -47,37 +47,71 @@ def delete_order(oid: int, db = get_db()):
 
 @router.post('/import')
 def import_orders(file: UploadFile = File(...), db = get_db()):
-    import openpyxl
-    content = file.file.read()
-    if file.filename.endswith('.csv'):
-        text = content.decode('utf-8-sig')
-        reader = csv.DictReader(io.StringIO(text))
-        rows = list(reader)
-    else:
-        wb = load_workbook(io.BytesIO(content), read_only=True)
-        ws = wb.active
-        headers = [c.value for c in next(ws.iter_rows(min_row=1, max_row=1))]
-        rows = []
-        for row in ws.iter_rows(min_row=2, values_only=True):
-            rows.append({headers[i]: row[i] for i in range(len(headers)) if row[i] is not None})
+    try:
+        content = file.file.read()
+    except Exception as e:
+        return {'ok': False, 'error': f'读取文件失败: {e}', 'imported': 0}
+    
+    rows = []
+    try:
+        if (file.filename or '').endswith('.csv'):
+            text = content.decode('utf-8-sig')
+            rows = list(csv.DictReader(io.StringIO(text)))
+        else:
+            from openpyxl import load_workbook
+            wb = load_workbook(io.BytesIO(content), read_only=True)
+            ws = wb.active
+            headers = [c.value for c in next(ws.iter_rows(min_row=1, max_row=1))]
+            for row in ws.iter_rows(min_row=2, values_only=True):
+                rows.append({headers[i]: row[i] for i in range(len(headers)) if row[i] is not None})
+    except Exception as e:
+        return {'ok': False, 'error': f'解析文件失败: {e}', 'imported': 0, 'rows_raw': 0}
+
+    if not rows:
+        return {'ok': False, 'error': '文件为空或未能解析出数据行', 'imported': 0}
+
+    # 扩展列名映射（与前端清洗页对齐）
     ALIAS = {
-        '订单号': 'order_no','商品编号': 'sku','商品名称': 'product_name',
-        '数量': 'quantity','单价': 'unit_price','金额': 'total_amount',
-        '店铺': 'store','仓库': 'warehouse','状态': 'order_status',
-        '日期': 'ordered_at','平台': 'platform','供应商': 'supplier','备注': 'remark',
+        '订单号': 'order_no','订单编号': 'order_no','采购单号': 'order_no',
+        '原始单号': 'source_order_id','外部单号': 'source_order_id','平台订单号': 'source_order_id',
+        '商品编号': 'sku','货号': 'sku','SKU': 'sku',
+        '商品名称': 'product_name','产品名称': 'product_name','名称': 'product_name',
+        '数量': 'quantity','采购数量': 'quantity','订货数量': 'quantity','原始采购数量': 'quantity',
+        '单价': 'unit_price','价格': 'unit_price','采购价格': 'unit_price',
+        '金额': 'total_amount','总金额': 'total_amount','采购金额': 'total_amount','实收金额': 'total_amount',
+        '店铺': 'store','店铺名': 'store','门店': 'store',
+        '仓库': 'warehouse','京东仓库': 'warehouse','发货仓': 'warehouse',
+        '状态': 'order_status','订单状态': 'order_status',
+        '日期': 'ordered_at','订购时间': 'ordered_at','下单时间': 'ordered_at','入库时间': 'ordered_at',
+        '平台': 'platform','订单来源': 'platform','来源': 'platform',
+        '供应商': 'supplier','供应商名称': 'supplier','供应商简码': 'supplier_code',
+        '备注': 'remark',
+        '收货人': 'sender','收货负责人': 'sender',
+        '收货电话': 'sender_phone','电话': 'sender_phone',
+        '币种': 'currency','货币': 'currency',
+        '品牌': 'brand','规格': 'spec','分类': 'category','商品分类': 'category',
+        '折扣': 'discount','运费': 'freight',
     }
     inserted = 0
     imported_items = []
-    for row in rows:
+    skipped = 0
+    for i, row in enumerate(rows):
         mapped = {}
         for k, v in row.items():
+            if k is None: continue
             target = ALIAS.get(k.strip(), k.strip())
-            mapped[target] = str(v).strip() if v else ''
+            val = str(v).strip() if v is not None else ''
+            mapped[target] = val
         if not mapped.get('order_no'):
+            skipped += 1
             continue
-        mapped['quantity'] = int(float(mapped.get('quantity') or 0))
-        mapped['unit_price'] = float(mapped.get('unit_price') or 0)
-        mapped['total_amount'] = float(mapped.get('total_amount') or 0)
+        try:
+            mapped['quantity'] = int(float(mapped.get('quantity') or 0))
+            mapped['unit_price'] = float(mapped.get('unit_price') or 0)
+            mapped['total_amount'] = float(mapped.get('total_amount') or 0)
+        except ValueError:
+            skipped += 1
+            continue
         mapped['data_source'] = 'import'
         db.table("orders").upsert(mapped, conflict_columns=['order_no', 'sku']).execute()
         inserted += 1
@@ -86,6 +120,9 @@ def import_orders(file: UploadFile = File(...), db = get_db()):
     bus.emit('order.imported', {'count': inserted})
     if imported_items:
         bus.emit('order.created', {'items': imported_items, 'order_type': 'import'})
-    return {'ok': True, 'imported': inserted, 'from_file': file.filename}
+    return {
+        'ok': True, 'imported': inserted, 'from_file': file.filename,
+        'total_rows': len(rows), 'skipped': skipped,
+    }
 
 

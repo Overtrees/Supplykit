@@ -44,7 +44,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
 
     if mode == 'bbcc':
         lead_time = int(cfg.get('lead_time_days', '7'))
-        lead_time = lead_time + int(cfg.get('b_to_c_days', '3')) + int(cfg.get('c_safety_days', '5'))
+        lead_time = lead_time + int(cfg.get('ship_to_b_days', '3')) + int(cfg.get('b_to_c_days', '3')) + int(cfg.get('c_safety_days', '5'))
     else:
         lead_time = int(cfg.get('lead_time_days', '7'))
     # 活动系数（按模式独立存储）

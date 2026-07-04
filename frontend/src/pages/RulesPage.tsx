@@ -50,12 +50,12 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
   ]
 
   const paramFields=[
-    {k:'lead_time_days',l:'到仓生产(天)',h:'供应商生产+送货到我司+发往全国仓总天数'},
-    {k:'target_turnover_days',l:'目标周转(天)',h:'补货后目标周转天数，B仓免费存15天'},
-    {k:'max_turnover_days',l:'最大周转(天)',h:'补货量不能超过此天数，兜底上限'},
-    {k:'safety_multiplier',l:'安全库存天数',h:'预留N天日销作为安全库存，3天默认'},
-    {k:'b_to_c_days',l:'B→C调拨(天)',h:'BBCC模式：京东B仓→C仓调拨时效'},
-    {k:'c_safety_days',l:'C仓缓冲(天)',h:'BBCC模式：C仓防止调拨断货储备天数'},
+    {k:'lead_time_days',l:'生产到司(天)',h:'供应商生产+送货到我司总天数'},
+    {k:'ship_to_b_days',l:'发B仓时效(天)',h:'BBCC：我司发往京东B仓时效'},
+    {k:'b_to_c_days',l:'B→C调拨(天)',h:'BBCC：京东B仓→C仓调拨时效'},
+    {k:'c_safety_days',l:'C仓缓冲(天)',h:'BBCC：C仓防止调拨断货储备天数'},
+    {k:'max_turnover_days',l:'目标周转(天)',h:'补后周转对比参考，B仓免费15天'},
+    {k:'safety_multiplier',l:'安全库存天数',h:'预留N天日销作为安全库存'},
   ]
   const purchaseFields=[
     {k:'purchase_lead_days',l:'采购前置(天)',h:'供应商生产+送货到我司总天数'},
@@ -125,7 +125,7 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
         <span onClick={()=>{loadCfg('traditional');loadSeasons('traditional')}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 14px',background:cfg.replenishment_mode==='traditional'?'var(--primary)':'transparent',color:cfg.replenishment_mode==='traditional'?'#fff':''}}>🏭 传统多仓</span>
       </div>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:16}}>
-        {paramFields.filter(f => (cfg.replenishment_mode||'bbcc')==='bbcc' || !['b_to_c_days','c_safety_days'].includes(f.k)).map(({k,l,h})=><label key={k} style={{fontSize:12}}>
+        {paramFields.filter(f => (cfg.replenishment_mode||'bbcc')==='bbcc' || !['b_to_c_days','c_safety_days','ship_to_b_days'].includes(f.k)).map(({k,l,h})=><label key={k} style={{fontSize:12}}>
           {l}<input value={cfg[k]||''} onChange={e=>setCfg(p=>({...p,[k]:e.target.value}))} style={IS}/>
           <div className='small muted' style={{fontSize:11}}>{h}</div>
         </label>)}

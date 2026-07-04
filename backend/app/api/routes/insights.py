@@ -7,9 +7,18 @@ router = APIRouter(prefix="/api/insights", tags=["insights"])
 
 
 @router.get('/replenishment')
-def get_replenishment_suggestions(days: int = 28, source: str = '', db = get_db()):
-    """补货建议，支持 days=7/14/28 切换，source='jdzx_sale'/'jd_po' 过滤数据源"""
+def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 'bbcc', db = get_db()):
+    """补货建议，支持 days=7/14/28 切换，mode=bbcc/traditional 切换模型"""
     from datetime import timedelta
+
+    # 读取当前模式的补货参数
+    cfg_rows = db.table("replenishment_config").select("*").execute().data
+    raw = {r['key']: r['value'] for r in cfg_rows}
+    cfg = {}
+    prefix = f'mode_{mode}_'
+    for k, v in raw.items():
+        if k.startswith(prefix):
+            cfg[k[len(prefix):]] = v
     items = db.table("inventory").select("*").execute().data
     products = {p["sku"]: p for p in db.table("products").select("*").execute().data}
     orders = db.table("orders").select("*").execute().data
@@ -262,7 +271,7 @@ def sync_inventory_from_orders(db = get_db(), limit: int = 200):
 
 
 @router.get('/export-purchase')
-def export_purchase_excel(days: int = 28, db = get_db()):
+def export_purchase_excel(days: int = 28, mode: str = 'bbcc', db = get_db()):
     """导出补货建议为采购单 Excel"""
     from openpyxl import Workbook
     from io import BytesIO

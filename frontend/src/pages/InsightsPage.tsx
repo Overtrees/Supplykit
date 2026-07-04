@@ -23,7 +23,7 @@ export default function InsightsPage() {
   const [loading, setLoading] = useState(true)
 
   const loadReplen = async (days) => {
-    try { const r = await api.get('/api/insights/replenishment?days=' + (days||replenDays)); setReplen(r.data || []) } catch(e) {}
+    try { const r = await api.get('/api/insights/replenishment?days=' + (days||replenDays) + '&mode=bbcc'); setReplen(r.data || []) } catch(e) {}
   }
 
   // "已下单"标记 — localStorage 持久化
@@ -112,7 +112,7 @@ export default function InsightsPage() {
                 ))}
                 <button onClick={async()=>{
                   try {
-                    const r = await fetch(API+'/api/insights/export-purchase?days='+replenDays)
+                    const r = await fetch(API+'/api/insights/export-purchase?days='+replenDays+'&mode=bbcc')
                     const blob = await r.blob()
                     const url = URL.createObjectURL(blob)
                     const a = document.createElement('a')

@@ -125,7 +125,7 @@ def import_orders(file: UploadFile = File(...), db = get_db()):
             skipped += 1
             continue
         mapped['data_source'] = 'import'
-        db.table("orders").upsert(mapped, conflict_columns=['order_no', 'sku']).execute()
+        db.table("orders").upsert(mapped).execute()
         inserted += 1
         imported_items.append(mapped)
     from app.core.events import bus

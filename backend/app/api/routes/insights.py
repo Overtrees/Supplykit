@@ -19,6 +19,10 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     for k, v in raw.items():
         if k.startswith(prefix):
             cfg[k[len(prefix):]] = v
+    # mode 前缀找不到时回退到全局旧参数（如 lead_time_days → mode 未设时取全局值）
+    for k, v in raw.items():
+        if not k.startswith('mode_') and k not in cfg:
+            cfg[k] = v
     items = db.table("inventory").select("*").execute().data
     products = {p["sku"]: p for p in db.table("products").select("*").execute().data}
     orders = db.table("orders").select("*").execute().data
@@ -44,7 +48,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
 
     if mode == 'bbcc':
         lead_time = int(cfg.get('lead_time_days', '7'))
-        lead_time = lead_time + int(cfg.get('ship_to_b_days', '3')) + int(cfg.get('b_to_c_days', '3')) + int(cfg.get('c_safety_days', '5'))
+        lead_time = lead_time + int(cfg.get('ship_to_b_days', '3')) + int(cfg.get('b_to_c_days', '3')) + int(cfg.get('c_safety_days', '0'))
     else:
         lead_time = int(cfg.get('lead_time_days', '7'))
     # 活动系数（按模式独立存储）

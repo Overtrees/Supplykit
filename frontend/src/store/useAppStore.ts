@@ -19,6 +19,7 @@ export const useAppStore = create((set, get) => ({
 
   orderSearch: '',
   orderStatus: '',
+  orderLoading: false,
   sidebarOpen: false,
   setSidebarOpen: (v) => set({ sidebarOpen: v }),
 
@@ -85,25 +86,27 @@ export const useAppStore = create((set, get) => ({
   setOrderPage(p, search, status) {
     const s = search ?? get().orderSearch
     const st = status ?? get().orderStatus
-    set({ orderPage: p, orderSearch: s, orderStatus: st })
+    set({ orderPage: p, orderSearch: s, orderStatus: st, orderLoading: true })
     api.get(`/api/orders?page=${p}&page_size=8&search=${encodeURIComponent(s)}&status=${encodeURIComponent(st)}`).then(r => {
       set({
         orders: r.data?.items || r.data || [],
         orderTotal: r.data?.total || (r.data || []).length || 0,
         orderPage: r.data?.page || p,
+        orderLoading: false,
       })
-    }).catch(() => {})
+    }).catch(() => set({ orderLoading: false }))
   },
 
   setOrderFilter(search, status) {
-    set({ orderSearch: search, orderStatus: status, orderPage: 1 })
+    set({ orderSearch: search, orderStatus: status, orderPage: 1, orderLoading: true })
     api.get(`/api/orders?page=1&page_size=8&search=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}`).then(r => {
       set({
         orders: r.data?.items || r.data || [],
         orderTotal: r.data?.total || (r.data || []).length || 0,
         orderPage: 1,
+        orderLoading: false,
       })
-    }).catch(() => {})
+    }).catch(() => set({ orderLoading: false }))
   },
 
   startPolling() {

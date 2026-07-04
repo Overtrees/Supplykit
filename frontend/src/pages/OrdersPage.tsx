@@ -8,9 +8,19 @@ const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhe
 
 const STATUSES = ['','已完成','待发货','已发货','待确认','申请退款']
 
+function OrderSkeleton() {
+  return <div>
+    {[1,2,3,4,5].map(i => <div key={i} style={{display:'flex',gap:8,padding:'8px 0',borderBottom:'1px solid #f1f5f9'}}>
+      <div className="skeleton" style={{width:80,height:14}}/><div className="skeleton" style={{width:60,height:14}}/>
+      <div className="skeleton" style={{width:40,height:14}}/><div className="skeleton" style={{flex:1,height:14}}/>
+      <div className="skeleton" style={{width:60,height:14}}/><div className="skeleton" style={{width:40,height:14}}/>
+    </div>)}
+  </div>
+}
+
 export default function OrdersPage() {
   const toast = useToast()
-  const { orders, orderTotal, orderPage, setOrderPage, setOrderFilter, orderSearch, orderStatus } = useAppStore()
+  const { orders, orderTotal, orderPage, orderLoading, setOrderPage, setOrderFilter, orderSearch, orderStatus } = useAppStore()
   const [sq, setSq] = useState(orderSearch)
   const [ss, setSs] = useState(orderStatus)
   const [confirmDel, setConfirmDel] = useState(null)
@@ -51,7 +61,7 @@ export default function OrdersPage() {
     {/* 结果计数 */}
     {orderSearch && <div className="small muted" style={{marginBottom:8}}>搜索 "{orderSearch}" 共 {orderTotal} 条结果</div>}
 
-    {orders.length === 0
+    {orderLoading ? <OrderSkeleton /> : (orders.length === 0
       ? <EmptyState icon='📋' title={orderSearch?'无匹配订单':'暂无订单'} desc={orderSearch?'换个关键词试试':''} />
       : <div style={{overflowX:"auto"}}>
         <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 7 列 · 左右滑动查看</div>
@@ -66,7 +76,7 @@ export default function OrdersPage() {
           <td><span onClick={()=>setConfirmDel(x.id)} className="btn btn-ghost" style={{fontSize:16,padding:'4px 8px',opacity:0.5,minHeight:0}} title='删除'>🗑️</span></td>
         </tr>)}
       </tbody></table>
-    </div>}
+    </div>)}
     <ConfirmDialog open={!!confirmDel} title='删除订单' desc='删除后不可恢复' confirmLabel='删除' onConfirm={delOrder} onCancel={()=>setConfirmDel(null)} />
 
     {/* 分页 */}

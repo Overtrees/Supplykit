@@ -243,28 +243,31 @@ export default function CleansingPage() {
       </div>
     </div>}
 
-    {s === 2 && pv && <div>
-      <div className="section-title">
-        清洗预览 · 前 {pv.preview?.length||0} 行
-        {pv.total > 50 ? <span className="small muted"> · 共 {pv.total} 行，仅展示前 50 行</span> : ''}
-        {pv.preview?.length > 0 && <span className="small muted"> · {Object.keys(pv.preview[0]).filter(k=>k!=='_source').length} 列</span>}
-      </div>
-      {pv.preview?.length > 0 && <div>
-        <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>← 左右滑动查看所有已映射字段 →</div>
-        <div style={{overflowX:"auto",marginBottom:12}}>
-        {(() => { const keys = Object.keys(pv.preview[0]).filter(k => k !== '_source'); return <>
-        <table><thead><tr>{keys.map(h=>{
-          const sf = SYS_FIELDS.find(x => x.t === h) || cf.find(x => x.t === h)
-          return <th key={h} style={{minWidth:80,whiteSpace:'nowrap'}}>{sf ? sf.l : h}</th>
-        })}</tr></thead>
-        <tbody>{pv.preview.map((r,i)=><tr key={i}>{keys.map(k=><td key={k} style={{minWidth:80,whiteSpace:'nowrap',maxWidth:200,overflow:'hidden',textOverflow:'ellipsis'}}>{String(r[k]||'')}</td>)}</tr>)}</tbody></table>
-        </>})()}
+      {s === 2 && pv && <div>
+        <div className="section-title">
+          清洗预览 · 前 {pv.preview?.length||0} 行
+          {pv.total > 50 ? <span className="small muted"> · 共 {pv.total} 行，仅展示前 50 行</span> : ''}
+          {pv.preview?.length > 0 && <span className="small muted"> · {Object.keys(pv.preview[0]).filter(k=>k!=='_source').length} 列</span>}
+        </div>
+        {(() => {
+          if (!pv.preview?.length) return null
+          const keys = Object.keys(pv.preview[0]).filter(k => k !== '_source')
+          return <div style={{marginBottom:12}}>
+            <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>← 左右滑动查看所有已映射字段 →</div>
+            <div style={{overflowX:"auto"}}>
+            <table><thead><tr>{keys.map(h=>{
+              const sf = SYS_FIELDS.find(x => x.t === h) || cf.find(x => x.t === h)
+              return <th key={h} style={{minWidth:80,whiteSpace:'nowrap'}}>{sf ? sf.l : h}</th>
+            })}</tr></thead>
+            <tbody>{pv.preview.map((r,i)=><tr key={i}>{keys.map(k=><td key={k} style={{minWidth:80,whiteSpace:'nowrap',maxWidth:200,overflow:'hidden',textOverflow:'ellipsis'}}>{String(r[k]||'')}</td>)}</tr>)}</tbody></table>
+            </div>
+          </div>
+        })()}
+        <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
+          {btn('← 返回', ()=>setS(1), 'var(--muted)')}
+          {btn('确认写入 ('+pv.total+' 条)', doExecute, 'var(--success)')}
+        </div>
       </div>}
-      <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
-        {btn('← 返回', ()=>setS(1), 'var(--muted)')}
-        {btn('确认写入 ('+pv.total+' 条)', doExecute, 'var(--success)')}
-      </div>
-    </div>}
 
     {s === 3 && res && <div style={{textAlign:'center',padding:40}}>
       <div style={{fontSize:32,marginBottom:8}}>{res.success>0?'✅':'⚠️'}</div>

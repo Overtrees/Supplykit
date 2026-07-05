@@ -1,11 +1,11 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useAppStore } from '../store/useAppStore'
+import { api } from '../api/client'
 import EmptyState from '../components/EmptyState'
 import { useToast } from '../components/Toast'
 import ConfirmDialog from '../components/ConfirmDialog'
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
-
 const STATUSES = ['','已完成','待发货','已发货','待确认','申请退款']
 
 function OrderSkeleton() {
@@ -13,7 +13,8 @@ function OrderSkeleton() {
     {[1,2,3,4,5].map(i => <div key={i} style={{display:'flex',gap:8,padding:'8px 0',borderBottom:'1px solid #f1f5f9'}}>
       <div className="skeleton" style={{width:80,height:14}}/><div className="skeleton" style={{width:60,height:14}}/>
       <div className="skeleton" style={{width:40,height:14}}/><div className="skeleton" style={{flex:1,height:14}}/>
-      <div className="skeleton" style={{width:60,height:14}}/><div className="skeleton" style={{width:40,height:14}}/>
+      <div className="skeleton" style={{width:36,height:14}}/><div className="skeleton" style={{width:36,height:14}}/>
+      <div className="skeleton" style={{width:50,height:14}}/>
     </div>)}
   </div>
 }
@@ -24,9 +25,25 @@ export default function OrdersPage() {
   const [sq, setSq] = useState(orderSearch)
   const [ss, setSs] = useState(orderStatus)
   const [confirmDel, setConfirmDel] = useState(null)
+  const [platformInv, setPlatformInv] = useState({})
   const totalPages = Math.max(1, Math.ceil(orderTotal / 8))
 
   const doSearch = () => setOrderFilter(sq, ss)
+
+  // 加载平台仓库存（可用+在途）
+  useEffect(() => {
+    api.get('/api/inventory?warehouse_type=platform').then(r => {
+      const data = r.data?.items || r.data || []
+      const map = {}
+      data.forEach(i => {
+        const sku = i.sku
+        if (!map[sku]) map[sku] = { available: 0, transit: 0 }
+        map[sku].available += Number(i.available_qty || 0)
+        map[sku].transit += Number(i.in_transit_qty || 0)
+      })
+      setPlatformInv(map)
+    }).catch(() => {})
+  }, [])
 
   const delOrder = async () => {
     if (!confirmDel) return
@@ -45,7 +62,6 @@ export default function OrdersPage() {
         className="btn btn-ghost" style={{fontSize:12,padding:'4px 12px'}}>📥 导出</button>
     </div>
 
-    {/* iOS 风格搜索栏 */}
     <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}}>
       <div className="search-bar">
         <span style={{fontSize:16,color:'var(--muted2)',flexShrink:0}}>🔍</span>
@@ -58,28 +74,32 @@ export default function OrdersPage() {
       </select>
       {(orderSearch||orderStatus) && <button onClick={()=>{setSq('');setSs('');setOrderFilter('','')}} className="btn btn-ghost" style={{fontSize:14}}>重置</button>}
     </div>
-    {/* 结果计数 */}
     {orderSearch && <div className="small muted" style={{marginBottom:8}}>搜索 "{orderSearch}" 共 {orderTotal} 条结果</div>}
 
-    {orderLoading ? <OrderSkeleton /> : (orders.length === 0
+    {orderLoading ? <OrderSkeleton />
+    : orders.length === 0
       ? <EmptyState icon='📋' title={orderSearch?'无匹配订单':'暂无订单'} desc={orderSearch?'换个关键词试试':''} />
       : <div style={{overflowX:"auto"}}>
-        <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 7 列 · 左右滑动查看</div>
-      <table><thead><tr>{['订单号','店铺','仓库','商品','金额','状态','日期',''].map(h=><th key={h}>{h}</th>)}</tr></thead>
+        <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 9 列 · 左右滑动查看</div>
+      <table><thead><tr>{['订单号','店铺','仓库','商品','金额','状态','日期','平台可用','平台在途',''].map(h=><th key={h}>{h}</th>)}</tr></thead>
       <tbody>
-        {orders.map(x => <tr key={x.id}>
+        {orders.map(x => {
+          const pi = platformInv[x.sku] || {}
+          return <tr key={x.id}>
           <td className="mono col-sku">{x.order_no}</td>
           <td className="col-store">{x.store||'-'}</td><td className="col-store">{x.warehouse||'-'}</td><td className="col-name">{x.product_name}</td>
           <td className="col-price">¥{Number(x.total_amount).toLocaleString()}</td>
           <td><span className={`pill ${x.order_status==='已完成'?'success':x.order_status==='待发货'?'warning':x.order_status==='已发货'?'info':x.order_status==='申请退款'?'danger':''}`}>{x.order_status}</span></td>
           <td className="col-date">{x.ordered_at}</td>
+          <td className="col-qty" style={{fontWeight:600,color:pi.available>0?'var(--text)':'var(--muted2)'}}>{pi.available ?? '-'}</td>
+          <td className="col-qty" style={{color:pi.transit>0?'var(--text)':'var(--muted2)'}}>{pi.transit ?? '-'}</td>
           <td><span onClick={()=>setConfirmDel(x.id)} className="btn btn-ghost" style={{fontSize:16,padding:'4px 8px',opacity:0.5,minHeight:0}} title='删除'>🗑️</span></td>
-        </tr>)}
+        </tr>
+        })}
       </tbody></table>
-    </div>)}
+    </div>}
     <ConfirmDialog open={!!confirmDel} title='删除订单' desc='删除后不可恢复' confirmLabel='删除' onConfirm={delOrder} onCancel={()=>setConfirmDel(null)} />
 
-    {/* 分页 */}
     {orderTotal > 8 && <div style={{display:'flex',justifyContent:'center',alignItems:'center',gap:8,marginTop:12,flexWrap:'wrap'}}>
       <button onClick={()=>setOrderPage(1)} disabled={orderPage<=1} className="btn btn-ghost" style={{fontSize:11,padding:'4px 8px'}}>‹‹</button>
       <button onClick={()=>setOrderPage(orderPage-1)} disabled={orderPage<=1} className="btn btn-ghost" style={{fontSize:11,padding:'4px 8px'}}>‹</button>

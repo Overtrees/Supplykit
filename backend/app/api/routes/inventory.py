@@ -99,6 +99,23 @@ def delete_inventory(iid: int, db = get_db()):
     return {"ok": True}
 
 
+@router.post('/batch-type')
+def batch_set_warehouse_type(ids: str = '', warehouse: str = '', warehouse_type: str = 'own', db = get_db()):
+    """批量设置仓库类型，ids逗号分隔 / warehouse名 / 'all'全部"""
+    if warehouse:
+        rows = db.table("inventory").select("id").eq("warehouse", warehouse).execute().data or []
+        for r in rows:
+            db.table("inventory").update({"warehouse_type": warehouse_type}).eq("id", r["id"]).execute()
+        return {"ok": True, "updated": len(rows), "warehouse": warehouse}
+    if ids == 'all':
+        db.table("inventory").update({"warehouse_type": warehouse_type}).eq("warehouse_type", "platform").execute()
+        return {"ok": True, "updated": "all"}
+    id_list = [int(x.strip()) for x in ids.split(',') if x.strip().isdigit()]
+    for iid in id_list:
+        db.table("inventory").update({"warehouse_type": warehouse_type}).eq("id", iid).execute()
+    return {"ok": True, "updated": len(id_list)}
+
+
 @router.post("/adjust")
 def adjust_inventory(body: dict, db = get_db()):
     iid = body.get("id")

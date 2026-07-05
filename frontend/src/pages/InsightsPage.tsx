@@ -267,7 +267,7 @@ export default function InsightsPage() {
                       <td style={{fontSize:12,fontWeight:600}}>{x.daily_sales}</td>
                       <td style={{fontSize:12}}>{x.reorder_point}</td>
                       <td style={{fontSize:12,color: x.days_to_reorder <= 0 ? '#ef4444' : x.days_to_reorder < 7 ? 'var(--warning)' : 'var(--muted)'}}>{x.days_to_reorder > 999 ? '∞' : x.days_to_reorder+'天'}</td>
-                      <td style={{ fontWeight: 600, color: x.purchase_qty > 0 ? 'var(--success)' : 'var(--muted2)' }}>{x.purchase_qty > 0 ? '+'+x.purchase_qty : '-'}</td>
+                      <td style={{ fontWeight: 600, color: x.purchase_qty > 0 ? 'var(--success)' : 'var(--muted2)' }}>{x.purchase_qty > 0 ? '+'+x.purchase_qty : x.purchase_qty}</td>
                       <td style={{color: x.days_to_empty < 3 ? '#ef4444' : x.days_to_empty < 7 ? 'var(--warning)' : 'var(--text)'}}>{x.days_to_empty > 999 ? '∞' : x.days_to_empty}</td>
                       <td style={{fontSize:11,color:'var(--muted2)'}} title={x.note||''}>{x.note ? x.note.split('，')[0] : '-'}</td>
                       <td><span className={`pill ${timing==='紧急'?'danger':timing==='建议'?'warning':'info'}`}>{timing}</span></td>

@@ -281,12 +281,18 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
         after_stock = st['own_avail'] + purchase_qty
         after_turnover = round(after_stock / ds, 1) if ds > 0 else 999
         target_turn = int(raw.get('max_turnover_days', '0'))
-        note = f"补后自有仓周转约{after_turnover}天" if purchase_qty > 0 else ""
-        if target_turn > 0 and after_turnover > target_turn:
-            note += f"，超过目标{target_turn}天"
+        note = ""
+        if purchase_qty > 0:
+            note = f"箱规{box_qty}件, 实购{actual_purchase}件"
+            note += f"（{actual_purchase//box_qty}箱）" if box_qty > 1 else ""
+            note += f", 补后周转{after_turnover}天"
+            if target_turn > 0:
+                note += f" > 目标{target_turn}天" if after_turnover > target_turn else f" < 目标{target_turn}天"
 
         # 匹配供应商
         prod = products.get(sku, {})
+        box_qty = int(prod.get('box_qty', 1) or 1)
+        actual_purchase = (purchase_qty + box_qty - 1) // box_qty * box_qty if purchase_qty > 0 else 0
         best = None
         for s in suppliers:
             if prod.get('category') and prod['category'] in (s.get('supplier_name') or ''):
@@ -303,7 +309,7 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
             'safety_qty': st['safety'], 'daily_sales': ds,
             'reorder_point': reorder_point,
             'days_to_reorder': days_to_reorder,
-            'purchase_qty': purchase_qty,
+            'purchase_qty': purchase_qty, 'box_qty': box_qty, 'actual_purchase': actual_purchase,
             'after_stock': st['own_avail'] + purchase_qty, 'after_turnover': after_turnover,
             'days_to_empty': days_to_empty, 'note': note,
             'supplier_code': best['supplier_code'] if best else '',

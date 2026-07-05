@@ -89,8 +89,8 @@ export default function OrdersPage() {
           <td className="col-price">¥{Number(x.total_amount).toLocaleString()}</td>
           <td><span className={`pill ${x.order_status==='已完成'?'success':x.order_status==='待发货'?'warning':x.order_status==='已发货'?'info':x.order_status==='申请退款'?'danger':''}`}>{x.order_status}</span></td>
           <td className="col-date">{x.ordered_at}</td>
-          <td className="col-qty" style={{fontWeight:600,color:pi.available>0?'var(--text)':'var(--muted2)'}}>{pi.available ?? '-'}</td>
-          <td className="col-qty" style={{color:pi.transit>0?'var(--text)':'var(--muted2)'}}>{pi.transit ?? '-'}</td>
+          <td className="col-qty" style={{fontWeight:600,color:pi.available>0?'var(--text)':'var(--muted2)'}} title={pi.available===undefined?'该仓库无库存数据':''}>{pi.available===undefined?'—':pi.available}</td>
+          <td className="col-qty" style={{color:pi.transit>0?'var(--text)':'var(--muted2)'}} title={pi.transit===undefined?'该仓库无库存数据':''}>{pi.transit===undefined?'—':pi.transit}</td>
           <td><span onClick={()=>setConfirmDel(x.id)} className="btn btn-ghost" style={{fontSize:16,padding:'4px 8px',opacity:0.5,minHeight:0}} title='删除'>🗑️</span></td>
         </tr>
         })}

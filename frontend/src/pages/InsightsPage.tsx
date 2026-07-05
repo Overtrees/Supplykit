@@ -270,7 +270,7 @@ export default function InsightsPage() {
                       <td style={{ fontWeight: 600, color: x.purchase_qty > 0 ? 'var(--success)' : 'var(--muted2)' }}>{x.purchase_qty > 0 ? '+'+x.purchase_qty : x.purchase_qty}</td>
                       <td style={{fontWeight:700,color:'var(--success)'}}>{x.actual_purchase > 0 ? '+' + x.actual_purchase : (x.actual_purchase === 0 ? '0' : '-')}</td>
                       <td style={{color: x.days_to_empty < 3 ? '#ef4444' : x.days_to_empty < 7 ? 'var(--warning)' : 'var(--text)'}}>{x.days_to_empty > 999 ? '∞' : x.days_to_empty}</td>
-                      <td className="col-name" style={{color:'var(--muted2)',fontSize:12}}>{x.note || '-'}</td>
+                      <td className="col-name" style={{color:'var(--muted2)',fontSize:12}}>{x.note || '无需采购'}</td>
                       <td><span className={`pill ${timing==='紧急'?'danger':timing==='建议'?'warning':'info'}`}>{timing}</span></td>
                     </tr>
                     )

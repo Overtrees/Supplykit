@@ -62,6 +62,7 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
   ]
   const purchaseFields=[
     {k:'purchase_lead_days',l:'采购前置(天)',h:'供应商生产+送货到我司总天数'},
+    {k:'purchase_safety_days',l:'采购安全库存(天)',h:'采购预留N天日销作为安全库存'},
     {k:'moq',l:'MOQ最小起订(件)',h:'供应商最小起订量'},
     {k:'max_turnover_days',l:'目标周转(天)',h:'我司货品在自有/三方仓'},
   ]
@@ -142,7 +143,7 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
     </div>}
 
       {tab === 'purchase' && <div className='card' style={{padding:16,display:'flex',flexDirection:'column',gap:12}}>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:16}}>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
           {purchaseFields.map(({k,l,h})=><label key={k} style={{fontSize:12}}>
             {l}<input value={cfg[k]||''} onChange={e=>setCfg(p=>({...p,[k]:e.target.value}))} style={IS}/>
             <div className='small muted' style={{fontSize:11}}>{h}</div>

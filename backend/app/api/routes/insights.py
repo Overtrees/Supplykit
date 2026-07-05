@@ -202,7 +202,7 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
 
     purchase_lead_time = int(raw.get('purchase_lead_days', '0'))
     moq_default = int(raw.get('moq', '0'))
-    safety_mult = float(raw.get('safety_multiplier', '0'))
+    purchase_safety_days = float(raw.get('purchase_safety_days', '0'))
 
     # 2. 活动系数
     season_key = f'season_config_{mode}'
@@ -249,7 +249,7 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
         avail = st['available']
         transit = st['transit']
         safety = st['safety']
-        safety_days = st['safety_days'] if st['safety_days'] > 0 else safety_mult
+        safety_days = st['safety_days'] if st['safety_days'] > 0 else purchase_safety_days
         eff_safety = round(ds * safety_days) if ds > 0 else safety
 
         # 采购建议量 = 日销×采购前置期 + 安全库存 - 可用 - 在途

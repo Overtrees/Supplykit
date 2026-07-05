@@ -260,7 +260,7 @@ export default function InsightsPage() {
                     <tr key={i}>
                       <td className="mono" style={{ fontSize: 12 }}>{x.sku}</td>
                       <td className="col-name">{x.product_name}</td>
-                      <td className="col-store">自有仓</td>
+                      <td className="col-store">{x.store || '-'}</td>
                       <td style={{fontSize:12}}>
                         <span style={{fontWeight:600}}>{x.sys_total}</span>
                         <span className="small muted" style={{fontWeight:400}}> 自有{x.own_available}+{x.own_transit ? `在途${x.own_transit}`:''} 平台{x.plat_available}+{x.plat_transit ? `在途${x.plat_transit}`:''}</span>

@@ -27,12 +27,13 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     products = {p["sku"]: p for p in db.table("products").select("*").execute().data}
     orders = db.table("orders").select("*").execute().data
 
-    # 三周期日销预计算（可选按数据源过滤）
-    def calc_sales(cutoff_days):
+    # 三周期日销预计算（可选按数据源和仓库过滤）
+    def calc_sales(cutoff_days, wh_name=None):
         cutoff = (datetime.utcnow() - timedelta(days=cutoff_days)).strftime('%Y-%m-%d')
         sku_s = {}
         for o in orders:
             if source and o.get('data_source','') != source: continue
+            if wh_name and o.get('warehouse','') != wh_name: continue
             sku = o.get('sku', '')
             if not sku: continue
             dt = str(o.get('ordered_at', ''))[:10]
@@ -112,15 +113,26 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                 "lead_time": lead_time, "safety_days": safety_days,
             })
     else:
-        # 传统模式：按仓逐条计算（原逻辑）
+        # 传统模式：按仓逐条计算，日销按对应仓库+SKU独立统计
+        # 预计算各仓库的日销
+        wh_names = set(i.get('warehouse','') for i in items if i.get('warehouse'))
+        wh_sales_cache = {}
+        for wh_name in wh_names:
+            wh_sales_cache[wh_name] = {
+                7: calc_sales(7, wh_name),
+                14: calc_sales(14, wh_name),
+                28: calc_sales(28, wh_name),
+            }
         for inv in items:
             sku = inv.get("sku", "")
+            wh = inv.get("warehouse", "")
             avail = int(inv.get("available_qty") or 0)
             safety = int(inv.get("safety_qty") or 0)
             transit = int(inv.get("in_transit_qty") or 0)
-            ds7 = round(sales_7.get(sku, 0) / 7, 1)
-            ds14 = round(sales_14.get(sku, 0) / 14, 1)
-            ds28 = round(sales_28.get(sku, 0) / 28, 1)
+            wh_s = wh_sales_cache.get(wh, {7:{},14:{},28:{}})
+            ds7 = round(wh_s[7].get(sku, 0) / 7, 1)
+            ds14 = round(wh_s[14].get(sku, 0) / 14, 1)
+            ds28 = round(wh_s[28].get(sku, 0) / 28, 1)
             sel_ds = {28: ds28, 14: ds14, 7: ds7}[days]
             sel_ds = round(sel_ds * active_factor, 1)
 

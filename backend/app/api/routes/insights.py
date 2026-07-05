@@ -255,6 +255,11 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
         safety_days = st['safety_days'] if st['safety_days'] > 0 else purchase_safety_days
         eff_safety = round(ds * safety_days) if ds > 0 else 0
 
+        # 再订货点 = 日销 × (采购前置期 + 安全天数)
+        reorder_point = round(ds * (purchase_lead_time + safety_days)) if ds > 0 else 0
+        # 系统可用离再订货点还有几天
+        days_to_reorder = round((sys_avail - reorder_point) / ds, 1) if ds > 0 else 999
+
         # 系统目标库存 = 日销 × (采购前置期 + 目标周转天数)
         target_days = purchase_lead_time + target_turnover
         target_stock = round(ds * target_days) if ds > 0 else 0
@@ -280,6 +285,8 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
             'store': prod.get('store', ''), 'category': prod.get('category', ''),
             'sys_available': sys_avail, 'sys_transit': sys_transit, 'sys_total': sys_total,
             'safety_qty': st['safety'], 'daily_sales': ds,
+            'reorder_point': reorder_point,
+            'days_to_reorder': days_to_reorder,
             'target_stock': target_stock, 'target_days': target_days,
             'purchase_qty': purchase_qty,
             'days_to_empty': days_to_empty,

@@ -97,19 +97,18 @@ def _compute_funnel(orders):
 
 def _compute_health(inv):
     """Inventory health index."""
-    total = len(inv)
-    healthy = sum(1 for x in inv if int(x.get("available_qty") or 0) >= int(x.get("safety_qty") or 0))
-    warning = sum(1 for x in inv if 0 < int(x.get("available_qty") or 0) < int(x.get("safety_qty") or 0))
-    out_of_stock = sum(1 for x in inv if int(x.get("available_qty") or 0) == 0)
-    score = round(healthy / total * 100, 0) if total else 100
-    return {
-        "score": score,
-        "healthy": healthy,
-        "warning": warning,
-        "out_of_stock": out_of_stock,
-        "total": total,
-        "level": "good" if score >= 70 else ("warning" if score >= 40 else "danger"),
-    }
+    def _score(items):
+        total = len(items)
+        healthy = sum(1 for x in items if int(x.get("available_qty") or 0) >= int(x.get("safety_qty") or 0))
+        warning = sum(1 for x in items if 0 < int(x.get("available_qty") or 0) < int(x.get("safety_qty") or 0))
+        out_of_stock = sum(1 for x in items if int(x.get("available_qty") or 0) == 0)
+        score = round(healthy / total * 100, 0) if total else 100
+        return {"score": score, "healthy": healthy, "warning": warning, "out_of_stock": out_of_stock,
+                "total": total, "level": "good" if score >= 70 else ("warning" if score >= 40 else "danger")}
+    own = [x for x in inv if x.get('warehouse_type') == 'own']
+    plat = [x for x in inv if x.get('warehouse_type') != 'own']
+    return {"own": _score(own), "platform": _score(plat),
+            "score": _score(inv)["score"], "level": _score(inv)["level"]}
 
 
 def _rebuild():

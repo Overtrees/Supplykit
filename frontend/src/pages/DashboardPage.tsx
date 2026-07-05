@@ -71,7 +71,13 @@ export default function DashboardPage({ onAlert }) {
     <div className="card-grid" style={{marginBottom:16}}>
       <Card title={periodLabel[periodTab]+' GMV'} value={'¥'+Number(periodMeta.gmv||0).toLocaleString()} sub={periodMeta.orders+' 单'} />
       <Card title="待发货" value={dashboard?.summary?.pending_count||0} badge={dashboard?.summary?.pending_count>3?<span className="pill danger">积压</span>:null} />
-      <Card title="库存健康度" value={(dashboard?.health_index?.score||0)+'分'} sub={dashboard?.health_index?.healthy+'健康 / '+dashboard?.health_index?.warning+'偏低'} badge={<span className={'pill '+(dashboard?.health_index?.level==='danger'?'danger':dashboard?.health_index?.level==='warning'?'warning':'success')} style={{textAlign:'center'}}>{dashboard?.health_index?.level==='danger'?'危险':dashboard?.health_index?.level==='warning'?'关注':'良好'}</span>} />
+      <Card title="库存健康度" 
+  value={(dashboard?.health_index?.own?.score||0)+'分 / '+(dashboard?.health_index?.platform?.score||0)+'分'} 
+  sub={'自有'+(dashboard?.health_index?.own?.healthy||0)+'健康·'+(dashboard?.health_index?.own?.warning||0)+'偏低  |  平台'+(dashboard?.health_index?.platform?.healthy||0)+'健康·'+(dashboard?.health_index?.platform?.warning||0)+'偏低'}
+  badge={<span style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+    <span className={'pill '+(dashboard?.health_index?.own?.level==='danger'?'danger':dashboard?.health_index?.own?.level==='warning'?'warning':'success')} style={{textAlign:'center',fontSize:10}}>自有{dashboard?.health_index?.own?.level==='danger'?'危险':dashboard?.health_index?.own?.level==='warning'?'关注':'良好'}</span>
+    <span className={'pill '+(dashboard?.health_index?.platform?.level==='danger'?'danger':dashboard?.health_index?.platform?.level==='warning'?'warning':'success')} style={{textAlign:'center',fontSize:10}}>平台{dashboard?.health_index?.platform?.level==='danger'?'危险':dashboard?.health_index?.platform?.level==='warning'?'关注':'良好'}</span>
+  </span>} />
       <Card title="待处理" value={errCount+(dashboard?.summary?.active_alerts||0)} sub={errCount+' 异常 · '+(dashboard?.summary?.active_alerts||0)+' 告警'} badge={errCount>0 ? <span className="pill danger" style={{background:'#ef4444',color:'var(--card)'}}>需处理</span> : null} />
     </div>
 

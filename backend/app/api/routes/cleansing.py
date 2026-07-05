@@ -101,6 +101,31 @@ async def preview_cleansing(file: UploadFile = File(...), mapping: str = Form(''
     except json.JSONDecodeError:
         return {'ok': False, 'error': '映射配置格式错误'}
 
+    # 检测 warehouse 字段一致性
+    warehouse_in_file = set()
+    warehouse_target = None
+    for src_col, cfg in mapping_config.items():
+        if cfg.get('target') == 'warehouse':
+            warehouse_target = src_col
+            break
+    warnings = []
+    if warehouse_target:
+        for row in rows[:50]:
+            w = str(row.get(warehouse_target, '')).strip()
+            if w:
+                warehouse_in_file.add(w)
+        # 查现有库存中的仓库
+        from app.core.database import get_db
+        db = get_db()
+        existing = set()
+        for i in db.table("inventory").select("warehouse").execute().data or []:
+            w = (i.get('warehouse') or '').strip()
+            if w:
+                existing.add(w)
+        unknown = warehouse_in_file - existing
+        if unknown:
+            warnings.append(f'以下仓库名在库存表中不存在，订单页平台库存将显示"—"：{", ".join(sorted(unknown))}')
+
     preview_rows = []
     for row in rows[:50]:
         result = {'_source': {}}
@@ -114,7 +139,7 @@ async def preview_cleansing(file: UploadFile = File(...), mapping: str = Form(''
             result[target] = cleaned
         preview_rows.append(result)
 
-    return {'ok': True, 'preview': preview_rows, 'total': len(rows), 'mapped': len(mapping_config)}
+    return {'ok': True, 'preview': preview_rows, 'total': len(rows), 'mapped': len(mapping_config), 'warnings': warnings}
 
 # ─── 执行清洗 ────────────────────────────────────────────────────────────────
 

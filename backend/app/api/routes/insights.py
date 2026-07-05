@@ -23,7 +23,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     for k, v in raw.items():
         if not k.startswith('mode_') and k not in cfg:
             cfg[k] = v
-    items = db.table("inventory").select("*").execute().data
+    items = db.table("inventory").select("*").eq("warehouse_type", "platform").execute().data
     products = {p["sku"]: p for p in db.table("products").select("*").execute().data}
     orders = db.table("orders").select("*").execute().data
 
@@ -226,7 +226,7 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
     daily_sales = {k: round(v / days, 1) for k, v in sales_by_sku.items()}
 
     # 4. 系统总库存 = 全仓可用 + 全仓在途（平台仓+自有仓统一汇总）
-    inv_data = db.table("inventory").select("*").execute().data
+    inv_data = db.table("inventory").select("*").eq("warehouse_type", "own").execute().data
     stock_by_sku = {}
     for i in inv_data:
         s = i['sku']

@@ -5,18 +5,21 @@ router = APIRouter(prefix="/api/inventory", tags=["inventory"])
 
 
 @router.get("")
-def list_inventory(db = get_db(), store: str = '', page: int = 0, page_size: int = 0):
-    """库存列表 — 支持分页和店铺过滤"""
+def list_inventory(db = get_db(), store: str = '', warehouse_type: str = '',
+                   page: int = 0, page_size: int = 0):
+    """库存列表 — 支持分页、店铺过滤、仓库类型过滤"""
     q = db.table("inventory").select("*")
     if store:
         q = q.eq("store", store)
+    if warehouse_type:
+        q = q.eq("warehouse_type", warehouse_type)
 
-    # 分页（page=0 或 page_size=0 时返回全部）
     if page > 0 and page_size > 0:
-        # 总条数
         count_q = db.table("inventory").select("count(*)")
         if store:
             count_q = count_q.eq("store", store)
+        if warehouse_type:
+            count_q = count_q.eq("warehouse_type", warehouse_type)
         cr = count_q.execute()
         total = cr.count if hasattr(cr, 'count') else len(cr.data or [])
         q = q.order("id", desc=True).limit(page_size).offset((page - 1) * page_size)
@@ -29,7 +32,6 @@ def list_inventory(db = get_db(), store: str = '', page: int = 0, page_size: int
             'total_pages': max(1, (total + page_size - 1) // page_size),
         }
 
-    # 不分页（保持向后兼容）
     return q.order("id", desc=True).execute().data
 
 
@@ -40,6 +42,7 @@ def create_inventory(body: dict, db = get_db()):
         "product_name": body.get("product_name"),
         "store": body.get("store", ""),
         "warehouse": body.get("warehouse", ""),
+        "warehouse_type": body.get("warehouse_type", "platform"),
         "available_qty": int(body.get("available_qty", 0)),
         "locked_qty": int(body.get("locked_qty", 0)),
         "in_transit_qty": int(body.get("in_transit_qty", 0)),

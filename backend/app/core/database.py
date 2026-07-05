@@ -341,6 +341,7 @@ def init_db(path=None):
             in_transit_qty INTEGER DEFAULT 0,
             safety_qty INTEGER DEFAULT 0,
             safety_days REAL DEFAULT 0,
+            warehouse_type TEXT DEFAULT 'platform',
             raw_data TEXT DEFAULT '',
             source TEXT DEFAULT '',
             owner_id TEXT DEFAULT '',
@@ -509,6 +510,8 @@ def init_db(path=None):
     """)
     # 兼容旧表：补加可能缺失的列
     try: conn.execute("ALTER TABLE products ADD COLUMN box_qty INTEGER DEFAULT 1")
+    except: pass
+    try: conn.execute("ALTER TABLE inventory ADD COLUMN warehouse_type TEXT DEFAULT 'platform'")
     except: pass
     conn.commit()
     conn.close()

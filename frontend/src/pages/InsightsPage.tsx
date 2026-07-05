@@ -283,12 +283,13 @@ export default function InsightsPage() {
                     <td style={{color:'var(--success)',fontSize:13}}>+{purchase.reduce((s,x)=>s+(x.actual_purchase||0),0)}</td>
                     <td colSpan={2} style={{fontSize:11,color:'var(--muted2)'}}>
                       {(() => {
-                        const totalQty = purchase.reduce((s,x)=>s+(x.purchase_qty||0),0)
-                        const totalAvail = purchase.reduce((s,x)=>s+(x.sys_available||0),0)
-                        const totalSales = purchase.reduce((s,x)=>s+((x.daily_sales||0)*(x.purchase_qty>0?1:0)),0)
-                        const overallTurnover = totalSales > 0 ? ((totalAvail+totalQty)/totalSales).toFixed(1) : ''
-                        let footer = '总计采购 ' + totalQty + ' 件'
-                        if (overallTurnover) footer += ' · 补后整体周转约 ' + overallTurnover + ' 天'
+                        const totalActual = purchase.reduce((s,x)=>s+(x.actual_purchase||0),0)
+                        const withPurchase = purchase.filter(x => x.purchase_qty > 0)
+                        const avgTurnover = withPurchase.length > 0
+                          ? (withPurchase.reduce((s,x)=>s+(x.after_turnover||0),0) / withPurchase.length).toFixed(1)
+                          : ''
+                        let footer = '实际采购 ' + totalActual + ' 件'
+                        if (avgTurnover) footer += ' · 平均周转 ' + avgTurnover + ' 天'
                         return footer
                       })()}
                     </td>

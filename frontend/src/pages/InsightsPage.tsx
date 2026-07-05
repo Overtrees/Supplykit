@@ -277,9 +277,9 @@ export default function InsightsPage() {
                 </tbody>
                 <tfoot>
                   <tr style={{fontWeight:700,borderTop:'2px solid var(--border)'}}>
-                    <td colSpan={4} style={{textAlign:'right',fontSize:12}}>合计</td>
+                    <td colSpan={6} style={{textAlign:'right',fontSize:12}}>合计</td>
                     <td style={{color:'var(--success)',fontSize:13}}>+{purchase.reduce((s,x)=>s+(x.purchase_qty||0),0)}</td>
-                    <td colSpan={3} style={{fontSize:11,color:'var(--muted2)'}}>
+                    <td colSpan={2} style={{fontSize:11,color:'var(--muted2)'}}>
                       {(() => {
                         const totalQty = purchase.reduce((s,x)=>s+(x.purchase_qty||0),0)
                         const totalAvail = purchase.reduce((s,x)=>s+(x.sys_available||0),0)

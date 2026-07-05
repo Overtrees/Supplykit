@@ -631,3 +631,35 @@ def auto_adjust_inventory(order_data: dict, order_type: str, db):
             "in_transit_qty": 0,
             "safety_qty": 10,
         }).execute()
+@router.get('/with-sales')
+def inventory_with_sales(db = get_db()):
+    """库存列表 + 日销 + 在库周转"""
+    inv = db.table("inventory").select("*").eq("warehouse_type", "own").execute().data or []
+    orders = db.table("orders").select("*").execute().data or []
+    from datetime import datetime, timedelta
+    cutoff = (datetime.utcnow() - timedelta(days=28)).strftime('%Y-%m-%d')
+    sales = {}
+    for o in orders:
+        sku = o.get('sku','')
+        dt = str(o.get('ordered_at',''))[:10]
+        if sku and dt >= cutoff:
+            sales[sku] = sales.get(sku, 0) + int(o.get('quantity',0) or 0)
+    result = []
+    for i in inv:
+        sku = i['sku']
+        ds = round(sales.get(sku, 0) / 28, 1)
+        avail = int(i.get('available_qty',0) or 0)
+        result.append({
+            'id': i['id'],
+            'sku': sku,
+            'product_name': i.get('product_name',''),
+            'store': i.get('store',''),
+            'warehouse': i.get('warehouse',''),
+            'warehouse_type': i.get('warehouse_type','platform'),
+            'available_qty': avail,
+            'in_transit_qty': int(i.get('in_transit_qty',0) or 0),
+            'safety_qty': int(i.get('safety_qty',0) or 0),
+            'daily_sales': ds,
+            'turnover_days': round(avail / ds, 1) if ds > 0 else None,
+        })
+    return result

@@ -250,18 +250,21 @@ export default function InsightsPage() {
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>暂无采购建议</div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
-              <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 6 列 · 左右滑动查看</div>
+              <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 9 列 · 左右滑动查看</div>
               <table>
-                <thead><tr>{['SKU','商品','建议补量','推荐供应商','评分','紧急度'].map(h => <th key={h}>{h}</th>)}</tr></thead>
+                <thead><tr>{['SKU','商品','系统库存','日销','目标库存','建议采购','可撑(天)','供应商','评分'].map(h => <th key={h} style={{whiteSpace:'nowrap',fontSize:11}}>{h}</th>)}</tr></thead>
                 <tbody>
                   {purchase.map((x, i) => (
                     <tr key={i}>
                       <td className="mono" style={{ fontSize: 12 }}>{x.sku}</td>
-                      <td>{x.product_name}</td>
-                      <td style={{ fontWeight: 600, color: 'var(--success)' }}>+{x.purchase_qty}</td>
-                      <td>{x.supplier_name || '-'}</td>
+                      <td className="col-name">{x.product_name}</td>
+                      <td style={{fontWeight:600,fontSize:12}}>{x.sys_total}<span className="small muted" style={{fontWeight:400}}> (可用{x.sys_available}+在途{x.sys_transit})</span></td>
+                      <td style={{fontSize:12,fontWeight:600}}>{x.daily_sales}</td>
+                      <td style={{fontSize:12}}>{x.target_stock}<span className="small muted"> / {x.target_days}天</span></td>
+                      <td style={{ fontWeight: 600, color: x.purchase_qty > 0 ? 'var(--success)' : 'var(--muted2)' }}>{x.purchase_qty > 0 ? '+'+x.purchase_qty : '-'}</td>
+                      <td style={{color: x.days_to_empty < 3 ? '#ef4444' : x.days_to_empty < 7 ? 'var(--warning)' : 'var(--text)'}}>{x.days_to_empty > 999 ? '∞' : x.days_to_empty}</td>
+                      <td className="col-store">{x.supplier_name || '-'}</td>
                       <td><span className={`pill ${x.supplier_score >= 80 ? 'success' : x.supplier_score >= 60 ? 'warning' : 'danger'}`}>{x.supplier_score}</span></td>
-                      <td><span className={`pill ${x.days_to_empty < 3 ? 'danger' : x.days_to_empty < 7 ? 'warning' : 'info'}`}>{x.days_to_empty < 3 ? '紧急' : x.days_to_empty < 7 ? '关注' : '正常'}</span></td>
                     </tr>
                   ))}
                 </tbody>

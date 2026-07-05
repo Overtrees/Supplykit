@@ -195,14 +195,15 @@ def compare_replenishment_sources(days: int = 28, db = get_db()):
 
 @router.get('/purchase')
 def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
-    """采购建议：按 SKU 汇总全仓、按供应商归并、独立于补货计算"""
+    """采购建议：系统总库存视角，含目标周转控制"""
     from datetime import timedelta
-    # 1. 读取全库配置（采购参数不按 mode 区分，全局统一）
+    # 1. 读取全库配置
     raw = {r['key']: r['value'] for r in db.table("replenishment_config").select("*").execute().data}
 
     purchase_lead_time = int(raw.get('purchase_lead_days', '0'))
     moq_default = int(raw.get('moq', '0'))
     purchase_safety_days = float(raw.get('purchase_safety_days', '0'))
+    target_turnover = int(raw.get('max_turnover_days', '0'))  # 目标周转天数
 
     # 2. 活动系数
     season_key = f'season_config_{mode}'
@@ -213,7 +214,7 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
         if isinstance(s, dict) and s.get('enabled') and float(s.get('factor', 1.0)) > active_factor:
             active_factor = float(s['factor'])
 
-    # 3. 计算日销（全仓汇总）
+    # 3. 日销（按 days 窗口）
     now = datetime.utcnow()
     cutoff = (now - timedelta(days=days)).strftime('%Y-%m-%d')
     sales_by_sku = {}
@@ -224,7 +225,7 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
             sales_by_sku[sku] = sales_by_sku.get(sku, 0) + int(o.get('quantity', 0) or 0)
     daily_sales = {k: round(v / days, 1) for k, v in sales_by_sku.items()}
 
-    # 4. 读取全仓库存（按 SKU 汇总）
+    # 4. 系统总库存 = 全仓可用 + 全仓在途（平台仓+自有仓统一汇总）
     inv_data = db.table("inventory").select("*").execute().data
     stock_by_sku = {}
     for i in inv_data:
@@ -242,22 +243,28 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
     suppliers = db.table("suppliers").select("*").eq("status", "active").execute().data
     products = {p["sku"]: p for p in db.table("products").select("*").execute().data}
 
-    # 6. 逐 SKU 计算
+    # 6. 逐 SKU 计算（系统总库存视角）
     result = []
     for sku, st in stock_by_sku.items():
         ds = round(daily_sales.get(sku, 0) * active_factor, 1)  # 含活动系数
-        avail = st['available']
-        transit = st['transit']
-        safety = st['safety']
-        safety_days = st['safety_days'] if st['safety_days'] > 0 else purchase_safety_days
-        eff_safety = round(ds * safety_days) if ds > 0 else safety
+        sys_avail = st['available']
+        sys_transit = st['transit']
+        sys_total = sys_avail + sys_transit  # 系统总库存
 
-        # 采购建议量 = 日销×采购前置期 + 安全库存 - 可用 - 在途
-        purchase_qty = max(round(ds * purchase_lead_time + eff_safety - avail - transit), 0) if ds > 0 else 0
+        # 安全库存
+        safety_days = st['safety_days'] if st['safety_days'] > 0 else purchase_safety_days
+        eff_safety = round(ds * safety_days) if ds > 0 else 0
+
+        # 系统目标库存 = 日销 × (采购前置期 + 目标周转天数)
+        target_days = purchase_lead_time + target_turnover
+        target_stock = round(ds * target_days) if ds > 0 else 0
+
+        # 采购量 = 系统目标 + 安全库存 - 系统总库存
+        purchase_qty = max(round(target_stock + eff_safety - sys_total), 0) if ds > 0 else 0
         # 兜底 MOQ
         purchase_qty = max(purchase_qty, moq_default) if purchase_qty > 0 else 0
 
-        days_to_empty = round(avail / ds, 1) if ds > 0 else 999
+        days_to_empty = round(sys_avail / ds, 1) if ds > 0 else 999
 
         # 匹配供应商
         prod = products.get(sku, {})
@@ -271,8 +278,10 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
         result.append({
             'sku': sku, 'product_name': prod.get('product_name', ''),
             'store': prod.get('store', ''), 'category': prod.get('category', ''),
-            'available_qty': avail, 'safety_qty': safety, 'total_transit': transit,
-            'daily_sales': ds, 'purchase_qty': purchase_qty,
+            'sys_available': sys_avail, 'sys_transit': sys_transit, 'sys_total': sys_total,
+            'safety_qty': st['safety'], 'daily_sales': ds,
+            'target_stock': target_stock, 'target_days': target_days,
+            'purchase_qty': purchase_qty,
             'days_to_empty': days_to_empty,
             'supplier_code': best['supplier_code'] if best else '',
             'supplier_name': best['supplier_name'] if best else '',

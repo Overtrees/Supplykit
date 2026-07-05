@@ -285,10 +285,6 @@ export default function InsightsPage() {
                         let footer = '总计采购 ' + totalQty + ' 件'
                         if (overallTurnover) footer += ' · 补后整体周转约 ' + overallTurnover + ' 天'
                         return footer
-                      })()}vail = purchase.reduce((s,x)=>s+(x.sys_available||0),0)
-                        const totalSales = purchase.reduce((s,x)=>s+((x.daily_sales||0)*(x.purchase_qty>0?1:0)),0)
-                        const overallTurnover = totalSales > 0 ? (totalAvail+totalQty)/totalSales : 0
-                        return `总计采购 ${totalQty} 件${overallTurnover>0 ? ` · 补后整体周转约 ${overallTurnover.toFixed(1)} 天` : ''}`
                       })()}
                     </td>
                   </tr>

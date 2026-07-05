@@ -30,16 +30,14 @@ export default function OrdersPage() {
 
   const doSearch = () => setOrderFilter(sq, ss)
 
-  // 加载平台仓库存（可用+在途）
+  // 加载平台仓库存（按 SKU+仓库 维度）
   useEffect(() => {
     api.get('/api/inventory?warehouse_type=platform').then(r => {
       const data = r.data?.items || r.data || []
       const map = {}
       data.forEach(i => {
-        const sku = i.sku
-        if (!map[sku]) map[sku] = { available: 0, transit: 0 }
-        map[sku].available += Number(i.available_qty || 0)
-        map[sku].transit += Number(i.in_transit_qty || 0)
+        const key = i.sku + '|' + i.warehouse
+        map[key] = { available: Number(i.available_qty || 0), transit: Number(i.in_transit_qty || 0) }
       })
       setPlatformInv(map)
     }).catch(() => {})
@@ -84,7 +82,7 @@ export default function OrdersPage() {
       <table><thead><tr>{['订单号','店铺','仓库','商品','金额','状态','日期','平台可用','平台在途',''].map(h=><th key={h}>{h}</th>)}</tr></thead>
       <tbody>
         {orders.map(x => {
-          const pi = platformInv[x.sku] || {}
+          const pi = platformInv[x.sku + '|' + x.warehouse] || {}
           return <tr key={x.id}>
           <td className="mono col-sku">{x.order_no}</td>
           <td className="col-store">{x.store||'-'}</td><td className="col-store">{x.warehouse||'-'}</td><td className="col-name">{x.product_name}</td>

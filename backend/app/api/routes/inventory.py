@@ -47,7 +47,6 @@ def create_inventory(body: dict, db = get_db()):
         "locked_qty": int(body.get("locked_qty", 0)),
         "in_transit_qty": int(body.get("in_transit_qty", 0)),
         "safety_qty": int(body.get("safety_qty", 10)),
-        "status": body.get("status", "active"),
     }).execute().data
     inv = data[0] if data else None
     if inv:

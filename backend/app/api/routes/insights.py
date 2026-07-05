@@ -244,7 +244,8 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
         s = i['sku']
         if s not in stock_by_sku:
             stock_by_sku[s] = {'available': 0, 'transit': 0, 'safety': 0, 'safety_days': 0,
-                               'own_avail': 0, 'own_transit': 0, 'plat_avail': 0, 'plat_transit': 0}
+                               'own_avail': 0, 'own_transit': 0, 'plat_avail': 0, 'plat_transit': 0,
+                               'own_warehouse': ''}
         qty = int(i.get('available_qty', 0) or 0)
         tty = int(i.get('in_transit_qty', 0) or 0)
         wt = i.get('warehouse_type', 'platform')
@@ -257,6 +258,8 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
         if wt == 'own':
             stock_by_sku[s]['own_avail'] += qty
             stock_by_sku[s]['own_transit'] += tty
+            if not stock_by_sku[s]['own_warehouse']:
+                stock_by_sku[s]['own_warehouse'] = i.get('warehouse', '')
         else:
             stock_by_sku[s]['plat_avail'] += qty
             stock_by_sku[s]['plat_transit'] += tty
@@ -314,7 +317,7 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
 
         result.append({
             'sku': sku, 'product_name': prod.get('product_name', ''),
-            'store': prod.get('store', ''), 'category': prod.get('category', ''),
+            'store': prod.get('store', ''), 'warehouse': st['own_warehouse'], 'category': prod.get('category', ''),
             'sys_available': sys_avail, 'sys_transit': sys_transit, 'sys_total': sys_total,
             'own_available': st['own_avail'], 'own_transit': st['own_transit'],
             'plat_available': st['plat_avail'], 'plat_transit': st['plat_transit'],

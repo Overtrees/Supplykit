@@ -286,7 +286,7 @@ export default function InsightsPage() {
                         const avgTurnover = withPurchase.length > 0
                           ? (withPurchase.reduce((s,x)=>s+(x.after_turnover||0),0) / withPurchase.length).toFixed(1)
                           : ''
-                        return avgTurnover ? '平均周转 ' + avgTurnover + ' 天' : ''
+                        return avgTurnover ? '平均周转 ' + avgTurnover + ' 天' : '平均周转 —'
                       })()}
                     </td>
                   </tr>

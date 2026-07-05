@@ -250,9 +250,9 @@ export default function InsightsPage() {
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>暂无采购建议</div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
-              <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 10 列 · 左右滑动查看</div>
+              <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 9 列 · 左右滑动查看</div>
               <table>
-                <thead><tr>{['SKU','商品','系统库存','日销','再订货点','离订货','建议采购','可撑(天)','补后周转','时机'].map(h => <th key={h} style={{whiteSpace:'nowrap',fontSize:11}}>{h}</th>)}</tr></thead>
+                <thead><tr>{['SKU','商品','系统库存','日销','再订货点','离订货','建议采购','补后周转','时机'].map(h => <th key={h} style={{whiteSpace:'nowrap',fontSize:11}}>{h}</th>)}</tr></thead>
                 <tbody>
                   {purchase.map((x, i) => {
                     const timing = !x.purchase_qty || x.purchase_qty <= 0 ? '充足' : x.days_to_empty <= x.days_to_reorder ? '紧急' : '建议'
@@ -260,7 +260,10 @@ export default function InsightsPage() {
                     <tr key={i}>
                       <td className="mono" style={{ fontSize: 12 }}>{x.sku}</td>
                       <td className="col-name">{x.product_name}</td>
-                      <td style={{fontWeight:600,fontSize:12}}>{x.sys_total}<span className="small muted" style={{fontWeight:400}}> (可用{x.sys_available}+在途{x.sys_transit})</span></td>
+                      <td style={{fontSize:12}}>
+                        <span style={{fontWeight:600}}>{x.sys_total}</span>
+                        <span className="small muted" style={{fontWeight:400}}> 自有{x.own_available}+{x.own_transit ? `在途${x.own_transit}`:''} 平台{x.plat_available}+{x.plat_transit ? `在途${x.plat_transit}`:''}</span>
+                      </td>
                       <td style={{fontSize:12,fontWeight:600}}>{x.daily_sales}</td>
                       <td style={{fontSize:12}}>{x.reorder_point}</td>
                       <td style={{fontSize:12,color: x.days_to_reorder <= 0 ? '#ef4444' : x.days_to_reorder < 7 ? 'var(--warning)' : 'var(--muted)'}}>{x.days_to_reorder > 999 ? '∞' : x.days_to_reorder+'天'}</td>
@@ -274,9 +277,9 @@ export default function InsightsPage() {
                 </tbody>
                 <tfoot>
                   <tr style={{fontWeight:700,borderTop:'2px solid var(--border)'}}>
-                    <td colSpan={5} style={{textAlign:'right',fontSize:12}}>合计</td>
+                    <td colSpan={4} style={{textAlign:'right',fontSize:12}}>合计</td>
                     <td style={{color:'var(--success)',fontSize:13}}>+{purchase.reduce((s,x)=>s+(x.purchase_qty||0),0)}</td>
-                    <td colSpan={4} style={{fontSize:11,color:'var(--muted2)'}}>
+                    <td colSpan={3} style={{fontSize:11,color:'var(--muted2)'}}>
                       {(() => {
                         const totalQty = purchase.reduce((s,x)=>s+(x.purchase_qty||0),0)
                         const totalAvail = purchase.reduce((s,x)=>s+(x.sys_available||0),0)

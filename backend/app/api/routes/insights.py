@@ -226,18 +226,28 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
     daily_sales = {k: round(v / days, 1) for k, v in sales_by_sku.items()}
 
     # 4. 系统总库存 = 全仓可用 + 全仓在途（平台仓+自有仓统一汇总）
-    inv_data = db.table("inventory").select("*").eq("warehouse_type", "own").execute().data
+    inv_data = db.table("inventory").select("*").execute().data
     stock_by_sku = {}
     for i in inv_data:
         s = i['sku']
         if s not in stock_by_sku:
-            stock_by_sku[s] = {'available': 0, 'transit': 0, 'safety': 0, 'safety_days': 0}
-        stock_by_sku[s]['available'] += int(i.get('available_qty', 0) or 0)
-        stock_by_sku[s]['transit'] += int(i.get('in_transit_qty', 0) or 0)
+            stock_by_sku[s] = {'available': 0, 'transit': 0, 'safety': 0, 'safety_days': 0,
+                               'own_avail': 0, 'own_transit': 0, 'plat_avail': 0, 'plat_transit': 0}
+        qty = int(i.get('available_qty', 0) or 0)
+        tty = int(i.get('in_transit_qty', 0) or 0)
+        wt = i.get('warehouse_type', 'platform')
+        stock_by_sku[s]['available'] += qty
+        stock_by_sku[s]['transit'] += tty
         stock_by_sku[s]['safety'] += int(i.get('safety_qty', 0) or 0)
         sd = float(i.get('safety_days', 0) or 0)
         if sd > stock_by_sku[s]['safety_days']:
             stock_by_sku[s]['safety_days'] = sd
+        if wt == 'own':
+            stock_by_sku[s]['own_avail'] += qty
+            stock_by_sku[s]['own_transit'] += tty
+        else:
+            stock_by_sku[s]['plat_avail'] += qty
+            stock_by_sku[s]['plat_transit'] += tty
 
     # 5. 供应商
     suppliers = db.table("suppliers").select("*").eq("status", "active").execute().data
@@ -290,6 +300,8 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
             'sku': sku, 'product_name': prod.get('product_name', ''),
             'store': prod.get('store', ''), 'category': prod.get('category', ''),
             'sys_available': sys_avail, 'sys_transit': sys_transit, 'sys_total': sys_total,
+            'own_available': st['own_avail'], 'own_transit': st['own_transit'],
+            'plat_available': st['plat_avail'], 'plat_transit': st['plat_transit'],
             'safety_qty': st['safety'], 'daily_sales': ds,
             'reorder_point': reorder_point,
             'days_to_reorder': days_to_reorder,

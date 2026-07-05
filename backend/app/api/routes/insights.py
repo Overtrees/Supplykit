@@ -278,14 +278,12 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
         days_to_empty = round(sys_avail / ds, 1) if ds > 0 else 999
 
         # 补后自有仓周转（采购货到自有仓后/日销，仅对比参考）
-        after_stock = sys_avail + purchase_qty
+        after_stock = st['own_avail'] + purchase_qty
         after_turnover = round(after_stock / ds, 1) if ds > 0 else 999
         target_turn = int(raw.get('max_turnover_days', '0'))
-        note = f"补后周转约{after_turnover}天" if purchase_qty > 0 else ""
+        note = f"补后自有仓周转约{after_turnover}天" if purchase_qty > 0 else ""
         if target_turn > 0 and after_turnover > target_turn:
             note += f"，超过目标{target_turn}天"
-        elif target_turn > 0:
-            note += f"，低于目标{target_turn}天"
 
         # 匹配供应商
         prod = products.get(sku, {})
@@ -306,7 +304,7 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
             'reorder_point': reorder_point,
             'days_to_reorder': days_to_reorder,
             'purchase_qty': purchase_qty,
-            'after_stock': after_stock, 'after_turnover': after_turnover,
+            'after_stock': st['own_avail'] + purchase_qty, 'after_turnover': after_turnover,
             'days_to_empty': days_to_empty, 'note': note,
             'supplier_code': best['supplier_code'] if best else '',
             'supplier_name': best['supplier_name'] if best else '',

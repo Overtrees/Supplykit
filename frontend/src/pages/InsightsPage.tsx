@@ -201,13 +201,13 @@ export default function InsightsPage() {
             <div style={{ overflowX: 'auto' }}>
               <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 13 列 · 左右滑动查看</div>
               <table>
-                <thead><tr>{['','SKU','商品','店铺','现有','安全线','在途','日销28','可撑(天)','建议补','实际补','补后周转','备注',''].map(h => <th key={h} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{h}</th>)}</tr></thead>
+                <thead><tr>{['','SKU','商品','仓库','现有','安全线','在途','日销28','可撑(天)','建议补','实际补','补后周转','备注',''].map(h => <th key={h} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{h}</th>)}</tr></thead>
                 <tbody>
                   {replen.filter(x => !ordered.includes(x.sku+'|'+x.store)).map((x, i) => (
                     <tr key={i}>
                       <td style={{fontSize:11,color:'var(--muted2)'}}>{i+1}</td>
                       <td className="mono" style={{ fontSize: 12 }}>{x.sku}</td>
-                      <td>{x.product_name}</td><td>{x.store}</td>
+                      <td>{x.product_name}</td><td className="col-store">{x.warehouse || x.store || '-'}</td>
                       <td style={{ color: x.available_qty === 0 ? '#ef4444' : 'var(--text)', fontWeight: 600 }}>{x.available_qty}</td>
                       <td>{x.safety_qty}</td><td>{x.in_transit_qty}</td>
                       <td style={{fontSize:11,fontWeight:600}}>{x.daily_sales}</td>
@@ -252,7 +252,7 @@ export default function InsightsPage() {
             <div style={{ overflowX: 'auto' }}>
               <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 9 列 · 左右滑动查看</div>
               <table>
-                <thead><tr>{['SKU','商品','店铺','系统库存','日销','再订货点','离订货','建议采购','实际采购','补后周转','备注','时机'].map(h => <th key={h} style={{whiteSpace:'nowrap',fontSize:11}}>{h}</th>)}</tr></thead>
+                <thead><tr>{['SKU','商品','仓库','系统库存','日销','再订货点','离订货','建议采购','实际采购','补后周转','备注','时机'].map(h => <th key={h} style={{whiteSpace:'nowrap',fontSize:11}}>{h}</th>)}</tr></thead>
                 <tbody>
                   {purchase.map((x, i) => {
                     const timing = !x.purchase_qty || x.purchase_qty <= 0 ? '充足' : x.days_to_empty <= x.days_to_reorder ? '紧急' : '建议'
@@ -260,7 +260,7 @@ export default function InsightsPage() {
                     <tr key={i}>
                       <td className="mono" style={{ fontSize: 12 }}>{x.sku}</td>
                       <td className="col-name">{x.product_name}</td>
-                      <td className="col-store">{x.store||'-'}</td>
+                      <td className="col-store">{x.warehouse || x.store || '-'}</td>
                       <td style={{fontSize:12}}>
                         <span style={{fontWeight:600}}>{x.sys_total}</span>
                         <span className="small muted" style={{fontWeight:400}}> 自有{x.own_available}+{x.own_transit ? `在途${x.own_transit}`:''} 平台{x.plat_available}+{x.plat_transit ? `在途${x.plat_transit}`:''}</span>

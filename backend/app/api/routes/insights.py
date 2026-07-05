@@ -156,7 +156,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                 note += ", 建议分批" if after_turnover > max_turnover else ", 周转正常"
             suggestions.append({
                 "sku": sku, "product_name": inv.get("product_name") or p.get("product_name", ""),
-                "store": inv.get("store"), "category": p.get("category", ""),
+                "store": inv.get("store"), "warehouse": inv.get("warehouse", ""), "category": p.get("category", ""),
                 "available_qty": avail, "safety_qty": safety, "in_transit_qty": transit,
                 "daily_sales": sel_ds, "raw_suggested": raw_suggested, "suggested_qty": suggested,
                 "days_to_empty": days_to_empty, "after_turnover": after_turnover, "note": note,

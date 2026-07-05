@@ -250,9 +250,9 @@ export default function InsightsPage() {
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>暂无采购建议</div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
-              <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 12 列 · 左右滑动查看</div>
+              <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 10 列 · 左右滑动查看</div>
               <table>
-                <thead><tr>{['SKU','商品','系统库存','日销','再订货点','离订货','目标库存','建议采购','可撑(天)','时机','供应商','评分'].map(h => <th key={h} style={{whiteSpace:'nowrap',fontSize:11}}>{h}</th>)}</tr></thead>
+                <thead><tr>{['SKU','商品','系统库存','日销','再订货点','离订货','建议采购','可撑(天)','补后周转','时机'].map(h => <th key={h} style={{whiteSpace:'nowrap',fontSize:11}}>{h}</th>)}</tr></thead>
                 <tbody>
                   {purchase.map((x, i) => {
                     const timing = !x.purchase_qty || x.purchase_qty <= 0 ? '充足' : x.days_to_empty <= x.days_to_reorder ? '紧急' : '建议'
@@ -264,15 +264,29 @@ export default function InsightsPage() {
                       <td style={{fontSize:12,fontWeight:600}}>{x.daily_sales}</td>
                       <td style={{fontSize:12}}>{x.reorder_point}</td>
                       <td style={{fontSize:12,color: x.days_to_reorder <= 0 ? '#ef4444' : x.days_to_reorder < 7 ? 'var(--warning)' : 'var(--muted)'}}>{x.days_to_reorder > 999 ? '∞' : x.days_to_reorder+'天'}</td>
-                      <td style={{fontSize:12}}>{x.target_stock}<span className="small muted"> / {x.target_days}天</span></td>
                       <td style={{ fontWeight: 600, color: x.purchase_qty > 0 ? 'var(--success)' : 'var(--muted2)' }}>{x.purchase_qty > 0 ? '+'+x.purchase_qty : '-'}</td>
                       <td style={{color: x.days_to_empty < 3 ? '#ef4444' : x.days_to_empty < 7 ? 'var(--warning)' : 'var(--text)'}}>{x.days_to_empty > 999 ? '∞' : x.days_to_empty}</td>
+                      <td style={{fontSize:11,color:'var(--muted2)'}} title={x.note||''}>{x.note ? x.note.split('，')[0] : '-'}</td>
                       <td><span className={`pill ${timing==='紧急'?'danger':timing==='建议'?'warning':'info'}`}>{timing}</span></td>
-                      <td className="col-store">{x.supplier_name || '-'}</td>
-                      <td><span className={`pill ${x.supplier_score >= 80 ? 'success' : x.supplier_score >= 60 ? 'warning' : 'danger'}`}>{x.supplier_score}</span></td>
                     </tr>
                     )
                   })}
+                </tbody>
+                <tfoot>
+                  <tr style={{fontWeight:700,borderTop:'2px solid var(--border)'}}>
+                    <td colSpan={5} style={{textAlign:'right',fontSize:12}}>合计</td>
+                    <td style={{color:'var(--success)',fontSize:13}}>+{purchase.reduce((s,x)=>s+(x.purchase_qty||0),0)}</td>
+                    <td colSpan={4} style={{fontSize:11,color:'var(--muted2)'}}>
+                      {(() => {
+                        const totalQty = purchase.reduce((s,x)=>s+(x.purchase_qty||0),0)
+                        const totalAvail = purchase.reduce((s,x)=>s+(x.sys_available||0),0)
+                        const totalSales = purchase.reduce((s,x)=>s+((x.daily_sales||0)*(x.purchase_qty>0?1:0)),0)
+                        const overallTurnover = totalSales > 0 ? (totalAvail+totalQty)/totalSales : 0
+                        return `总计采购 ${totalQty} 件${overallTurnover>0 ? ` · 补后整体周转约 ${overallTurnover.toFixed(1)} 天` : ''}`
+                      })()}
+                    </td>
+                  </tr>
+                </tfoot>
                 </tbody>
               </table>
             </div>

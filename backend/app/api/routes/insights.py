@@ -260,16 +260,22 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
         # 系统可用离再订货点还有几天
         days_to_reorder = round((sys_avail - reorder_point) / ds, 1) if ds > 0 else 999
 
-        # 系统目标库存 = 日销 × (采购前置期 + 目标周转天数)
-        target_days = purchase_lead_time + target_turnover
-        target_stock = round(ds * target_days) if ds > 0 else 0
-
-        # 采购量 = 系统目标 + 安全库存 - 系统总库存
-        purchase_qty = max(round(target_stock + eff_safety - sys_total), 0) if ds > 0 else 0
+        # 采购量 = 日销×采购前置期 + 安全库存 - 系统总库存
+        purchase_qty = max(round(ds * purchase_lead_time + eff_safety - sys_total), 0) if ds > 0 else 0
         # 兜底 MOQ
         purchase_qty = max(purchase_qty, moq_default) if purchase_qty > 0 else 0
 
         days_to_empty = round(sys_avail / ds, 1) if ds > 0 else 999
+
+        # 补后自有仓周转（采购货到自有仓后/日销，仅对比参考）
+        after_stock = sys_avail + purchase_qty
+        after_turnover = round(after_stock / ds, 1) if ds > 0 else 999
+        target_turn = int(raw.get('max_turnover_days', '0'))
+        note = f"补后周转约{after_turnover}天" if purchase_qty > 0 else ""
+        if target_turn > 0 and after_turnover > target_turn:
+            note += f"，超过目标{target_turn}天"
+        elif target_turn > 0:
+            note += f"，低于目标{target_turn}天"
 
         # 匹配供应商
         prod = products.get(sku, {})
@@ -287,9 +293,9 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
             'safety_qty': st['safety'], 'daily_sales': ds,
             'reorder_point': reorder_point,
             'days_to_reorder': days_to_reorder,
-            'target_stock': target_stock, 'target_days': target_days,
             'purchase_qty': purchase_qty,
-            'days_to_empty': days_to_empty,
+            'after_stock': after_stock, 'after_turnover': after_turnover,
+            'days_to_empty': days_to_empty, 'note': note,
             'supplier_code': best['supplier_code'] if best else '',
             'supplier_name': best['supplier_name'] if best else '',
             'supplier_score': best['score'] if best else 0,

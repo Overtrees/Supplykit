@@ -289,7 +289,6 @@ export default function InsightsPage() {
                     </td>
                   </tr>
                 </tfoot>
-                </tbody>
               </table>
             </div>
           ))}

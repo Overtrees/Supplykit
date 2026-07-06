@@ -17,7 +17,7 @@ import './version'
 
 export const NAV = [
   { id:'dash',label:'总览',icon:'📊'},{id:'products',label:'商品',icon:'🏷️'},{id:'suppliers',label:'供应商',icon:'🏭'},
-  { id:'orders',label:'订单',icon:'📋'},{id:'inv',label:'库存',icon:'📦'},{id:'insights',label:'建议',icon:'💡'},
+  { id:'orders',label:'订单',icon:'📋'},{id:'inv',label:'进销存',icon:'📦'},{id:'insights',label:'建议',icon:'💡'},
   { id:'cleansing',label:'清洗',icon:'🧹'},{id:'rules',label:'规则',icon:'⚙️'},
   { id:'quality',label:'异常',icon:'⚠️'},
 ]

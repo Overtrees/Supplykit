@@ -648,21 +648,29 @@ def auto_adjust_inventory(order_data: dict, order_type: str, db):
         }).execute()
 @router.get('/with-sales')
 def inventory_with_sales(db = get_db()):
-    """库存列表 + 日销 + 在库周转"""
+    """库存列表 + 日销 + 在库周转 + 当月出入库"""
     inv = db.table("inventory").select("*").eq("warehouse_type", "own").execute().data or []
     orders = db.table("orders").select("*").execute().data or []
     from datetime import datetime, timedelta
-    cutoff = (datetime.utcnow() - timedelta(days=28)).strftime('%Y-%m-%d')
-    sales = {}
+    now = datetime.utcnow()
+    # 当月起始日
+    month_start = now.replace(day=1).strftime('%Y-%m-%d')
+    month_end = now.strftime('%Y-%m-%d')
+    cutoff_28 = (now - timedelta(days=28)).strftime('%Y-%m-%d')
+    sales_28 = {}
+    sales_this_month = {}
     for o in orders:
         sku = o.get('sku','')
         dt = str(o.get('ordered_at',''))[:10]
-        if sku and dt >= cutoff:
-            sales[sku] = sales.get(sku, 0) + int(o.get('quantity',0) or 0)
+        qty = int(o.get('quantity',0) or 0)
+        if sku and dt >= cutoff_28:
+            sales_28[sku] = sales_28.get(sku, 0) + qty
+        if sku and dt >= month_start:
+            sales_this_month[sku] = sales_this_month.get(sku, 0) + qty
     result = []
     for i in inv:
         sku = i['sku']
-        ds = round(sales.get(sku, 0) / 28, 1)
+        ds = round(sales_28.get(sku, 0) / 28, 1)
         avail = int(i.get('available_qty',0) or 0)
         result.append({
             'id': i['id'],
@@ -675,6 +683,10 @@ def inventory_with_sales(db = get_db()):
             'in_transit_qty': int(i.get('in_transit_qty',0) or 0),
             'safety_qty': int(i.get('safety_qty',0) or 0),
             'daily_sales': ds,
+            'month_inbound': 0,
+            'month_outbound': sales_this_month.get(sku, 0),
+            'month_start': month_start,
+            'month_end': month_end,
             'turnover_days': round(avail / ds, 1) if ds > 0 else None,
         })
     return result

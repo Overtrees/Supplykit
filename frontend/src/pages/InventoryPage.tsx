@@ -12,12 +12,19 @@ export default function InventoryPage({ highlightSku }) {
   const [loading, setLoading] = useState(true)
   const [s, setS] = useState('')
   const [confirmDel, setConfirmDel] = useState(null)
+  const [monthRange, setMonthRange] = useState('')
 
   const loadInv = async () => {
     setLoading(true)
     try {
       const r = await api.get('/api/insights/with-sales')
-      setInventory(r.data || [])
+      const data = r.data || []
+      setInventory(data)
+      if (data.length > 0) {
+        const s = data[0].month_start?.slice(5) || ''
+        const e = data[0].month_end?.slice(5) || ''
+        setMonthRange(`${s}至${e}`)
+      }
     } catch(e) { setInventory([]) }
     setLoading(false)
   }
@@ -48,7 +55,7 @@ export default function InventoryPage({ highlightSku }) {
 
   return <div className="card">
     <div className="section-title" style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
-      <span>自有/三方仓库存 <span className="small muted">共 {inventory.length} 条</span></span>
+      <span>进销存 <span className="small muted">共 {inventory.length} 条</span></span>
       <div style={{display:'flex',gap:8,alignItems:'center'}}>
         <div className="search-bar" style={{maxWidth:200,flex:'none'}}>
           <span style={{fontSize:16,color:'var(--muted2)',flexShrink:0}}>🔍</span>
@@ -61,10 +68,17 @@ export default function InventoryPage({ highlightSku }) {
 
     {loading ? <div>{[1,2,3,4].map(i=><div key={i} className="skeleton" style={{height:36,marginBottom:4}}/>)}</div>
     : fl.length === 0
-      ? <EmptyState icon='📦' title={s?'无匹配库存':'暂无自有仓库存'} desc={s?'换个关键词试试':'通过清洗导入或手动添加库存'} />
+      ? <EmptyState icon='📦' title={s?'无匹配':'暂无数据'} desc={s?'换个关键词试试':'通过清洗导入数据'} />
       : <div style={{overflowX:"auto"}}>
-        <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 9 列 · 左右滑动查看</div>
-      <table><thead><tr>{['仓库','SKU','商品','可用','在途','安全线','日销','在库周转',''].map(h=><th key={h}>{h}</th>)}</tr></thead>
+        <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 11 列 · 左右滑动查看</div>
+      <table>
+        <thead>
+          <tr>{['仓库','SKU','商品','可用','在途','安全线','日销','当月采购入库','当月出库','在库周转',''].map(h => {
+            if (h === '当月采购入库') return <th key={h}>{h}<br/><span className="small" style={{fontWeight:400}}>{monthRange}</span></th>
+            if (h === '当月出库') return <th key={h}>{h}<br/><span className="small" style={{fontWeight:400}}>{monthRange}</span></th>
+            return <th key={h}>{h}</th>
+          })}</tr>
+      </thead>
       <tbody>{fl.map(x => {
         const isHL = highlightSku && x.sku === highlightSku
         return <tr key={x.id} id={'hl-'+x.sku} style={isHL ? {background:'rgba(245,158,11,0.15)',outline:'2px solid #f59e0b'} : {}}>
@@ -74,16 +88,20 @@ export default function InventoryPage({ highlightSku }) {
         <td className="col-qty">{x.in_transit_qty}</td>
         <td className="col-qty">{x.safety_qty}</td>
         <td className="col-qty" style={{fontSize:12,fontWeight:600}}>{x.daily_sales}</td>
+        <td className="col-qty">{x.month_inbound ?? 0}</td>
+        <td className="col-qty" style={{fontWeight:600}}>{x.month_outbound ?? 0}</td>
         <td className="col-qty" style={{fontWeight:600,color:x.turnover_days != null && x.turnover_days > 30 ? '#ef4444' : x.turnover_days != null && x.turnover_days > 15 ? 'var(--warning)' : 'var(--text)'}}>{x.turnover_days != null ? x.turnover_days+'天' : '∞'}</td>
+        <td><span onClick={()=>setConfirmDel(x.id)} className="btn btn-ghost" style={{fontSize:16,padding:'4px 8px',opacity:0.5,minHeight:0}} title='删除'>🗑️</span></td>
       </tr>})}</tbody>
       {totalTurnover != null && <tfoot>
         <tr style={{fontWeight:700,borderTop:'2px solid var(--border)'}}>
-          <td colSpan={7} style={{textAlign:'right',fontSize:12}}>平均在库周转</td>
+          <td colSpan={7} style={{textAlign:'right',fontSize:12}}>合计</td>
+          <td>{inventory.reduce((s,x)=>s+(x.month_inbound||0),0)}</td>
+          <td>{inventory.reduce((s,x)=>s+(x.month_outbound||0),0)}</td>
           <td style={{fontSize:13}}>{totalTurnover} 天</td>
           <td></td>
         </tr>
       </tfoot>}
-              </table>
     </div>}
     <ConfirmDialog open={!!confirmDel} title='删除库存记录' desc='删除后不可恢复' confirmLabel='删除' onConfirm={delInv} onCancel={()=>setConfirmDel(null)} />
   </div>

@@ -23,7 +23,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     for k, v in raw.items():
         if not k.startswith('mode_') and k not in cfg:
             cfg[k] = v
-    items = db.table("inventory").select("*").eq("warehouse_type", "platform").execute().data
+    items = db.table("inventory").select("*").in_("warehouse_type", ["platform", "platform_b"]).execute().data
     products = {p["sku"]: p for p in db.table("products").select("*").execute().data}
     orders = db.table("orders").select("*").execute().data
 
@@ -102,7 +102,12 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             sku_safety_days = st['safety_days']
             safety_days = sku_safety_days if sku_safety_days > 0 else float(cfg.get('safety_multiplier', '0'))
             effective_safety = round(sel_ds * safety_days) if sel_ds > 0 else 0
-            suggested = max(round(sel_ds * lead_time + effective_safety - avail - transit), 0) if sel_ds > 0 else 0
+            # 第一步：C仓需求缺口
+            c_gap = max(round(sel_ds * lead_time + effective_safety - avail - transit), 0) if sel_ds > 0 else 0
+            # 第二步：B仓供给约束
+            b_available = b_stock.get(sku, 0)
+            suggested = min(c_gap, b_available)
+            b_gap = max(c_gap - b_available, 0)  # B仓缺口：需要从自有仓调
             raw_suggested = suggested
             # 箱规向上取整
             prod = products.get(sku, {})
@@ -116,6 +121,8 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             tw15 = int(cfg.get('turnover_warning_15', '15'))
             tw90 = int(cfg.get('turnover_warning_90', '90'))
             note = f"箱规{box}件, 实补{suggested}件（{suggested//box}箱）" if suggested > 0 else "无需补货"
+            if c_gap > b_available and suggested > 0:
+                note += f" ⚠️ B仓仅{b_available}件, 缺口{b_gap}件需从自有仓调拨"
             if suggested > 0:
                 note += f", 补后周转{after_turnover}天"
                 if after_turnover <= tw15:
@@ -133,7 +140,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                 "sku": sku, "product_name": prod.get('product_name', ''),
                 "store": prod.get('store', ''), "category": prod.get('category', ''),
                 "available_qty": avail, "safety_qty": safety, "in_transit_qty": transit,
-                "b_stock": b_stock.get(sku, 0), "c_stock": avail,
+                "b_stock": b_stock.get(sku, 0), "c_stock": avail, "b_gap": b_gap,
                 "daily_sales": sel_ds, "raw_suggested": raw_suggested, "suggested_qty": suggested,
                 "days_to_empty": days_to_empty, "after_turnover": after_turnover,
                 "c_turnover": c_turnover, "transit_turnover": transit_turnover,

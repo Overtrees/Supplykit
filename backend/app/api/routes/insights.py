@@ -48,8 +48,9 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     selected_sales = {28: sales_28, 14: sales_14, 7: sales_7}.get(days, sales_28)
 
     if mode == 'bbcc':
-        lead_time = int(cfg.get('lead_time_days', '0'))
-        lead_time = lead_time + int(cfg.get('ship_to_b_days', '0')) + int(cfg.get('b_to_c_days', '0')) + int(cfg.get('c_safety_days', '0'))
+        # BBCC：仅算B→C调拨周期（不算生产到货和发B仓）
+        c_lead = int(cfg.get('b_to_c_days', '0')) + int(cfg.get('c_safety_days', '0'))
+        lead_time = c_lead
     else:
         lead_time = int(cfg.get('lead_time_days', '0'))
     # 活动系数（按模式独立存储）

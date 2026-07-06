@@ -679,6 +679,7 @@ def inventory_with_sales(db = get_db()):
         sku = i['sku']
         ds = round(sales_28.get(sku, 0) / 28, 1)
         avail = int(i.get('available_qty',0) or 0)
+        begin = avail - inbound_month.get(sku, 0) + outbound_month.get(sku, 0)
         result.append({
             'id': i['id'],
             'sku': sku,
@@ -688,13 +689,12 @@ def inventory_with_sales(db = get_db()):
             'warehouse_type': i.get('warehouse_type','platform'),
             'available_qty': avail,
             'in_transit_qty': int(i.get('in_transit_qty',0) or 0),
-            'safety_qty': int(i.get('safety_qty',0) or 0),
             'daily_sales': ds,
             'month_inbound': inbound_month.get(sku, 0),
             'month_outbound': outbound_month.get(sku, 0),
-            'beginning_stock': avail - inbound_month.get(sku, 0) + outbound_month.get(sku, 0),
+            'beginning_stock': begin,
             'month_start': month_start,
             'month_end': month_end,
-            'turnover_days': round((avail + outbound_month.get(sku, 0)) / outbound_month.get(sku, 0), 1) if outbound_month.get(sku, 0) > 0 else None,
+            'turnover_days': round((begin + inbound_month.get(sku, 0)) / outbound_month.get(sku, 0), 1) if outbound_month.get(sku, 0) > 0 else None,
         })
     return result

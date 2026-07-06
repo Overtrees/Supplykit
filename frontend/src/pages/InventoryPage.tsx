@@ -70,10 +70,10 @@ export default function InventoryPage({ highlightSku }) {
     : fl.length === 0
       ? <EmptyState icon='📦' title={s?'无匹配':'暂无数据'} desc={s?'换个关键词试试':'通过清洗导入数据'} />
       : <div style={{overflowX:"auto"}}>
-        <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 12 列 · 左右滑动查看</div>
+        <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 10 列 · 左右滑动查看</div>
       <table>
         <thead>
-          <tr>{['仓库','SKU','商品','期初库存','可用','在途','安全线','日销','当月采购入库','当月出库','在库周转',''].map(h => {
+          <tr>{['仓库','SKU','商品','期初库存','在途','当月采购入库','当月出库','可用','在库周转',''].map(h => {
             if (h === '当月采购入库') return <th key={h}>{h}<br/><span className="small" style={{fontWeight:400}}>{monthRange}</span></th>
             if (h === '当月出库') return <th key={h}>{h}<br/><span className="small" style={{fontWeight:400}}>{monthRange}</span></th>
             return <th key={h}>{h}</th>
@@ -85,21 +85,19 @@ export default function InventoryPage({ highlightSku }) {
         <td className="col-store">{x.warehouse||'-'}</td>
         <td className="mono col-sku">{x.sku}</td><td className="col-name">{x.product_name}</td>
         <td className="col-qty" style={{fontWeight:600}}>{x.beginning_stock ?? '-'}</td>
-        <td className="col-qty" style={{fontWeight:600}}>{x.available_qty}</td>
         <td className="col-qty">{x.in_transit_qty}</td>
-        <td className="col-qty">{x.safety_qty}</td>
-        <td className="col-qty" style={{fontSize:12,fontWeight:600}}>{x.daily_sales}</td>
         <td className="col-qty">{x.month_inbound ?? 0}</td>
         <td className="col-qty" style={{fontWeight:600}}>{x.month_outbound ?? 0}</td>
+        <td className="col-qty" style={{fontWeight:600}}>{x.available_qty}</td>
         <td className="col-qty" style={{fontWeight:600,color:x.turnover_days != null && x.turnover_days > 30 ? '#ef4444' : x.turnover_days != null && x.turnover_days > 15 ? 'var(--warning)' : 'var(--text)'}}>{x.turnover_days != null ? x.turnover_days+'天' : '∞'}</td>
         <td><span onClick={()=>setConfirmDel(x.id)} className="btn btn-ghost" style={{fontSize:16,padding:'4px 8px',opacity:0.5,minHeight:0}} title='删除'>🗑️</span></td>
       </tr>})}</tbody>
       {totalTurnover != null && <tfoot>
         <tr style={{fontWeight:700,borderTop:'2px solid var(--border)'}}>
-          <td colSpan={7} style={{textAlign:'right',fontSize:12}}>合计</td>
-          <td style={{fontWeight:600}}>{inventory.reduce((s,x)=>s+((x.beginning_stock||0)),0)}</td>
+          <td colSpan={5} style={{textAlign:'right',fontSize:12}}>合计</td>
           <td>{inventory.reduce((s,x)=>s+(x.month_inbound||0),0)}</td>
           <td>{inventory.reduce((s,x)=>s+(x.month_outbound||0),0)}</td>
+          <td>{inventory.reduce((s,x)=>s+(x.available_qty||0),0)}</td>
           <td style={{fontSize:13}}>{totalTurnover} 天</td>
           <td></td>
         </tr>

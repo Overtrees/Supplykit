@@ -66,16 +66,25 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     if mode == 'bbcc':
         # BBCC 模式：全仓汇总，按 SKU 一条建议（送B仓，京东内配到C仓）
         agg = {}
+        wh_detail = {}  # SKU → [{warehouse, available, transit}]
         for inv in items:
             sku = inv.get("sku", "")
             if sku not in agg:
                 agg[sku] = {'available': 0, 'transit': 0, 'safety': 0, 'safety_days': 0, 'warehouses': set()}
+                wh_detail[sku] = []
             agg[sku]['available'] += int(inv.get("available_qty") or 0)
             agg[sku]['transit'] += int(inv.get("in_transit_qty") or 0)
             agg[sku]['safety'] += int(inv.get("safety_qty") or 0)
             sd = float(inv.get('safety_days') or 0)
             if sd > agg[sku]['safety_days']: agg[sku]['safety_days'] = sd
-            if inv.get('warehouse'): agg[sku]['warehouses'].add(inv['warehouse'])
+            wh_name = inv.get('warehouse', '')
+            if wh_name:
+                agg[sku]['warehouses'].add(wh_name)
+                wh_detail[sku].append({
+                    'warehouse': wh_name,
+                    'available': int(inv.get("available_qty") or 0),
+                    'transit': int(inv.get("in_transit_qty") or 0),
+                })
         for sku, st in agg.items():
             avail = st['available']; transit = st['transit']; safety = st['safety']
             ds7 = round(sales_7.get(sku, 0) / 7, 1)
@@ -109,12 +118,19 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                 else:
                     note += " 🔴 超周转考核红线90天"
                 note += ", 建议分批" if after_turnover > tw15 else ", 周转正常"
+            # BBCC三环节周转
+            c_turnover = round(avail / sel_ds, 1) if sel_ds > 0 else None      # C仓周转
+            transit_turnover = round(transit / sel_ds, 1) if sel_ds > 0 else None  # 在途周转
+            combined_turnover = round((avail + transit) / sel_ds, 1) if sel_ds > 0 else None  # 综合周转
             suggestions.append({
                 "sku": sku, "product_name": prod.get('product_name', ''),
                 "store": prod.get('store', ''), "category": prod.get('category', ''),
                 "available_qty": avail, "safety_qty": safety, "in_transit_qty": transit,
                 "daily_sales": sel_ds, "raw_suggested": raw_suggested, "suggested_qty": suggested,
                 "days_to_empty": days_to_empty, "after_turnover": after_turnover,
+                "c_turnover": c_turnover, "transit_turnover": transit_turnover,
+                "combined_turnover": combined_turnover,
+                "warehouse_detail": wh_detail.get(sku, []),
                 "urgency": "紧急" if days_to_empty < 3 else ("建议" if suggested > 0 else "正常"),
                 "warehouses": len(st['warehouses']), "note": note, "box_qty": box,
                 "lead_time": lead_time, "safety_days": safety_days,

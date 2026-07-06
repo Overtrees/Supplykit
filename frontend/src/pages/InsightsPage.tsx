@@ -63,7 +63,6 @@ export default function InsightsPage() {
       const items = r.data || []
       // 存两份：orderedKeys 用于快速判断，orderedItems 用于展示详情
       setOrderedKeys(items.map(x => x.sku + "|" + x.store))
-      setOrderedItems(items)setOrderedItems(items)
       setOrderedItems(items)
     } catch(e) {
       try { const fallback = JSON.parse(localStorage.getItem('c_ordered') || '[]'); setOrderedKeys(fallback) } catch { setOrderedKeys([]) }

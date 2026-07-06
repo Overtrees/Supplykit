@@ -102,6 +102,7 @@ export default function InventoryPage({ highlightSku }) {
           <td></td>
         </tr>
       </tfoot>}
+              </table>
     </div>}
     <ConfirmDialog open={!!confirmDel} title='删除库存记录' desc='删除后不可恢复' confirmLabel='删除' onConfirm={delInv} onCancel={()=>setConfirmDel(null)} />
   </div>

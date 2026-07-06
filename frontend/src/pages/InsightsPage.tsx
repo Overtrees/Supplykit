@@ -37,7 +37,7 @@ export default function InsightsPage() {
   const [summary, setSummary] = useState(null)
   const [activities, setActivities] = useState([])
   const [slowMoving, setSlowMoving] = useState([])
-  const [ordered, setOrdered] = useState([])
+  
 
   // 各区块加载状态
   const [summaryLoading, setSummaryLoading] = useState(true)
@@ -61,27 +61,39 @@ export default function InsightsPage() {
     try {
       const r = await api.get('/api/purchase-orders')
       const items = r.data || []
-      setOrdered(items.map(x => x.sku + '|' + x.store))
+      // 存两份：orderedKeys 用于快速判断，orderedItems 用于展示详情
+      setOrderedKeys(items.map(x => x.sku + "|" + x.store))
+      setOrderedItems(items)setOrderedItems(items)
+      setOrderedItems(items)
     } catch(e) {
-      // 后端不可用时 fallback 到 localStorage
-      try { const fallback = JSON.parse(localStorage.getItem('c_ordered') || '[]'); setOrdered(fallback) } catch { setOrdered([]) }
+      try { const fallback = JSON.parse(localStorage.getItem('c_ordered') || '[]'); setOrderedKeys(fallback) } catch { setOrderedKeys([]) }
     }
   }
 
+  const [orderedKeys, setOrderedKeys] = useState([])
+  const [orderedItems, setOrderedItems] = useState([])
+
   const toggleOrdered = async (sku, store, product_name, suggested_qty) => {
     const key = sku + '|' + store
-    if (ordered.includes(key)) {
-      // 取消标记
-      setOrdered(prev => prev.filter(k => k !== key))
+    if (orderedKeys.includes(key)) {
+      setOrderedKeys(prev => prev.filter(k => k !== key))
       try { await api.delete('/api/purchase-orders?sku=' + encodeURIComponent(sku) + '&store=' + encodeURIComponent(store)) } catch(e) {}
     } else {
-      // 标记已下单
-      setOrdered(prev => [...prev, key])
+      setOrderedKeys(prev => [...prev, key])
       try {
         await api.post('/api/purchase-orders?sku=' + encodeURIComponent(sku) + '&store=' + encodeURIComponent(store) + '&product_name=' + encodeURIComponent(product_name || '') + '&suggested_qty=' + (suggested_qty || 0))
       } catch(e) {}
     }
+    loadOrdered()
   }
+
+  // 设置到B仓日期
+  const setArrivalDate = async (item, date) => {
+    try { await api.put('/api/purchase-orders/' + item.id, {arrival_date: date}) } catch(e) {}
+    loadOrdered()
+  }
+
+  const todayStr = new Date().toISOString().slice(0, 10)
 
   useEffect(() => {
     setInitLoading(true)
@@ -195,7 +207,7 @@ export default function InsightsPage() {
               <Skeleton height={14} width="30%" style={{ marginBottom: 8 }} />
               {[1,2,3,4,5].map(i => <Skeleton key={i} height={36} style={{ marginBottom: 4 }} />)}
             </div>
-          ) : (replen.filter(x => !ordered.includes(x.sku+'|'+x.store)).length === 0 ? (
+          ) : (replen.filter(x => !orderedKeys.includes(x.sku+'|'+x.store)).length === 0 ? (
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>库存健康，暂无补货建议</div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
@@ -203,7 +215,7 @@ export default function InsightsPage() {
               <table>
                 <thead><tr>{['','SKU','商品','仓库','现有','在途','日销28',...(replenMode==='bbcc'?['C仓周转','在途周转','综合周转']:['安全线','在库周转']),'建议补','实际补','补后周转','备注',''].map(h => <th key={h} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{h}</th>)}</tr></thead>
                 <tbody>
-                  {replen.filter(x => !ordered.includes(x.sku+'|'+x.store)).map((x, i) => (
+                  {replen.filter(x => !orderedKeys.includes(x.sku+'|'+x.store)).map((x, i) => (
                     <tr key={i}>
                       <td style={{fontSize:11,color:'var(--muted2)'}}>{i+1}</td>
                       <td className="mono" style={{ fontSize: 12 }}>{x.sku}</td>
@@ -231,15 +243,25 @@ export default function InsightsPage() {
             </div>
           ))}
           {/* 已下单区域 */}
-          {ordered.length > 0 && <details style={{marginTop:12}}>
-            <summary className="small muted" style={{cursor:'pointer',fontSize:12}}>已下单 {ordered.length} 项</summary>
+          {orderedKeys.length > 0 && <details style={{marginTop:12}}>
+            <summary className="small muted" style={{cursor:'pointer',fontSize:12}}>已下单 {orderedKeys.length} 项</summary>
             <div style={{fontSize:12,marginTop:8}}>
-              {replen.filter(x => ordered.includes(x.sku+'|'+x.store)).map((x,i) => (
-                <div key={i} style={{display:'flex',justifyContent:'space-between',padding:'4px 8px',border:'1px solid #f1f5f9',borderRadius:6,marginBottom:4}}>
-                  <span>{x.sku} {x.product_name} <span className="pill success" style={{fontSize:10}}>+{x.suggested_qty}</span></span>
-                  <span onClick={()=>toggleOrdered(x.sku, x.store)} style={{cursor:'pointer',fontSize:14}}>↩ 撤销</span>
+              {orderedItems.map((po, i) => {
+                const daysSinceArrival = po.arrival_date ? Math.floor((new Date() - new Date(po.arrival_date)) / (1000*60*60*24)) : null
+                const stayColor = daysSinceArrival != null ? (daysSinceArrival > 90 ? '#ef4444' : daysSinceArrival > 15 ? '#f59e0b' : 'var(--text)') : 'var(--muted)'
+                return <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 10px',border:'1px solid #f1f5f9',borderRadius:6,marginBottom:4,flexWrap:'wrap',gap:4}}>
+                  <span>{po.sku} {po.product_name} <span className="pill success" style={{fontSize:10}}>+{(po.actual_qty||po.suggested_qty)}</span></span>
+                  <span style={{display:'flex',alignItems:'center',gap:6}}>
+                    <span className="small" style={{color:stayColor,fontWeight:600}}>
+                      {daysSinceArrival != null ? daysSinceArrival + '天' : '待入仓'}
+                    </span>
+                    <input type="date" value={po.arrival_date || ''}
+                      onChange={e => setArrivalDate(po, e.target.value)}
+                      style={{fontSize:11,padding:'2px 6px',border:'1px solid #e2e8f0',borderRadius:4,width:130}} />
+                    <span onClick={()=>toggleOrdered(po.sku, po.store)} style={{cursor:'pointer',fontSize:14,color:'var(--danger)',opacity:0.6}}>↩</span>
+                  </span>
                 </div>
-              ))}
+              })}}
             </div>
           </details>}
         </div>

@@ -494,6 +494,8 @@ def init_db(path=None):
             store TEXT DEFAULT '',
             product_name TEXT DEFAULT '',
             suggested_qty INTEGER DEFAULT 0,
+            actual_qty INTEGER DEFAULT 0,
+            arrival_date TEXT DEFAULT '',
             status TEXT DEFAULT 'pending',
             owner_id TEXT DEFAULT '',
             created_at TEXT DEFAULT (datetime('now')),

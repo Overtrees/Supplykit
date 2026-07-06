@@ -692,6 +692,7 @@ def inventory_with_sales(db = get_db()):
             'daily_sales': ds,
             'month_inbound': inbound_month.get(sku, 0),
             'month_outbound': outbound_month.get(sku, 0),
+            'beginning_stock': avail - inbound_month.get(sku, 0) + outbound_month.get(sku, 0),
             'month_start': month_start,
             'month_end': month_end,
             'turnover_days': round((avail + outbound_month.get(sku, 0)) / outbound_month.get(sku, 0), 1) if outbound_month.get(sku, 0) > 0 else None,

@@ -375,7 +375,7 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
             'plat_available': st['plat_avail'], 'plat_transit': st['plat_transit'],
             'b_available': b_avail.get(sku, 0),
             'safety_qty': st['safety'], 'daily_sales': ds,
-            'purchase_qty': purchase_qty, 'box_qty': box_qty, 'actual_purchase': actual_purchase,
+            'purchase_qty': purchase_qty, 'box_qty': box_qty, 'actual_purchase': actual_purchase, 'b_need': b_need,
             'after_stock': st['own_avail'] + purchase_qty, 'after_turnover': after_turnover,
             'days_to_empty': days_to_empty, 'note': note,
             'supplier_code': best['supplier_code'] if best else '',

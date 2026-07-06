@@ -66,14 +66,22 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     if mode == 'bbcc':
         # BBCC 模式：全仓汇总，按 SKU 一条建议（送B仓，京东内配到C仓）
         agg = {}
-        wh_detail = {}  # SKU → [{warehouse, available, transit}]
+        wh_detail = {}
+        b_stock = {}
         for inv in items:
             sku = inv.get("sku", "")
             if sku not in agg:
                 agg[sku] = {'available': 0, 'transit': 0, 'safety': 0, 'safety_days': 0, 'warehouses': set()}
                 wh_detail[sku] = []
-            agg[sku]['available'] += int(inv.get("available_qty") or 0)
-            agg[sku]['transit'] += int(inv.get("in_transit_qty") or 0)
+                b_stock[sku] = 0
+            wt = inv.get('warehouse_type', '')
+            qty = int(inv.get("available_qty") or 0)
+            tty = int(inv.get("in_transit_qty") or 0)
+            if wt == 'platform_b':
+                b_stock[sku] += qty
+            else:
+                agg[sku]['available'] += qty
+                agg[sku]['transit'] += tty
             agg[sku]['safety'] += int(inv.get("safety_qty") or 0)
             sd = float(inv.get('safety_days') or 0)
             if sd > agg[sku]['safety_days']: agg[sku]['safety_days'] = sd
@@ -81,9 +89,8 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             if wh_name:
                 agg[sku]['warehouses'].add(wh_name)
                 wh_detail[sku].append({
-                    'warehouse': wh_name,
-                    'available': int(inv.get("available_qty") or 0),
-                    'transit': int(inv.get("in_transit_qty") or 0),
+                    'warehouse': wh_name, 'type': wt,
+                    'available': qty, 'transit': tty,
                 })
         for sku, st in agg.items():
             avail = st['available']; transit = st['transit']; safety = st['safety']
@@ -121,11 +128,12 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             # BBCC三环节周转
             c_turnover = round(avail / sel_ds, 1) if sel_ds > 0 else None      # C仓周转
             transit_turnover = round(transit / sel_ds, 1) if sel_ds > 0 else None  # 在途周转
-            combined_turnover = round((avail + transit) / sel_ds, 1) if sel_ds > 0 else None  # 综合周转
+            combined_turnover = round((avail + transit + b_stock.get(sku, 0)) / sel_ds, 1) if sel_ds > 0 else None  # 综合周转(B+在途+C)
             suggestions.append({
                 "sku": sku, "product_name": prod.get('product_name', ''),
                 "store": prod.get('store', ''), "category": prod.get('category', ''),
                 "available_qty": avail, "safety_qty": safety, "in_transit_qty": transit,
+                "b_stock": b_stock.get(sku, 0), "c_stock": avail,
                 "daily_sales": sel_ds, "raw_suggested": raw_suggested, "suggested_qty": suggested,
                 "days_to_empty": days_to_empty, "after_turnover": after_turnover,
                 "c_turnover": c_turnover, "transit_turnover": transit_turnover,

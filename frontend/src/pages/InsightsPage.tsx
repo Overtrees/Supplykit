@@ -210,14 +210,17 @@ export default function InsightsPage() {
             <div style={{ overflowX: 'auto' }}>
               <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 13 列 · 左右滑动查看</div>
               <table>
-                <thead><tr>{['','SKU','商品','仓库','现有','在途','日销28',...(replenMode==='bbcc'?['C仓周转','在途周转','综合周转']:['安全线','在库周转']),'建议补','实际补','补后周转','备注',''].map(h => <th key={h} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{h}</th>)}</tr></thead>
+                <thead><tr>{['','SKU','商品','仓库','B仓',...(replenMode==='bbcc'?['C仓']:[]),'在途','日销28',...(replenMode==='bbcc'?['C仓周转','在途周转','综合周转']:['安全线','在库周转']),'建议补','实际补','补后周转','备注',''].map(h => <th key={h} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{h}</th>)}</tr></thead>
                 <tbody>
                   {replen.filter(x => !orderedKeys.includes(x.sku+'|'+x.store)).map((x, i) => (
                     <tr key={i}>
                       <td style={{fontSize:11,color:'var(--muted2)'}}>{i+1}</td>
                       <td className="mono" style={{ fontSize: 12 }}>{x.sku}</td>
                       <td>{x.product_name}</td><td className="col-store">{replenMode==='bbcc' ? 'B仓' : (x.warehouse || x.store || '-')}</td>
-                      <td style={{ color: x.available_qty === 0 ? '#ef4444' : 'var(--text)', fontWeight: 600 }}>{x.available_qty}</td>
+                      {replenMode==='bbcc' ?<>
+                      <td style={{color:'var(--primary)',fontWeight:600}}>{x.b_stock ?? '-'}</td>
+                      <td style={{fontWeight:600}}>{x.c_stock ?? x.available_qty}</td>
+                      </> : <td style={{fontWeight:600}}>{x.available_qty}</td>}
                       <td>{x.in_transit_qty}</td>
                       <td style={{fontSize:11,fontWeight:600}}>{x.daily_sales}</td>
                       {replenMode==='bbcc' ? <>

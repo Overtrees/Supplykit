@@ -684,7 +684,7 @@ def inventory_with_sales(db = get_db()):
             'safety_qty': int(i.get('safety_qty',0) or 0),
             'daily_sales': ds,
             'month_inbound': 0,
-            'month_outbound': sales_this_month.get(sku, 0),
+            'month_outbound': 0,
             'month_start': month_start,
             'month_end': month_end,
             'turnover_days': round(avail / ds, 1) if ds > 0 else None,

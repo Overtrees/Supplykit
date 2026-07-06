@@ -51,15 +51,20 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
     {k:'alert_desc',l:'告警描述',h:'可用变量：{avail} {safety} {sku}',pl:'可用 {avail} < 安全线 {safety}'},
   ]
 
-  const L = (cfg.replenishment_mode||'bbcc')==='bbcc' ? '供应商生产+送货到我司仓总天数' : '供应商生产+送货到我司仓+我司发往全国仓总天数'
-  const paramFields=[
-    {k:'lead_time_days',l:'前置期(天)',h:L},
-    {k:'ship_to_b_days',l:'发B仓时效(天)',h:'BBCC：我司发往京东B仓时效'},
-    {k:'b_to_c_days',l:'B→C调拨(天)',h:'BBCC：京东B仓→C仓调拨时效'},
-    {k:'c_safety_days',l:'C仓缓冲(天)',h:'BBCC：C仓防止调拨断货储备天数'},
+  const isBBCC = (cfg.replenishment_mode||'bbcc')==='bbcc'
+  const paramFields= isBBCC ? [
+    {k:'ship_to_b_days',l:'自有仓→B仓时效(天)',h:'我司发往京东B仓天数'},
+    {k:'b_to_c_days',l:'B→C调拨(天)',h:'京东B仓→C仓调拨时效'},
+    {k:'c_safety_days',l:'C仓缓冲(天)',h:'C仓防止调拨断货储备'},
     {k:'safety_multiplier',l:'安全库存天数',h:'预留N天日销作为安全库存'},
-    {k:'max_turnover_days',l:'目标周转(天)',h: (cfg.replenishment_mode||'bbcc')==='bbcc' ? 'B仓免费存15天' : '平台仓货品在库周转'},
+    {k:'max_turnover_days',l:'目标周转(天)',h:'B仓免费存15天'},
     {k:'turnover_warning_15',l:'仓储费阈值(天)',h:'超期产生B仓仓储费'},
+    {k:'turnover_warning_90',l:'周转考核红线(天)',h:'超期面临清仓退供风险'},
+  ] : [
+    {k:'lead_time_days',l:'前置期(天)',h:'供应商生产+送货到我司+发往全国仓总天数'},
+    {k:'safety_multiplier',l:'安全库存天数',h:'预留N天日销作为安全库存'},
+    {k:'max_turnover_days',l:'目标周转(天)',h:'平台仓货品在库周转'},
+    {k:'turnover_warning_15',l:'仓储费阈值(天)',h:'超期产生仓储费'},
     {k:'turnover_warning_90',l:'周转考核红线(天)',h:'超期面临清仓退供风险'},
   ]
   const purchaseFields=[
@@ -137,7 +142,7 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
         <span onClick={()=>{loadCfg('traditional');loadSeasons('traditional')}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 14px',background:cfg.replenishment_mode==='traditional'?'var(--primary)':'transparent',color:cfg.replenishment_mode==='traditional'?'#fff':''}}>🏭 传统多仓</span>
       </div>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:16}}>
-        {paramFields.filter(f => (cfg.replenishment_mode||'bbcc')==='bbcc' || !['b_to_c_days','c_safety_days','ship_to_b_days'].includes(f.k)).map(({k,l,h})=><label key={k} style={{fontSize:12}}>
+        {paramFields.map(({k,l,h})=><label key={k} style={{fontSize:12}}>
           {l}<input value={cfg[k]||''} onChange={e=>setCfg(p=>({...p,[k]:e.target.value}))} style={IS}/>
           <div className='small muted' style={{fontSize:11}}>{h}</div>
         </label>)}

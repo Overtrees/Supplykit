@@ -653,17 +653,31 @@ def inventory_with_sales(db = get_db()):
     orders = db.table("orders").select("*").execute().data or []
     from datetime import datetime, timedelta
     now = datetime.utcnow()
-    month_start = now.replace(day=1).strftime('%Y-%m-%d')
-    month_end = now.strftime('%Y-%m-%d')
     cutoff_28 = (now - timedelta(days=28)).strftime('%Y-%m-%d')
-    # 当月出入库汇总
+    # 动态获取出入库记录的实际日期范围
+    in_records = db.table("inbound_records").select("*").execute().data or []
+    out_records = db.table("outbound_records").select("*").execute().data or []
+    all_dates = set()
+    for r in in_records:
+        d = (r.get('inbound_date') or '')[:10]
+        if d: all_dates.add(d)
+    for r in out_records:
+        d = (r.get('outbound_date') or '')[:10]
+        if d: all_dates.add(d)
+    if all_dates:
+        month_start = min(all_dates)[:7] + '-01'
+        month_end = max(all_dates)[:10]
+    else:
+        month_start = now.replace(day=1).strftime('%Y-%m-%d')
+        month_end = now.strftime('%Y-%m-%d')
+    # 当月出入库汇总（按同一月份过滤）
     inbound_month = {}
-    for r in db.table("inbound_records").select("*").execute().data or []:
+    for r in in_records:
         if (r.get('inbound_date') or '')[:7] == month_start[:7]:
             s = r['sku']
             inbound_month[s] = inbound_month.get(s, 0) + int(r.get('quantity',0) or 0)
     outbound_month = {}
-    for r in db.table("outbound_records").select("*").execute().data or []:
+    for r in out_records:
         if (r.get('outbound_date') or '')[:7] == month_start[:7]:
             s = r['sku']
             outbound_month[s] = outbound_month.get(s, 0) + int(r.get('quantity',0) or 0)

@@ -319,6 +319,9 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
     suppliers = db.table("suppliers").select("*").eq("status", "active").execute().data
     products = {p["sku"]: p for p in db.table("products").select("*").execute().data}
 
+    # 传统模式暂用系统库存（同BBCC逻辑）
+    
+
     # 6. 逐 SKU 计算（系统总库存视角）
     result = []
     for sku, st in stock_by_sku.items():
@@ -333,11 +336,15 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
         b_a = b_avail.get(sku, 0)
         own_a = st['own_avail']
 
-        # 采购量 = 自有仓补B仓的缺口兜底
-        # B仓需补充 = C仓消耗预测 + B仓安全库存 - B仓已有
-        b_need = max(round(ds * purchase_lead_time) + eff_safety - b_a, 0) if ds > 0 else 0
-        # 自有仓缺口 = B仓需求 - 自有仓可用（自有仓不够时才采购）
-        purchase_qty = max(b_need - own_a, 0) if ds > 0 else 0
+        # 采购量 = 自有仓补系统缺口的兜底
+        if mode == 'bbcc':
+            # BBCC：B仓→C仓链路
+            b_need = max(round(ds * purchase_lead_time) + eff_safety - b_a, 0) if ds > 0 else 0
+            purchase_qty = max(b_need - own_a, 0) if ds > 0 else 0
+        else:
+            # 传统：B仓需补（与BBCC同公式，无B仓时退化为总需求-自有仓）
+            b_need = max(round(ds * purchase_lead_time) + eff_safety - b_a, 0) if ds > 0 else 0
+            purchase_qty = max(b_need - own_a, 0) if ds > 0 else 0
         # 兜底 MOQ
         purchase_qty = max(purchase_qty, moq_default) if purchase_qty > 0 else 0
 

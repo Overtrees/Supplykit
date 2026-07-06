@@ -75,21 +75,19 @@ export default function InsightsPage() {
   const toggleOrdered = async (sku, store, product_name, suggested_qty) => {
     const key = sku + '|' + store
     if (orderedKeys.includes(key)) {
-      setOrderedKeys(prev => prev.filter(k => k !== key))
       try { await api.delete('/api/purchase-orders?sku=' + encodeURIComponent(sku) + '&store=' + encodeURIComponent(store)) } catch(e) {}
     } else {
-      setOrderedKeys(prev => [...prev, key])
       try {
         await api.post('/api/purchase-orders?sku=' + encodeURIComponent(sku) + '&store=' + encodeURIComponent(store) + '&product_name=' + encodeURIComponent(product_name || '') + '&suggested_qty=' + (suggested_qty || 0))
       } catch(e) {}
     }
-    loadOrdered()
+    await loadOrdered()
   }
 
   // 设置到B仓日期
   const setArrivalDate = async (item, date) => {
     try { await api.put('/api/purchase-orders/' + item.id, {arrival_date: date}) } catch(e) {}
-    loadOrdered()
+    await loadOrdered()
   }
 
   const todayStr = new Date().toISOString().slice(0, 10)

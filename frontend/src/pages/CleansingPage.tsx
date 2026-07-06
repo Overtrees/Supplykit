@@ -185,6 +185,8 @@ export default function CleansingPage() {
       <div style={{display:'flex',justifyContent:'center',gap:8,marginBottom:12}}>
         <button onClick={()=>setTt('order')} style={{padding:'6px 16px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',background:tt==='order'?'var(--primary)':'var(--card)',color:tt==='order'?'#fff':'var(--muted)',borderColor:tt==='order'?'var(--primary)':'var(--border)',fontWeight:tt==='order'?600:400}}>📋 导入订单</button>
         <button onClick={()=>setTt('inventory')} style={{padding:'6px 16px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',background:tt==='inventory'?'var(--success)':'var(--card)',color:tt==='inventory'?'#fff':'var(--muted)',borderColor:tt==='inventory'?'var(--success)':'var(--border)',fontWeight:tt==='inventory'?600:400}}>📦 导入库存</button>
+        <button onClick={()=>setTt('inbound')} style={{padding:'6px 16px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',background:tt==='inbound'?'var(--primary)':'var(--card)',color:tt==='inbound'?'#fff':'var(--muted)',borderColor:tt==='inbound'?'var(--primary)':'var(--border)',fontWeight:tt==='inbound'?600:400}}>📥 导入入库</button>
+        <button onClick={()=>setTt('outbound')} style={{padding:'6px 16px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',background:tt==='outbound'?'var(--primary)':'var(--card)',color:tt==='outbound'?'#fff':'var(--muted)',borderColor:tt==='outbound'?'var(--primary)':'var(--border)',fontWeight:tt==='outbound'?600:400}}>📤 导入出库</button>
       </div>
       <label className="btn btn-primary">
         {bs?'识别中...':'选择文件'}
@@ -238,7 +240,7 @@ export default function CleansingPage() {
         <div style={{fontSize:11,color:'var(--muted2)',flexShrink:0}}>→</div>
         <select value={mp[c.name]?.target||''} onChange={e=>{const v=e.target.value;if(!v){setMp(p=>{const n={...p};delete n[c.name];return n})}else{const matchedCf=cf.find(f=>f.t===v);setMp(p=>({...p,[c.name]:{target:v,type:matchedCf?matchedCf.tp:'string'}}))}}} style={{flex:1,fontSize:16,padding:'6px 8px',border:'1px solid #e2e8f0',borderRadius:6}}>
           <option value="">不映射</option>
-          <optgroup label="系统字段">{(tt==='inventory'?INV_FIELDS:SYS_FIELDS).map(sf => <option key={sf.t} value={sf.t}>{sf.l}</option>)}</optgroup>
+          <optgroup label="系统字段">{(tt==='inventory'?INV_FIELDS:tt==='inbound'?[{t:'sku',l:'SKU'},{t:'product_name',l:'商品名称'},{t:'quantity',l:'入库数量',tp:'number'},{t:'supplier',l:'供应商'},{t:'inbound_date',l:'入库日期',tp:'date'}]:tt==='outbound'?[{t:'sku',l:'SKU'},{t:'product_name',l:'商品名称'},{t:'quantity',l:'出库数量',tp:'number'},{t:'target_warehouse',l:'目标仓库'},{t:'outbound_date',l:'出库日期',tp:'date'}]:SYS_FIELDS).map(sf => <option key={sf.t} value={sf.t}>{sf.l}</option>)}</optgroup>
           {cf.length > 0 && <optgroup label="自定义字段">{cf.map(f => <option key={f.t} value={f.t}>{f.l}</option>)}</optgroup>}
         </select>
         <select value={mp[c.name]?.type||''} onChange={e=>{const v=e.target.value;setMp(p=>({...p,[c.name]:{...p[c.name],type:v}}))}} style={{flexShrink:0,fontSize:14,padding:'5px',border:'1px solid #e2e8f0',borderRadius:6}}>

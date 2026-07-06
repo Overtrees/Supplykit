@@ -37,6 +37,20 @@ SYSTEM_FIELDS = {
         {'key':'in_transit_qty', 'label':'在途数量',   'type':'number'},
         {'key':'safety_qty',     'label':'安全库存',   'type':'number'},
     ],
+    'inbound': [
+        {'key':'sku',            'label':'商品编号',   'type':'string'},
+        {'key':'product_name',   'label':'商品名称',   'type':'string'},
+        {'key':'quantity',       'label':'入库数量',   'type':'number'},
+        {'key':'supplier',       'label':'供应商',     'type':'string'},
+        {'key':'inbound_date',   'label':'入库日期',   'type':'date'},
+    ],
+    'outbound': [
+        {'key':'sku',            'label':'商品编号',   'type':'string'},
+        {'key':'product_name',   'label':'商品名称',   'type':'string'},
+        {'key':'quantity',       'label':'出库数量',   'type':'number'},
+        {'key':'target_warehouse','label':'目标仓库',   'type':'string'},
+        {'key':'outbound_date',  'label':'出库日期',   'type':'date'},
+    ],
 }
 
 # ─── 自定义字段存储 ────────────────────────────────────────────────────────────
@@ -164,8 +178,12 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
     success = 0
     failed = 0
     is_inv = (target == 'inventory')
+    is_inbound = (target == 'inbound')
+    is_outbound = (target == 'outbound')
     orders_to_insert = [] if not is_inv else None
     inv_to_insert = [] if is_inv else None
+    inbound_to_insert = [] if is_inbound else None
+    outbound_to_insert = [] if is_outbound else None
     sku_seen = set()
 
     for idx, row in enumerate(rows):
@@ -272,6 +290,24 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                 "safety_qty": int(float(data.get('safety_qty', 0))),
             })
             success += 1
+        elif is_inbound:
+            inbound_to_insert.append({
+                "sku": sku[:100],
+                "product_name": str(data.get('product_name', ''))[:200],
+                "quantity": int(float(data.get('quantity', 0))),
+                "supplier": str(data.get('supplier', ''))[:100],
+                "inbound_date": str(data.get('inbound_date', ''))[:50],
+            })
+            success += 1
+        elif is_outbound:
+            outbound_to_insert.append({
+                "sku": sku[:100],
+                "product_name": str(data.get('product_name', ''))[:200],
+                "quantity": int(float(data.get('quantity', 0))),
+                "target_warehouse": str(data.get('target_warehouse', ''))[:100],
+                "outbound_date": str(data.get('outbound_date', ''))[:50],
+            })
+            success += 1
         else:
             orders_to_insert.append({
                 "order_no": order_no, "store": str(data.get('store', '未知'))[:100],
@@ -286,8 +322,8 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
             })
             success += 1
 
-    insert_table = 'inventory' if is_inv else 'orders'
-    data_list = inv_to_insert if is_inv else orders_to_insert
+    insert_table = 'inventory' if is_inv else ('inbound_records' if is_inbound else ('outbound_records' if is_outbound else 'orders'))
+    data_list = inv_to_insert if is_inv else (inbound_to_insert if is_inbound else (outbound_to_insert if is_outbound else orders_to_insert))
     if data_list:
         try:
             # 逐条 upsert 避免 UNIQUE 冲突（数据库已有相同 order_no+sku 时覆盖更新）

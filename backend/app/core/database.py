@@ -498,6 +498,26 @@ def init_db(path=None):
             updated_at TEXT DEFAULT (datetime('now'))
         );
         CREATE UNIQUE INDEX IF NOT EXISTS idx_po_sku_store ON purchase_orders(sku, store);
+        CREATE TABLE IF NOT EXISTS inbound_records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sku TEXT DEFAULT '',
+            product_name TEXT DEFAULT '',
+            quantity INTEGER DEFAULT 0,
+            supplier TEXT DEFAULT '',
+            inbound_date TEXT DEFAULT '',
+            owner_id TEXT DEFAULT '',
+            created_at TEXT DEFAULT (datetime('now'))
+        );
+        CREATE TABLE IF NOT EXISTS outbound_records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sku TEXT DEFAULT '',
+            product_name TEXT DEFAULT '',
+            quantity INTEGER DEFAULT 0,
+            target_warehouse TEXT DEFAULT '',
+            outbound_date TEXT DEFAULT '',
+            owner_id TEXT DEFAULT '',
+            created_at TEXT DEFAULT (datetime('now'))
+        );
         CREATE INDEX IF NOT EXISTS idx_events_type ON events(event_type);
         CREATE INDEX IF NOT EXISTS idx_quality_logs_level ON quality_logs(level);
         CREATE INDEX IF NOT EXISTS idx_orders_ordered_at ON orders(ordered_at);

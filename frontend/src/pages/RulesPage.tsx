@@ -59,6 +59,8 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
     {k:'c_safety_days',l:'C仓缓冲(天)',h:'BBCC：C仓防止调拨断货储备天数'},
     {k:'safety_multiplier',l:'安全库存天数',h:'预留N天日销作为安全库存'},
     {k:'max_turnover_days',l:'目标周转(天)',h: (cfg.replenishment_mode||'bbcc')==='bbcc' ? 'B仓免费存15天' : '平台仓货品在库周转'},
+    {k:'turnover_warning_15',l:'仓储费阈值(天)',h:'超期产生B仓仓储费'},
+    {k:'turnover_warning_90',l:'周转考核红线(天)',h:'超期面临清仓退供风险'},
   ]
   const purchaseFields=[
     {k:'purchase_lead_days',l:'采购前置(天)',h:'供应商生产+送货到我司总天数'},

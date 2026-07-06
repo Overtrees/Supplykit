@@ -97,11 +97,18 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             after_stock = avail + transit + suggested
             after_turnover = round(after_stock / sel_ds, 1) if sel_ds > 0 else 999
             max_turnover = int(cfg.get('max_turnover_days', '0'))
+            tw15 = int(cfg.get('turnover_warning_15', '15'))
+            tw90 = int(cfg.get('turnover_warning_90', '90'))
             note = f"箱规{box}件, 实补{suggested}件（{suggested//box}箱）" if suggested > 0 else "无需补货"
             if suggested > 0:
                 note += f", 补后周转{after_turnover}天"
-                note += f" > 目标{max_turnover}天" if after_turnover > max_turnover else f" < 目标{max_turnover}天"
-                note += ", 建议分批" if after_turnover > max_turnover else ", 周转正常"
+                if after_turnover <= tw15:
+                    note += " ✅ B仓免费期内"
+                elif after_turnover <= tw90:
+                    note += " ⚠️ 超B仓免费期, 有仓储费"
+                else:
+                    note += " 🔴 超周转考核红线90天"
+                note += ", 建议分批" if after_turnover > tw15 else ", 周转正常"
             suggestions.append({
                 "sku": sku, "product_name": prod.get('product_name', ''),
                 "store": prod.get('store', ''), "category": prod.get('category', ''),
@@ -149,11 +156,17 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             after_stock = avail + transit + suggested
             after_turnover = round(after_stock / sel_ds, 1) if sel_ds > 0 else 999
             max_turnover = int(cfg.get('max_turnover_days', '0'))
+            tw15 = int(cfg.get('turnover_warning_15', '15'))
+            tw90 = int(cfg.get('turnover_warning_90', '90'))
             note = f"箱规{box}件, 实补{suggested}件（{suggested//box}箱）" if suggested > 0 else "无需补货"
             if suggested > 0:
                 note += f", 补后周转{after_turnover}天"
-                note += f" > 目标{max_turnover}天" if after_turnover > max_turnover else f" < 目标{max_turnover}天"
-                note += ", 建议分批" if after_turnover > max_turnover else ", 周转正常"
+                if after_turnover <= tw15:
+                    note += " ✅ 周转正常"
+                elif after_turnover <= tw90:
+                    note += " ⚠️ 超过15天, 关注仓储"
+                else:
+                    note += " 🔴 超过90天, 周转考核风险"
             suggestions.append({
                 "sku": sku, "product_name": inv.get("product_name") or p.get("product_name", ""),
                 "store": inv.get("store"), "warehouse": inv.get("warehouse", ""), "category": p.get("category", ""),

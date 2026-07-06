@@ -478,6 +478,8 @@ def init_db(path=None):
         INSERT OR IGNORE INTO replenishment_config(key,value) VALUES('lead_time_days','10');
         INSERT OR IGNORE INTO replenishment_config(key,value) VALUES('safety_multiplier','1.0');
         INSERT OR IGNORE INTO replenishment_config(key,value) VALUES('max_turnover_days','17');
+        INSERT OR IGNORE INTO replenishment_config(key,value) VALUES('turnover_warning_15','15');
+        INSERT OR IGNORE INTO replenishment_config(key,value) VALUES('turnover_warning_90','90');
         INSERT OR IGNORE INTO replenishment_config(key,value) VALUES('purchase_lead_days','14');
         INSERT OR IGNORE INTO replenishment_config(key,value) VALUES('purchase_safety_days','3');
         INSERT OR IGNORE INTO replenishment_config(key,value) VALUES('moq','50');

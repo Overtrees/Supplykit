@@ -107,7 +107,10 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             # 第二步：B仓供给约束
             b_available = b_stock.get(sku, 0)
             suggested = min(c_gap, b_available)
-            b_gap = max(c_gap - b_available, 0)  # B仓缺口：需要从自有仓调
+            b_gap = max(c_gap - b_available, 0)
+            # 第三层：自有仓→B仓调拨量
+            b_ship_days = int(cfg.get('ship_to_b_days', '0'))
+            b_replenish = round(b_gap + sel_ds * b_ship_days + effective_safety) if b_gap > 0 else 0
             raw_suggested = suggested
             # 箱规向上取整
             prod = products.get(sku, {})
@@ -330,9 +333,11 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
         b_a = b_avail.get(sku, 0)
         own_a = st['own_avail']
 
-        # 采购量 = (全国C仓日销×采购前置期) + B仓安全库存 − B仓可用 − 自有仓可用
-        c_consume = round(ds * purchase_lead_time) if ds > 0 else 0
-        purchase_qty = max(c_consume + eff_safety - b_a - own_a, 0) if ds > 0 else 0
+        # 采购量 = 自有仓补B仓的缺口兜底
+        # B仓需补充 = C仓消耗预测 + B仓安全库存 - B仓已有
+        b_need = max(round(ds * purchase_lead_time) + eff_safety - b_a, 0) if ds > 0 else 0
+        # 自有仓缺口 = B仓需求 - 自有仓可用（自有仓不够时才采购）
+        purchase_qty = max(b_need - own_a, 0) if ds > 0 else 0
         # 兜底 MOQ
         purchase_qty = max(purchase_qty, moq_default) if purchase_qty > 0 else 0
 

@@ -260,8 +260,7 @@ export default function InsightsPage() {
                     <span onClick={()=>toggleOrdered(po.sku, po.store)} style={{cursor:'pointer',fontSize:14,color:'var(--danger)',opacity:0.6}}>↩</span>
                   </span>
                 </div>
-              })}}
-            </div>
+              })}
           </details>}
         </div>
       )}

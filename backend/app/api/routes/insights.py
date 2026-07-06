@@ -284,12 +284,14 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
     # 4. 系统总库存 = 全仓可用 + 全仓在途（平台仓+自有仓统一汇总）
     inv_data = db.table("inventory").select("*").execute().data
     stock_by_sku = {}
+    b_avail = {}
     for i in inv_data:
         s = i['sku']
         if s not in stock_by_sku:
             stock_by_sku[s] = {'available': 0, 'transit': 0, 'safety': 0, 'safety_days': 0,
                                'own_avail': 0, 'own_transit': 0, 'plat_avail': 0, 'plat_transit': 0,
                                'own_warehouse': ''}
+            b_avail[s] = 0
         qty = int(i.get('available_qty', 0) or 0)
         tty = int(i.get('in_transit_qty', 0) or 0)
         wt = i.get('warehouse_type', 'platform')
@@ -299,7 +301,9 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
         sd = float(i.get('safety_days', 0) or 0)
         if sd > stock_by_sku[s]['safety_days']:
             stock_by_sku[s]['safety_days'] = sd
-        if wt == 'own':
+        if wt == 'platform_b':
+            b_avail[s] += qty
+        elif wt == 'own':
             stock_by_sku[s]['own_avail'] += qty
             stock_by_sku[s]['own_transit'] += tty
             if not stock_by_sku[s]['own_warehouse']:
@@ -323,14 +327,12 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
         # 安全库存
         safety_days = st['safety_days'] if st['safety_days'] > 0 else purchase_safety_days
         eff_safety = round(ds * safety_days) if ds > 0 else 0
+        b_a = b_avail.get(sku, 0)
+        own_a = st['own_avail']
 
-        # 再订货点 = 日销 × (采购前置期 + 安全天数)
-        reorder_point = round(ds * (purchase_lead_time + safety_days)) if ds > 0 else 0
-        # 系统可用离再订货点还有几天
-        days_to_reorder = round((sys_avail - reorder_point) / ds, 1) if ds > 0 else 999
-
-        # 采购量 = 日销×采购前置期 + 安全库存 - 系统总库存
-        purchase_qty = max(round(ds * purchase_lead_time + eff_safety - sys_total), 0) if ds > 0 else 0
+        # 采购量 = (全国C仓日销×采购前置期) + B仓安全库存 − B仓可用 − 自有仓可用
+        c_consume = round(ds * purchase_lead_time) if ds > 0 else 0
+        purchase_qty = max(c_consume + eff_safety - b_a - own_a, 0) if ds > 0 else 0
         # 兜底 MOQ
         purchase_qty = max(purchase_qty, moq_default) if purchase_qty > 0 else 0
 
@@ -342,7 +344,8 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
         target_turn = int(raw.get('max_turnover_days', '0'))
         note = ""
         if purchase_qty > 0:
-            note = f"箱规{box_qty}件, 实购{actual_purchase}件"
+            note = f"C仓消耗{c_consume}+安全{eff_safety} -B仓{int(b_a)} -自有{int(own_a)} ={int(purchase_qty)}"
+            note += f" | 箱规{box_qty}件, 实购{actual_purchase}件"
             note += f"（{actual_purchase//box_qty}箱）" if box_qty > 1 else ""
             note += f", 补后周转{after_turnover}天"
             if target_turn > 0:
@@ -365,9 +368,8 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
             'sys_available': sys_avail, 'sys_transit': sys_transit, 'sys_total': sys_total,
             'own_available': st['own_avail'], 'own_transit': st['own_transit'],
             'plat_available': st['plat_avail'], 'plat_transit': st['plat_transit'],
+            'b_available': b_avail.get(sku, 0),
             'safety_qty': st['safety'], 'daily_sales': ds,
-            'reorder_point': reorder_point,
-            'days_to_reorder': days_to_reorder,
             'purchase_qty': purchase_qty, 'box_qty': box_qty, 'actual_purchase': actual_purchase,
             'after_stock': st['own_avail'] + purchase_qty, 'after_turnover': after_turnover,
             'days_to_empty': days_to_empty, 'note': note,

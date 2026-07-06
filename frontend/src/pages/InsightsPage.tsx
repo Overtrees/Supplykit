@@ -261,6 +261,7 @@ export default function InsightsPage() {
                   </span>
                 </div>
               })}
+            </div>
           </details>}
         </div>
       )}

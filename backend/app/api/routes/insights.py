@@ -674,7 +674,6 @@ def inventory_with_sales(db = get_db()):
         qty = int(o.get('quantity',0) or 0)
         if sku and dt >= cutoff_28:
             sales_28[sku] = sales_28.get(sku, 0) + qty
-        if sku and dt >= month_start:
     result = []
     for i in inv:
         sku = i['sku']
@@ -695,6 +694,6 @@ def inventory_with_sales(db = get_db()):
             'month_outbound': outbound_month.get(sku, 0),
             'month_start': month_start,
             'month_end': month_end,
-            'turnover_days': round(avail / ds, 1) if ds > 0 else None,
+            'turnover_days': round((avail + inbound_month.get(sku, 0)) / outbound_month.get(sku, 0), 1) if outbound_month.get(sku, 0) > 0 else None,
         })
     return result

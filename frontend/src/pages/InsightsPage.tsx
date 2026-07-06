@@ -216,7 +216,7 @@ export default function InsightsPage() {
                     <tr key={i}>
                       <td style={{fontSize:11,color:'var(--muted2)'}}>{i+1}</td>
                       <td className="mono" style={{ fontSize: 12 }}>{x.sku}</td>
-                      <td>{x.product_name}</td><td className="col-store" title={replenMode==='bbcc' && x.warehouse_detail ? x.warehouse_detail.map(w=>w.warehouse).join('、') : ''}>{replenMode==='bbcc' && x.warehouse_detail ? x.warehouse_detail.map(w=>w.warehouse).join('、') : (x.warehouse || x.store || '-')}</td>
+                      <td>{x.product_name}</td><td className="col-store">{replenMode==='bbcc' ? 'B仓' : (x.warehouse || x.store || '-')}</td>
                       <td style={{ color: x.available_qty === 0 ? '#ef4444' : 'var(--text)', fontWeight: 600 }}>{x.available_qty}</td>
                       <td>{x.in_transit_qty}</td>
                       <td style={{fontSize:11,fontWeight:600}}>{x.daily_sales}</td>

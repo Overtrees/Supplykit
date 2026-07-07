@@ -32,8 +32,6 @@ export default function InsightsPage() {
   const toast = useToast()
   const [tab, setTab] = useState('replen')
   const [replen, setReplen] = useState([])
-  const [replenDays, setReplenDays] = useState(28)
-  const [trendArrows, setTrendArrows] = useState({})
   const [purchase, setPurchase] = useState([])
   const [summary, setSummary] = useState(null)
   const [activities, setActivities] = useState([])
@@ -50,20 +48,10 @@ export default function InsightsPage() {
 
   const [replenMode, setReplenMode] = useState(() => localStorage.getItem('c_replen_mode') || 'bbcc')
 
-  const switchMode = (m) => { setReplenMode(m); localStorage.setItem('c_replen_mode', m); loadReplen(replenDays, m) }
-  const loadReplen = async (days, mode) => {
+  const switchMode = (m) => { setReplenMode(m); localStorage.setItem('c_replen_mode', m); loadReplen(replenMode) }
+  const loadReplen = async (mode) => {
     setReplenLoading(true)
-    try { const r = await api.get('/api/insights/replenishment?days=' + (days||replenDays) + '&mode=' + (mode||replenMode)); setReplen(r.data || [])
-      // 趋势箭头（基于各窗口对比）
-      if (r.data && r.data.length > 0 && mode === 'bbcc') {
-        const item = r.data.find(x => x.daily_sales_7 != null) || r.data[0]
-        const s7 = item.daily_sales_7 || 0
-        const s14 = item.daily_sales_14 || 0
-        const s28 = item.daily_sales_28 || 0
-        const a7 = s7 > s14 * 1.15 ? '📈' : (s7 < s14 * 0.85 ? '📉' : '➡️')
-        const a14 = s14 > s28 * 1.15 ? '📈' : (s14 < s28 * 0.85 ? '📉' : '➡️')
-        setTrendArrows({7: a7, 14: a14, 28: '➡️'})
-      }
+    try { const r = await api.get('/api/insights/replenishment?days=28&mode=' + (mode||replenMode)); setReplen(r.data || [])
     } catch(e) {}
     setReplenLoading(false)
   }
@@ -108,10 +96,10 @@ export default function InsightsPage() {
     setInitLoading(true)
     loadOrdered()
     // 补货建议独立加载（自带 loading 管理）
-    loadReplen(replenDays, replenMode)
+    loadReplen(replenMode)
     // 其余 4 组数据同时加载
     const otherPromises = [
-      api.get('/api/insights/purchase?days=' + replenDays + '&mode=' + replenMode),
+      api.get('/api/insights/purchase?days=28&mode=' + replenMode),
       api.get('/api/insights/summary'),
       api.get('/api/events'),
       api.get('/api/insights/slow-moving'),
@@ -190,17 +178,9 @@ export default function InsightsPage() {
               <span style={{marginLeft:12,display:'inline-flex',flexWrap:'wrap',gap:4}}>
                 <span onClick={()=>switchMode('bbcc')} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',background:replenMode==='bbcc'?'var(--primary)':'transparent',color:replenMode==='bbcc'?'#fff':''}}>BBCC</span>
                 <span onClick={()=>switchMode('traditional')} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',background:replenMode==='traditional'?'var(--primary)':'transparent',color:replenMode==='traditional'?'#fff':''}}>传统</span>
-                {[7,14,28].map(d => (
-                  <span key={d} onClick={()=>{setReplenDays(d);loadReplen(d, replenMode)}}
-                    className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',position:'relative',
-                      background:replenDays===d?'var(--primary)':'transparent',
-                      color:replenDays===d?'#fff':'var(--muted)',fontWeight:replenDays===d?600:400}}>
-                    {d}天{trendArrows[d]||''}
-                  </span>
-                ))}
                 <button onClick={async()=>{
                   try {
-                    const r = await fetch(API+'/api/insights/export-purchase?days='+replenDays+'&mode=bbcc')
+                    const r = await fetch(API+'/api/insights/export-purchase?days=28&mode=bbcc')
                     const blob = await r.blob()
                     const url = URL.createObjectURL(blob)
                     const a = document.createElement('a')
@@ -236,7 +216,10 @@ export default function InsightsPage() {
                       <td style={{fontWeight:600}}>{x.c_stock ?? x.available_qty}</td>
                       </> : <td style={{fontWeight:600}}>{x.available_qty}</td>}
                       <td>{x.in_transit_qty}</td>
-                      <td style={{fontSize:11,fontWeight:600,whiteSpace:'nowrap'}}>{x.daily_sales}<span style={{fontSize:10,fontWeight:400,color:'var(--muted2)'}}> /{x.daily_sales_7||0}/{x.daily_sales_14||0}/{x.daily_sales_28||0}</span></td>
+                      <td style={{fontSize:11,fontWeight:600,whiteSpace:'nowrap'}}>{x.daily_sales}<span style={{fontSize:10,fontWeight:400,color:'var(--muted2)'}}>
+                        /{(x.daily_sales_7||0) > (x.daily_sales_14||0)*1.15?'📈':(x.daily_sales_7||0) < (x.daily_sales_14||0)*0.85?'📉':'➡️'}{x.daily_sales_7||0}
+                        /{(x.daily_sales_14||0) > (x.daily_sales_28||0)*1.15?'📈':(x.daily_sales_14||0) < (x.daily_sales_28||0)*0.85?'📉':'➡️'}{x.daily_sales_14||0}
+                        /{x.daily_sales_28||0}</span></td>
                       {replenMode==='bbcc' ? <>
                       <td style={{fontSize:11,fontWeight:600}}>{x.c_turnover != null ? x.c_turnover+'天' : '∞'}</td>
                       <td style={{fontSize:11}}>{x.transit_turnover != null ? x.transit_turnover+'天' : '∞'}</td>

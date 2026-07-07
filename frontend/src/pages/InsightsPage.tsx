@@ -204,7 +204,7 @@ export default function InsightsPage() {
             <div style={{ overflowX: 'auto' }}>
               <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 13 列 · 左右滑动查看</div>
               <table>
-                <thead><tr>{['','SKU','商品','仓库',...(replenMode==='bbcc'?['B仓可用库存','全国C仓总和可用库存',`B-C仓调拨在途`, `全国C仓日销(融合/7/14/28)`]:['现有','在途',`日销(融合/7/14/28)`]),...(replenMode==='bbcc'?['全国C仓总和周转','B→C 调拨在途总和周转','综合周转']:['安全线','在库周转','补后周转']),...(replenMode==='bbcc'?['C仓建议补','B仓需补']:['建议补','实际补']),'备注',''].map(h => <th key={h} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{h}</th>)}</tr></thead>
+                <thead><tr>{['','SKU','商品','仓库',...(replenMode==='bbcc'?['B仓可用库存','全国C仓总和可用库存',`B-C仓调拨在途`, `全国C仓日销(融合/7/14/28)`]:['现有','在途',`日销(融合/7/14/28)`]),...(replenMode==='bbcc'?['全国C仓总和周转','B→C 调拨在途总和周转','当前综转','补后综转']:['安全线','在库周转','补后周转']),...(replenMode==='bbcc'?['C仓建议补','B仓需补']:['建议补','实际补']),'备注',''].map(h => <th key={h} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{h}</th>)}</tr></thead>
                 <tbody>
                   {replen.filter(x => !orderedKeys.includes(x.sku+'|'+x.store)).map((x, i) => (
                     <tr key={i}>
@@ -223,6 +223,7 @@ export default function InsightsPage() {
                       {replenMode==='bbcc' ? <>
                       <td style={{fontSize:11,fontWeight:600}}>{x.c_turnover != null ? x.c_turnover+'天' : '∞'}</td>
                       <td style={{fontSize:11}}>{x.transit_turnover != null ? x.transit_turnover+'天' : '∞'}</td>
+                      <td style={{fontSize:11}}>{x.combined_turnover_current != null ? x.combined_turnover_current+'天' : '∞'}</td>
                       <td style={{fontSize:11,fontWeight:700,color:x.combined_turnover != null && x.combined_turnover > 90 ? '#ef4444' : x.combined_turnover != null && x.combined_turnover > 15 ? 'var(--warning)' : 'var(--text)'}}>{x.combined_turnover != null ? x.combined_turnover+'天' : '∞'}</td>
                       </> : <>
                       <td>{x.safety_qty}</td>

@@ -182,7 +182,8 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             # BBCC三环节周转
             c_turnover = round(avail / sel_ds, 1) if sel_ds > 0 else None      # C仓周转
             transit_turnover = round(transit / sel_ds, 1) if sel_ds > 0 else None  # 在途周转
-            combined_turnover = round((avail + transit + suggested + b_stock.get(sku, 0) + b_box_qty) / sel_ds, 1) if sel_ds > 0 else None  # 综合周转(含补货后)
+            combined_turnover_current = round((avail + transit + b_stock.get(sku, 0)) / sel_ds, 1) if sel_ds > 0 else None  # 当前综合周转
+            combined_turnover = round((avail + transit + suggested + b_stock.get(sku, 0) + b_box_qty) / sel_ds, 1) if sel_ds > 0 else None  # 补后综合周转
             suggestions.append({
                 "sku": sku, "product_name": prod.get('product_name', ''),
                 "store": prod.get('store', ''), "category": prod.get('category', ''),
@@ -193,7 +194,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                 "b_suggested": b_box_qty, "b_replenish_raw": b_replenish,
                 "days_to_empty": days_to_empty, "after_turnover": after_turnover,
                 "c_turnover": c_turnover, "transit_turnover": transit_turnover,
-                "combined_turnover": combined_turnover,
+                "combined_turnover_current": combined_turnover_current, "combined_turnover": combined_turnover,
                 "warehouse_detail": wh_detail.get(sku, []),
                 "urgency": "紧急" if days_to_empty < 3 else ("建议" if suggested > 0 or b_box_qty > 0 else "正常"),
                 "warehouses": len(st['warehouses']), "note": note, "box_qty": box,

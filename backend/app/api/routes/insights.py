@@ -155,27 +155,27 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             effective_safety = round(sel_ds * safety_days) if sel_ds > 0 else 0
             # 第一步：C仓需求缺口（安全天数 safety_multiplier 归自有仓→B仓调拨使用，不叠加在此）
             c_gap = max(round(sel_ds * lead_time - avail - transit), 0) if sel_ds > 0 else 0
-            # 第二步：B仓供给约束
+            # 第二步：B仓供给约束（B不足时用自有仓→B仓调拨量兜底）
             b_available = b_stock.get(sku, 0)
             suggested = min(c_gap, b_available)
             b_gap = max(c_gap - b_available, 0)
             # 第三层：自有仓→B仓调拨量（运输期间C仓持续销售，货到B仓即被京东调往C，需多备这段消耗）
             b_ship_days = int(cfg.get('ship_to_b_days', '0'))
             b_replenish = round(b_gap + sel_ds * b_ship_days + effective_safety) if b_gap > 0 else 0
-            raw_suggested = suggested
+            raw_suggested = suggested if suggested > 0 else b_replenish  # B空时显示自有仓调拨量
             # 箱规向上取整
             prod = products.get(sku, {})
             box = int(prod.get('box_qty', 1) or 1)
-            box_qty = (suggested + box - 1) // box * box if suggested > 0 else 0
+            box_qty = (raw_suggested + box - 1) // box * box if raw_suggested > 0 else 0
             suggested = box_qty
-            days_to_empty = round(avail / sel_ds, 1) if sel_ds > 0 else 999
             after_stock = avail + transit + suggested
             after_turnover = round(after_stock / sel_ds, 1) if sel_ds > 0 else 999
+            days_to_empty = round(avail / sel_ds, 1) if sel_ds > 0 else 999
             tw15 = int(cfg.get('turnover_warning_15', '15'))
             tw90 = int(cfg.get('turnover_warning_90', '90'))
-            note = f"箱规{box}件, 实补{suggested}件（{suggested//box}箱）" if suggested > 0 else "无需补货"
-            if c_gap > b_available and suggested > 0:
-                note += f" ⚠️ B仓仅{b_available}件, 缺口{b_gap}件需从自有仓调拨"
+            note = f"箱规{box}件, 实补{suggested}件({suggested//box}箱)" if suggested > 0 else "无需补货"
+            if c_gap > b_available and b_gap > 0:
+                note += f" ⚠️ B仓仅{b_available}件, 缺口{b_gap}件需从自有仓调拨(运输{round(sel_ds*b_ship_days)}件+安全{round(effective_safety)}件)"
             if suggested > 0:
                 note += f", 补后周转{after_turnover}天"
                 if after_turnover <= tw15:

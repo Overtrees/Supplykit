@@ -207,9 +207,9 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             safety = int(inv.get("safety_qty") or 0)
             transit = int(inv.get("in_transit_qty") or 0)
             wh_s = wh_sales_cache.get(wh, {7:{},14:{},28:{}})
-            ds7 = round(wh_s[7].get(sku, 0) / 7, 1)
-            ds14 = round(wh_s[14].get(sku, 0) / 14, 1)
-            ds28 = round(wh_s[28].get(sku, 0) / 28, 1)
+            ds7 = round(wh_s[7].get(sku, 0), 1)
+            ds14 = round(wh_s[14].get(sku, 0), 1)
+            ds28 = round(wh_s[28].get(sku, 0), 1)
             sel_ds = {28: ds28, 14: ds14, 7: ds7}[days]
             sel_ds = round(sel_ds * active_factor, 1)
 
@@ -241,7 +241,8 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                 "sku": sku, "product_name": inv.get("product_name") or p.get("product_name", ""),
                 "store": inv.get("store"), "warehouse": inv.get("warehouse", ""), "category": p.get("category", ""),
                 "available_qty": avail, "safety_qty": safety, "in_transit_qty": transit,
-                "daily_sales": sel_ds, "raw_suggested": raw_suggested, "suggested_qty": suggested,
+                "daily_sales": sel_ds, "daily_sales_7": round(sales_7.get(sku, 0), 1), "daily_sales_14": round(sales_14.get(sku, 0), 1), "daily_sales_28": round(sales_28.get(sku, 0), 1),
+                "raw_suggested": raw_suggested, "suggested_qty": suggested,
                 "days_to_empty": days_to_empty, "after_turnover": after_turnover, "note": note,
                 "box_qty": box, "urgency": "紧急" if days_to_empty < 3 else ("建议" if suggested > 0 else "正常"),
             })

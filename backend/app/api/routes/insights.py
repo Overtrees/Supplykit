@@ -310,16 +310,38 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
         if isinstance(s, dict) and s.get('enabled') and float(s.get('factor', 1.0)) > active_factor:
             active_factor = float(s['factor'])
 
-    # 3. 日销（按 days 窗口）
+    # 3. 日销（按 days 窗口，异常剔除+趋势加权，与补货一致）
     now = datetime.utcnow()
     cutoff = (now - timedelta(days=days)).strftime('%Y-%m-%d')
-    sales_by_sku = {}
+    daily_raw = {}
     for o in db.table("orders").select("*").execute().data:
         sku = o.get("sku", "")
         dt = str(o.get("ordered_at", ""))[:10]
+        qty = int(o.get('quantity', 0) or 0)
         if dt >= cutoff:
-            sales_by_sku[sku] = sales_by_sku.get(sku, 0) + int(o.get('quantity', 0) or 0)
-    daily_sales = {k: round(v / days, 1) for k, v in sales_by_sku.items()}
+            if sku not in daily_raw: daily_raw[sku] = {}
+            daily_raw[sku][dt] = daily_raw[sku].get(dt, 0) + qty
+    daily_sales = {}
+    for sku, daily in daily_raw.items():
+        total = sum(daily.values())
+        n = len(daily)
+        base = total / days if days > 0 else 0
+        if n < 3 or days < 7:
+            daily_sales[sku] = base
+            continue
+        all_days = [(now - timedelta(days=i)).strftime('%Y-%m-%d') for i in range(days)]
+        vals = [daily.get(d, 0) for d in all_days]
+        mean = sum(vals) / days
+        var = sum((v - mean) ** 2 for v in vals) / days
+        std = var ** 0.5
+        threshold = max(3 * std, mean * 1.5)
+        w_sum = w_total = 0
+        for idx, v in enumerate(reversed(vals)):
+            if abs(v - mean) <= threshold:
+                w = 1.5 if idx >= days - 3 else 1.0
+                w_sum += v * w
+                w_total += w
+        daily_sales[sku] = w_sum / w_total if w_total > 0 else 0
 
     # 4. 系统总库存 = 全仓可用 + 全仓在途（平台仓+自有仓统一汇总）
     inv_data = db.table("inventory").select("*").execute().data

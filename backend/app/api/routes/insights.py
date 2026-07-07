@@ -174,22 +174,15 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             days_to_empty = round(avail / sel_ds, 1) if sel_ds > 0 else 999
             tw15 = int(cfg.get('turnover_warning_15', '15'))
             tw90 = int(cfg.get('turnover_warning_90', '90'))
-            note = f"C仓建议{suggested}件  B仓需补{b_box_qty}件 · 箱规{box}件"
+            note = f"C仓建议{suggested}件  B仓需补{b_box_qty}件 · 箱规{box}件" if (suggested > 0 or b_box_qty > 0) else "库存充足"
             if b_gap > 0:
                 note += f" ⚠️ B仓仅{b_available}件, 缺口{b_gap}件需从自有仓调拨(运输{round(sel_ds*b_ship_days)}件+安全{round(effective_safety)}件)"
             if suggested > 0:
-                note += f", 补后周转{after_turnover}天"
-                if after_turnover <= tw15:
-                    note += " ✅ B仓免费期内"
-                elif after_turnover <= tw90:
-                    note += " ⚠️ 超B仓免费期, 有仓储费"
-                else:
-                    note += " 🔴 超周转考核红线90天"
-                note += ", 建议分批" if after_turnover > tw15 else ", 周转正常"
+                note += f", 补后周转{after_turnover}天 " + ("✅" if after_turnover <= tw15 else ("⚠️" if after_turnover <= tw90 else "🔴"))
             # BBCC三环节周转
             c_turnover = round(avail / sel_ds, 1) if sel_ds > 0 else None      # C仓周转
             transit_turnover = round(transit / sel_ds, 1) if sel_ds > 0 else None  # 在途周转
-            combined_turnover = round((avail + transit + b_stock.get(sku, 0)) / sel_ds, 1) if sel_ds > 0 else None  # 综合周转(B+在途+C)
+            combined_turnover = round((avail + transit + suggested + b_stock.get(sku, 0) + b_box_qty) / sel_ds, 1) if sel_ds > 0 else None  # 综合周转(含补货后)
             suggestions.append({
                 "sku": sku, "product_name": prod.get('product_name', ''),
                 "store": prod.get('store', ''), "category": prod.get('category', ''),

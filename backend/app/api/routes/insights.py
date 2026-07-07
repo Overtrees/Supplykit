@@ -330,38 +330,40 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
         if isinstance(s, dict) and s.get('enabled') and float(s.get('factor', 1.0)) > active_factor:
             active_factor = float(s['factor'])
 
-    # 3. 日销（按 days 窗口，异常剔除+趋势加权，与补货一致）
+    # 3. 日销：14天+28天双窗口融合（采购求稳，不加7天）
+    def purchase_calc(win):
+        cutoff = (now - timedelta(days=win)).strftime('%Y-%m-%d')
+        daily_raw = {}
+        for o in db.table("orders").select("*").execute().data:
+            s = o.get("sku", ""); dt = str(o.get("ordered_at", ""))[:10]; q = int(o.get('quantity',0) or 0)
+            if dt >= cutoff:
+                daily_raw.setdefault(s, {})[dt] = daily_raw[s].get(dt, 0) + q
+        result = {}
+        for sku, daily in daily_raw.items():
+            all_d = [(now - timedelta(days=i)).strftime('%Y-%m-%d') for i in range(win)]
+            vals = [daily.get(d, 0) for d in all_d]
+            mean = sum(vals) / win
+            var = sum((v-mean)**2 for v in vals) / win
+            th = max(3*var**0.5, mean*1.5)
+            w_sum = w_total = 0
+            for idx, v in enumerate(reversed(vals)):
+                if abs(v-mean) <= th:
+                    w = 1.5 if idx >= win-3 else 1.0
+                    w_sum += v * w; w_total += w
+            result[sku] = round(w_sum/w_total, 1) if w_total > 0 else round(mean, 1)
+        return result
     now = datetime.utcnow()
-    cutoff = (now - timedelta(days=days)).strftime('%Y-%m-%d')
-    daily_raw = {}
-    for o in db.table("orders").select("*").execute().data:
-        sku = o.get("sku", "")
-        dt = str(o.get("ordered_at", ""))[:10]
-        qty = int(o.get('quantity', 0) or 0)
-        if dt >= cutoff:
-            if sku not in daily_raw: daily_raw[sku] = {}
-            daily_raw[sku][dt] = daily_raw[sku].get(dt, 0) + qty
-    daily_sales = {}
-    for sku, daily in daily_raw.items():
-        total = sum(daily.values())
-        n = len(daily)
-        base = total / days if days > 0 else 0
-        if n < 3 or days < 7:
-            daily_sales[sku] = base
-            continue
-        all_days = [(now - timedelta(days=i)).strftime('%Y-%m-%d') for i in range(days)]
-        vals = [daily.get(d, 0) for d in all_days]
-        mean = sum(vals) / days
-        var = sum((v - mean) ** 2 for v in vals) / days
-        std = var ** 0.5
-        threshold = max(3 * std, mean * 1.5)
-        w_sum = w_total = 0
-        for idx, v in enumerate(reversed(vals)):
-            if abs(v - mean) <= threshold:
-                w = 1.5 if idx >= days - 3 else 1.0
-                w_sum += v * w
-                w_total += w
-        daily_sales[sku] = w_sum / w_total if w_total > 0 else 0
+    sales_14 = purchase_calc(14)
+    sales_28 = purchase_calc(28)
+    # 融合：按14vs28趋势分配权重
+    fused_sales = {}
+    all_skus = set(sales_14.keys()) | set(sales_28.keys())
+    for sku in all_skus:
+        s14 = sales_14.get(sku, 0); s28 = sales_28.get(sku, 0)
+        if s14 > s28 * 1.15: w14, w28 = 0.55, 0.45
+        elif s14 < s28 * 0.85: w14, w28 = 0.35, 0.65
+        else: w14, w28 = 0.20, 0.80
+        fused_sales[sku] = round(s14 * w14 + s28 * w28, 1)
 
     # 4. 系统总库存 = 全仓可用 + 全仓在途（平台仓+自有仓统一汇总）
     inv_data = db.table("inventory").select("*").execute().data
@@ -401,10 +403,10 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
     # 传统模式暂用系统库存（同BBCC逻辑）
     
 
-    # 6. 逐 SKU 计算（系统总库存视角）
+    # 6. 逐 SKU 计算（系统总库存视角，日销用14+28融合值）
     result = []
     for sku, st in stock_by_sku.items():
-        ds = round(daily_sales.get(sku, 0) * active_factor, 1)  # 含活动系数
+        ds = round(fused_sales.get(sku, 0) * active_factor, 1)  # 含活动系数
         sys_avail = st['available']
         sys_transit = st['transit']
         sys_total = sys_avail + sys_transit  # 系统总库存

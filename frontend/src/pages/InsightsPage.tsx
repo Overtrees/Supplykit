@@ -204,7 +204,7 @@ export default function InsightsPage() {
             <div style={{ overflowX: 'auto' }}>
               <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 13 列 · 左右滑动查看</div>
               <table>
-                <thead><tr>{['','SKU','商品','仓库',...(replenMode==='bbcc'?['B仓可用库存','全国C仓总和可用库存',`B-C仓调拨在途`, `全国C仓日销(融合/7/14/28)`]:['现有','在途',`日销(融合/7/14/28)`]),...(replenMode==='bbcc'?['全国C仓总和周转','B→C 调拨在途总和周转','综合周转']:['安全线','在库周转','补后周转']),'建议补','实际补','备注',''].map(h => <th key={h} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{h}</th>)}</tr></thead>
+                <thead><tr>{['','SKU','商品','仓库',...(replenMode==='bbcc'?['B仓可用库存','全国C仓总和可用库存',`B-C仓调拨在途`, `全国C仓日销(融合/7/14/28)`]:['现有','在途',`日销(融合/7/14/28)`]),...(replenMode==='bbcc'?['全国C仓总和周转','B→C 调拨在途总和周转','综合周转']:['安全线','在库周转','补后周转']),...(replenMode==='bbcc'?['C仓建议补','B仓需补']:['建议补','实际补']),'备注',''].map(h => <th key={h} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{h}</th>)}</tr></thead>
                 <tbody>
                   {replen.filter(x => !orderedKeys.includes(x.sku+'|'+x.store)).map((x, i) => (
                     <tr key={i}>
@@ -228,11 +228,14 @@ export default function InsightsPage() {
                       <td>{x.safety_qty}</td>
                       <td style={{color: x.days_to_empty < 5 ? '#ef4444' : x.days_to_empty < 10 ? 'var(--warning)' : 'var(--text)'}}>{x.days_to_empty > 999 ? '∞' : x.days_to_empty}</td>
                       </>}
-                      <td style={{color:'var(--primary)',fontWeight:600}}>{x.raw_suggested || x.suggested_qty}</td>
-                      <td style={{color:'var(--success)',fontWeight:700}}>{x.suggested_qty > 0 ? x.suggested_qty : '-'}</td>
+                      {replenMode==='bbcc'
+                        ? <><td style={{color:'var(--primary)',fontWeight:600}}>{x.suggested_qty > 0 ? x.suggested_qty : '-'}</td>
+                          <td style={{color:'var(--success)',fontWeight:700}}>{x.b_suggested > 0 ? x.b_suggested : '-'}</td></>
+                        : <><td style={{color:'var(--primary)',fontWeight:600}}>{x.raw_suggested || x.suggested_qty}</td>
+                          <td style={{color:'var(--success)',fontWeight:700}}>{x.suggested_qty > 0 ? x.suggested_qty : '-'}</td></>}
                       {replenMode!=='bbcc' && <td style={{fontWeight:600,color:x.suggested_qty > 0 && (x.after_turnover||0) > 15 ? '#ef4444' : 'var(--text)'}}>{x.suggested_qty > 0 ? x.after_turnover+'天' : '-'}</td>}
                       <td className="col-name" style={{color:'var(--muted2)',fontSize:12}}>{x.note || '-'}</td>
-                      <td><span onClick={()=>toggleOrdered(x.sku, x.store, x.product_name, x.suggested_qty)} style={{cursor:'pointer',fontSize:18,opacity:0.5}}>☐</span></td>
+                      <td><span onClick={()=>toggleOrdered(x.sku, x.store, x.product_name, x.suggested_qty || x.b_suggested)} style={{cursor:'pointer',fontSize:18,opacity:0.5}}>☐</span></td>
                     </tr>
                   ))}
                 </tbody>

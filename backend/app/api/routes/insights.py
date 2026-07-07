@@ -168,13 +168,14 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             box = int(prod.get('box_qty', 1) or 1)
             box_qty = (raw_suggested + box - 1) // box * box if raw_suggested > 0 else 0
             suggested = box_qty
+            b_box_qty = (b_replenish + box - 1) // box * box if b_replenish > 0 else 0
             after_stock = avail + transit + suggested
             after_turnover = round(after_stock / sel_ds, 1) if sel_ds > 0 else 999
             days_to_empty = round(avail / sel_ds, 1) if sel_ds > 0 else 999
             tw15 = int(cfg.get('turnover_warning_15', '15'))
             tw90 = int(cfg.get('turnover_warning_90', '90'))
-            note = f"箱规{box}件, 实补{suggested}件({suggested//box}箱)" if suggested > 0 else "无需补货"
-            if c_gap > b_available and b_gap > 0:
+            note = f"C仓建议{suggested}件  B仓需补{b_box_qty}件 · 箱规{box}件"
+            if b_gap > 0:
                 note += f" ⚠️ B仓仅{b_available}件, 缺口{b_gap}件需从自有仓调拨(运输{round(sel_ds*b_ship_days)}件+安全{round(effective_safety)}件)"
             if suggested > 0:
                 note += f", 补后周转{after_turnover}天"
@@ -196,11 +197,12 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                 "b_stock": b_stock.get(sku, 0), "c_stock": avail, "b_gap": b_gap,
                 "daily_sales": sel_ds, "daily_sales_7": round(ds7, 1), "daily_sales_14": round(ds14, 1), "daily_sales_28": round(ds28, 1),
                 "raw_suggested": raw_suggested, "suggested_qty": suggested,
+                "b_suggested": b_box_qty, "b_replenish_raw": b_replenish,
                 "days_to_empty": days_to_empty, "after_turnover": after_turnover,
                 "c_turnover": c_turnover, "transit_turnover": transit_turnover,
                 "combined_turnover": combined_turnover,
                 "warehouse_detail": wh_detail.get(sku, []),
-                "urgency": "紧急" if days_to_empty < 3 else ("建议" if suggested > 0 else "正常"),
+                "urgency": "紧急" if days_to_empty < 3 else ("建议" if suggested > 0 or b_box_qty > 0 else "正常"),
                 "warehouses": len(st['warehouses']), "note": note, "box_qty": box,
                 "lead_time": lead_time, "safety_days": safety_days,
             })

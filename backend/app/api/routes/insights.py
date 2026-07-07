@@ -27,11 +27,11 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     products = {p["sku"]: p for p in db.table("products").select("*").execute().data}
     orders = db.table("orders").select("*").execute().data
 
-    # 三周期日销预计算（可选按数据源和仓库过滤）
+# 三周期日销预计算（可选按数据源和仓库过滤）——返回日均值（含异常剔除+趋势加权）
     def calc_sales(cutoff_days, wh_name=None):
+        from datetime import timedelta
         cutoff = (datetime.utcnow() - timedelta(days=cutoff_days)).strftime('%Y-%m-%d')
-        sku_s = {}
-        daily_by_sku = {}  # SKU → {日期: 销量}
+        daily_by_sku = {}
         for o in orders:
             if source and o.get('data_source','') != source: continue
             if wh_name and o.get('warehouse','') != wh_name: continue
@@ -40,38 +40,40 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             dt = str(o.get('ordered_at', ''))[:10]
             qty = int(o.get('quantity', 0) or 0)
             if dt >= cutoff:
-                sku_s[sku] = sku_s.get(sku, 0) + qty
                 if sku not in daily_by_sku:
                     daily_by_sku[sku] = {}
                 daily_by_sku[sku][dt] = daily_by_sku[sku].get(dt, 0) + qty
 
-        # 异常值检测 + 趋势加权
+        from datetime import timedelta
         result = {}
-        for sku, total in sku_s.items():
-            daily = daily_by_sku.get(sku, {})
-            values = list(daily.values())
-            n = len(values)
-            if n < 3:
-                result[sku] = total / cutoff_days
+        for sku, daily in daily_by_sku.items():
+            n = len(daily)
+            total = sum(daily.values())
+            base_avg = total / cutoff_days
+            if n < 3 or cutoff_days < 7:
+                result[sku] = base_avg
                 continue
-            # 计算均值、标准差
-            mean = sum(values) / n
-            var = sum((v - mean) ** 2 for v in values) / n
+            all_days = []
+            for i in range(cutoff_days):
+                d = (datetime.utcnow() - timedelta(days=i)).strftime("%Y-%m-%d")
+                all_days.append(daily.get(d, 0))
+            nd = cutoff_days
+            mean = sum(all_days) / nd
+            var = sum((v - mean) ** 2 for v in all_days) / nd
             std = var ** 0.5
-            # 剔除异常（超出均值±3倍标准差）
-            clean = [v for v in values if abs(v - mean) <= max(3 * std, mean * 1.5)]
-            # 趋势加权：近3天权重1.5，其余1.0
-            sorted_dates = sorted(daily.keys(), reverse=True)
+            threshold = max(3 * std, mean * 1.5)
             weighted_sum = 0
             weight_total = 0
-            for idx, date in enumerate(sorted_dates):
-                v = daily[date]
-                if v in clean or len(clean) == len(values):  # 没异常或已清洗
-                    w = 1.5 if idx < 3 else 1.0  # 近3天权重1.5
+            for idx, v in enumerate(reversed(all_days)):
+                if abs(v - mean) <= threshold:
+                    w = 1.5 if idx >= nd - 3 else 1.0
                     weighted_sum += v * w
                     weight_total += w
-            daily_avg = weighted_sum / weight_total if weight_total > 0 else 0
-            result[sku] = daily_avg
+            result[sku] = weighted_sum / weight_total if weight_total > 0 else 0
+        # 补0日销的SKU
+        for sku in set(o.get('sku','') for o in orders):
+            if sku not in result:
+                result[sku] = 0
         return result
 
     sales_7 = calc_sales(7)
@@ -127,9 +129,9 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                 })
         for sku, st in agg.items():
             avail = st['available']; transit = st['transit']; safety = st['safety']
-            ds7 = round(sales_7.get(sku, 0) / 7, 1)
-            ds14 = round(sales_14.get(sku, 0) / 14, 1)
-            ds28 = round(sales_28.get(sku, 0) / 28, 1)
+            ds7 = round(sales_7.get(sku, 0), 1)
+            ds14 = round(sales_14.get(sku, 0), 1)
+            ds28 = round(sales_28.get(sku, 0), 1)
             sel_ds = {28: ds28, 14: ds14, 7: ds7}[days]
             sel_ds = round(sel_ds * active_factor, 1)
             sku_safety_days = st['safety_days']
@@ -783,7 +785,7 @@ def inventory_with_sales(db = get_db()):
     result = []
     for i in inv:
         sku = i['sku']
-        ds = round(sales_28.get(sku, 0) / 28, 1)
+        ds = round(sales_28.get(sku, 0), 1)
         avail = int(i.get('available_qty',0) or 0)
         begin = avail - inbound_month.get(sku, 0) + outbound_month.get(sku, 0)
         result.append({

@@ -97,6 +97,7 @@ app.include_router(rules_router)
 app.include_router(replenishment_config_router)
 app.include_router(products_router)
 app.include_router(suppliers_router)
+
 app.include_router(records_router)
 app.include_router(insights_router)
 app.include_router(purchase_orders_router)

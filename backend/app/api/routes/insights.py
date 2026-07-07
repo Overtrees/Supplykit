@@ -162,7 +162,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             # 第三层：自有仓→B仓调拨量（运输期间C仓持续销售，货到B仓即被京东调往C，需多备这段消耗）
             b_ship_days = int(cfg.get('ship_to_b_days', '0'))
             b_replenish = round(b_gap + sel_ds * b_ship_days + effective_safety) if b_gap > 0 else 0
-            raw_suggested = c_gap  # C仓实际缺口（与B仓有无库存无关）
+            raw_suggested = suggested  # B→C调拨量（受B库存约束）
             # 箱规向上取整
             prod = products.get(sku, {})
             box = int(prod.get('box_qty', 1) or 1)

@@ -76,10 +76,27 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                 result[sku] = 0
         return result
 
+    def rolling_predict(s7, s14, s28):
+        """三窗口滚动预测：按趋势信号分配权重融合"""
+        a7 = 1 if s7 > s14 * 1.15 else (-1 if s7 < s14 * 0.85 else 0)
+        a14 = 1 if s14 > s28 * 1.15 else (-1 if s14 < s28 * 0.85 else 0)
+        weights = {
+            (1, 1): (0.50, 0.30, 0.20),   # 持续上行
+            (1, 0): (0.35, 0.40, 0.25),   # 刚抬头
+            (1, -1): (0.25, 0.35, 0.40),  # 短期冲高回落
+            (0, 1): (0.20, 0.40, 0.40),   # 中期走强
+            (0, 0): (0.10, 0.20, 0.70),   # 平稳
+            (0, -1): (0.15, 0.35, 0.50),  # 中期走弱
+            (-1, 1): (0.25, 0.35, 0.40),  # 短期跌中期回升
+            (-1, 0): (0.20, 0.30, 0.50),  # 短期走弱
+            (-1, -1): (0.40, 0.35, 0.25), # 持续下行
+        }
+        w7, w14, w28 = weights.get((a7, a14), (0.10, 0.20, 0.70))
+        return s7 * w7 + s14 * w14 + s28 * w28
+
     sales_7 = calc_sales(7)
     sales_14 = calc_sales(14)
     sales_28 = calc_sales(28)
-    selected_sales = {28: sales_28, 14: sales_14, 7: sales_7}.get(days, sales_28)
 
     if mode == 'bbcc':
         # BBCC：仅算B→C调拨周期（不算生产到货和发B仓）
@@ -132,8 +149,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             ds7 = round(sales_7.get(sku, 0), 1)
             ds14 = round(sales_14.get(sku, 0), 1)
             ds28 = round(sales_28.get(sku, 0), 1)
-            sel_ds = {28: ds28, 14: ds14, 7: ds7}[days]
-            sel_ds = round(sel_ds * active_factor, 1)
+            sel_ds = round(rolling_predict(ds7, ds14, ds28) * active_factor, 1)
             sku_safety_days = st['safety_days']
             safety_days = sku_safety_days if sku_safety_days > 0 else float(cfg.get('safety_multiplier', '0'))
             effective_safety = round(sel_ds * safety_days) if sel_ds > 0 else 0
@@ -155,7 +171,6 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             days_to_empty = round(avail / sel_ds, 1) if sel_ds > 0 else 999
             after_stock = avail + transit + suggested
             after_turnover = round(after_stock / sel_ds, 1) if sel_ds > 0 else 999
-            max_turnover = int(cfg.get('max_turnover_days', '0'))
             tw15 = int(cfg.get('turnover_warning_15', '15'))
             tw90 = int(cfg.get('turnover_warning_90', '90'))
             note = f"箱规{box}件, 实补{suggested}件（{suggested//box}箱）" if suggested > 0 else "无需补货"
@@ -200,6 +215,17 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                 14: calc_sales(14, wh_name),
                 28: calc_sales(28, wh_name),
             }
+        # 预计算各 SKU 在各仓的销量分布（跨仓对比用）
+        sku_wh_sales28 = {}
+        for inv in items:
+            s = inv.get("sku", ""); w = inv.get("warehouse", "")
+            if s and w:
+                ws = wh_sales_cache.get(w, {28:{}})[28]
+                v = round(ws.get(s, 0), 1)
+                sku_wh_sales28.setdefault(s, {})[w] = v
+        sku_best_wh = {s: max(wk.items(), key=lambda x: x[1])[0] if wk else ''
+                       for s, wk in sku_wh_sales28.items()}
+
         for inv in items:
             sku = inv.get("sku", "")
             wh = inv.get("warehouse", "")
@@ -210,8 +236,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             ds7 = round(wh_s[7].get(sku, 0), 1)
             ds14 = round(wh_s[14].get(sku, 0), 1)
             ds28 = round(wh_s[28].get(sku, 0), 1)
-            sel_ds = {28: ds28, 14: ds14, 7: ds7}[days]
-            sel_ds = round(sel_ds * active_factor, 1)
+            sel_ds = round(rolling_predict(ds7, ds14, ds28) * active_factor, 1)
 
             sku_safety_days = float(inv.get('safety_days') or 0)
             safety_days = sku_safety_days if sku_safety_days > 0 else float(cfg.get('safety_multiplier', '0'))
@@ -225,18 +250,40 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             days_to_empty = round(avail / sel_ds, 1) if sel_ds > 0 else 999
             after_stock = avail + transit + suggested
             after_turnover = round(after_stock / sel_ds, 1) if sel_ds > 0 else 999
-            max_turnover = int(cfg.get('max_turnover_days', '0'))
             tw15 = int(cfg.get('turnover_warning_15', '15'))
             tw90 = int(cfg.get('turnover_warning_90', '90'))
-            note = f"箱规{box}件, 实补{suggested}件（{suggested//box}箱）" if suggested > 0 else "无需补货"
+            # 趋势分析
+            t7 = '📈' if ds7 > ds14 * 1.15 else ('📉' if ds7 < ds14 * 0.85 else '➡️')
+            t14 = '📈' if ds14 > ds28 * 1.15 else ('📉' if ds14 < ds28 * 0.85 else '➡️')
+            trend_text = f"近7{t7} 近14{t14}"
+            if ds7 > ds14 * 1.15 and ds14 > ds28 * 1.1:
+                trend_text += " 持续上行, 按滚动预测补"
+            elif ds7 < ds14 * 0.85 and ds14 < ds28 * 0.9:
+                trend_text += " 持续下行, 建议减量或观望"
+            elif ds7 > ds14 * 1.15:
+                trend_text += " 7天抬头, 正常补关注下期"
+            elif ds7 < ds14 * 0.85:
+                trend_text += " 7天走弱, 保守补避免积压"
+            else:
+                trend_text += " 趋势平稳, 按滚动预测补"
+            note = f"{trend_text}"
             if suggested > 0:
-                note += f", 补后周转{after_turnover}天"
+                note += f" · 箱规{box}件, 实补{suggested}件({suggested//box}箱)"
+                note += f" · 补后{after_turnover}天"
                 if after_turnover <= tw15:
-                    note += " ✅ 周转正常"
+                    note += " ✅"
                 elif after_turnover <= tw90:
-                    note += " ⚠️ 超过15天, 关注仓储"
+                    note += " ⚠️ 超15天"
                 else:
-                    note += " 🔴 超过90天, 周转考核风险"
+                    note += " 🔴 超90天"
+                # 跨仓提示
+                if sku in sku_wh_sales28 and wh != sku_best_wh.get(sku, ''):
+                    best_wh = sku_best_wh[sku]
+                    best_sales = sku_wh_sales28[sku][best_wh]
+                    if best_sales > ds28 * 2:
+                        note += f" · {best_wh}日均{best_sales}件, 可考虑内配"
+            else:
+                note += " · 无需补货"
             suggestions.append({
                 "sku": sku, "product_name": inv.get("product_name") or p.get("product_name", ""),
                 "store": inv.get("store"), "warehouse": inv.get("warehouse", ""), "category": p.get("category", ""),
@@ -247,22 +294,6 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                 "box_qty": box, "urgency": "紧急" if days_to_empty < 3 else ("建议" if suggested > 0 else "正常"),
             })
 
-        # B仓超15天仓储费风险告警
-        if days_to_empty > max_turnover and sel_ds > 0:
-            try:
-                exists = db.table("alerts").select("id").eq("alert_type","storage_fee")\
-                    .eq("related_sku",sku).eq("status","active").execute().data
-                if not exists:
-                    db.table("alerts").insert({
-                        "alert_type":"storage_fee","title":f"B仓周转超限: {inv.get('product_name',sku)}",
-                        "description":f"库存可撑 {days_to_empty}天 > B仓免费 {max_turnover}天，超期将产生仓储费",
-                        "severity":"warning","source":"replenishment_engine",
-                        "related_sku":sku,"status":"active"
-                    }).execute()
-            except Exception as e:
-                import logging; logging.warning('B仓告警创建失败: %s', e)
-
-        p = products.get(sku, {})
         suggestions.append({
             "sku": sku, "product_name": inv.get("product_name") or p.get("product_name", ""),
             "store": inv.get("store"), "category": p.get("category", ""),
@@ -272,7 +303,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             "daily_sales_7": ds7, "daily_sales_14": ds14, "daily_sales_28": ds28,
             "suggested_qty": suggested,
             "days_to_empty": days_to_empty,
-            "urgency": "仓储费风险" if days_to_empty > max_turnover else ("紧急" if days_to_empty < effective_safety/(sel_ds or 1)/2 else ("建议" if suggested > 0 else "正常")),
+            "urgency": "紧急" if days_to_empty < effective_safety/(sel_ds or 1)/2 else ("建议" if suggested > 0 else "正常"),
         })
 
     suggestions.sort(key=lambda x: x['days_to_empty'])

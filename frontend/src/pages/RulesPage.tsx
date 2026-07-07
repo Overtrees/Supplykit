@@ -63,10 +63,8 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
     {k:'turnover_warning_90',l:'周转考核红线(天)',h:'超期面临清仓退供风险'},
   ] : []
   const paramFields= isBBCC ? [] : [
-    {k:'lead_time_days',l:'前置期(天)',h:'供应商生产+送货到我司+发往全国仓总天数'},
-    {k:'safety_multiplier',l:'安全库存天数',h:'预留N天日销作为安全库存'},
-    {k:'max_turnover_days',l:'目标周转(天)',h:'平台仓货品在库周转'},
-    {k:'turnover_warning_15',l:'仓储费阈值(天)',h:'超期产生仓储费'},
+    {k:'lead_time_days',l:'前置期(天)',h:'自有/三方仓调拨全国各仓总时效'},
+    {k:'safety_multiplier',l:'安全库存天数',h:'各仓在仓缓冲，预留N天日销作为安全储备'},
     {k:'turnover_warning_90',l:'周转考核红线(天)',h:'超期面临清仓退供风险'},
   ]
   const purchaseFields=[

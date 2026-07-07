@@ -236,7 +236,10 @@ export default function InsightsPage() {
                           <td style={{color:'var(--success)',fontWeight:700}}>{x.suggested_qty > 0 ? x.suggested_qty : '-'}</td></>}
                       {replenMode!=='bbcc' && <td style={{fontWeight:600,color:x.suggested_qty > 0 && (x.after_turnover||0) > 15 ? '#ef4444' : 'var(--text)'}}>{x.suggested_qty > 0 ? x.after_turnover+'天' : '-'}</td>}
                       <td className="col-name" style={{color:'var(--muted2)',fontSize:12}}>{x.note || '-'}</td>
-                      <td><span onClick={()=>toggleOrdered(x.sku, x.store, x.product_name, x.suggested_qty || x.b_suggested)} style={{cursor:'pointer',fontSize:18,opacity:0.5}}>☐</span></td>
+                      <td><span onClick={()=>{
+                        if (x.combined_turnover > 90 && !window.confirm(`补后综合周转${x.combined_turnover}天，已超90天考核红线，仍标记操作？`)) return
+                        toggleOrdered(x.sku, x.store, x.product_name, x.suggested_qty || x.b_suggested)
+                      }} style={{cursor:'pointer',fontSize:18,opacity:0.5}}>☐</span></td>
                     </tr>
                   ))}
                 </tbody>

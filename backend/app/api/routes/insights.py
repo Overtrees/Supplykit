@@ -162,7 +162,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             # 第三层：自有仓→B仓调拨量（运输期间C仓持续销售，货到B仓即被京东调往C，需多备这段消耗）
             b_ship_days = int(cfg.get('ship_to_b_days', '0'))
             b_replenish = round(b_gap + sel_ds * b_ship_days + effective_safety) if b_gap > 0 else 0
-            raw_suggested = suggested  # B→C调拨量（受B库存约束）
+            raw_suggested = c_gap  # C仓实际缺口（与B仓有无库存无关）
             # 箱规向上取整
             prod = products.get(sku, {})
             box = int(prod.get('box_qty', 1) or 1)
@@ -176,7 +176,14 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             tw90 = int(cfg.get('turnover_warning_90', '90'))
             note = f"C仓建议{suggested}件  B仓需补{b_box_qty}件 · 箱规{box}件" if (suggested > 0 or b_box_qty > 0) else "库存充足"
             if b_gap > 0:
+                c_cover = round((avail + transit) / sel_ds, 1) if sel_ds > 0 else 0
+                b_idle = max(round(c_cover - b_ship_days, 1), 0)
                 note += f" ⚠️ B仓仅{b_available}件, 缺口{b_gap}件需从自有仓调拨(运输{round(sel_ds*b_ship_days)}件+安全{round(effective_safety)}件)"
+                note += f" · B仓预计空闲{b_idle}天后调出"
+                if b_idle > 15:
+                    note += " 🔴 超15天免费期有仓储费"
+                elif b_idle > 10:
+                    note += " ⚠️ 接近15天免费期"
             if suggested > 0:
                 note += f", 补后周转{after_turnover}天 " + ("✅" if after_turnover <= tw15 else ("⚠️" if after_turnover <= tw90 else "🔴"))
             # BBCC三环节周转

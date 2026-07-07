@@ -55,8 +55,8 @@ export default function InsightsPage() {
   const loadReplen = async (days, mode) => {
     setReplenLoading(true)
     try { const r = await api.get('/api/insights/replenishment?days=' + (days||replenDays) + '&mode=' + (mode||replenMode)); setReplen(r.data || [])
-      // 趋势推荐
-      if (r.data && r.data.length > 0) {
+      // 趋势推荐（仅BBCC模式，基于28天窗口）
+      if (r.data && r.data.length > 0 && mode === 'bbcc') {
         const item = r.data.find(x => x.daily_sales_7 != null) || r.data[0]
         const s7 = item.daily_sales_7 || 0
         const s14 = item.daily_sales_14 || 0

@@ -137,13 +137,13 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             sku_safety_days = st['safety_days']
             safety_days = sku_safety_days if sku_safety_days > 0 else float(cfg.get('safety_multiplier', '0'))
             effective_safety = round(sel_ds * safety_days) if sel_ds > 0 else 0
-            # 第一步：C仓需求缺口
-            c_gap = max(round(sel_ds * lead_time + effective_safety - avail - transit), 0) if sel_ds > 0 else 0
+            # 第一步：C仓需求缺口（安全天数 safety_multiplier 归自有仓→B仓调拨使用，不叠加在此）
+            c_gap = max(round(sel_ds * lead_time - avail - transit), 0) if sel_ds > 0 else 0
             # 第二步：B仓供给约束
             b_available = b_stock.get(sku, 0)
             suggested = min(c_gap, b_available)
             b_gap = max(c_gap - b_available, 0)
-            # 第三层：自有仓→B仓调拨量
+            # 第三层：自有仓→B仓调拨量（运输期间C仓持续销售，货到B仓即被京东调往C，需多备这段消耗）
             b_ship_days = int(cfg.get('ship_to_b_days', '0'))
             b_replenish = round(b_gap + sel_ds * b_ship_days + effective_safety) if b_gap > 0 else 0
             raw_suggested = suggested

@@ -52,15 +52,17 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
   ]
 
   const isBBCC = (cfg.replenishment_mode||'bbcc')==='bbcc'
-  const paramFields= isBBCC ? [
-    {k:'ship_to_b_days',l:'自有仓→B仓时效(天)',h:'我司发往京东B仓天数'},
+  const cParams= isBBCC ? [
     {k:'b_to_c_days',l:'B→C调拨(天)',h:'京东B仓→C仓调拨时效'},
-    {k:'c_safety_days',l:'C仓缓冲(天)',h:'C仓防止调拨断货储备'},
-    {k:'safety_multiplier',l:'安全库存天数',h:'预留N天日销作为安全库存'},
-    {k:'max_turnover_days',l:'目标周转(天)',h:'B仓免费存15天'},
+    {k:'c_safety_days',l:'C仓缓冲(天)',h:'C仓安全储备，覆盖调拨延迟期间的正常消耗'},
+  ] : []
+  const bParams= isBBCC ? [
+    {k:'ship_to_b_days',l:'自有仓→B仓时效(天)',h:'我司发往京东B仓天数'},
+    {k:'safety_multiplier',l:'安全库存天数',h:'自有仓→B仓调拨专用安全储备，叠加在调拨量上供自有仓备货'},
     {k:'turnover_warning_15',l:'仓储费阈值(天)',h:'超期产生B仓仓储费'},
     {k:'turnover_warning_90',l:'周转考核红线(天)',h:'超期面临清仓退供风险'},
-  ] : [
+  ] : []
+  const paramFields= isBBCC ? [] : [
     {k:'lead_time_days',l:'前置期(天)',h:'供应商生产+送货到我司+发往全国仓总天数'},
     {k:'safety_multiplier',l:'安全库存天数',h:'预留N天日销作为安全库存'},
     {k:'max_turnover_days',l:'目标周转(天)',h:'平台仓货品在库周转'},
@@ -141,12 +143,27 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
         <span onClick={()=>{loadCfg('bbcc');loadSeasons('bbcc')}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 14px',background:(cfg.replenishment_mode||'bbcc')==='bbcc'?'var(--primary)':'transparent',color:(cfg.replenishment_mode||'bbcc')==='bbcc'?'#fff':''}}>📦 BBCC 送仓</span>
         <span onClick={()=>{loadCfg('traditional');loadSeasons('traditional')}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 14px',background:cfg.replenishment_mode==='traditional'?'var(--primary)':'transparent',color:cfg.replenishment_mode==='traditional'?'#fff':''}}>🏭 传统多仓</span>
       </div>
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:16}}>
+      {isBBCC ? <>
+        <div className='section-title' style={{fontSize:13,marginBottom:8}}>📦 C 仓</div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
+          {cParams.map(({k,l,h})=><label key={k} style={{fontSize:12}}>
+            {l}<input value={cfg[k]||''} onChange={e=>setCfg(p=>({...p,[k]:e.target.value}))} style={IS}/>
+            <div className='small muted' style={{fontSize:11}}>{h}</div>
+          </label>)}
+        </div>
+        <div className='section-title' style={{fontSize:13,marginBottom:8}}>🏭 B 仓</div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:16}}>
+          {bParams.map(({k,l,h})=><label key={k} style={{fontSize:12}}>
+            {l}<input value={cfg[k]||''} onChange={e=>setCfg(p=>({...p,[k]:e.target.value}))} style={IS}/>
+            <div className='small muted' style={{fontSize:11}}>{h}</div>
+          </label>)}
+        </div>
+      </> : <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:16}}>
         {paramFields.map(({k,l,h})=><label key={k} style={{fontSize:12}}>
           {l}<input value={cfg[k]||''} onChange={e=>setCfg(p=>({...p,[k]:e.target.value}))} style={IS}/>
           <div className='small muted' style={{fontSize:11}}>{h}</div>
         </label>)}
-      </div>
+      </div>}
     </div>}
 
       {tab === 'purchase' && <div className='card' style={{padding:16,display:'flex',flexDirection:'column',gap:12}}>

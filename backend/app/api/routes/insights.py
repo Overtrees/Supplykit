@@ -184,7 +184,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                     note += " 🔴 超15天免费期有仓储费"
                 elif b_idle > 10:
                     note += " ⚠️ 接近15天免费期"
-            if suggested > 0:
+            if suggested > 0 and b_gap == 0:
                 note += f", 补后周转{after_turnover}天 " + ("✅" if after_turnover <= tw15 else ("⚠️" if after_turnover <= tw90 else "🔴"))
             # BBCC三环节周转
             c_turnover = round(avail / sel_ds, 1) if sel_ds > 0 else None      # C仓周转

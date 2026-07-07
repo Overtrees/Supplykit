@@ -295,18 +295,6 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                 "box_qty": box, "urgency": "紧急" if days_to_empty < 3 else ("建议" if suggested > 0 else "正常"),
             })
 
-        suggestions.append({
-            "sku": sku, "product_name": inv.get("product_name") or p.get("product_name", ""),
-            "store": inv.get("store"), "category": p.get("category", ""),
-            "available_qty": avail, "safety_qty": safety, "in_transit_qty": transit,
-            "safety_days": safety_days,
-            "daily_sales": sel_ds,
-            "daily_sales_7": ds7, "daily_sales_14": ds14, "daily_sales_28": ds28,
-            "suggested_qty": suggested,
-            "days_to_empty": days_to_empty,
-            "urgency": "紧急" if days_to_empty < effective_safety/(sel_ds or 1)/2 else ("建议" if suggested > 0 else "正常"),
-        })
-
     suggestions.sort(key=lambda x: x['days_to_empty'])
     return suggestions
 

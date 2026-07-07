@@ -31,6 +31,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     def calc_sales(cutoff_days, wh_name=None):
         cutoff = (datetime.utcnow() - timedelta(days=cutoff_days)).strftime('%Y-%m-%d')
         sku_s = {}
+        daily_by_sku = {}  # SKU → {日期: 销量}
         for o in orders:
             if source and o.get('data_source','') != source: continue
             if wh_name and o.get('warehouse','') != wh_name: continue
@@ -40,7 +41,38 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             qty = int(o.get('quantity', 0) or 0)
             if dt >= cutoff:
                 sku_s[sku] = sku_s.get(sku, 0) + qty
-        return sku_s
+                if sku not in daily_by_sku:
+                    daily_by_sku[sku] = {}
+                daily_by_sku[sku][dt] = daily_by_sku[sku].get(dt, 0) + qty
+
+        # 异常值检测 + 趋势加权
+        result = {}
+        for sku, total in sku_s.items():
+            daily = daily_by_sku.get(sku, {})
+            values = list(daily.values())
+            n = len(values)
+            if n < 3:
+                result[sku] = total / cutoff_days
+                continue
+            # 计算均值、标准差
+            mean = sum(values) / n
+            var = sum((v - mean) ** 2 for v in values) / n
+            std = var ** 0.5
+            # 剔除异常（超出均值±3倍标准差）
+            clean = [v for v in values if abs(v - mean) <= max(3 * std, mean * 1.5)]
+            # 趋势加权：近3天权重1.5，其余1.0
+            sorted_dates = sorted(daily.keys(), reverse=True)
+            weighted_sum = 0
+            weight_total = 0
+            for idx, date in enumerate(sorted_dates):
+                v = daily[date]
+                if v in clean or len(clean) == len(values):  # 没异常或已清洗
+                    w = 1.5 if idx < 3 else 1.0  # 近3天权重1.5
+                    weighted_sum += v * w
+                    weight_total += w
+            daily_avg = weighted_sum / weight_total if weight_total > 0 else 0
+            result[sku] = daily_avg
+        return result
 
     sales_7 = calc_sales(7)
     sales_14 = calc_sales(14)

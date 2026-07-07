@@ -202,9 +202,9 @@ export default function InsightsPage() {
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>库存健康，暂无补货建议</div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
-              <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 13 列 · 左右滑动查看</div>
+              <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 {replenMode==='bbcc'?14:12} 列 · 左右滑动查看</div>
               <table>
-                <thead><tr>{['','SKU','商品','仓库',...(replenMode==='bbcc'?['B仓可用库存','全国C仓总和可用库存',`B-C仓调拨在途`, `全国C仓日销(融合/7/14/28)`]:['现有','在途',`日销(融合/7/14/28)`]),...(replenMode==='bbcc'?['全国C仓总和周转','B→C 调拨在途总和周转']:['安全线','在库周转','补后周转']),...(replenMode==='bbcc'?['C仓建议补','B仓需补','当前综转','补后综转']:['建议补','实际补']),'备注','标记操作（用于B仓入库批次统计）'].map(h => <th key={h} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{h}</th>)}</tr></thead>
+                <thead><tr>{['','SKU','商品','仓库',...(replenMode==='bbcc'?['B仓可用库存','全国C仓总和可用库存',`B-C仓调拨在途`, `全国C仓日销(融合/7/14/28)`]:['现有','在途',`日销(融合/7/14/28)`]),...(replenMode==='bbcc'?['全国C仓总和周转','B→C 调拨在途总和周转']:['安全线','在库周转','补后周转']),...(replenMode==='bbcc'?['C仓建议补','B仓需补','当前综转','补后综转']:['建议补','实际补']),'备注',...(replenMode==='bbcc'?['标记操作（用于B仓入库批次统计）']:[])].map(h => <th key={h} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{h}</th>)}</tr></thead>
                 <tbody>
                   {replen.filter(x => !orderedKeys.includes(x.sku+'|'+x.store)).map((x, i) => (
                     <tr key={i}>
@@ -236,10 +236,10 @@ export default function InsightsPage() {
                           <td style={{color:'var(--success)',fontWeight:700}}>{x.suggested_qty > 0 ? x.suggested_qty : '-'}</td></>}
                       {replenMode!=='bbcc' && <td style={{fontWeight:600,color:x.suggested_qty > 0 && (x.after_turnover||0) > 15 ? '#ef4444' : 'var(--text)'}}>{x.suggested_qty > 0 ? x.after_turnover+'天' : '-'}</td>}
                       <td className="col-name" style={{color:'var(--muted2)',fontSize:12}}>{x.note || '-'}</td>
-                      <td><span onClick={()=>{
+                      {replenMode==='bbcc' && <td><span onClick={()=>{
                         if (x.combined_turnover > 90 && !window.confirm(`补后综合周转${x.combined_turnover}天，已超90天考核红线，仍标记操作？`)) return
                         toggleOrdered(x.sku, x.store, x.product_name, x.suggested_qty || x.b_suggested)
-                      }} style={{cursor:'pointer',fontSize:18,opacity:0.5}}>☐</span></td>
+                      }} style={{cursor:'pointer',fontSize:18,opacity:0.5}}>☐</span></td>}
                     </tr>
                   ))}
                 </tbody>

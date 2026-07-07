@@ -33,6 +33,8 @@ export default function InsightsPage() {
   const [tab, setTab] = useState('replen')
   const [replen, setReplen] = useState([])
   const [replenDays, setReplenDays] = useState(28)
+  const [recDay, setRecDay] = useState(null)
+  const [trendArrows, setTrendArrows] = useState({})
   const [purchase, setPurchase] = useState([])
   const [summary, setSummary] = useState(null)
   const [activities, setActivities] = useState([])
@@ -52,7 +54,26 @@ export default function InsightsPage() {
   const switchMode = (m) => { setReplenMode(m); localStorage.setItem('c_replen_mode', m); loadReplen(replenDays, m) }
   const loadReplen = async (days, mode) => {
     setReplenLoading(true)
-    try { const r = await api.get('/api/insights/replenishment?days=' + (days||replenDays) + '&mode=' + (mode||replenMode)); setReplen(r.data || []) } catch(e) {}
+    try { const r = await api.get('/api/insights/replenishment?days=' + (days||replenDays) + '&mode=' + (mode||replenMode)); setReplen(r.data || [])
+      // 趋势推荐
+      if (r.data && r.data.length > 0) {
+        const item = r.data.find(x => x.daily_sales_7 != null) || r.data[0]
+        const s7 = item.daily_sales_7 || 0
+        const s14 = item.daily_sales_14 || 0
+        const s28 = item.daily_sales_28 || 0
+        const a7 = s7 > s14 * 1.15 ? '📈' : (s7 < s14 * 0.85 ? '📉' : '➡️')
+        const a14 = s14 > s28 * 1.15 ? '📈' : (s14 < s28 * 0.85 ? '📉' : '➡️')
+        setTrendArrows({7: a7, 14: a14, 28: '➡️'})
+        let rec = 28
+        const isUp = s7 > s14 * 1.15 && s14 > s28 * 1.1
+        const isDown = s7 < s14 * 0.85 && s14 < s28 * 0.9
+        const spike14 = s14 > Math.max(s7, s28) * 1.25
+        if (isUp || isDown || spike14) rec = 7
+        else if (Math.abs(s7-s28)/Math.max(s28,1) < 0.1) rec = 28
+        else if (Math.abs(s7-s14)/Math.max(s14,1) < 0.05 && Math.abs(s14-s28)/Math.max(s28,1) > 0.15) rec = 14
+        setRecDay(rec)
+      }
+    } catch(e) {}
     setReplenLoading(false)
   }
 
@@ -180,9 +201,12 @@ export default function InsightsPage() {
                 <span onClick={()=>switchMode('traditional')} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',background:replenMode==='traditional'?'var(--primary)':'transparent',color:replenMode==='traditional'?'#fff':''}}>传统</span>
                 {[7,14,28].map(d => (
                   <span key={d} onClick={()=>{setReplenDays(d);loadReplen(d, replenMode)}}
-                    className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',
+                    className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',position:'relative',
                       background:replenDays===d?'var(--primary)':'transparent',
-                      color:replenDays===d?'#fff':'var(--muted)',fontWeight:replenDays===d?600:400}}>{d}天</span>
+                      color:replenDays===d?'#fff':'var(--muted)',fontWeight:replenDays===d?600:400}}>
+                    {d}天{trendArrows[d]||''}
+                    {recDay === d && <span className="pill" style={{position:'absolute',top:-8,right:-8,fontSize:9,padding:'0 4px',background:'var(--danger)',color:'#fff'}}>推荐</span>}
+                  </span>
                 ))}
                 <button onClick={async()=>{
                   try {

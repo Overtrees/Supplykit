@@ -296,7 +296,7 @@ export default function InsightsPage() {
                       <td className="col-store">{x.warehouse || x.store || '-'}</td>
                       <td style={{fontSize:12}}>
                         <span style={{fontWeight:600}}>{x.sys_total}</span>
-                        <span className="small muted" style={{fontWeight:400}}> 自有{x.own_available}+{x.own_transit ? `在途${x.own_transit}`:''} 平台{x.plat_available}+{x.plat_transit ? `在途${x.plat_transit}`:''}</span>
+                        <span className="small muted" style={{fontWeight:400}}> 自有{x.own_available}+{x.own_transit ? `在途${x.own_transit}`:''} 平台{x.plat_available}+{x.plat_transit ? `在途${x.plat_transit}`:''} B仓{x.b_available||0}</span>
                       </td>
                       <td style={{fontSize:12,fontWeight:600,whiteSpace:'nowrap'}}>{x.daily_sales}<span style={{fontSize:10,fontWeight:400,color:'var(--muted2)'}}> /{x.daily_sales_14||0}/{x.daily_sales_28||0}</span></td>
                       <td style={{ fontWeight: 600, color: x.purchase_qty > 0 ? 'var(--success)' : 'var(--muted2)' }}>{x.purchase_qty > 0 ? '+'+x.purchase_qty : x.purchase_qty}</td>

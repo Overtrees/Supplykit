@@ -408,25 +408,14 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
     result = []
     for sku, st in stock_by_sku.items():
         ds = round(fused_sales.get(sku, 0) * active_factor, 1)  # 含活动系数
-        sys_avail = st['available']
-        sys_transit = st['transit']
-        sys_total = sys_avail + sys_transit  # 系统总库存
+        sys_total = st['available'] + st['transit']  # 全仓总库存（含C/自有/B/在途）
 
         # 安全库存
         safety_days = st['safety_days'] if st['safety_days'] > 0 else purchase_safety_days
         eff_safety = round(ds * safety_days) if ds > 0 else 0
-        b_a = b_avail.get(sku, 0)
-        own_a = st['own_avail']
 
-        # 采购量 = 自有仓补系统缺口的兜底
-        if mode == 'bbcc':
-            # BBCC：B仓→C仓链路
-            b_need = max(round(ds * purchase_lead_time) + eff_safety - b_a, 0) if ds > 0 else 0
-            purchase_qty = max(b_need - own_a, 0) if ds > 0 else 0
-        else:
-            # 传统：B仓需补（与BBCC同公式，无B仓时退化为总需求-自有仓）
-            b_need = max(round(ds * purchase_lead_time) + eff_safety - b_a, 0) if ds > 0 else 0
-            purchase_qty = max(b_need - own_a, 0) if ds > 0 else 0
+        # 采购量 = 日销×供应期 + 安全库存 − 系统总库存
+        purchase_qty = max(round(ds * purchase_lead_time) + eff_safety - sys_total, 0) if ds > 0 else 0
         # 兜底 MOQ
         purchase_qty = max(purchase_qty, moq_default) if purchase_qty > 0 else 0
 
@@ -439,7 +428,7 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
         c_consume = round(ds * purchase_lead_time) if ds > 0 else 0
         note = ""
         if purchase_qty > 0:
-            note = f"消耗{c_consume}+安全{eff_safety} -B仓{int(b_a)} -自有{int(own_a)} ={int(purchase_qty)}"
+            note = f"消耗{c_consume}+安全{eff_safety} -系统总库存{int(sys_total)} ={int(purchase_qty)}"
             note += f" | 箱规{box_qty}件, 实购{actual_purchase}件"
             note += f"（{actual_purchase//box_qty}箱）" if box_qty > 1 else ""
             note += f", 补后周转{after_turnover}天"
@@ -466,7 +455,7 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
             'b_available': b_avail.get(sku, 0),
             'safety_qty': st['safety'], 'daily_sales': ds,
             'daily_sales_14': sales_14.get(sku, 0), 'daily_sales_28': sales_28.get(sku, 0),
-            'purchase_qty': purchase_qty, 'box_qty': box_qty, 'actual_purchase': actual_purchase, 'b_need': b_need,
+            'purchase_qty': purchase_qty, 'box_qty': box_qty, 'actual_purchase': actual_purchase,
             'after_stock': st['own_avail'] + purchase_qty, 'after_turnover': after_turnover,
             'target_turnover': target_turn,
             'days_to_empty': days_to_empty, 'note': note,

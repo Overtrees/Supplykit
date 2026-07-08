@@ -132,19 +132,21 @@ const pc=j=>{try{const c=JSON.parse(j);const rt=c.rightType||(LF.find(x=>x.v===c
         </div>
       </div>}
 
-      {rules.map(rule=>{const c=pc(rule.condition_json||'{}');return <div key={rule.id} style={{padding:'10px 14px',border:'1px solid #e5e7eb',borderRadius:10,marginBottom:6,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+      {rules.map(rule => {
+        const condInfo = pc(rule.condition_json||'{}')
+        return <div key={rule.id} style={{padding:'10px 14px',border:'1px solid #e5e7eb',borderRadius:10,marginBottom:6,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
         <div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:14}}>{rule.name}</div>
           <div style={{fontSize:12,color:'var(--muted2)',marginTop:2,display:'flex',flexWrap:'wrap',gap:4,alignItems:'center'}}>
             <span className={'pill '+(rule.is_active?'success':'warning')}>{rule.is_active?'启用':'停用'}</span>
             <span className={'pill '+sevCls(rule.severity)}>{sevLbl(rule.severity)}</span>
             <span className='small muted' style={{marginLeft:2}}>{rule.event}</span>
-            <span style={{fontSize:11,color:'var(--muted)'}}>· 当 {fieldLbl(c.left)} {opLbl(c.op)} {c.rightType==='field'?fieldLbl(c.right):c.right}</span>
+            <span style={{fontSize:11,color:'var(--muted)'}}>· 当 {fieldLbl(condInfo.left)} {opLbl(condInfo.op)} {condInfo.rightType==='field'?fieldLbl(condInfo.right):condInfo.right}</span>
           </div></div>
         <div style={{display:'flex',gap:6}}>
-          <button onClick={()=>{const c=pc(rule.condition_json||'{}');setEditing(rule);setF({name:rule.name,event:rule.event,alert_type:rule.alert_type||'',alert_title:rule.alert_title||'',alert_desc:rule.alert_desc||'',severity:rule.severity||'warning',condition_json:rule.condition_json||'{}'});setCond(c)}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 10px',minHeight:0}}>编辑</button>
+          <button onClick={()=>{const c2=pc(rule.condition_json||'{}');setEditing(rule);setF({name:rule.name,event:rule.event,alert_type:rule.alert_type||'',alert_title:rule.alert_title||'',alert_desc:rule.alert_desc||'',severity:rule.severity||'warning',condition_json:rule.condition_json||'{}'});setCond(c2)}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 10px',minHeight:0}}>编辑</button>
           <button onClick={()=>del(rule.id)} className="btn btn-danger" style={{fontSize:12,padding:'4px 10px',minHeight:0}}>删除</button>
         </div>
-      </div>)}
+      </div>})}
       {rules.length===0&&<div className='small muted' style={{textAlign:'center',padding:40}}>暂无规则</div>}
     </>}
 

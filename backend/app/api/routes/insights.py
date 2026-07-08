@@ -175,6 +175,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             tw15 = int(cfg.get('turnover_warning_15', '15'))
             tw90 = int(cfg.get('turnover_warning_90', '90'))
             note = f"C仓建议{suggested}件  B仓需补{b_box_qty}件 · 箱规{box}件" if (suggested > 0 or b_box_qty > 0) else ""
+            combined_turnover_current = round((avail + transit + b_stock.get(sku, 0)) / sel_ds, 1) if sel_ds > 0 else None
             # 当前综转超90天预警
             if combined_turnover_current is not None and combined_turnover_current > 90:
                 note += (" " if note else "") + f"🔴 当前综转{combined_turnover_current}天超红线90"
@@ -192,7 +193,6 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             # BBCC三环节周转
             c_turnover = round(avail / sel_ds, 1) if sel_ds > 0 else None      # C仓周转
             transit_turnover = round(transit / sel_ds, 1) if sel_ds > 0 else None  # 在途周转
-            combined_turnover_current = round((avail + transit + b_stock.get(sku, 0)) / sel_ds, 1) if sel_ds > 0 else None  # 当前综合周转
             combined_turnover = round((avail + transit + suggested + b_stock.get(sku, 0) + b_box_qty) / sel_ds, 1) if sel_ds > 0 else None  # 补后综合周转
             suggestions.append({
                 "sku": sku, "product_name": prod.get('product_name', ''),

@@ -70,7 +70,6 @@ export default function DashboardPage({ onAlert }) {
 
     <div className="card-grid" style={{marginBottom:16}}>
       <Card title={periodLabel[periodTab]+' GMV'} value={'¥'+Number(periodMeta.gmv||0).toLocaleString()} sub={periodMeta.orders+' 单'} />
-      <Card title="待发货" value={dashboard?.summary?.pending_count||0} badge={dashboard?.summary?.pending_count>3?<span className="pill danger">积压</span>:null} />
       <Card title="库存健康度" 
   value={(dashboard?.health_index?.own?.score||0)+'分 / '+(dashboard?.health_index?.platform?.score||0)+'分'} 
   sub={'自有'+(dashboard?.health_index?.own?.healthy||0)+'健康·'+(dashboard?.health_index?.own?.warning||0)+'偏低  |  平台'+(dashboard?.health_index?.platform?.healthy||0)+'健康·'+(dashboard?.health_index?.platform?.warning||0)+'偏低'}
@@ -82,19 +81,11 @@ export default function DashboardPage({ onAlert }) {
     </div>
 
     <div className="chart-row">
-      <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title">{periodLabel[periodTab]} GMV·订单趋势</div>
-        {periodTrend.length === 0 ? <div className="small muted" style={{ padding: '40px 0', textAlign: 'center' }}>暂无{periodLabel[periodTab]}数据</div> : <Chart option={periodTrendOption} height={200} />}
-      </div>
       <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title">订单阶段转化</div><Chart option={funnelOption} height={200} /></div>
     </div>
 
     <div className="chart-row-3">
       <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title">店铺 GMV</div><Chart option={storeOption} height={170} /></div>
-      <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title">商品分类分布</div>
-        {dashboard?.category_distribution
-          ? <Chart option={{ tooltip: { trigger: 'item' }, series: [{ type: 'pie', radius: ['40%', '70%'], data: dashboard.category_distribution, label: { fontSize: 10 } }] }} height={170} />
-          : <div className="small muted">暂无数据</div>}
-      </div>
       <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title">低库存 & 补货告警</div>
         {alertsList.length === 0
           ? <div className="small muted" style={{ padding: 12, textAlign: 'center' }}>暂无告警</div>

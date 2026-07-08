@@ -11,6 +11,10 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     """补货建议，支持 days=7/14/28 切换，mode=bbcc/traditional 切换模型"""
     from datetime import timedelta
 
+    # 清理旧的 storage_fee 告警（已废弃的逻辑）
+    try: db.table("alerts").update({"status": "inactive"}).eq("alert_type", "storage_fee").eq("status", "active").execute()
+    except: pass
+
     # 读取当前模式的补货参数
     cfg_rows = db.table("replenishment_config").select("*").execute().data
     raw = {r['key']: r['value'] for r in cfg_rows}

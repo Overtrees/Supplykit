@@ -132,7 +132,9 @@ const pc=j=>{try{const c=JSON.parse(j);const rt=c.rightType||(LF.find(x=>x.v===c
               ?<select value={cond.right} onChange={e=>setCond(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:140}}>{LF.map(f=><option key={f.v} value={f.v}>{f.l}</option>)}</select>
               :cond.rightType==='number'
               ?<input type='number' value={cond.right} onChange={e=>setCond(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:80}}/>
-              :<input value={cond.right} onChange={e=>setCond(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:80}} placeholder='如 platform_b'/>}
+              :cond.left==='inv.warehouse_type'
+              ?<select value={cond.right} onChange={e=>setCond(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:120}}><option value=''>请选择</option><option value='platform'>C仓（platform）</option><option value='platform_b'>B仓（platform_b）</option><option value='own'>自有仓（own）</option></select>
+              :<input value={cond.right} onChange={e=>setCond(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:80}} placeholder='输入文本'/>}
             <span style={{fontSize:13,color:'var(--muted)'}}>时触发</span>
           </div>
           <div className='small' style={{marginTop:6,padding:'6px 10px',background:'var(--bg)',borderRadius:6,fontSize:12,color:'var(--primary)'}}>
@@ -149,7 +151,9 @@ const pc=j=>{try{const c=JSON.parse(j);const rt=c.rightType||(LF.find(x=>x.v===c
               ?<select value={cond2.right} onChange={e=>setCond2(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:140}}>{LF.map(f=><option key={f.v} value={f.v}>{f.l}</option>)}</select>
               :cond2.rightType==='number'
               ?<input type='number' value={cond2.right} onChange={e=>setCond2(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:80}}/>
-              :<input value={cond2.right} onChange={e=>setCond2(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:80}} placeholder='如 platform_b'/>}
+              :cond2.left==='inv.warehouse_type'
+              ?<select value={cond2.right} onChange={e=>setCond2(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:120}}><option value=''>请选择</option><option value='platform'>C仓（platform）</option><option value='platform_b'>B仓（platform_b）</option><option value='own'>自有仓（own）</option></select>
+              :<input value={cond2.right} onChange={e=>setCond2(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:80}} placeholder='输入文本'/>}
             <span onClick={()=>setCond2(null)} style={{cursor:'pointer',fontSize:16,color:'var(--danger)'}}>✕</span>
           </div> : <div style={{marginTop:6}}>
             <span onClick={()=>setCond2({left:'',op:'==',right:'',rightType:'text'})} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px'}}>+ 添加条件（且）</span>

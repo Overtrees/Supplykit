@@ -26,22 +26,35 @@ export default function RulesPage() {
   const loadSeasons=async(mode)=>{try{const m=mode||cfg.replenishment_mode||'bbcc';const r=await api.get('/api/replenishment-config/seasons?mode='+m);setSeasons(r.data||[])}catch(e){}}
   useEffect(()=>{load();loadCfg().then(d=>loadSeasons()).finally(()=>setLoading(false))},[])
 
+  const [cond2,setCond2]=useState(null)  // 第二条件（AND）
   const save=async()=>{
     let rv = cond.right
     if (cond.rightType==='number') rv = parseFloat(cond.right)||0
     else if (cond.rightType==='field') rv = cond.right
-    const cj=JSON.stringify({left:cond.left,op:cond.op,right:rv,rightType:cond.rightType})
+    let cj
+    if (cond2 && cond2.left) {
+      let rv2 = cond2.right
+      if (cond2.rightType==='number') rv2 = parseFloat(cond2.right)||0
+      else if (cond2.rightType==='field') rv2 = cond2.right
+      cj = JSON.stringify({left:cond.left,op:cond.op,right:rv,rightType:cond.rightType,and:{left:cond2.left,op:cond2.op,right:rv2,rightType:cond2.rightType}})
+    } else {
+      cj = JSON.stringify({left:cond.left,op:cond.op,right:rv,rightType:cond.rightType})
+    }
     const isNew = !editing || !editing.id
     const url=isNew ? API+'/api/rules' : API+'/api/rules/'+editing.id
     const m=isNew?'POST':'PUT'
     await fetch(url,{method:m,headers:{'Content-Type':'application/json'},body:JSON.stringify({...f,condition_json:cj})})
-    setEditing(null);setF({name:'',event:'inventory.changed',alert_type:'',alert_title:'',alert_desc:'',severity:'warning',condition_json:'{}'});load()
+    setEditing(null);setF({name:'',event:'inventory.changed',alert_type:'',alert_title:'',alert_desc:'',severity:'warning',condition_json:'{}'});setCond({left:'inv.available_qty',op:'<',right:'inv.safety_qty',rightType:'field'});setCond2(null);load()
   }
   const del=async id=>{await fetch(API+'/api/rules/'+id,{method:'DELETE'});load()}
 
   const sevCls=s=>s==='error'?'danger':s==='info'?'info':'warning'
 const[cond,setCond]=useState({left:'inv.available_qty',op:'<',right:'inv.safety_qty',rightType:'field'})
-const LF=[{l:'📦 当前仓可用库存',v:'inv.available_qty'},{l:'📦 当前仓安全库存',v:'inv.safety_qty'},{l:'📦 当前仓在途库存',v:'inv.in_transit_qty'},{l:'📦 距上次销售(天)',v:'inv.days_since_last'},{l:'📦 当前仓库存量',v:'inv.stock'},{l:'🏷️ 仓库类型',v:'inv.warehouse_type'},{l:'📋 订单数量',v:'order.quantity'},{l:'📋 订单金额',v:'order.total_amount'},{l:'📋 单价',v:'order.unit_price'}]
+const LF=[
+  {l:'📦 当前仓可用库存',v:'inv.available_qty'},{l:'📦 当前仓安全库存',v:'inv.safety_qty'},{l:'📦 当前仓在途库存',v:'inv.in_transit_qty'},
+  {l:'📦 距上次销售(天)',v:'inv.days_since_last'},{l:'📦 当前仓库存量',v:'inv.stock'},
+  {l:'🏷️ 仓库类型',v:'inv.warehouse_type'},
+  {l:'📋 订单数量',v:'order.quantity'},{l:'📋 订单金额',v:'order.total_amount'},{l:'📋 单价',v:'order.unit_price'}]
 const OPS=[{l:'< 小于',v:'<'},{l:'≤ 小于等于',v:'<='},{l:'> 大于',v:'>'},{l:'≥ 大于等于',v:'>='},{l:'== 等于',v:'=='},{l:'≠ 不等于',v:'!='}]
 const fieldLbl=v=>{const f=LF.find(x=>x.v===v);return f?f.l:v}
 const opLbl=v=>{const o=OPS.find(x=>x.v===v);return o?o.l:v}
@@ -93,7 +106,7 @@ const pc=j=>{try{const c=JSON.parse(j);const rt=c.rightType||(LF.find(x=>x.v===c
         <button onClick={()=>{loadCfg(cfg.replenishment_mode||'bbcc');setTab('params')}} className="btn btn-ghost" style={{fontSize:13,background:tab==='params'?'var(--success)':'transparent',color:tab==='params'?'#fff':''}}>📊 补货参数</button>
         <button onClick={async()=>{try{const r=await api.get('/api/replenishment-config');if(r.data)setCfg(p=>({...r.data,replenishment_mode:p.replenishment_mode||'bbcc'}))}catch(e){};setTab('purchase')}} className="btn btn-ghost" style={{fontSize:13,background:tab==='purchase'?'var(--primary)':'transparent',color:tab==='purchase'?'#fff':''}}>🛒 采购参数</button>
       </div>
-      {tab==='rules'&&<button onClick={()=>{setEditing({});setF({name:'',event:'inventory.changed',alert_type:'',alert_title:'',alert_desc:'',severity:'warning',condition_json:'{}'})}} className="btn btn-primary">+ 新建</button>}
+      {tab==='rules'&&<button onClick={()=>{setEditing({});setF({name:'',event:'inventory.changed',alert_type:'',alert_title:'',alert_desc:'',severity:'warning',condition_json:'{}'});setCond({left:'inv.available_qty',op:'<',right:'inv.safety_qty',rightType:'field'});setCond2(null)}} className="btn btn-primary">+ 新建</button>}
     </div>
 
     {tab==='rules'&&<>
@@ -123,12 +136,28 @@ const pc=j=>{try{const c=JSON.parse(j);const rt=c.rightType||(LF.find(x=>x.v===c
             <span style={{fontSize:13,color:'var(--muted)'}}>时触发</span>
           </div>
           <div className='small' style={{marginTop:6,padding:'6px 10px',background:'var(--bg)',borderRadius:6,fontSize:12,color:'var(--primary)'}}>
-            📋 当 <b>{fieldLbl(cond.left)}</b> {opLbl(cond.op)} <b>{cond.rightType==='field'?fieldLbl(cond.right):cond.right}</b> 时触发告警
+            📋 当 <b>{fieldLbl(cond.left)}</b> {opLbl(cond.op)} <b>{cond.rightType==='field'?fieldLbl(cond.right):cond.right}</b>
+            {cond2 && cond2.left ? <> 且 <b>{fieldLbl(cond2.left)}</b> {opLbl(cond2.op)} <b>{cond2.rightType==='field'?fieldLbl(cond2.right):cond2.right}</b></> : ''}
+            时触发告警
           </div>
+          {cond2 && cond2.left !== undefined ? <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap',marginTop:6}}>
+            <span style={{fontSize:12,fontWeight:600,color:'var(--muted)'}}>且</span>
+            <select value={cond2.left} onChange={e=>setCond2(p=>({...p,left:e.target.value}))} style={{...IS,flex:1,minWidth:140}}>{LF.map(f=><option key={f.v} value={f.v}>{f.l}</option>)}</select>
+            <select value={cond2.op} onChange={e=>setCond2(p=>({...p,op:e.target.value}))} style={{...IS,width:80}}>{OPS.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select>
+            <select value={cond2.rightType} onChange={e=>{const v=e.target.value;setCond2(p=>({...p,rightType:v,right:v==='field'?'inv.safety_qty':''}))}} style={{...IS,width:60}}><option value='field'>字段</option><option value='number'>数值</option><option value='text'>文本</option></select>
+            {cond2.rightType==='field'
+              ?<select value={cond2.right} onChange={e=>setCond2(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:140}}>{LF.map(f=><option key={f.v} value={f.v}>{f.l}</option>)}</select>
+              :cond2.rightType==='number'
+              ?<input type='number' value={cond2.right} onChange={e=>setCond2(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:80}}/>
+              :<input value={cond2.right} onChange={e=>setCond2(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:80}} placeholder='如 platform_b'/>}
+            <span onClick={()=>setCond2(null)} style={{cursor:'pointer',fontSize:16,color:'var(--danger)'}}>✕</span>
+          </div> : <div style={{marginTop:6}}>
+            <span onClick={()=>setCond2({left:'',op:'==',right:'',rightType:'text'})} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px'}}>+ 添加条件（且）</span>
+          </div>}
         </div>
         <div style={{marginTop:12,display:'flex',gap:8}}>
           <button onClick={save} className="btn btn-primary">保存</button>
-          <button onClick={()=>{setEditing(null);setF({name:'',event:'inventory.changed',alert_type:'',alert_title:'',alert_desc:'',severity:'warning',condition_json:'{}'})}} className="btn btn-ghost">取消</button>
+          <button onClick={()=>{setEditing(null);setF({name:'',event:'inventory.changed',alert_type:'',alert_title:'',alert_desc:'',severity:'warning',condition_json:'{}'});setCond({left:'inv.available_qty',op:'<',right:'inv.safety_qty',rightType:'field'});setCond2(null)}} className="btn btn-ghost">取消</button>
         </div>
       </div>}
 
@@ -140,10 +169,10 @@ const pc=j=>{try{const c=JSON.parse(j);const rt=c.rightType||(LF.find(x=>x.v===c
             <span className={'pill '+(rule.is_active?'success':'warning')}>{rule.is_active?'启用':'停用'}</span>
             <span className={'pill '+sevCls(rule.severity)}>{sevLbl(rule.severity)}</span>
             <span className='small muted' style={{marginLeft:2}}>{rule.event}</span>
-            <span style={{fontSize:11,color:'var(--muted)'}}>· 当 {fieldLbl(condInfo.left)} {opLbl(condInfo.op)} {condInfo.rightType==='field'?fieldLbl(condInfo.right):condInfo.right}</span>
+            <span style={{fontSize:11,color:'var(--muted)'}}>· 当 {fieldLbl(condInfo.left)} {opLbl(condInfo.op)} {condInfo.rightType==='field'?fieldLbl(condInfo.right):condInfo.right}{condInfo.and ? <> 且 {fieldLbl(condInfo.and.left)} {opLbl(condInfo.and.op)} {condInfo.and.rightType==='field'?fieldLbl(condInfo.and.right):condInfo.and.right}</> : ''}</span>
           </div></div>
         <div style={{display:'flex',gap:6}}>
-          <button onClick={()=>{const c2=pc(rule.condition_json||'{}');setEditing(rule);setF({name:rule.name,event:rule.event,alert_type:rule.alert_type||'',alert_title:rule.alert_title||'',alert_desc:rule.alert_desc||'',severity:rule.severity||'warning',condition_json:rule.condition_json||'{}'});setCond(c2)}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 10px',minHeight:0}}>编辑</button>
+          <button onClick={()=>{const c=pc(rule.condition_json||'{}');setEditing(rule);setF({name:rule.name,event:rule.event,alert_type:rule.alert_type||'',alert_title:rule.alert_title||'',alert_desc:rule.alert_desc||'',severity:rule.severity||'warning',condition_json:rule.condition_json||'{}'});setCond(c);setCond2(c.and||null)}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 10px',minHeight:0}}>编辑</button>
           <button onClick={()=>del(rule.id)} className="btn btn-danger" style={{fontSize:12,padding:'4px 10px',minHeight:0}}>删除</button>
         </div>
       </div>})}

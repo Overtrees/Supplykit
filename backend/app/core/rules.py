@@ -95,13 +95,12 @@ def _resolve_value(expr: str, ctx: dict):
             return 0
     return val  # 支持字符串和数值
 
-def _check_condition(cond: dict, ctx: dict) -> bool:
-    """判断条件是否成立"""
+def _check_single(cond: dict, ctx: dict) -> bool:
+    """判断单条条件"""
     try:
         left_raw = cond.get('left', '0')
         right_raw = cond.get('right', '0')
         op = cond.get('op', '<')
-        # 处理 max() 表达式
         if right_raw.startswith('max('):
             inner = right_raw[4:-1]
             parts = [p.strip() for p in inner.split(',')]
@@ -111,7 +110,7 @@ def _check_condition(cond: dict, ctx: dict) -> bool:
         elif '.' in right_raw or right_raw.startswith('inv.'):
             right = _resolve_value(right_raw, ctx)
         else:
-            right = right_raw  # 纯文本字面量（如 platform_b）
+            right = right_raw
         left = _resolve_value(left_raw, ctx)
         if op == '<': return left < right
         if op == '<=': return left <= right
@@ -121,6 +120,15 @@ def _check_condition(cond: dict, ctx: dict) -> bool:
         if op == '!=': return left != right
         return False
     except: return False
+
+def _check_condition(cond: dict, ctx: dict) -> bool:
+    """判断条件（含 AND 子条件）"""
+    if not _check_single(cond, ctx):
+        return False
+    sub = cond.get('and')
+    if sub:
+        return _check_single(sub, ctx)
+    return True
 
 def evaluate(event: str, context: dict):
     """根据事件名匹配数据库中的规则，满足条件则执行动作"""

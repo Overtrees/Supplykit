@@ -56,7 +56,7 @@ export default function DashboardPage({ onAlert }) {
 
   const lowStock = (inventory||[]).filter(x => Number(x.available_qty) < Number(x.safety_qty)).length
   const errCount = (qualityLogs||[]).length
-  const alertsList = alerts || []
+  const alertsList = (alerts || []).filter(x => x.status === 'active')
 
   return <div>
     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>

@@ -92,12 +92,6 @@ export default function InsightsPage() {
       setSlowMoving(r.data || [])
       setSlowLoading(false)
     }).catch(() => setSlowLoading(false))
-      if (eventsR.status === 'fulfilled') setActivities((eventsR.value.data || []).slice(0, 15))
-      setActivityLoading(false)
-      if (slowR.status === 'fulfilled') setSlowMoving(slowR.value.data || [])
-      setSlowLoading(false)
-      setInitLoading(false)
-    }).catch(() => setInitLoading(false))
   }, [])
 
   const tabs = [

@@ -472,7 +472,7 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
                 # 库存充足 → 关闭已有告警
                 db.table("alerts").update({"status":"closed"}).eq("alert_type","purchase_need").eq("related_sku",r['sku']).eq("status","active").execute()
             except: pass
-    return {"suggestions": result, "suppliers": len(suppliers)}
+    return {"suggestions": result}
 
 
 def detect_slow_moving_products(db=None, create_alerts=False):

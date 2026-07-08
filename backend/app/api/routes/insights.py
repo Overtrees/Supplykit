@@ -408,7 +408,8 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
     result = []
     for sku, st in stock_by_sku.items():
         ds = round(fused_sales.get(sku, 0) * active_factor, 1)  # 含活动系数
-        sys_total = st['available'] + st['transit']  # 全仓总库存（含C/自有/B/在途）
+        sys_avail = st['available']; sys_transit = st['transit']
+        sys_total = sys_avail + sys_transit  # 全仓总库存（含C/自有/B/在途）
 
         # 安全库存
         safety_days = st['safety_days'] if st['safety_days'] > 0 else purchase_safety_days
@@ -419,10 +420,15 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
         # 兜底 MOQ
         purchase_qty = max(purchase_qty, moq_default) if purchase_qty > 0 else 0
 
+        # 箱规取整
+        prod = products.get(sku, {})
+        box_qty = int(prod.get('box_qty', 1) or 1)
+        actual_purchase = (purchase_qty + box_qty - 1) // box_qty * box_qty if purchase_qty > 0 else 0
+
         days_to_empty = round(sys_avail / ds, 1) if ds > 0 else 999
 
-        # 补后自有仓周转（采购货到自有仓后/日销，仅对比参考）
-        after_stock = st['own_avail'] + purchase_qty
+        # 补后自有仓周转（采购到自有仓后含在途，对比目标周转）
+        after_stock = st['own_avail'] + st['own_transit'] + actual_purchase
         after_turnover = round(after_stock / ds, 1) if ds > 0 else 999
         target_turn = int(raw.get('max_turnover_days', '0'))
         c_consume = round(ds * purchase_lead_time) if ds > 0 else 0
@@ -436,9 +442,6 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
                 note += f" > 目标{target_turn}天" if after_turnover > target_turn else f" < 目标{target_turn}天"
 
         # 匹配供应商
-        prod = products.get(sku, {})
-        box_qty = int(prod.get('box_qty', 1) or 1)
-        actual_purchase = (purchase_qty + box_qty - 1) // box_qty * box_qty if purchase_qty > 0 else 0
         best = None
         for s in suppliers:
             if prod.get('category') and prod['category'] in (s.get('supplier_name') or ''):

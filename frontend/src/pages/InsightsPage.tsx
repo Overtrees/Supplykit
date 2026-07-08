@@ -285,7 +285,7 @@ export default function InsightsPage() {
             <div style={{ overflowX: 'auto' }}>
               <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 9 列 · 左右滑动查看</div>
               <table>
-                <thead><tr>{['SKU','商品','仓库','系统库存','日销(融合/14/28)','建议采购','实际采购','补后周转','备注','时机'].map(h => <th key={h} style={{whiteSpace:'nowrap',fontSize:11}}>{h}</th>)}</tr></thead>
+                <thead><tr>{['SKU','商品','仓库','系统库存','日销(融合/14/28)','建议采购(箱规)','补后周转','备注','时机'].map(h => <th key={h} style={{whiteSpace:'nowrap',fontSize:11}}>{h}</th>)}</tr></thead>
                 <tbody>
                   {purchase.map((x, i) => {
                     const timing = !x.purchase_qty || x.purchase_qty <= 0 ? '充足' : (x.after_turnover && x.target_turnover > 0 && x.after_turnover <= x.target_turnover ? '建议' : '充足')
@@ -299,9 +299,8 @@ export default function InsightsPage() {
                         <span className="small muted" style={{fontWeight:400}}> 自有{x.own_available}+{x.own_transit ? `在途${x.own_transit}`:''} 平台{x.plat_available}+{x.plat_transit ? `在途${x.plat_transit}`:''} B仓{x.b_available||0}</span>
                       </td>
                       <td style={{fontSize:12,fontWeight:600,whiteSpace:'nowrap'}}>{x.daily_sales}<span style={{fontSize:10,fontWeight:400,color:'var(--muted2)'}}> /{x.daily_sales_14||0}/{x.daily_sales_28||0}</span></td>
-                      <td style={{ fontWeight: 600, color: x.purchase_qty > 0 ? 'var(--success)' : 'var(--muted2)' }}>{x.purchase_qty > 0 ? '+'+x.purchase_qty : x.purchase_qty}</td>
-                      <td style={{fontWeight:700,color:'var(--success)'}}>{x.actual_purchase > 0 ? '+' + x.actual_purchase : (x.actual_purchase === 0 ? '0' : '-')}</td>
-                      <td style={{fontWeight:600,color: x.purchase_qty > 0 ? (x.after_turnover > 15 ? '#ef4444' : 'var(--text)') : 'var(--muted2)'}}>{x.purchase_qty > 0 ? x.after_turnover+'天' : '-'}</td>
+                      <td style={{fontWeight:700,color:x.actual_purchase > 0 ? 'var(--success)' : 'var(--muted2)'}}>{x.actual_purchase > 0 ? '+'+x.actual_purchase : (x.actual_purchase === 0 ? '0' : '-')}</td>
+                      <td style={{fontWeight:600,color: x.actual_purchase > 0 ? (x.target_turnover > 0 && x.after_turnover > x.target_turnover ? '#ef4444' : 'var(--text)') : 'var(--muted2)'}}>{x.actual_purchase > 0 ? x.after_turnover+'天' : '-'}</td>
                       <td className="col-name" style={{color:'var(--muted2)',fontSize:12}}>{x.note || '无需采购'}</td>
                       <td><span className={`pill ${timing==='建议'?'warning':'info'}`}>{timing}</span></td>
                     </tr>
@@ -310,9 +309,8 @@ export default function InsightsPage() {
                 </tbody>
                 <tfoot>
                   <tr style={{fontWeight:700,borderTop:'2px solid var(--border)'}}>
-                    <td colSpan={8} style={{textAlign:'right',fontSize:12}}>合计</td>
-                    <td style={{color:'var(--success)',fontSize:13}}>+{purchase.reduce((s,x)=>s+(x.actual_purchase||0),0)}</td>
-                    <td colSpan={3} style={{fontSize:11,color:'var(--muted2)'}}>
+                    <td colSpan={7} style={{textAlign:'right',fontSize:12}}>合计</td>
+                    <td colSpan={2} style={{fontSize:11,color:'var(--muted2)'}}>
                       {(() => {
                         const withPurchase = purchase.filter(x => x.purchase_qty > 0)
                         const avgTurnover = withPurchase.length > 0

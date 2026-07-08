@@ -93,7 +93,7 @@ def _resolve_value(expr: str, ctx: dict):
             val = val.get(p, 0)
         else:
             return 0
-    return val if isinstance(val, (int, float)) else 0
+    return val  # 支持字符串和数值
 
 def _check_condition(cond: dict, ctx: dict) -> bool:
     """判断条件是否成立"""
@@ -116,6 +116,7 @@ def _check_condition(cond: dict, ctx: dict) -> bool:
         if op == '>': return left > right
         if op == '>=': return left >= right
         if op == '==': return left == right
+        if op == '!=': return left != right
         return False
     except: return False
 

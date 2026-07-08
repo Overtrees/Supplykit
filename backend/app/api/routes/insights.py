@@ -15,6 +15,38 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     try: db.table("alerts").update({"status": "inactive"}).eq("alert_type", "storage_fee").eq("status", "active").execute()
     except: pass
 
+    # B仓超储预警：基于标记操作的入库日期
+    try:
+        pos = db.table("purchase_orders").select("*").execute().data or []
+        now = datetime.utcnow()
+        for po in pos:
+            ad = po.get("arrival_date", "")
+            if not ad or po.get("status") == "completed": continue
+            try: days = (now - datetime.strptime(ad[:10], "%Y-%m-%d")).days
+            except: continue
+            sku = po.get("sku", "")
+            existing = db.table("alerts").select("id").eq("alert_type", "b_storage_warn").eq("related_sku", sku).eq("status", "active").execute().data
+            if days >= 11 and days < 15:
+                if not existing:
+                    db.table("alerts").insert({"alert_type":"b_storage_warn","title":f"B仓即将超免费期: {po.get('product_name',sku)}",
+                        "description":f"入库已{days}天，即将超B仓15天免费期","severity":"info","source":"replenishment_engine","related_sku":sku,"status":"active"}).execute()
+            elif days >= 15 and days < 20:
+                if not existing:
+                    db.table("alerts").insert({"alert_type":"b_storage_warn","title":f"B仓超免费期: {po.get('product_name',sku)}",
+                        "description":f"入库已{days}天，超B仓15天免费期，产生仓储费","severity":"warning","source":"replenishment_engine","related_sku":sku,"status":"active"}).execute()
+            elif days >= 20:
+                # 超20天升级为严重
+                if existing:
+                    db.table("alerts").update({"severity":"error","description":f"入库已{days}天，远超B仓15天免费期，仓储费持续累计"}).eq("id", existing[0]["id"]).execute()
+                else:
+                    db.table("alerts").insert({"alert_type":"b_storage_warn","title":f"B仓严重超期: {po.get('product_name',sku)}",
+                        "description":f"入库已{days}天，远超B仓15天免费期，仓储费持续累计","severity":"error","source":"replenishment_engine","related_sku":sku,"status":"active"}).execute()
+            elif days >= 11 and existing:
+                # 接近时已有告警则更新描述
+                db.table("alerts").update({"description":f"入库已{days}天，即将超B仓15天免费期"}).eq("id", existing[0]["id"]).execute()
+    except Exception as e:
+        import logging; logging.warning("B仓预警失败: %s", e)
+
     # 读取当前模式的补货参数
     cfg_rows = db.table("replenishment_config").select("*").execute().data
     raw = {r['key']: r['value'] for r in cfg_rows}

@@ -238,7 +238,7 @@ export default function InsightsPage() {
                       {replenMode!=='bbcc' && <td style={{fontWeight:600,color:x.suggested_qty > 0 && (x.after_turnover||0) > 15 ? '#ef4444' : 'var(--text)'}}>{x.suggested_qty > 0 ? x.after_turnover+'天' : '-'}</td>}
                       <td className="col-name" style={{color:'var(--muted2)',fontSize:12}}>{x.note || '-'}</td>
                       {replenMode==='bbcc' && <td><span onClick={()=>{
-                        if (x.combined_turnover > 90 && !window.confirm(`补后综合周转${x.combined_turnover}天，已超90天考核红线，仍标记操作？`)) return
+                        if ((x.suggested_qty > 0 || x.b_suggested > 0) && x.combined_turnover > 90 && !window.confirm(`补后综合周转${x.combined_turnover}天，已超90天考核红线，仍标记操作？`)) return
                         toggleOrdered(x.sku, x.store, x.product_name, x.suggested_qty || x.b_suggested)
                       }} style={{cursor:'pointer',fontSize:18,opacity:0.5}}>☐</span></td>}
                     </tr>
@@ -289,7 +289,7 @@ export default function InsightsPage() {
                 <thead><tr>{['SKU','商品','仓库','系统总库存','日销(融合/14/28)','建议采购','补后周转','备注','采购时机'].map(h => <th key={h} style={{whiteSpace:'nowrap',fontSize:11}}>{h}</th>)}</tr></thead>
                 <tbody>
                   {purchase.map((x, i) => {
-                    const timing = !x.purchase_qty || x.purchase_qty <= 0 ? '充足' : (x.after_turnover && x.target_turnover > 0 && x.after_turnover <= x.target_turnover ? '建议' : '充足')
+                    const timing = !x.purchase_qty || x.purchase_qty <= 0 ? '充足' : (x.after_turnover && (x.target_turnover || 15) > 0 && x.after_turnover <= (x.target_turnover || 15) ? '建议' : '充足')
                     return (
                     <tr key={i}>
                       <td className="mono" style={{ fontSize: 12 }}>{x.sku}</td>

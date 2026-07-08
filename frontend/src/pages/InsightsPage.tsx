@@ -15,36 +15,19 @@ function Skeleton({ height = 16, width = '100%', style }) {
   return <div className="skeleton" style={{ height, width, ...style }} />
 }
 
-function LoadingSkeleton() {
-  return <div className="card">
-    <Skeleton height={20} width="40%" />
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10, marginTop: 12 }}>
-      {[1,2,3,4,5].map(i => <div key={i} className="card" style={{ padding: 12 }}><Skeleton height={14} /><Skeleton height={24} width="60%" /></div>)}
-    </div>
-    <div style={{ display: 'flex', gap: 6, marginTop: 16 }}>
-      {[1,2,3,4].map(i => <Skeleton key={i} height={32} width={80} />)}
-    </div>
-    <Skeleton height={200} style={{ marginTop: 12 }} />
-  </div>
-}
-
 export default function InsightsPage() {
   const toast = useToast()
   const [tab, setTab] = useState('replen')
   const [replen, setReplen] = useState([])
   const [purchase, setPurchase] = useState([])
-  const [summary, setSummary] = useState(null)
   const [activities, setActivities] = useState([])
   const [slowMoving, setSlowMoving] = useState([])
-  
 
   // 各区块加载状态
-  const [summaryLoading, setSummaryLoading] = useState(true)
   const [replenLoading, setReplenLoading] = useState(true)
   const [purchaseLoading, setPurchaseLoading] = useState(true)
   const [slowLoading, setSlowLoading] = useState(true)
   const [activityLoading, setActivityLoading] = useState(true)
-  const [initLoading, setInitLoading] = useState(true)
 
   const [replenMode, setReplenMode] = useState(() => localStorage.getItem('c_replen_mode') || 'bbcc')
 
@@ -93,22 +76,22 @@ export default function InsightsPage() {
   const todayStr = new Date().toISOString().slice(0, 10)
 
   useEffect(() => {
-    setInitLoading(true)
     loadOrdered()
-    // 补货建议独立加载（自带 loading 管理）
+    // 补货建议独立加载
     loadReplen(replenMode)
-    // 其余 4 组数据同时加载
-    const otherPromises = [
-      api.get('/api/insights/purchase?days=28&mode=' + replenMode),
-      api.get('/api/insights/summary'),
-      api.get('/api/events'),
-      api.get('/api/insights/slow-moving'),
-    ]
-    Promise.allSettled(otherPromises).then(([purchaseR, summaryR, eventsR, slowR]) => {
-      if (purchaseR.status === 'fulfilled') setPurchase(purchaseR.value.data?.suggestions || purchaseR.value.data || [])
+    // 其余数据同时加载
+    api.get('/api/insights/purchase?days=28&mode=' + replenMode).then(r => {
+      setPurchase(r.data?.suggestions || r.data || [])
       setPurchaseLoading(false)
-      if (summaryR.status === 'fulfilled') setSummary(summaryR.value.data)
-      setSummaryLoading(false)
+    }).catch(() => setPurchaseLoading(false))
+    api.get('/api/events').then(r => {
+      setActivities((r.data || []).slice(0, 15))
+      setActivityLoading(false)
+    }).catch(() => setActivityLoading(false))
+    api.get('/api/insights/slow-moving').then(r => {
+      setSlowMoving(r.data || [])
+      setSlowLoading(false)
+    }).catch(() => setSlowLoading(false))
       if (eventsR.status === 'fulfilled') setActivities((eventsR.value.data || []).slice(0, 15))
       setActivityLoading(false)
       if (slowR.status === 'fulfilled') setSlowMoving(slowR.value.data || [])
@@ -131,34 +114,8 @@ export default function InsightsPage() {
     color: tab === id ? '#fff' : 'var(--muted)', cursor: 'pointer',
   })
 
-  if (initLoading) return <LoadingSkeleton />
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {/* Summary cards */}
-      {summaryLoading ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10 }}>
-          {[1,2,3,4,5].map(i => <div key={i} className="card" style={{ padding: 12, textAlign: 'center' }}>
-            <Skeleton height={14} width="60%" style={{ margin: '0 auto' }} />
-            <Skeleton height={24} width="40%" style={{ margin: '6px auto 0' }} />
-          </div>)}
-        </div>
-      ) : (summary && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10 }}>
-          {[
-            { label: '库存商品', value: summary.total_products },
-            { label: '低库存', value: summary.low_stock, color: 'var(--warning)' },
-            { label: '紧急补货', value: summary.urgent_replenish, color: summary.urgent_replenish > 0 ? '#ef4444' : 'var(--success)' },
-            { label: '滞销', value: summary.slow_moving, color: summary.slow_moving > 0 ? '#ef4444' : 'var(--success)' },
-            { label: '冷淡', value: summary.cold_count, color: summary.cold_count > 0 ? 'var(--warning)' : 'var(--muted2)' },
-          ].map((c, i) => (
-            <div key={i} className="card" style={{ textAlign: 'center', containerType:'inline-size' }}>
-              <div className="small muted">{c.label}</div>
-              <div className="card-value" style={{ color: c.color || 'var(--text)' }}>{c.value ?? 0}</div>
-            </div>
-          ))}
-        </div>
-      ))}
 
       {/* Tab bar */}
       <div style={{ display: 'flex', gap: 6, flexWrap:'wrap' }}>

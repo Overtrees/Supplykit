@@ -285,7 +285,7 @@ export default function InsightsPage() {
             <div style={{ overflowX: 'auto' }}>
               <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 9 列 · 左右滑动查看</div>
               <table>
-                <thead><tr>{['SKU','商品','仓库','系统库存','日销(融合/14/28)','建议采购(箱规)','补后周转','备注','时机'].map(h => <th key={h} style={{whiteSpace:'nowrap',fontSize:11}}>{h}</th>)}</tr></thead>
+                <thead><tr>{['SKU','商品','仓库','系统总库存','日销(融合/14/28)','建议采购','补后周转','备注','采购时机'].map(h => <th key={h} style={{whiteSpace:'nowrap',fontSize:11}}>{h}</th>)}</tr></thead>
                 <tbody>
                   {purchase.map((x, i) => {
                     const timing = !x.purchase_qty || x.purchase_qty <= 0 ? '充足' : (x.after_turnover && x.target_turnover > 0 && x.after_turnover <= x.target_turnover ? '建议' : '充足')

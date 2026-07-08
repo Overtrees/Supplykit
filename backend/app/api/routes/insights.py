@@ -397,11 +397,8 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
             stock_by_sku[s]['plat_avail'] += qty
             stock_by_sku[s]['plat_transit'] += tty
 
-    # 5. 供应商
-    suppliers = db.table("suppliers").select("*").eq("status", "active").execute().data
+    # 5. 商品信息
     products = {p["sku"]: p for p in db.table("products").select("*").execute().data}
-
-    # 传统模式暂用系统库存（同BBCC逻辑）
     
 
     # 6. 逐 SKU 计算（系统总库存视角，日销用14+28融合值）
@@ -441,14 +438,6 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
             if target_turn > 0:
                 note += f" > 目标{target_turn}天" if after_turnover > target_turn else f" < 目标{target_turn}天"
 
-        # 匹配供应商
-        best = None
-        for s in suppliers:
-            if prod.get('category') and prod['category'] in (s.get('supplier_name') or ''):
-                best = s; break
-        if not best and suppliers:
-            best = max(suppliers, key=lambda x: x.get('score', 0))
-
         result.append({
             'sku': sku, 'product_name': prod.get('product_name', ''),
             'store': prod.get('store', ''), 'warehouse': st['own_warehouse'], 'category': prod.get('category', ''),
@@ -462,9 +451,6 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
             'after_stock': st['own_avail'] + purchase_qty, 'after_turnover': after_turnover,
             'target_turnover': target_turn,
             'days_to_empty': days_to_empty, 'note': note,
-            'supplier_code': best['supplier_code'] if best else '',
-            'supplier_name': best['supplier_name'] if best else '',
-            'supplier_score': best['score'] if best else 0,
         })
 
     result.sort(key=lambda x: x['days_to_empty'])

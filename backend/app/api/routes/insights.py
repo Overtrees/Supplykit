@@ -174,7 +174,12 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             days_to_empty = round(avail / sel_ds, 1) if sel_ds > 0 else 999
             tw15 = int(cfg.get('turnover_warning_15', '15'))
             tw90 = int(cfg.get('turnover_warning_90', '90'))
-            note = f"C仓建议{suggested}件  B仓需补{b_box_qty}件 · 箱规{box}件" if (suggested > 0 or b_box_qty > 0) else "库存充足"
+            note = f"C仓建议{suggested}件  B仓需补{b_box_qty}件 · 箱规{box}件" if (suggested > 0 or b_box_qty > 0) else ""
+            # 当前综转超90天预警
+            if combined_turnover_current is not None and combined_turnover_current > 90:
+                note += (" " if note else "") + f"🔴 当前综转{combined_turnover_current}天超红线90"
+            if not note:
+                note = "库存充足"
             if b_gap > 0:
                 c_cover = round((avail + transit) / sel_ds, 1) if sel_ds > 0 else 0
                 b_idle = max(round(c_cover - b_ship_days, 1), 0)

@@ -231,7 +231,7 @@ export default function InsightsPage() {
                         ? <><td style={{color:'var(--primary)',fontWeight:600}}>{x.suggested_qty > 0 ? x.suggested_qty : '-'}</td>
                           <td style={{color:'var(--success)',fontWeight:700}}>{x.b_suggested > 0 ? x.b_suggested : '-'}</td>
                           <td style={{fontSize:11}}>{x.combined_turnover_current != null ? x.combined_turnover_current+'天' : '∞'}</td>
-                          <td style={{fontSize:11,fontWeight:700,color:x.combined_turnover != null && x.combined_turnover > 90 ? '#ef4444' : x.combined_turnover != null && x.combined_turnover > 15 ? 'var(--warning)' : 'var(--text)'}}>{x.combined_turnover != null ? x.combined_turnover+'天' : '∞'}</td></>
+                          <td style={{fontSize:11,fontWeight:700,color:x.combined_turnover != null && x.combined_turnover > 90 ? '#ef4444' : x.combined_turnover != null && x.combined_turnover > 15 ? 'var(--warning)' : 'var(--text)'}}>{(x.suggested_qty > 0 || x.b_suggested > 0) && x.combined_turnover != null ? x.combined_turnover+'天' : '-'}</td></>
                         : <><td style={{color:'var(--primary)',fontWeight:600}}>{x.raw_suggested || x.suggested_qty}</td>
                           <td style={{color:'var(--success)',fontWeight:700}}>{x.suggested_qty > 0 ? x.suggested_qty : '-'}</td></>}
                       {replenMode!=='bbcc' && <td style={{fontWeight:600,color:x.suggested_qty > 0 && (x.after_turnover||0) > 15 ? '#ef4444' : 'var(--text)'}}>{x.suggested_qty > 0 ? x.after_turnover+'天' : '-'}</td>}

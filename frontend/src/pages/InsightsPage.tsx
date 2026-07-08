@@ -125,7 +125,7 @@ export default function InsightsPage() {
         <div className="card">
           <div className="section-title" style={{display:'flex',flexWrap:'wrap',gap:6}}>
             <span>
-              补货建议{replen.length > 0 && <span className="small muted" style={{ marginLeft: 8 }}>· 低于安全线的商品</span>}
+              补货建议{replen.length > 0 && <span className="small muted" style={{ marginLeft: 8 }}></span>}
               <span style={{marginLeft:12,display:'inline-flex',flexWrap:'wrap',gap:4}}>
                 <span onClick={()=>switchMode('bbcc')} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',background:replenMode==='bbcc'?'var(--primary)':'transparent',color:replenMode==='bbcc'?'#fff':''}}>BBCC</span>
                 <span onClick={()=>switchMode('traditional')} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',background:replenMode==='traditional'?'var(--primary)':'transparent',color:replenMode==='traditional'?'#fff':''}}>传统</span>
@@ -225,7 +225,7 @@ export default function InsightsPage() {
       {/* 采购建议 */}
       {tab === 'purchase' && (
         <div className="card">
-          <div className="section-title">采购建议 <span className="small muted">· 含供应商匹配</span></div>
+          <div className="section-title">采购建议</div>
           {purchaseLoading ? (
             <div>
               {[1,2,3,4].map(i => <Skeleton key={i} height={36} style={{ marginBottom: 4 }} />)}

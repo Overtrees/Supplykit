@@ -246,8 +246,8 @@ export default function InsightsPage() {
               </table>
             </div>
           ))}
-          {/* 已下单区域 */}
-          {orderedKeys.length > 0 && <details style={{marginTop:12}}>
+          {/* 已下单区域（仅BBCC模式） */}
+          {replenMode==='bbcc' && orderedKeys.length > 0 && <details style={{marginTop:12}}>
             <summary className="small muted" style={{cursor:'pointer',fontSize:12}}>已下单 {orderedKeys.length} 项</summary>
             <div style={{fontSize:12,marginTop:8}}>
               {orderedItems.map((po, i) => {
@@ -309,8 +309,9 @@ export default function InsightsPage() {
                 </tbody>
                 <tfoot>
                   <tr style={{fontWeight:700,borderTop:'2px solid var(--border)'}}>
-                    <td colSpan={7} style={{textAlign:'right',fontSize:12}}>合计</td>
-                    <td colSpan={2} style={{fontSize:11,color:'var(--muted2)'}}>
+                    <td colSpan={5} style={{textAlign:'right',fontSize:12}}>合计</td>
+                    <td style={{color:'var(--success)',fontSize:13}}>+{purchase.reduce((s,x)=>s+(x.actual_purchase||0),0)}</td>
+                    <td colSpan={3} style={{fontSize:11,color:'var(--muted2)'}}>
                       {(() => {
                         const withPurchase = purchase.filter(x => x.purchase_qty > 0)
                         const avgTurnover = withPurchase.length > 0

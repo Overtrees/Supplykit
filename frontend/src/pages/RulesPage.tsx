@@ -37,7 +37,7 @@ export default function RulesPage() {
 
   const sevCls=s=>s==='error'?'danger':s==='info'?'info':'warning'
 const[cond,setCond]=useState({left:'inv.available_qty',op:'<',right:'inv.safety_qty',rightType:'field'})
-const LF=[{l:'可用库存',v:'inv.available_qty'},{l:'安全库存',v:'inv.safety_qty'},{l:'在途库存',v:'inv.in_transit_qty'},{l:'距上次销售(天)',v:'inv.days_since_last'},{l:'库存量',v:'inv.stock'},{l:'订单数量',v:'order.quantity'},{l:'订单金额',v:'order.total_amount'},{l:'单价',v:'order.unit_price'}]
+const LF=[{l:'当前仓可用库存',v:'inv.available_qty'},{l:'当前仓安全库存',v:'inv.safety_qty'},{l:'当前仓在途库存',v:'inv.in_transit_qty'},{l:'距上次销售(天)',v:'inv.days_since_last'},{l:'当前仓库存量',v:'inv.stock'},{l:'订单数量',v:'order.quantity'},{l:'订单金额',v:'order.total_amount'},{l:'单价',v:'order.unit_price'}]
 const OPS=[{l:'< 小于',v:'<'},{l:'≤ 小于等于',v:'<='},{l:'> 大于',v:'>'},{l:'≥ 大于等于',v:'>='},{l:'== 等于',v:'=='}]
 const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',op:c.op||'<',right:c.right||'inv.safety_qty',rightType:LF.find(x=>x.v===c.right)?'field':'number'}}catch{return{left:'inv.available_qty',op:'<',right:'inv.safety_qty',rightType:'field'}}}
   const sevLbl=s=>s==='error'?'严重':s==='info'?'提示':'警告'

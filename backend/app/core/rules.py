@@ -108,8 +108,10 @@ def _check_condition(cond: dict, ctx: dict) -> bool:
             right = max(_resolve_value(parts[0], ctx), float(parts[1]) if parts[1].replace('.','',1).isdigit() else 0)
         elif right_raw.replace('.','',1).isdigit():
             right = float(right_raw)
-        else:
+        elif '.' in right_raw or right_raw.startswith('inv.'):
             right = _resolve_value(right_raw, ctx)
+        else:
+            right = right_raw  # 纯文本字面量（如 platform_b）
         left = _resolve_value(left_raw, ctx)
         if op == '<': return left < right
         if op == '<=': return left <= right

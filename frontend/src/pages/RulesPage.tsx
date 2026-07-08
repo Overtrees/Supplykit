@@ -107,10 +107,12 @@ const pc=j=>{try{const c=JSON.parse(j);return{left:c.left||'inv.available_qty',o
             <select value={cond.left} onChange={e=>setCond(p=>({...p,left:e.target.value}))} style={IS}>{LF.map(f=><option key={f.v} value={f.v}>{f.l}</option>)}</select>
             <select value={cond.op} onChange={e=>setCond(p=>({...p,op:e.target.value}))} style={IS}>{OPS.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select>
             <div style={{display:'flex',gap:6}}>
-              <select value={cond.rightType} onChange={e=>setCond(p=>({...p,rightType:e.target.value,right:e.target.value==='field'?'inv.safety_qty':'0'}))} style={{...IS,flex:1}}><option value='field'>字段</option><option value='number'>数值</option></select>
+              <select value={cond.rightType} onChange={e=>{const v=e.target.value;setCond(p=>({...p,rightType:v,right:v==='field'?'inv.safety_qty':''}))}} style={{...IS,flex:1}}><option value='field'>字段</option><option value='number'>数值</option><option value='text'>文本</option></select>
               {cond.rightType==='field'
                 ?<select value={cond.right} onChange={e=>setCond(p=>({...p,right:e.target.value}))} style={{...IS,flex:3}}>{LF.map(f=><option key={f.v} value={f.v}>{f.l}</option>)}</select>
-                :<input type='number' value={cond.right} onChange={e=>setCond(p=>({...p,right:e.target.value}))} style={{...IS,flex:3}}/>}
+                :cond.rightType==='number'
+                ?<input type='number' value={cond.right} onChange={e=>setCond(p=>({...p,right:e.target.value}))} style={{...IS,flex:3}}/>
+                :<input value={cond.right} onChange={e=>setCond(p=>({...p,right:e.target.value}))} style={{...IS,flex:3}} placeholder='如 platform_b'/>}
             </div>
           </div>
           <div className='small muted' style={{marginTop:6,fontSize:11}}>当满足此条件时触发告警</div>

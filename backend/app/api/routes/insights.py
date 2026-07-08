@@ -336,8 +336,9 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
         daily_raw = {}
         for o in db.table("orders").select("*").execute().data:
             s = o.get("sku", ""); dt = str(o.get("ordered_at", ""))[:10]; q = int(o.get('quantity',0) or 0)
-            if dt >= cutoff:
-                daily_raw.setdefault(s, {})[dt] = daily_raw[s].get(dt, 0) + q
+            if dt >= cutoff and s:
+                if s not in daily_raw: daily_raw[s] = {}
+                daily_raw[s][dt] = daily_raw[s].get(dt, 0) + q
         result = {}
         for sku, daily in daily_raw.items():
             all_d = [(now - timedelta(days=i)).strftime('%Y-%m-%d') for i in range(win)]
@@ -435,9 +436,10 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
         after_stock = st['own_avail'] + purchase_qty
         after_turnover = round(after_stock / ds, 1) if ds > 0 else 999
         target_turn = int(raw.get('max_turnover_days', '0'))
+        c_consume = round(ds * purchase_lead_time) if ds > 0 else 0
         note = ""
         if purchase_qty > 0:
-            note = f"C仓消耗{c_consume}+安全{eff_safety} -B仓{int(b_a)} -自有{int(own_a)} ={int(purchase_qty)}"
+            note = f"消耗{c_consume}+安全{eff_safety} -B仓{int(b_a)} -自有{int(own_a)} ={int(purchase_qty)}"
             note += f" | 箱规{box_qty}件, 实购{actual_purchase}件"
             note += f"（{actual_purchase//box_qty}箱）" if box_qty > 1 else ""
             note += f", 补后周转{after_turnover}天"
@@ -463,8 +465,10 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
             'plat_available': st['plat_avail'], 'plat_transit': st['plat_transit'],
             'b_available': b_avail.get(sku, 0),
             'safety_qty': st['safety'], 'daily_sales': ds,
+            'daily_sales_14': sales_14.get(sku, 0), 'daily_sales_28': sales_28.get(sku, 0),
             'purchase_qty': purchase_qty, 'box_qty': box_qty, 'actual_purchase': actual_purchase, 'b_need': b_need,
             'after_stock': st['own_avail'] + purchase_qty, 'after_turnover': after_turnover,
+            'target_turnover': target_turn,
             'days_to_empty': days_to_empty, 'note': note,
             'supplier_code': best['supplier_code'] if best else '',
             'supplier_name': best['supplier_name'] if best else '',

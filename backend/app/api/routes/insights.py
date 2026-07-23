@@ -663,17 +663,22 @@ def export_inventory_excel(db = get_db()):
     """导出库存为CSV"""
     import csv, io
     from fastapi.responses import PlainTextResponse
-    # 用 with-sales 数据（含期初库存和周转天）
-    items = inventory_with_sales(db=db) or []
-    items = items[:500]  # 限制行数
+    raw = db.table("inventory").select("*").order("id", desc=True).execute().data or []
+    # 合并 with-sales 的计算字段（期初、日销、周转天等）
+    ws_map = {}
+    for w in (inventory_with_sales(db=db) or []):
+        ws_map[(w.get('sku',''), w.get('warehouse',''))] = w
     out = io.StringIO()
     w = csv.writer(out)
-    w.writerow(['SKU','商品','仓库','期初库存','可用','在途','月入库','月出库','日销','周转天','安全线'])
-    for i in items:
-        w.writerow([i.get('sku',''),i.get('product_name',''),i.get('warehouse',''),
-                   i.get('beginning_stock',0),i.get('available_qty',0),i.get('in_transit_qty',0),
-                   i.get('month_inbound',0),i.get('month_outbound',0),i.get('daily_sales',0),
-                   i.get('turnover_days',0),i.get('safety_qty',0)])
+    w.writerow(['SKU','商品','店铺','仓库','类型','期初库存','可用','在途','安全线','安全天数','日销','周转天'])
+    for r in raw[:500]:
+        k = (r.get('sku',''), r.get('warehouse',''))
+        ws = ws_map.get(k, {})
+        w.writerow([r.get('sku',''), r.get('product_name',''), r.get('store',''), r.get('warehouse',''),
+                   r.get('warehouse_type',''), ws.get('beginning_stock',0),
+                   r.get('available_qty',0), r.get('in_transit_qty',0),
+                   r.get('safety_qty',0), r.get('safety_days',0),
+                   ws.get('daily_sales',0), ws.get('turnover_days',0)])
     return PlainTextResponse(out.getvalue(), media_type='text/csv',
                              headers={'Content-Disposition':'attachment; filename=inventory.csv'})
     return PlainTextResponse(out.getvalue(), media_type='text/csv',

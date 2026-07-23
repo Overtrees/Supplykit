@@ -662,6 +662,7 @@ def export_orders_excel(db = get_db()):
 def export_inventory_excel(db = get_db()):
     """导出库存为CSV"""
     import csv, io
+    from fastapi.responses import PlainTextResponse
     items = db.table("inventory").select("*").limit(200).execute().data or []
     out = io.StringIO()
     w = csv.writer(out)
@@ -669,7 +670,8 @@ def export_inventory_excel(db = get_db()):
     for i in items:
         w.writerow([i.get('sku',''),i.get('product_name',''),i.get('warehouse',''),
                    i.get('available_qty',0),i.get('in_transit_qty',0),i.get('safety_qty',0)])
-    return out.getvalue()
+    return PlainTextResponse(out.getvalue(), media_type='text/csv',
+                             headers={'Content-Disposition':'attachment; filename=inventory.csv'})
 
 @router.get('/export-purchase')
 def export_purchase_excel(days: int = 28, mode: str = 'bbcc', db = get_db()):

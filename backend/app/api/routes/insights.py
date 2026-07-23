@@ -660,21 +660,16 @@ def export_orders_excel(db = get_db()):
 
 @router.get('/export-inventory')
 def export_inventory_excel(db = get_db()):
-    from openpyxl import Workbook
-    from io import BytesIO
-    from fastapi.responses import StreamingResponse
-    items = db.table("inventory").select("*").order("id", desc=True).execute().data or []
-    wb = Workbook()
-    ws = wb.active; ws.title = "库存"
-    headers = ['SKU','商品名称','店铺','仓库','可用','锁定','在途','安全线','安全天数']
-    ws.append(headers)
+    """导出库存为CSV"""
+    import csv, io
+    items = db.table("inventory").select("*").limit(200).execute().data or []
+    out = io.StringIO()
+    w = csv.writer(out)
+    w.writerow(['SKU','商品','仓库','可用','在途','安全线'])
     for i in items:
-        ws.append([i.get('sku',''),i.get('product_name',''),i.get('store',''),i.get('warehouse',''),
-                   i.get('available_qty',0),i.get('locked_qty',0),i.get('in_transit_qty',0),
-                   i.get('safety_qty',0),i.get('safety_days',0)])
-    buf = BytesIO(); wb.save(buf); buf.seek(0)
-    return StreamingResponse(buf, media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                             headers={'Content-Disposition':'attachment; filename=inventory.xlsx'})
+        w.writerow([i.get('sku',''),i.get('product_name',''),i.get('warehouse',''),
+                   i.get('available_qty',0),i.get('in_transit_qty',0),i.get('safety_qty',0)])
+    return out.getvalue()
 
 @router.get('/export-purchase')
 def export_purchase_excel(days: int = 28, mode: str = 'bbcc', db = get_db()):

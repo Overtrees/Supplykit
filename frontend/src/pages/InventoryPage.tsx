@@ -61,7 +61,7 @@ export default function InventoryPage({ highlightSku }) {
           <span style={{fontSize:16,color:'var(--muted2)',flexShrink:0}}>🔍</span>
           <input value={s} onChange={e=>setS(e.target.value)} placeholder="搜索SKU/商品名" enterKeyHint="search" autoCorrect="off" />
         </div>
-        <button onClick={async()=>{try{const r=await fetch(API+'/api/insights/export-inventory');const b=await r.blob();const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='inventory_'+new Date().toISOString().slice(0,10)+'.xlsx';document.body.appendChild(a);a.click();a.remove()}catch(e){toast.error('导出失败')}}}
+        <button onClick={async()=>{try{const r=await fetch(API+'/api/insights/export-inventory');const b=await r.blob();const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='inventory_'+new Date().toISOString().slice(0,10)+'.csv';document.body.appendChild(a);a.click();a.remove()}catch(e){toast.error('导出失败')}}}
           className="btn btn-ghost" style={{fontSize:12,padding:'4px 12px'}}>📥 导出</button>
       </div>
     </div>

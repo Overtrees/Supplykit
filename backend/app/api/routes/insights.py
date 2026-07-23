@@ -672,6 +672,7 @@ def export_inventory_excel(db = get_db()):
     w = csv.writer(out)
     w.writerow(['仓库','SKU','商品','期初库存','在途','当月采购入库','当月出库','可用','在库周转'])
     for r in raw[:500]:
+        if r.get('warehouse','') != '京东集货仓': continue
         k = (r.get('sku',''), r.get('warehouse',''))
         ws = ws_map.get(k, {}) if r.get('warehouse_type') == 'own' else {}
         w.writerow([r.get('warehouse',''), r.get('sku',''), r.get('product_name',''),

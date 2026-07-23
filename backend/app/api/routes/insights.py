@@ -670,14 +670,14 @@ def export_inventory_excel(db = get_db()):
         ws_map[(w.get('sku',''), w.get('warehouse',''))] = w
     out = io.StringIO()
     w = csv.writer(out)
-    w.writerow(['SKU','商品','店铺','仓库','类型','可用','在途','安全线','安全天数','期初库存','日销','周转天'])
+    w.writerow(['仓库','SKU','商品','期初库存','在途','当月采购入库','当月出库','可用','在库周转'])
     for r in raw[:500]:
         k = (r.get('sku',''), r.get('warehouse',''))
         ws = ws_map.get(k, {}) if r.get('warehouse_type') == 'own' else {}
-        w.writerow([r.get('sku',''), r.get('product_name',''), r.get('store',''), r.get('warehouse',''),
-                   r.get('warehouse_type',''), r.get('available_qty',0), r.get('in_transit_qty',0),
-                   r.get('safety_qty',0), r.get('safety_days',0),
-                   ws.get('beginning_stock',''), ws.get('daily_sales',''), ws.get('turnover_days','')])
+        w.writerow([r.get('warehouse',''), r.get('sku',''), r.get('product_name',''),
+                   ws.get('beginning_stock',''), r.get('in_transit_qty',0),
+                   ws.get('month_inbound',''), ws.get('month_outbound',''),
+                   r.get('available_qty',0), ws.get('turnover_days','')])
     return PlainTextResponse(out.getvalue(), media_type='text/csv',
                              headers={'Content-Disposition':'attachment; filename=inventory.csv'})
     return PlainTextResponse(out.getvalue(), media_type='text/csv',

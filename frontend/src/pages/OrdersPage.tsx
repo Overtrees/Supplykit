@@ -4,6 +4,7 @@ import { api } from '../api/client'
 import EmptyState from '../components/EmptyState'
 import { useToast } from '../components/Toast'
 import ConfirmDialog from '../components/ConfirmDialog'
+import { IconSearch, IconTrash, IconExport } from '../components/Icons'
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
 const STATUSES = ['','已完成','待发货','已发货','待确认','申请退款']
@@ -57,12 +58,12 @@ export default function OrdersPage() {
     <div className="section-title" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
       <span>订单 <span className="small muted">共 {orderTotal} 条</span></span>
       <button onClick={async()=>{try{const r=await fetch(API+'/api/insights/export-orders');const b=await r.blob();const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='orders_'+new Date().toISOString().slice(0,10)+'.xlsx';document.body.appendChild(a);a.click();a.remove()}catch(e){toast.error('导出失败')}}}
-        className="btn btn-ghost" style={{fontSize:12,padding:'4px 12px'}}>📥 导出</button>
+        className="btn btn-ghost" style={{fontSize:12,padding:'4px 12px',display:'flex',alignItems:'center',gap:4}}><IconExport size={14} /> 导出</button>
     </div>
 
     <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}}>
       <div className="search-bar">
-        <span style={{fontSize:16,color:'var(--muted2)',flexShrink:0}}>🔍</span>
+        <IconSearch size={16} style={{color:'var(--muted2)',flexShrink:0}} />
         <input value={sq} onChange={e=>setSq(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')doSearch()}}
           placeholder="搜索单号/商品/SKU" enterKeyHint="search" inputMode="search" autoCorrect="off" />
         {sq && <span className="cancel" onClick={()=>{setSq('');doSearch()}}>清除</span>}
@@ -76,7 +77,7 @@ export default function OrdersPage() {
 
     {orderLoading ? <OrderSkeleton />
     : orders.length === 0
-      ? <EmptyState icon='📋' title={orderSearch?'无匹配订单':'暂无订单'} desc={orderSearch?'换个关键词试试':''} />
+      ? <EmptyState icon='clipboard' title={orderSearch?'无匹配订单':'暂无订单'} desc={orderSearch?'换个关键词试试':''} />
       : <div style={{overflowX:"auto"}}>
         <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 9 列 · 左右滑动查看</div>
       <table><thead><tr>{['订单号','店铺','仓库','商品','金额','状态','日期','平台可用','平台在途',''].map(h=><th key={h}>{h}</th>)}</tr></thead>
@@ -91,7 +92,7 @@ export default function OrdersPage() {
           <td className="col-date">{x.ordered_at}</td>
           <td className="col-qty" style={{fontWeight:600,color:pi.available>0?'var(--text)':'var(--muted2)'}} title={pi.available===undefined?'该仓库无库存数据':''}>{pi.available===undefined?'—':pi.available}</td>
           <td className="col-qty" style={{color:pi.transit>0?'var(--text)':'var(--muted2)'}} title={pi.transit===undefined?'该仓库无库存数据':''}>{pi.transit===undefined?'—':pi.transit}</td>
-          <td><span onClick={()=>setConfirmDel(x.id)} className="btn btn-ghost" style={{fontSize:16,padding:'4px 8px',opacity:0.5,minHeight:0}} title='删除'>🗑️</span></td>
+          <td><span onClick={()=>setConfirmDel(x.id)} className="btn btn-ghost" style={{padding:'4px 8px',opacity:0.5,minHeight:0,display:'inline-flex'}} title='删除'><IconTrash size={16} /></span></td>
         </tr>
         })}
       </tbody></table>

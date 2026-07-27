@@ -3,6 +3,7 @@ import { api } from '../api/client'
 import EmptyState from '../components/EmptyState'
 import { useToast } from '../components/Toast'
 import ConfirmDialog from '../components/ConfirmDialog'
+import { IconSearch, IconTrash, IconExport } from '../components/Icons'
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
 
@@ -58,17 +59,17 @@ export default function InventoryPage({ highlightSku }) {
       <span>进销存 <span className="small muted">共 {inventory.length} 条</span></span>
       <div style={{display:'flex',gap:8,alignItems:'center'}}>
         <div className="search-bar" style={{maxWidth:200,flex:'none'}}>
-          <span style={{fontSize:16,color:'var(--muted2)',flexShrink:0}}>🔍</span>
+          <IconSearch size={16} style={{color:'var(--muted2)',flexShrink:0}} />
           <input value={s} onChange={e=>setS(e.target.value)} placeholder="搜索SKU/商品名" enterKeyHint="search" autoCorrect="off" />
         </div>
         <button onClick={async()=>{try{const r=await fetch(API+'/api/insights/export-inventory');const b=await r.blob();const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='inventory_'+new Date().toISOString().slice(0,10)+'.csv';document.body.appendChild(a);a.click();a.remove()}catch(e){toast.error('导出失败')}}}
-          className="btn btn-ghost" style={{fontSize:12,padding:'4px 12px'}}>📥 导出</button>
+          className="btn btn-ghost" style={{fontSize:12,padding:'4px 12px',display:'flex',alignItems:'center',gap:4}}><IconExport size={14} /> 导出</button>
       </div>
     </div>
 
     {loading ? <div>{[1,2,3,4].map(i=><div key={i} className="skeleton" style={{height:36,marginBottom:4}}/>)}</div>
     : fl.length === 0
-      ? <EmptyState icon='📦' title={s?'无匹配':'暂无数据'} desc={s?'换个关键词试试':'通过清洗导入数据'} />
+      ? <EmptyState icon='package' title={s?'无匹配':'暂无数据'} desc={s?'换个关键词试试':'通过清洗导入数据'} />
       : <div style={{overflowX:"auto"}}>
         <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 10 列 · 左右滑动查看</div>
       <table>
@@ -90,7 +91,7 @@ export default function InventoryPage({ highlightSku }) {
         <td className="col-qty" style={{fontWeight:600}}>{x.month_outbound ?? 0}</td>
         <td className="col-qty" style={{fontWeight:600}}>{x.available_qty}</td>
         <td className="col-qty" style={{fontWeight:600,color:x.turnover_days != null && x.turnover_days > 30 ? '#ef4444' : x.turnover_days != null && x.turnover_days > 15 ? 'var(--warning)' : 'var(--text)'}}>{x.turnover_days != null ? x.turnover_days+'天' : '∞'}</td>
-        <td><span onClick={()=>setConfirmDel(x.id)} className="btn btn-ghost" style={{fontSize:16,padding:'4px 8px',opacity:0.5,minHeight:0}} title='删除'>🗑️</span></td>
+        <td><span onClick={()=>setConfirmDel(x.id)} className="btn btn-ghost" style={{fontSize:16,padding:'4px 8px',opacity:0.5,minHeight:0,display:'inline-flex'}} title='删除'><IconTrash size={16} /></span></td>
       </tr>})}</tbody>
       {totalTurnover != null && <tfoot>
         <tr style={{fontWeight:700,borderTop:'2px solid var(--border)'}}>

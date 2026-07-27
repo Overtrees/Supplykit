@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { useToast } from '../components/Toast'
+import { IconTrendUp, IconTrendDown, IconTrendFlat, IconUndo } from '../components/Icons'
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
 
@@ -169,8 +170,8 @@ export default function InsightsPage() {
                       </> : <td style={{fontWeight:600}}>{x.available_qty}</td>}
                       <td>{x.in_transit_qty}</td>
                       <td style={{fontSize:11,fontWeight:600,whiteSpace:'nowrap'}}>{x.daily_sales}<span style={{fontSize:10,fontWeight:400,color:'var(--muted2)'}}>
-                        /{(x.daily_sales_7||0) > (x.daily_sales_14||0)*1.15?'📈':(x.daily_sales_7||0) < (x.daily_sales_14||0)*0.85?'📉':'➡️'}{x.daily_sales_7||0}
-                        /{(x.daily_sales_14||0) > (x.daily_sales_28||0)*1.15?'📈':(x.daily_sales_14||0) < (x.daily_sales_28||0)*0.85?'📉':'➡️'}{x.daily_sales_14||0}
+                        /{x.daily_sales_7||0 > (x.daily_sales_14||0)*1.15 ? <IconTrendUp size={12} style={{display:'inline',verticalAlign:'middle'}} /> : x.daily_sales_7||0 < (x.daily_sales_14||0)*0.85 ? <IconTrendDown size={12} style={{display:'inline',verticalAlign:'middle'}} /> : <IconTrendFlat size={12} style={{display:'inline',verticalAlign:'middle'}} />}{x.daily_sales_7||0}
+                        /{x.daily_sales_14||0 > (x.daily_sales_28||0)*1.15 ? <IconTrendUp size={12} style={{display:'inline',verticalAlign:'middle'}} /> : x.daily_sales_14||0 < (x.daily_sales_28||0)*0.85 ? <IconTrendDown size={12} style={{display:'inline',verticalAlign:'middle'}} /> : <IconTrendFlat size={12} style={{display:'inline',verticalAlign:'middle'}} />}{x.daily_sales_14||0}
                         /{x.daily_sales_28||0}</span></td>
                       {replenMode==='bbcc' ? <>
                       <td style={{fontSize:11,fontWeight:600}}>{x.c_turnover != null ? x.c_turnover+'天' : '∞'}</td>
@@ -213,7 +214,7 @@ export default function InsightsPage() {
                     <input type="date" value={po.arrival_date || ''}
                       onChange={e => setArrivalDate(po, e.target.value)}
                       style={{fontSize:11,padding:'2px 6px',border:'1px solid #e2e8f0',borderRadius:4,width:130}} />
-                    <span onClick={()=>toggleOrdered(po.sku, po.store)} style={{cursor:'pointer',fontSize:14,color:'var(--danger)',opacity:0.6}}>↩</span>
+                    <span onClick={()=>toggleOrdered(po.sku, po.store)} style={{cursor:'pointer',color:'var(--danger)',opacity:0.6,display:'inline-flex'}}><IconUndo size={14} /></span>
                   </span>
                 </div>
               })}

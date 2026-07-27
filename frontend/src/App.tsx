@@ -13,13 +13,14 @@ import InventoryPage from './pages/InventoryPage'
 import QualityPage from './pages/QualityPage'
 import Sidebar from './components/Sidebar'
 import useKeyboard from './hooks/useKeyboard'
+import { IconStatusOnline, IconStatusWarning, IconStatusOffline } from './components/Icons'
 import './version'
 
 export const NAV = [
-  { id:'dash',label:'多维数据看板',icon:'📊'},{id:'products',label:'货品信息',icon:'🏷️'},{id:'suppliers',label:'供应商管理',icon:'🏭'},
-  { id:'orders',label:'订单明细',icon:'📋'},{id:'inv',label:'进销存台账',icon:'📦'},{id:'insights',label:'货品供应建议',icon:'💡'},
-  { id:'cleansing',label:'数据清洗及导入',icon:'🧹'},{id:'rules',label:'模块联动规则引擎',icon:'⚙️'},
-  { id:'quality',label:'操作异常记录',icon:'⚠️'},
+  { id:'dash',label:'多维数据看板'},{id:'products',label:'货品信息'},{id:'suppliers',label:'供应商管理'},
+  { id:'orders',label:'订单明细'},{id:'inv',label:'进销存台账'},{id:'insights',label:'货品供应建议'},
+  { id:'cleansing',label:'数据清洗及导入'},{id:'rules',label:'模块联动规则引擎'},
+  { id:'quality',label:'操作异常记录'},
 ]
 
 export default function App() {
@@ -111,7 +112,9 @@ export default function App() {
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="4" width="16" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="9.25" width="16" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="14.5" width="16" height="1.5" rx=".75" fill="currentColor"/></svg>
             </button>
           </div>
-          <span className="header-status">{wsStatus === 'connected' ? '🟢 实时' : wsStatus === 'polling' ? '🟡 轮询' : '🔴 断开'}</span>
+          <span className="header-status" style={{display:'flex',alignItems:'center',gap:4}}>
+            {wsStatus === 'connected' ? <><IconStatusOnline size={10} /> 实时</> : wsStatus === 'polling' ? <><IconStatusWarning size={10} /> 轮询</> : <><IconStatusOffline size={10} /> 断开</>}
+          </span>
         </div>
       </header>
       <main className="container">

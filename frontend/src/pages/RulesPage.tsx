@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { api } from '../api/client'
 import { useToast } from '../components/Toast'
+import { IconGear, IconChart, IconCart, IconPackage, IconTag, IconFactory, IconClipboard, IconScale, IconSave, IconLoading, IconClose, IconAlert, IconStatusWarning, IconStatusOffline, IconStatusInfo } from '../components/Icons'
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
 const EVENTS = [
@@ -51,10 +52,10 @@ export default function RulesPage() {
   const sevCls=s=>s==='error'?'danger':s==='info'?'info':'warning'
 const[cond,setCond]=useState({left:'inv.available_qty',op:'<',right:'inv.safety_qty',rightType:'field'})
 const LF=[
-  {l:'📦 当前仓可用库存',v:'inv.available_qty'},{l:'📦 当前仓安全库存',v:'inv.safety_qty'},{l:'📦 当前仓在途库存',v:'inv.in_transit_qty'},
-  {l:'📦 距上次销售(天)',v:'inv.days_since_last'},{l:'📦 当前仓库存量',v:'inv.stock'},
-  {l:'🏷️ 仓库类型',v:'inv.warehouse_type'},
-  {l:'📋 订单数量',v:'order.quantity'},{l:'📋 订单金额',v:'order.total_amount'},{l:'📋 单价',v:'order.unit_price'}]
+  {l:'当前仓可用库存',v:'inv.available_qty'},{l:'当前仓安全库存',v:'inv.safety_qty'},{l:'当前仓在途库存',v:'inv.in_transit_qty'},
+  {l:'距上次销售(天)',v:'inv.days_since_last'},{l:'当前仓库存量',v:'inv.stock'},
+  {l:'仓库类型',v:'inv.warehouse_type'},
+  {l:'订单数量',v:'order.quantity'},{l:'订单金额',v:'order.total_amount'},{l:'单价',v:'order.unit_price'}]
 const OPS=[{l:'< 小于',v:'<'},{l:'≤ 小于等于',v:'<='},{l:'> 大于',v:'>'},{l:'≥ 大于等于',v:'>='},{l:'== 等于',v:'=='},{l:'≠ 不等于',v:'!='}]
 const fieldLbl=v=>{const f=LF.find(x=>x.v===v);return f?f.l:v}
 const opLbl=v=>{const o=OPS.find(x=>x.v===v);return o?o.l:v}
@@ -102,9 +103,9 @@ const pc=j=>{try{const c=JSON.parse(j);const rt=c.rightType||(LF.find(x=>x.v===c
   return <div className='card'>
     <div className='section-title' style={{display:'flex',flexWrap:'wrap',gap:6}}>
       <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-        <button onClick={()=>setTab('rules')} className="btn btn-ghost" style={{fontSize:13,background:tab==='rules'?'var(--primary)':'transparent',color:tab==='rules'?'#fff':''}}>⚙️ 规则</button>
-        <button onClick={()=>{loadCfg(cfg.replenishment_mode||'bbcc');setTab('params')}} className="btn btn-ghost" style={{fontSize:13,background:tab==='params'?'var(--success)':'transparent',color:tab==='params'?'#fff':''}}>📊 补货参数</button>
-        <button onClick={async()=>{try{const r=await api.get('/api/replenishment-config');if(r.data)setCfg(p=>({...r.data,replenishment_mode:p.replenishment_mode||'bbcc'}))}catch(e){};setTab('purchase')}} className="btn btn-ghost" style={{fontSize:13,background:tab==='purchase'?'var(--primary)':'transparent',color:tab==='purchase'?'#fff':''}}>🛒 采购参数</button>
+        <button onClick={()=>setTab('rules')} className="btn btn-ghost" style={{fontSize:13,display:'inline-flex',alignItems:'center',gap:4,background:tab==='rules'?'var(--primary)':'transparent',color:tab==='rules'?'#fff':''}}><IconGear size={14} /> 规则</button>
+        <button onClick={()=>{loadCfg(cfg.replenishment_mode||'bbcc');setTab('params')}} className="btn btn-ghost" style={{fontSize:13,display:'inline-flex',alignItems:'center',gap:4,background:tab==='params'?'var(--success)':'transparent',color:tab==='params'?'#fff':''}}><IconChart size={14} /> 补货参数</button>
+        <button onClick={async()=>{try{const r=await api.get('/api/replenishment-config');if(r.data)setCfg(p=>({...r.data,replenishment_mode:p.replenishment_mode||'bbcc'}))}catch(e){};setTab('purchase')}} className="btn btn-ghost" style={{fontSize:13,display:'inline-flex',alignItems:'center',gap:4,background:tab==='purchase'?'var(--primary)':'transparent',color:tab==='purchase'?'#fff':''}}><IconCart size={14} /> 采购参数</button>
       </div>
       {tab==='rules'&&<button onClick={()=>{setEditing({});setF({name:'',event:'inventory.changed',alert_type:'',alert_title:'',alert_desc:'',severity:'warning',condition_json:'{}'});setCond({left:'inv.available_qty',op:'<',right:'inv.safety_qty',rightType:'field'});setCond2(null)}} className="btn btn-primary">+ 新建</button>}
     </div>
@@ -116,13 +117,13 @@ const pc=j=>{try{const c=JSON.parse(j);const rt=c.rightType||(LF.find(x=>x.v===c
           {ruleFields.map(({k,l,h,pl,tp})=><label key={k} style={{fontSize:12,display:'block'}}>
             {l}
             {tp==='select'?<select value={f.event} onChange={e=>setF({...f,event:e.target.value})} style={IS}>{EVENTS.map(ev=><option key={ev.value} value={ev.value}>{ev.label}</option>)}</select>
-            :tp==='sev'?<select value={f.severity} onChange={e=>setF({...f,severity:e.target.value})} style={IS}><option value='warning'>🟡 警告</option><option value='error'>🔴 严重</option><option value='info'>🔵 提示</option></select>
+            :tp==='sev'?<select value={f.severity} onChange={e=>setF({...f,severity:e.target.value})} style={IS}><option value='warning'>警告</option><option value='error'>严重</option><option value='info'>提示</option></select>
             :<input value={f[k]} onChange={e=>setF({...f,[k]:e.target.value})} style={IS} placeholder={pl||''}/>}
             <div className='small muted' style={{fontSize:11,marginTop:2}}>{h}</div>
           </label>)}
         </div>
         <div style={{marginTop:12}}>
-          <div style={{fontWeight:600,fontSize:13,marginBottom:8}}>⚖️ 触发条件</div>
+          <div style={{fontWeight:600,fontSize:13,marginBottom:8,display:'flex',alignItems:'center',gap:4}}><IconScale size={14} /> 触发条件</div>
           <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
             <span style={{fontSize:13,color:'var(--muted)'}}>当</span>
             <select value={cond.left} onChange={e=>setCond(p=>({...p,left:e.target.value}))} style={{...IS,flex:1,minWidth:140}}>{LF.map(f=><option key={f.v} value={f.v}>{f.l}</option>)}</select>
@@ -138,7 +139,7 @@ const pc=j=>{try{const c=JSON.parse(j);const rt=c.rightType||(LF.find(x=>x.v===c
             <span style={{fontSize:13,color:'var(--muted)'}}>时触发</span>
           </div>
           <div className='small' style={{marginTop:6,padding:'6px 10px',background:'var(--bg)',borderRadius:6,fontSize:12,color:'var(--primary)'}}>
-            📋 当 <b>{fieldLbl(cond.left)}</b> {opLbl(cond.op)} <b>{cond.rightType==='field'?fieldLbl(cond.right):cond.right}</b>
+            <IconClipboard size={12} style={{display:'inline',verticalAlign:'middle',marginRight:2}} /> 当 <b>{fieldLbl(cond.left)}</b> {opLbl(cond.op)} <b>{cond.rightType==='field'?fieldLbl(cond.right):cond.right}</b>
             {cond2 && cond2.left ? <> 且 <b>{fieldLbl(cond2.left)}</b> {opLbl(cond2.op)} <b>{cond2.rightType==='field'?fieldLbl(cond2.right):cond2.right}</b></> : ''}
             时触发告警
           </div>
@@ -154,7 +155,7 @@ const pc=j=>{try{const c=JSON.parse(j);const rt=c.rightType||(LF.find(x=>x.v===c
               :cond2.left==='inv.warehouse_type'
               ?<select value={cond2.right} onChange={e=>setCond2(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:120}}><option value=''>请选择</option><option value='platform'>C仓（platform）</option><option value='platform_b'>B仓（platform_b）</option><option value='own'>自有仓（own）</option></select>
               :<input value={cond2.right} onChange={e=>setCond2(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:80}} placeholder='输入文本'/>}
-            <span onClick={()=>setCond2(null)} style={{cursor:'pointer',fontSize:16,color:'var(--danger)'}}>✕</span>
+            <span onClick={()=>setCond2(null)} style={{cursor:'pointer',fontSize:16,color:'var(--danger)',display:'inline-flex'}}><IconClose size={16} /></span>
           </div> : <div style={{marginTop:6}}>
             <span onClick={()=>setCond2({left:'',op:'==',right:'',rightType:'text'})} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px'}}>+ 添加条件（且）</span>
           </div>}
@@ -185,18 +186,18 @@ const pc=j=>{try{const c=JSON.parse(j);const rt=c.rightType||(LF.find(x=>x.v===c
 
     {tab==='params'&&<div>
       <div style={{display:'flex',gap:8,marginBottom:12}}>
-        <span onClick={()=>{loadCfg('bbcc');loadSeasons('bbcc')}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 14px',background:(cfg.replenishment_mode||'bbcc')==='bbcc'?'var(--primary)':'transparent',color:(cfg.replenishment_mode||'bbcc')==='bbcc'?'#fff':''}}>📦 BBCC 送仓</span>
-        <span onClick={()=>{loadCfg('traditional');loadSeasons('traditional')}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 14px',background:cfg.replenishment_mode==='traditional'?'var(--primary)':'transparent',color:cfg.replenishment_mode==='traditional'?'#fff':''}}>🏭 传统多仓</span>
+        <span onClick={()=>{loadCfg('bbcc');loadSeasons('bbcc')}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 14px',display:'inline-flex',alignItems:'center',gap:4,background:(cfg.replenishment_mode||'bbcc')==='bbcc'?'var(--primary)':'transparent',color:(cfg.replenishment_mode||'bbcc')==='bbcc'?'#fff':''}}><IconPackage size={14} /> BBCC 送仓</span>
+        <span onClick={()=>{loadCfg('traditional');loadSeasons('traditional')}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 14px',display:'inline-flex',alignItems:'center',gap:4,background:cfg.replenishment_mode==='traditional'?'var(--primary)':'transparent',color:cfg.replenishment_mode==='traditional'?'#fff':''}}><IconFactory size={14} /> 传统多仓</span>
       </div>
       {isBBCC ? <>
-        <div className='section-title' style={{fontSize:13,marginBottom:8}}>📦 C 仓</div>
+        <div className='section-title' style={{fontSize:13,marginBottom:8,display:'flex',alignItems:'center',gap:4}}><IconPackage size={14} /> C 仓</div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
           {cParams.map(({k,l,h})=><label key={k} style={{fontSize:12}}>
             {l}<input value={cfg[k]||''} onChange={e=>setCfg(p=>({...p,[k]:e.target.value}))} style={IS}/>
             <div className='small muted' style={{fontSize:11}}>{h}</div>
           </label>)}
         </div>
-        <div className='section-title' style={{fontSize:13,marginBottom:8}}>🏭 B 仓</div>
+        <div className='section-title' style={{fontSize:13,marginBottom:8,display:'flex',alignItems:'center',gap:4}}><IconFactory size={14} /> B 仓</div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:16}}>
           {bParams.map(({k,l,h})=><label key={k} style={{fontSize:12}}>
             {l}<input value={cfg[k]||''} onChange={e=>setCfg(p=>({...p,[k]:e.target.value}))} style={IS}/>
@@ -223,9 +224,9 @@ const pc=j=>{try{const c=JSON.parse(j);const rt=c.rightType||(LF.find(x=>x.v===c
           await api.put('/api/replenishment-config', toSave)
           const r = await api.get('/api/replenishment-config'); setCfg({...r.data,replenishment_mode:cfg.replenishment_mode});
           toast.success('采购参数已保存')
-        }catch(e){toast.error('保存失败: '+e.message)}setSaving(false)}} className='btn btn-primary'>{saving?'⏳ 保存中...':'💾 保存参数'}</button>
+        }catch(e){toast.error('保存失败: '+e.message)}setSaving(false)}} className='btn btn-primary' style={{display:'inline-flex',alignItems:'center',gap:4}}>{saving?<><IconLoading size={14} /> 保存中...</>:<><IconSave size={14} /> 保存参数</>}</button>
       </div>}
-      {tab === 'params' && <><div className='section-title' style={{marginTop:16,marginBottom:8}}>🏷️ 活动系数</div>
+      {tab === 'params' && <><div className='section-title' style={{marginTop:16,marginBottom:8,display:'flex',alignItems:'center',gap:4}}><IconTag size={14} /> 活动系数</div>
       {seasons.map((s,i)=><div key={s.key||i} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 12px',border:'1px solid #e5e7eb',borderRadius:10,marginBottom:6}}>
         <input value={s.name} onChange={e=>setSeasons(p=>p.map((x,j)=>j===i?{...x,name:e.target.value}:x))} placeholder='活动名称' style={{width:110,fontSize:16,padding:'5px 8px',border:'1px solid #e2e8f0',borderRadius:6,outline:'none'}}/>
         <span className='small muted' style={{fontSize:11}}>×</span>
@@ -244,7 +245,7 @@ const pc=j=>{try{const c=JSON.parse(j);const rt=c.rightType||(LF.find(x=>x.v===c
         paramFields.forEach(f => { if (cfg[f.k] !== undefined) toSave[f.k] = cfg[f.k] })
         await api.put('/api/replenishment-config?mode='+m, toSave)
         await api.put('/api/replenishment-config/seasons?mode='+m,{items:seasons})
-        await loadCfg(m);toast.success('参数已保存')}catch(e){toast.error('保存失败: '+e.message)}setSaving(false)}} className="btn btn-primary" style={{opacity:saving?0.6:1}}>{saving?'⏳ 保存中...':'💾 保存参数'}</button>
+        await loadCfg(m);toast.success('参数已保存')}catch(e){toast.error('保存失败: '+e.message)}setSaving(false)}} className="btn btn-primary" style={{opacity:saving?0.6:1,display:'inline-flex',alignItems:'center',gap:4}}>{saving?<><IconLoading size={14} /> 保存中...</>:<><IconSave size={14} /> 保存参数</>}</button>
       <span className='small muted' style={{marginLeft:8,fontSize:11}}>更新后补货建议 & 规则引擎适用</span>
     </>
     }

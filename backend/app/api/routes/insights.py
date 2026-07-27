@@ -220,7 +220,14 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             if combined_turnover_current is not None and combined_turnover_current > 90:
                 note += (" " if note else "") + f"🔴 当前综转{combined_turnover_current}天超红线90"
             if not note:
-                note = "库存充足"
+                if sel_ds <= 0 and b_stock.get(sku, 0) > 0:
+                    note = "🔴 近30天无销量，B仓库存积压"
+                elif sel_ds <= 0 and avail > 0:
+                    note = "🔴 近30天无销量，C仓库存积压"
+                elif sel_ds <= 0:
+                    note = "⚪ 近30天无销量"
+                else:
+                    note = "库存充足"
             if b_gap > 0:
                 c_cover = round((avail + transit) / sel_ds, 1) if sel_ds > 0 else 0
                 b_idle = max(round(c_cover - b_ship_days, 1), 0)

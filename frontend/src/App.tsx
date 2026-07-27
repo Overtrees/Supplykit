@@ -27,6 +27,16 @@ export default function App() {
   const [page, setPage] = useState('dash')
   const [highlightSku, setHighlightSku] = useState('')
   const { inventory, qualityLogs, startPolling, stopAll, sidebarOpen, setSidebarOpen, wsStatus } = useAppStore()
+  const [apiStatus, setApiStatus] = useState('checking')
+  const checkApi = useCallback(async() => {
+    try {
+      const ctrl = new AbortController(); setTimeout(() => ctrl.abort(), 5000)
+      const r = await fetch('https://overtrees.pythonanywhere.com/api/insights/ping', {signal: ctrl.signal})
+      const d = await r.json()
+      setApiStatus(d.ok ? 'ok' : 'slow')
+    } catch { setApiStatus('error') }
+  }, [])
+  useEffect(() => { checkApi(); const t = setInterval(checkApi, 15000); return () => clearInterval(t) }, [checkApi])
 
   // View Transition 包装器：任何状态变更都走快照过渡
   const withTransition = useCallback((fn) => {
@@ -100,7 +110,7 @@ export default function App() {
           paddingBottom:'env(safe-area-inset-bottom,0px)',
           overflowY:'auto', WebkitOverflowScrolling:'touch',
         }}>
-          <Sidebar page={page} onClose={closeSidebar} onNavigate={navAndClose} lowStock={lowStock} errCount={errCount} />
+          <Sidebar page={page} onClose={closeSidebar} onNavigate={navAndClose} lowStock={lowStock} errCount={errCount} apiStatus={apiStatus} />
         </div>
       )}
 

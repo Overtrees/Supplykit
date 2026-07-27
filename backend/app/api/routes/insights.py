@@ -6,6 +6,10 @@ import json
 router = APIRouter(prefix="/api/insights", tags=["insights"])
 
 
+@router.get('/ping')
+def ping():
+    return {"ok": True, "time": datetime.utcnow().isoformat()}
+
 @router.get('/replenishment')
 def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 'bbcc', db = get_db()):
     """补货建议，支持 days=7/14/28 切换，mode=bbcc/traditional 切换模型"""

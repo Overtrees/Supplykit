@@ -321,7 +321,9 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             else:
                 trend_text += " 趋势平稳, 按滚动预测补"
             note = f"{trend_text}"
-            if suggested > 0:
+            if sel_ds <= 0:
+                note = "🔴 近30天无销量" + (f"，库存{avail}件积压" if avail > 0 else "")
+            elif suggested > 0:
                 note += f" · 箱规{box}件, 实补{suggested}件({suggested//box}箱)"
                 note += f" · 补后{after_turnover}天"
                 if after_turnover <= tw15:

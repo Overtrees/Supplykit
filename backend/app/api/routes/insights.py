@@ -350,26 +350,35 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                 trend_text += " 7天走弱, 保守补避免积压"
             else:
                 trend_text += " 趋势平稳, 按滚动预测补"
-            note = f"{trend_text}"
-            if sel_ds <= 0:
-                note = "🔴 近30天无销量" + (f"，库存{avail}件积压" if avail > 0 else "")
-            elif suggested > 0:
-                note += f" · 箱规{box}件, 实补{suggested}件({suggested//box}箱)"
-                note += f" · 补后{after_turnover}天"
-                if after_turnover <= tw15:
-                    note += " ✅"
-                elif after_turnover <= tw90:
-                    note += " ⚠️ 超15天"
+            # 组装备注，优先级：补后周转告警 > 无销量 > 趋势 > 补货建议 > 跨仓提示
+            parts = []
+            # 1. 补后周转超90天/超15天告警（最高优先级）
+            if suggested > 0:
+                if after_turnover > tw90:
+                    parts.append(f"🔴 补后周转{after_turnover}天超红线{tw90}")
+                elif after_turnover > tw15:
+                    parts.append(f"⚠️ 补后周转{after_turnover}天超{tw15}天")
                 else:
-                    note += " 🔴 超90天"
+                    parts.append(f"补后{after_turnover}天 ✅")
+            # 2. 无销量告警
+            if sel_ds <= 0:
+                parts.append("🔴 近30天无销量" + (f"，库存{avail}件积压" if avail > 0 else ""))
+            # 3. 趋势分析
+            if sel_ds > 0:
+                parts.append(trend_text)
+            # 4. 补货建议
+            if suggested > 0:
+                parts.append(f"箱规{box}件, 实补{suggested}件({suggested//box}箱)")
                 # 跨仓提示
                 if sku in sku_wh_sales28 and wh != sku_best_wh.get(sku, ''):
                     best_wh = sku_best_wh[sku]
                     best_sales = sku_wh_sales28[sku][best_wh]
                     if best_sales > ds28 * 2:
-                        note += f" · {best_wh}日均{best_sales}件, 可考虑内配"
+                        parts.append(f"{best_wh}日均{best_sales}件, 可考虑内配")
             else:
-                note += " · 无需补货"
+                if sel_ds > 0:
+                    parts.append("无需补货")
+            note = " · ".join(parts)
             suggestions.append({
                 "sku": sku, "product_name": inv.get("product_name") or p.get("product_name", ""),
                 "store": inv.get("store"), "warehouse": inv.get("warehouse", ""), "category": p.get("category", ""),

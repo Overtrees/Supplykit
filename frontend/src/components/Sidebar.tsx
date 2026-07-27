@@ -4,13 +4,13 @@ import { NAV_ICONS } from './Icons'
 
 export default function Sidebar({ page, onClose, onNavigate, lowStock, errCount, apiStatus }) {
   return (
-    <div style={{ display:'flex', flexDirection:'column', flex:1 }}>
+    <div style={{ display:'flex', flexDirection:'column', flex:1, color:'var(--text)' }}>
       {/* 头部 */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'16px 20px', flexShrink:0 }}>
         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-          <span style={{ color:'#fff', fontWeight:700, fontSize:17 }}>媒介</span>
+          <span style={{ color:'var(--text)', fontWeight:700, fontSize:17 }}>媒介</span>
         </div>
-        <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, color:'rgba(255,255,255,0.5)' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, color:'var(--muted)' }}>
           <span style={{ width:8, height:8, borderRadius:'50%', background: apiStatus==='ok' ? '#22c55e' : apiStatus==='slow' ? '#f59e0b' : '#ef4444', flexShrink:0 }} />
           {apiStatus==='ok' ? 'API正常' : apiStatus==='slow' ? '响应慢' : 'API异常'}
         </div>
@@ -25,8 +25,8 @@ export default function Sidebar({ page, onClose, onNavigate, lowStock, errCount,
             <div key={item.id} onClick={() => onNavigate(item.id)} style={{
               display:'flex', alignItems:'center', gap:12,
               padding:'13px 16px', borderRadius:12, marginBottom:4,
-              background: active ? 'rgba(255,255,255,0.15)' : 'transparent',
-              color: active ? '#fff' : 'rgba(255,255,255,0.72)',
+              background: active ? 'var(--sidebar-active-bg)' : 'transparent',
+              color: active ? 'var(--sidebar-active-text)' : 'var(--muted)',
               cursor:'pointer', fontWeight: active ? 600 : 400, fontSize:15,
             }}>
               {IconComp && <IconComp size={20} />}

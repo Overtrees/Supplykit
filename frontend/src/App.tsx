@@ -64,14 +64,22 @@ export default function App() {
   })
   useEffect(() => { startPolling(); return () => stopAll() }, [])
 
-  // 同步 html/body 背景色 + browser chrome 色到当前视图
+  // 同步 html/body 背景色 + browser chrome 色，监听系统主题变化
   useEffect(() => {
-    const pageBg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#f8fafc'
-    const bg = sidebarOpen ? '#1e293b' : pageBg
-    document.documentElement.style.backgroundColor = bg
-    document.body.style.backgroundColor = bg
-    const themeMeta = document.querySelector('meta[name="theme-color"]')
-    if (themeMeta) themeMeta.setAttribute('content', bg)
+    const syncBg = () => {
+      const resolvedBg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#f2f2f7'
+      const resolvedSidebar = getComputedStyle(document.documentElement).getPropertyValue('--sidebar').trim() || resolvedBg
+      const bg = sidebarOpen ? resolvedSidebar : resolvedBg
+      document.documentElement.style.backgroundColor = bg
+      document.body.style.backgroundColor = bg
+      const themeMeta = document.querySelector('meta[name="theme-color"]')
+      if (themeMeta) themeMeta.setAttribute('content', bg)
+    }
+    syncBg()
+    // 监听系统暗/亮模式切换，重新同步背景色
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    mq.addEventListener('change', syncBg)
+    return () => mq.removeEventListener('change', syncBg)
   }, [sidebarOpen])
 
   const navigate = useCallback((newPage, sku) => {
@@ -104,10 +112,9 @@ export default function App() {
       {sidebarOpen && (
         <div style={{
           position:'fixed', inset:0, zIndex:100,
-          background:'#1e293b', color:'#fff',
+          background:'var(--sidebar)',
           display:'flex', flexDirection:'column',
           paddingTop:'env(safe-area-inset-top,0px)',
-          paddingBottom:'env(safe-area-inset-bottom,0px)',
           overflowY:'auto', WebkitOverflowScrolling:'touch',
         }}>
           <Sidebar page={page} onClose={closeSidebar} onNavigate={navAndClose} lowStock={lowStock} errCount={errCount} apiStatus={apiStatus} />

@@ -214,29 +214,59 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             days_to_empty = round(avail / sel_ds, 1) if sel_ds > 0 else 999
             tw15 = int(cfg.get('turnover_warning_15', '15'))
             tw90 = int(cfg.get('turnover_warning_90', '90'))
-            note = f"C仓建议{suggested}件  B仓需补{b_box_qty}件 · 箱规{box}件" if (suggested > 0 or b_box_qty > 0) else ""
             combined_turnover_current = round((avail + transit + b_stock.get(sku, 0)) / sel_ds, 1) if sel_ds > 0 else None
-            # 当前综转超90天预警
-            if combined_turnover_current is not None and combined_turnover_current > 90:
-                note += (" " if note else "") + f"🔴 当前综转{combined_turnover_current}天超红线90"
-            if not note:
-                if sel_ds <= 0 and b_stock.get(sku, 0) > 0:
-                    note = "🔴 近30天无销量，B仓库存积压"
-                elif sel_ds <= 0 and avail > 0:
-                    note = "🔴 近30天无销量，C仓库存积压"
-                elif sel_ds <= 0:
-                    note = "⚪ 近30天无销量"
-                else:
-                    note = "库存充足"
+            # 趋势分析（新增）
+            t7 = '📈' if ds7 > ds14 * 1.15 else ('📉' if ds7 < ds14 * 0.85 else '➡️')
+            t14 = '📈' if ds14 > ds28 * 1.15 else ('📉' if ds14 < ds28 * 0.85 else '➡️')
+            trend_text = f"近7{t7} 近14{t14}"
+            if ds7 > ds14 * 1.15 and ds14 > ds28 * 1.1:
+                trend_text += " 持续上行"
+            elif ds7 < ds14 * 0.85 and ds14 < ds28 * 0.9:
+                trend_text += " 持续下行"
+            elif ds7 > ds14 * 1.15:
+                trend_text += " 7天抬头"
+            elif ds7 < ds14 * 0.85:
+                trend_text += " 7天走弱"
+            else:
+                trend_text += " 平稳"
+
+            # 组装备注，优先级：B仓超15天 > 综转超90天 > 趋势 > 补货建议 > 无销量 > 调拨信息
+            parts = []
+            # 1. B仓超15天免费期仓储费
             if b_gap > 0:
                 c_cover = round((avail + transit) / sel_ds, 1) if sel_ds > 0 else 0
                 b_idle = max(round(c_cover - b_ship_days, 1), 0)
-                note += f" ⚠️ B仓仅{b_available}件, 缺口{b_gap}件需从自有仓调拨(运输{round(sel_ds*b_ship_days)}件+安全{round(effective_safety)}件)"
-                note += f" · B仓预计空闲{b_idle}天后调出"
-                if b_idle > 15:
-                    note += " 🔴 超15天免费期有仓储费"
-                elif b_idle > 10:
-                    note += " ⚠️ 接近15天免费期"
+            else:
+                b_idle = 0
+            if b_idle > 15:
+                parts.append("🔴 超15天免费期有仓储费")
+            elif b_idle > 10:
+                parts.append("⚠️ 接近15天免费期")
+            # 2. 综合周转超90天
+            if combined_turnover_current is not None and combined_turnover_current > 90:
+                parts.append(f"🔴 当前综转{combined_turnover_current}天超红线90")
+            # 3. 趋势分析
+            if sel_ds > 0:
+                parts.append(trend_text)
+            # 4. 补货建议
+            if suggested > 0 or b_box_qty > 0:
+                parts.append(f"C仓建议{suggested}件  B仓需补{b_box_qty}件 · 箱规{box}件")
+            # 5. 无销量告警
+            if sel_ds <= 0:
+                if b_stock.get(sku, 0) > 0:
+                    parts.append("🔴 近30天无销量，B仓库存积压")
+                elif avail > 0:
+                    parts.append("🔴 近30天无销量，C仓库存积压")
+                else:
+                    parts.append("⚪ 近30天无销量")
+            # 6. B仓调拨信息
+            if b_gap > 0:
+                parts.append(f"B仓仅{b_available}件, 缺口{b_gap}件需调拨(运输{round(sel_ds*b_ship_days)}件+安全{round(effective_safety)}件)")
+                parts.append(f"B仓预计空闲{b_idle}天后调出")
+            # 7. 兜底
+            if not parts:
+                parts.append("库存充足")
+            note = " · ".join(parts)
             # BBCC三环节周转
             c_turnover = round(avail / sel_ds, 1) if sel_ds > 0 else None      # C仓周转
             transit_turnover = round(transit / sel_ds, 1) if sel_ds > 0 else None  # 在途周转

@@ -16,10 +16,10 @@ import useKeyboard from './hooks/useKeyboard'
 import './version'
 
 export const NAV = [
-  { id:'dash',label:'总览',icon:'📊'},{id:'products',label:'商品',icon:'🏷️'},{id:'suppliers',label:'供应商',icon:'🏭'},
-  { id:'orders',label:'订单',icon:'📋'},{id:'inv',label:'进销存',icon:'📦'},{id:'insights',label:'建议',icon:'💡'},
-  { id:'cleansing',label:'清洗',icon:'🧹'},{id:'rules',label:'规则',icon:'⚙️'},
-  { id:'quality',label:'异常',icon:'⚠️'},
+  { id:'dash',label:'多维数据看板',icon:'📊'},{id:'products',label:'货品信息',icon:'🏷️'},{id:'suppliers',label:'供应商管理',icon:'🏭'},
+  { id:'orders',label:'订单明细',icon:'📋'},{id:'inv',label:'进销存台账',icon:'📦'},{id:'insights',label:'货品供应建议',icon:'💡'},
+  { id:'cleansing',label:'数据清洗及导入',icon:'🧹'},{id:'rules',label:'模块联动规则引擎',icon:'⚙️'},
+  { id:'quality',label:'操作异常记录',icon:'⚠️'},
 ]
 
 export default function App() {

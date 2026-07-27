@@ -779,6 +779,86 @@ def export_purchase_excel(days: int = 28, mode: str = 'bbcc', db = get_db()):
         headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(filename)}"}
     )
 
+@router.get('/export-purchase-suggestions')
+def export_purchase_suggestions_excel(days: int = 28, mode: str = 'bbcc', db = get_db()):
+    """导出采购建议为 Excel（采购建议 tab 使用）"""
+    from openpyxl import Workbook
+    from io import BytesIO
+    from fastapi.responses import Response
+    from urllib.parse import quote
+    from datetime import timedelta
+
+    suggestions = get_purchase_suggestions(days=days, mode=mode, db=db)
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "采购建议"
+
+    headers = ["序号", "SKU", "商品名称", "仓库", "系统总库存", "系统可用", "系统在途",
+               "自有可用", "自有在途", "平台可用", "平台在途", "B仓可用",
+               "日销(融合)", "日销14", "日销28",
+               "建议采购量", "箱规", "实购数量", "补后周转", "目标周转",
+               "可撑天数", "备注"]
+    ws.append(headers)
+
+    from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+    head_fill = PatternFill(start_color="1d4ed8", end_color="1d4ed8", fill_type="solid")
+    head_font = Font(bold=True, color="ffffff", size=11)
+    thin = Border(
+        left=Side(style='thin', color='e2e8f0'),
+        right=Side(style='thin', color='e2e8f0'),
+        top=Side(style='thin', color='e2e8f0'),
+        bottom=Side(style='thin', color='e2e8f0')
+    )
+    for cell in ws[1]:
+        cell.fill = head_fill
+        cell.font = head_font
+        cell.alignment = Alignment(horizontal='center')
+        cell.border = thin
+
+    for i, r in enumerate(suggestions, 1):
+        if r["purchase_qty"] <= 0:
+            continue
+        ws.append([
+            i, r["sku"], r["product_name"], r["warehouse"],
+            r["sys_total"], r["sys_available"], r["sys_transit"],
+            r["own_available"], r["own_transit"], r["plat_available"], r["plat_transit"], r["b_available"],
+            r["daily_sales"], r["daily_sales_14"], r["daily_sales_28"],
+            r["purchase_qty"], r["box_qty"], r["actual_purchase"],
+            r["after_turnover"], r["target_turnover"],
+            r["days_to_empty"] if r["days_to_empty"] < 999 else "∞",
+            r["note"]
+        ])
+        for cell in ws[ws.max_row]:
+            cell.border = thin
+            cell.alignment = Alignment(horizontal='center')
+
+    widths = [6, 14, 20, 12, 12, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 12, 8, 10, 10, 10, 10, 30]
+    for i, w in enumerate(widths, 1):
+        ws.column_dimensions[ws.cell(1, i).column_letter].width = w
+
+    total_qty = sum(r["purchase_qty"] for r in suggestions if r["purchase_qty"] > 0)
+    total_items = sum(1 for r in suggestions if r["purchase_qty"] > 0)
+
+    ws2 = wb.create_sheet("汇总")
+    ws2.append(["采购建议汇总"])
+    ws2.append(["生成时间", datetime.utcnow().strftime("%Y-%m-%d %H:%M")])
+    ws2.append(["建议采购SKU数", total_items])
+    ws2.append(["建议采购总量", total_qty])
+    ws2.merge_cells('A1:D1')
+    ws2['A1'].font = Font(bold=True, size=14)
+
+    buf = BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+
+    filename = f"采购建议_{datetime.utcnow().strftime('%Y%m%d')}.xlsx"
+    return Response(
+        content=buf.getvalue(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(filename)}"}
+    )
+
 
 def auto_adjust_inventory(order_data: dict, order_type: str, db):
     sku = order_data.get("sku", "")

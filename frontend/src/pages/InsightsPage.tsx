@@ -219,7 +219,23 @@ export default function InsightsPage() {
       {/* 采购建议 */}
       {tab === 'purchase' && (
         <div className="card">
-          <div className="section-title">采购建议</div>
+          <div className="section-title" style={{display:'flex',flexWrap:'wrap',gap:6}}>
+            <span>采购建议</span>
+            <span style={{marginLeft:'auto',display:'inline-flex',gap:4}}>
+              <button onClick={async()=>{
+                try {
+                  const r = await fetch(API+'/api/insights/export-purchase-suggestions?days=28&mode='+replenMode)
+                  const blob = await r.blob()
+                  const url = URL.createObjectURL(blob)
+                  const a = document.createElement('a')
+                  a.href = url; a.download = '采购建议_'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'.xlsx'
+                  document.body.appendChild(a); a.click(); a.remove()
+                  URL.revokeObjectURL(url)
+                } catch(e) { toast.error('导出失败: '+e.message) }
+              }}
+                className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px'}}>导出</button>
+            </span>
+          </div>
           {purchaseLoading ? (
             <div>
               {[1,2,3,4].map(i => <Skeleton key={i} height={36} style={{ marginBottom: 4 }} />)}

@@ -7,6 +7,7 @@ const periodLabel = { today:'今日', week:'本周', month:'本月' }
 
 export default function DashboardPage({ onAlert }) {
   const [periodTab, setPeriodTab] = useState('month')
+  const [healthTab, setHealthTab] = useState(() => localStorage.getItem('health_tab') || 'own')
   const { dashboard, inventory, qualityLogs, alerts } = useAppStore()
   const periodTrend = dashboard?.periods?.[periodTab + '_trend'] || dashboard?.trend || []
   const periodMeta = dashboard?.periods?.[periodTab] || {}
@@ -70,13 +71,27 @@ export default function DashboardPage({ onAlert }) {
 
     <div className="card-grid" style={{marginBottom:16}}>
       <Card title={periodLabel[periodTab]+' GMV'} value={'¥'+Number(periodMeta.gmv||0).toLocaleString()} sub={periodMeta.orders+' 单'} />
-      <Card title="库存健康度" 
-  value={(dashboard?.health_index?.own?.score||0)+'分 / '+(dashboard?.health_index?.platform?.score||0)+'分'} 
-  sub={'自有'+(dashboard?.health_index?.own?.healthy||0)+'健康·'+(dashboard?.health_index?.own?.warning||0)+'偏低  |  平台'+(dashboard?.health_index?.platform?.healthy||0)+'健康·'+(dashboard?.health_index?.platform?.warning||0)+'偏低'}
-  badge={<span style={{display:'flex',gap:4,flexWrap:'wrap'}}>
-    <span className={'pill '+(dashboard?.health_index?.own?.level==='danger'?'danger':dashboard?.health_index?.own?.level==='warning'?'warning':'success')} style={{textAlign:'center',fontSize:10}}>自有{dashboard?.health_index?.own?.level==='danger'?'危险':dashboard?.health_index?.own?.level==='warning'?'关注':'良好'}</span>
-    <span className={'pill '+(dashboard?.health_index?.platform?.level==='danger'?'danger':dashboard?.health_index?.platform?.level==='warning'?'warning':'success')} style={{textAlign:'center',fontSize:10}}>平台{dashboard?.health_index?.platform?.level==='danger'?'危险':dashboard?.health_index?.platform?.level==='warning'?'关注':'良好'}</span>
-  </span>} />
+      <div className="card" style={{padding:12,textAlign:'center',position:'relative'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
+          <div className="small muted" style={{fontSize:11}}>库存健康度</div>
+          <div style={{display:'flex',gap:2,background:'var(--bg)',borderRadius:6,padding:2}}>
+            <span onClick={()=>{localStorage.setItem('health_tab','own');setHealthTab('own')}} style={{fontSize:11,padding:'2px 8px',borderRadius:4,cursor:'pointer',background:healthTab==='own'?'var(--primary)':'transparent',color:healthTab==='own'?'#fff':'var(--muted)'}}>自有仓</span>
+            <span onClick={()=>{localStorage.setItem('health_tab','platform');setHealthTab('platform')}} style={{fontSize:11,padding:'2px 8px',borderRadius:4,cursor:'pointer',background:healthTab==='platform'?'var(--primary)':'transparent',color:healthTab==='platform'?'#fff':'var(--muted)'}}>平台仓</span>
+          </div>
+        </div>
+        {dashboard?.health_index && (()=>{
+          const h = dashboard.health_index[healthTab]||{}
+          return <>
+            <div className="card-value" style={{color:h.level==='danger'?'#ef4444':h.level==='warning'?'#f59e0b':'var(--success)'}}>{h.score||0}分</div>
+            <div className="small muted" style={{marginTop:4}}>{h.healthy||0}健康 · {h.warning||0}偏低 · {h.out_of_stock||0}缺货</div>
+            <div style={{marginTop:4}}>
+              <span className={'pill '+(h.level==='danger'?'danger':h.level==='warning'?'warning':'success')} style={{fontSize:10}}>
+                {h.level==='danger'?'危险':h.level==='warning'?'关注':'良好'}
+              </span>
+            </div>
+          </>
+        })()}
+      </div>
       <Card title="待处理" value={errCount+(dashboard?.summary?.active_alerts||0)} sub={errCount+' 异常 · '+(dashboard?.summary?.active_alerts||0)+' 告警'} badge={errCount>0 ? <span className="pill danger" style={{background:'#ef4444',color:'var(--card)'}}>需处理</span> : null} />
     </div>
 

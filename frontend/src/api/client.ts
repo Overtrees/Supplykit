@@ -1,6 +1,104 @@
 import axios from 'axios'
 
-export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com',
-  timeout: 15000,
+const BASE = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
+
+// 响应缓存（内存）
+const cache = new Map()
+const CACHE_TTL = 15_000 // 15s 内复用缓存
+
+function cacheKey(method, url, params) {
+  return method + ':' + url + ':' + JSON.stringify(params || {})
+}
+
+// 底层 axios 实例
+const instance = axios.create({
+  baseURL: BASE,
+  timeout: 20000,
 })
+
+// 在途请求去重 Map
+const inflight = new Map()
+
+// 响应拦截器：写缓存 + 清理在途
+instance.interceptors.response.use(
+  (response) => {
+    const { method, url, params } = response.config
+    const key = cacheKey(method || 'get', url || '', params)
+    if ((method || 'get').toLowerCase() === 'get') {
+      cache.set(key, { data: response.data, ts: Date.now() })
+    }
+    inflight.delete(key)
+    return response
+  },
+  (error) => {
+    const cfg = (error.config || {}) as any
+    const key = cacheKey(cfg.method || 'get', cfg.url || '', cfg.params)
+    inflight.delete(key)
+    return Promise.reject(error)
+  }
+)
+
+// 导出带缓存的 get
+const apiGet = async (url, config = {}) => {
+  const key = cacheKey('get', url, config.params)
+  
+  // 1) 缓存命中
+  const hit = cache.get(key)
+  if (hit && Date.now() - hit.ts < CACHE_TTL) {
+    return { data: hit.data, status: 200, statusText: 'OK', headers: {}, config }
+  }
+  
+  // 2) 在途去重
+  if (inflight.has(key)) {
+    return inflight.get(key)
+  }
+  
+  // 3) 发起新请求
+  const promise = instance.get(url, config).then(r => ({
+    data: r.data,
+    status: r.status,
+    statusText: r.statusText,
+    headers: r.headers,
+    config: r.config,
+  }))
+  inflight.set(key, promise)
+  return promise
+}
+
+// 非 GET 请求后清空缓存（数据变了，缓存失效）
+function invalidateCache() {
+  cache.clear()
+}
+
+// 导出 api 对象，保持与原接口兼容
+export const api = {
+  get: apiGet,
+  post: async (url, data, config) => {
+    const r = await instance.post(url, data, config)
+    invalidateCache()
+    return r
+  },
+  put: async (url, data, config) => {
+    const r = await instance.put(url, data, config)
+    invalidateCache()
+    return r
+  },
+  delete: async (url, config) => {
+    const r = await instance.delete(url, config)
+    invalidateCache()
+    return r
+  },
+}
+
+// 清除缓存
+export function clearCache(pattern) {
+  if (!pattern) { cache.clear(); return }
+  for (const key of cache.keys()) {
+    if (key.includes(pattern)) cache.delete(key)
+  }
+}
+
+// 缓存统计
+export function getCacheStats() {
+  return { size: cache.size, inflight: inflight.size }
+}

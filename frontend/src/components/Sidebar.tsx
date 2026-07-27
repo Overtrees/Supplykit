@@ -1,6 +1,6 @@
 import React from 'react'
 import { NAV } from '../App'
-import { NAV_ICONS, IconClose } from './Icons'
+import { NAV_ICONS } from './Icons'
 
 export default function Sidebar({ page, onClose, onNavigate, lowStock, errCount, apiStatus }) {
   return (
@@ -10,9 +10,10 @@ export default function Sidebar({ page, onClose, onNavigate, lowStock, errCount,
         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
           <span style={{ color:'#fff', fontWeight:700, fontSize:17 }}>媒介</span>
         </div>
-        <button onClick={onClose} aria-label="关闭菜单" style={{ background:'rgba(255,255,255,0.12)', border:'none', borderRadius:8, color:'#fff', width:32, height:32, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
-          <IconClose size={16} />
-        </button>
+        <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, color:'rgba(255,255,255,0.5)' }}>
+          <span style={{ width:8, height:8, borderRadius:'50%', background: apiStatus==='ok' ? '#22c55e' : apiStatus==='slow' ? '#f59e0b' : '#ef4444', flexShrink:0 }} />
+          {apiStatus==='ok' ? 'API正常' : apiStatus==='slow' ? '响应慢' : 'API异常'}
+        </div>
       </div>
 
       {/* 导航项 */}
@@ -38,12 +39,6 @@ export default function Sidebar({ page, onClose, onNavigate, lowStock, errCount,
           )
         })}
       </nav>
-
-      {/* API 状态脚标 */}
-      <div style={{ padding:'12px 20px', borderTop:'1px solid rgba(255,255,255,0.1)', display:'flex', alignItems:'center', gap:8, fontSize:12, color:'rgba(255,255,255,0.5)' }}>
-        <span style={{ width:8, height:8, borderRadius:'50%', background: apiStatus==='ok' ? '#22c55e' : apiStatus==='slow' ? '#f59e0b' : '#ef4444', flexShrink:0 }} />
-        API {apiStatus==='ok' ? '正常' : apiStatus==='slow' ? '响应慢' : '异常'}
-      </div>
     </div>
   )
 }

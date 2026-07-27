@@ -1,5 +1,23 @@
-import os
-import sys
+import os, sys, subprocess
+
+# ─── 自动修复：确保依赖已安装 ───
+_req = os.path.expanduser("~/Supplykit/backend/requirements.txt")
+_app_dir = os.path.dirname(__file__)
+_pkg_dir = os.path.join(_app_dir, "_vendor")
+if _pkg_dir not in sys.path:
+    sys.path.insert(0, _pkg_dir)
+if os.path.exists(_req):
+    import zipfile
+    os.makedirs(_pkg_dir, exist_ok=True)
+    for _f in os.listdir(_app_dir):
+        if _f.endswith('.whl'):
+            try:
+                with zipfile.ZipFile(os.path.join(_app_dir, _f)) as _z:
+                    _z.extractall(_pkg_dir)
+            except: pass
+    # 确保 vendor 路径在 sys.path 最前面
+    while _pkg_dir in sys.path: sys.path.remove(_pkg_dir)
+    sys.path.insert(0, _pkg_dir)
 
 # ─── 务必最先：加载 .env 文件 ───
 _env_path = os.path.join(os.path.dirname(__file__), '.env')

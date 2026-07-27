@@ -808,7 +808,7 @@ def export_purchase_suggestions_excel(days: int = 28, mode: str = 'bbcc', db = g
     from urllib.parse import quote
     from datetime import timedelta
 
-    suggestions = get_purchase_suggestions(days=days, mode=mode, db=db)
+    suggestions = get_purchase_suggestions(days=days, mode=mode, db=db).get("suggestions", [])
 
     wb = Workbook()
     ws = wb.active

@@ -158,7 +158,7 @@ export default function InsightsPage() {
                       <td>{x.product_name}</td><td className="col-store">{replenMode==='bbcc' ? 'B仓' : (x.warehouse || x.store || '-')}</td>
                       {replenMode==='bbcc' ?<>
                       <td style={{color:'var(--primary)',fontWeight:600}}>{x.b_stock ?? '-'}</td>
-                      <td style={{fontSize:11,fontWeight:600,color:x.b_stock > 0 && (x.b_stock/x.daily_sales) > 15 ? '#ef4444' : x.b_stock > 0 && (x.b_stock/x.daily_sales) > 10 ? 'var(--warning)' : 'var(--text)'}}>{x.b_stock > 0 ? (x.b_stock/x.daily_sales).toFixed(1)+'天' : '-'}</td>
+                      <td style={{fontSize:11,fontWeight:600,color:x.b_stock > 0 && x.daily_sales > 0 && (x.b_stock/x.daily_sales) > 15 ? '#ef4444' : x.b_stock > 0 && x.daily_sales > 0 && (x.b_stock/x.daily_sales) > 10 ? 'var(--warning)' : 'var(--text)'}}>{x.b_stock > 0 && x.daily_sales > 0 ? (x.b_stock/x.daily_sales).toFixed(1)+'天' : '-'}</td>
                       <td style={{fontWeight:600}}>{x.c_stock ?? x.available_qty}</td>
                       </> : <td style={{fontWeight:600}}>{x.available_qty}</td>}
                       <td>{x.in_transit_qty}</td>

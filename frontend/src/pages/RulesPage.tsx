@@ -22,10 +22,10 @@ export default function RulesPage() {
   const [seasons,setSeasons] = useState([])
   const [f,setF] = useState({name:'',event:'inventory.changed',alert_type:'',alert_title:'',alert_desc:'',severity:'warning',condition_json:'{}'})
 
-  const load=async()=>{try{const r=await fetch(API+'/api/rules');setRules(await r.json())}catch(e){}}
+  const load=async()=>{try{const r=await api.get('/api/rules');setRules(r.data||[])}catch(e){}}
   const loadCfg=async(mode)=>{try{const m=mode||cfg.replenishment_mode||'bbcc';const r=await api.get('/api/replenishment-config?mode='+m);setCfg({...r.data,replenishment_mode:m});return r.data||{}}catch(e){return {}}}
   const loadSeasons=async(mode)=>{try{const m=mode||cfg.replenishment_mode||'bbcc';const r=await api.get('/api/replenishment-config/seasons?mode='+m);setSeasons(r.data||[])}catch(e){}}
-  useEffect(()=>{load();loadCfg().then(d=>loadSeasons()).finally(()=>setLoading(false))},[])
+  useEffect(()=>{Promise.all([load(),loadCfg(),loadSeasons()]).finally(()=>setLoading(false))},[])
 
   const [cond2,setCond2]=useState(null)  // 第二条件（AND）
   const save=async()=>{

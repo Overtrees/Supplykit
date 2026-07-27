@@ -243,8 +243,11 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             elif b_idle > 10:
                 parts.append("⚠️ 接近15天免费期")
             # 2. 综合周转超90天
-            if combined_turnover_current is not None and combined_turnover_current > 90:
-                parts.append(f"🔴 当前综转{combined_turnover_current}天超红线90")
+            tw90_val = int(cfg.get('turnover_warning_90', '90'))
+            if combined_turnover_current is not None and combined_turnover_current > tw90_val:
+                parts.append(f"🔴 当前综转{combined_turnover_current}天超{tw90_val}天")
+            elif combined_turnover_current is not None and combined_turnover_current > tw90_val - 15:
+                parts.append(f"⚠️ 当前综转{combined_turnover_current}天接近{tw90_val}天")
             # 3. 趋势分析
             if sel_ds > 0:
                 parts.append(trend_text)
@@ -352,14 +355,21 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                 trend_text += " 趋势平稳, 按滚动预测补"
             # 组装备注，优先级：补后周转告警 > 无销量 > 趋势 > 补货建议 > 跨仓提示
             parts = []
-            # 1. 补后周转超90天/超15天告警（最高优先级）
+            # 1. 周转告警（最高优先级）：有补货用补后周转，无补货用当前周转
+            warn_days = int(cfg.get('turnover_warning_90', '90'))
+            near_days = warn_days - 15  # 提前15天预警
             if suggested > 0:
-                if after_turnover > tw90:
-                    parts.append(f"🔴 补后周转{after_turnover}天超红线{tw90}")
-                elif after_turnover > tw15:
-                    parts.append(f"⚠️ 补后周转{after_turnover}天超{tw15}天")
+                if after_turnover > warn_days:
+                    parts.append(f"🔴 补后周转{after_turnover}天超{warn_days}天")
+                elif after_turnover > near_days:
+                    parts.append(f"⚠️ 补后周转{after_turnover}天接近{warn_days}天")
                 else:
                     parts.append(f"补后{after_turnover}天 ✅")
+            elif days_to_empty > 0 and days_to_empty < 999:
+                if days_to_empty > warn_days:
+                    parts.append(f"🔴 当前周转{days_to_empty}天超{warn_days}天")
+                elif days_to_empty > near_days:
+                    parts.append(f"⚠️ 当前周转{days_to_empty}天接近{warn_days}天")
             # 2. 无销量告警
             if sel_ds <= 0:
                 parts.append("🔴 近30天无销量" + (f"，库存{avail}件积压" if avail > 0 else ""))

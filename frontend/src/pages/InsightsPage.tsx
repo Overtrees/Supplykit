@@ -125,7 +125,7 @@ export default function InsightsPage() {
                 <span onClick={()=>switchMode('traditional')} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',background:replenMode==='traditional'?'var(--primary)':'transparent',color:replenMode==='traditional'?'#fff':''}}>传统</span>
                 <button onClick={async()=>{
                   try {
-                    const r = await fetch(API+'/api/insights/export-purchase?days=28&mode=bbcc')
+                    const r = await fetch(API+'/api/insights/export-purchase?days=28&mode='+replenMode)
                     const blob = await r.blob()
                     const url = URL.createObjectURL(blob)
                     const a = document.createElement('a')

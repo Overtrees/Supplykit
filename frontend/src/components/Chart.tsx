@@ -4,12 +4,12 @@ import * as echarts from 'echarts'
 export default function Chart({ option, height = 260 }) {
   const ref = useRef(null)
   const inst = useRef(null)
-  const [dark, setDark] = useState(false)
+  const [theme, setTheme] = useState<'light'|'dark'>('light')
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    setDark(mq.matches)
-    const handler = (e) => setDark(e.matches)
+    setTheme(mq.matches ? 'dark' : 'light')
+    const handler = (e: MediaQueryListEvent) => setTheme(e.matches ? 'dark' : 'light')
     mq.addEventListener('change', handler)
     return () => mq.removeEventListener('change', handler)
   }, [])
@@ -21,15 +21,16 @@ export default function Chart({ option, height = 260 }) {
       try {
         if (inst.current) { inst.current.dispose(); inst.current = null }
         const chart = echarts.init(ref.current, undefined, { renderer: 'canvas' })
+        // 从 CSS 变量读取当前主题色，与页面保持一致
+        const cs = getComputedStyle(document.documentElement)
+        const textColor = cs.getPropertyValue('--text').trim() || '#0f172a'
+        const mutedColor = cs.getPropertyValue('--muted').trim() || '#64748b'
         const opt = {
           backgroundColor: 'transparent',
           ...option,
-          // 自动注入暗黑文字色
-          ...(dark ? {
-            textStyle: { color: '#f1f5f9' },
-            title: { textStyle: { color: '#f1f5f9' } },
-            ...(option.legend ? { legend: { ...option.legend, textStyle: { ...(option.legend.textStyle || {}), color: '#94a3b8' } } } : {}),
-          } : {}),
+          textStyle: { color: textColor, ...option.textStyle },
+          title: { ...option.title, textStyle: { color: textColor, ...(option.title?.textStyle || {}) } },
+          ...(option.legend ? { legend: { ...option.legend, textStyle: { color: mutedColor, ...(option.legend.textStyle || {}) } } } : {}),
         }
         chart.setOption(opt)
         inst.current = chart
@@ -39,6 +40,6 @@ export default function Chart({ option, height = 260 }) {
       } catch(e) { console.error('Chart error:', e) }
     }, 100)
     return () => clearTimeout(timer)
-  }, [option, dark])
+  }, [option, theme])
   return <div ref={ref} style={{ width: '100%', height }} />
 }

@@ -201,7 +201,7 @@ export default function InsightsPage() {
               {orderedItems.map((po, i) => {
                 const daysSinceArrival = po.arrival_date ? Math.floor((new Date() - new Date(po.arrival_date)) / (1000*60*60*24)) : null
                 const stayColor = daysSinceArrival != null ? (daysSinceArrival > 90 ? '#ef4444' : daysSinceArrival > 15 ? '#f59e0b' : 'var(--text)') : 'var(--muted)'
-                return <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 10px',border:'1px solid #f1f5f9',borderRadius:6,marginBottom:4,flexWrap:'wrap',gap:4}}>
+                return <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 10px',border:'1px solid var(--border)',borderRadius:6,marginBottom:4,flexWrap:'wrap',gap:4}}>
                   <span>{po.sku} {po.product_name} <span className="pill success" style={{fontSize:10}}>+{(po.actual_qty||po.suggested_qty)}</span></span>
                   <span style={{display:'flex',alignItems:'center',gap:6}}>
                     <span className="small" style={{color:stayColor,fontWeight:600}}>
@@ -209,7 +209,7 @@ export default function InsightsPage() {
                     </span>
                     <input type="date" value={po.arrival_date || ''}
                       onChange={e => setArrivalDate(po, e.target.value)}
-                      style={{fontSize:11,padding:'2px 6px',border:'1px solid #e2e8f0',borderRadius:4,width:130}} />
+                      style={{fontSize:11,padding:'2px 6px',border:'1px solid var(--border)',borderRadius:4,width:130}} />
                     <span onClick={()=>toggleOrdered(po.sku, po.store)} style={{cursor:'pointer',color:'var(--danger)',opacity:0.6,display:'inline-flex'}}><IconUndo size={14} /></span>
                   </span>
                 </div>
@@ -307,7 +307,7 @@ export default function InsightsPage() {
                 </table>
               </div>
               {slowMoving.filter(x => x.level === '正常').length > 0 && (
-                <div className="small muted" style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #f1f5f9' }}>
+                <div className="small muted" style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
                   另有 {slowMoving.filter(x => x.level === '正常').length} 个商品最近 14 天内有过订单（正常销售中）
                 </div>
               )}
@@ -331,7 +331,7 @@ export default function InsightsPage() {
               {activities.map((x, i) => (
                 <div key={i} style={{
                   fontSize: 12, padding: '8px 12px', background: 'var(--bg)',
-                  border: '1px solid #f1f5f9', borderRadius: 8,
+                  border: '1px solid var(--border)', borderRadius: 8,
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center'
                 }}>
                   <span>

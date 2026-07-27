@@ -63,7 +63,6 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     for k, v in raw.items():
         if not k.startswith('mode_') and k not in cfg:
             cfg[k] = v
-    items = db.table("inventory").select("*").in_("warehouse_type", ["platform", "platform_b"]).execute().data
     products = {p["sku"]: p for p in db.table("products").select("*").execute().data}
     orders = db.table("orders").select("*").execute().data
 
@@ -157,6 +156,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
 
     if mode == 'bbcc':
         # BBCC 模式：全仓汇总，按 SKU 一条建议（送B仓，京东内配到C仓）
+        items = db.table("inventory").select("*").in_("warehouse_type", ["platform", "platform_b"]).execute().data
         agg = {}
         wh_detail = {}
         b_stock = {}
@@ -252,6 +252,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             })
     else:
         # 传统模式：按仓逐条计算，日销按对应仓库+SKU独立统计
+        items = db.table("inventory").select("*").in_("warehouse_type", ["platform"]).execute().data
         # 预计算各仓库的日销
         wh_names = set(i.get('warehouse','') for i in items if i.get('warehouse'))
         wh_sales_cache = {}

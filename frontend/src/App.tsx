@@ -115,7 +115,8 @@ export default function App() {
           background:'var(--sidebar)',
           display:'flex', flexDirection:'column',
           paddingTop:'env(safe-area-inset-top,0px)',
-          overscrollBehavior:'contain',
+          paddingBottom:'env(safe-area-inset-bottom,0px)',
+          overflowY:'auto', WebkitOverflowScrolling:'touch',
         }}>
           <Sidebar page={page} onClose={closeSidebar} onNavigate={navAndClose} lowStock={lowStock} errCount={errCount} apiStatus={apiStatus} />
         </div>

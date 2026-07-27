@@ -6,8 +6,8 @@ router = APIRouter(prefix="/api/events", tags=["events"])
 @router.get("")
 def list_events(db = get_db()):
     try:
-        data = db.table("events").select("*").order("id", desc=True).execute().data
-        return data
+        data = db.table("events").select("*").order("id", desc=True).limit(50).execute().data
+        return data or []
     except Exception:
         return []
 

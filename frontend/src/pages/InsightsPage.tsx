@@ -85,10 +85,6 @@ export default function InsightsPage() {
       setPurchase(r.data?.suggestions || r.data || [])
       setPurchaseLoading(false)
     }).catch(() => setPurchaseLoading(false))
-    api.get('/api/events').then(r => {
-      setActivities((r.data || []).slice(0, 15))
-      setActivityLoading(false)
-    }).catch(() => setActivityLoading(false))
     api.get('/api/insights/slow-moving').then(r => {
       setSlowMoving(r.data || [])
       setSlowLoading(false)

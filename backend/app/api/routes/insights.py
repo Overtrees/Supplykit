@@ -691,23 +691,29 @@ def export_inventory_excel(db = get_db()):
 
 @router.get('/export-purchase')
 def export_purchase_excel(days: int = 28, mode: str = 'bbcc', db = get_db()):
-    """导出补货建议为采购单 Excel"""
+    """导出补货建议为采购单 Excel，按 mode 显示对应表头和数据"""
     from openpyxl import Workbook
     from io import BytesIO
-    from fastapi.responses import StreamingResponse
+    from fastapi.responses import Response
+    from urllib.parse import quote
 
-    replen = get_replenishment_suggestions(days=days, db=db)
-    suppliers = {s["supplier_code"]: s for s in db.table("suppliers").select("*").execute().data}
+    replen = get_replenishment_suggestions(days=days, mode=mode, db=db)
 
     wb = Workbook()
     ws = wb.active
-    ws.title = "采购建议"
+    ws.title = "补货建议"
 
-    headers = ["序号", "SKU", "商品名称", "店铺", "建议采购量", "当前库存",
-               "安全库存", "日均销量", "可撑天数", "紧急度", "推荐供应商", "供应商编码"]
+    if mode == 'bbcc':
+        headers = ["序号", "SKU", "商品", "仓库", "B仓可用库存", "B仓周转",
+                   "全国C仓总和可用库存", "B-C仓调拨在途", "日销(融合)", "日销7", "日销14", "日销28",
+                   "全国C仓总和周转", "B→C调拨在途总和周转",
+                   "C仓建议补", "B仓需补", "当前综转", "补后综转", "备注"]
+    else:
+        headers = ["序号", "SKU", "商品", "仓库", "现有", "在途",
+                   "日销(融合)", "日销7", "日销14", "日销28",
+                   "安全线", "在库周转", "补后周转", "建议补", "备注"]
     ws.append(headers)
 
-    # 样式
     from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
     head_fill = PatternFill(start_color="1d4ed8", end_color="1d4ed8", fill_type="solid")
     head_font = Font(bold=True, color="ffffff", size=11)
@@ -724,45 +730,61 @@ def export_purchase_excel(days: int = 28, mode: str = 'bbcc', db = get_db()):
         cell.border = thin
 
     for i, r in enumerate(replen, 1):
-        if r["suggested_qty"] <= 0:
-            continue
-        supplier_name = ""
-        supplier_code = ""
-        # 简单供应商匹配：按商品分类或店铺找
-        for s in suppliers.values():
-            if r.get("category") and r["category"] in (s.get("supplier_name") or ""):
-                supplier_name = s["supplier_name"]
-                supplier_code = s["supplier_code"]
-                break
-        if not supplier_name and suppliers:
-            s = max(suppliers.values(), key=lambda x: x.get("score") or 0)
-            supplier_name = s["supplier_name"]
-            supplier_code = s["supplier_code"]
-
-        ws.append([
-            i, r["sku"], r["product_name"], r["store"],
-            r["suggested_qty"], r["available_qty"],
-            r["safety_qty"], r["daily_sales"],
-            r["days_to_empty"] if r["days_to_empty"] < 999 else "∞",
-            r["urgency"], supplier_name, supplier_code
-        ])
+        if mode == 'bbcc':
+            b_turn = ""
+            if r.get("b_stock", 0) > 0 and r.get("daily_sales", 0) > 0:
+                b_turn = f"{round(r['b_stock']/r['daily_sales'], 1)}天"
+            ws.append([
+                i, r["sku"], r["product_name"], "B仓",
+                r.get("b_stock", "-"), b_turn,
+                r.get("c_stock", r.get("available_qty", 0)),
+                r.get("in_transit_qty", 0),
+                r.get("daily_sales", 0), r.get("daily_sales_7", 0),
+                r.get("daily_sales_14", 0), r.get("daily_sales_28", 0),
+                f"{r.get('c_turnover', '∞')}天" if r.get('c_turnover') is not None else "∞",
+                f"{r.get('transit_turnover', '∞')}天" if r.get('transit_turnover') is not None else "∞",
+                r.get("suggested_qty", "-"), r.get("b_suggested", "-"),
+                f"{r.get('combined_turnover_current', '∞')}天" if r.get('combined_turnover_current') is not None else "∞",
+                f"{r.get('combined_turnover', '∞')}天" if r.get('combined_turnover') is not None else "∞",
+                r.get("note", ""),
+            ])
+        else:
+            after_turn = ""
+            if r.get("suggested_qty", 0) > 0 and r.get("after_turnover") is not None:
+                after_turn = f"{r['after_turnover']}天"
+            ws.append([
+                i, r["sku"], r["product_name"], r.get("warehouse", r.get("store", "-")),
+                r.get("available_qty", 0), r.get("in_transit_qty", 0),
+                r.get("daily_sales", 0), r.get("daily_sales_7", 0),
+                r.get("daily_sales_14", 0), r.get("daily_sales_28", 0),
+                r.get("safety_qty", 0),
+                f"{r.get('days_to_empty', '∞')}天" if r.get('days_to_empty') is not None and r.get('days_to_empty', 999) < 999 else "∞",
+                after_turn,
+                r.get("suggested_qty", "-"), r.get("note", ""),
+            ])
         for cell in ws[ws.max_row]:
             cell.border = thin
             cell.alignment = Alignment(horizontal='center')
 
-    # 列宽
-    widths = [6, 14, 22, 14, 12, 12, 10, 10, 10, 10, 28, 16]
+    widths = [6, 14, 22, 10] + [12] * (len(headers) - 4)
     for i, w in enumerate(widths, 1):
-        ws.column_dimensions[ws.cell(1, i).column_letter].width = w
+        if i <= len(headers):
+            ws.column_dimensions[ws.cell(1, i).column_letter].width = w
 
-    # 总采购单
+    # 汇总 sheet
     ws2 = wb.create_sheet("汇总")
-    total_qty = sum(r["suggested_qty"] for r in replen if r["suggested_qty"] > 0)
-    total_items = sum(1 for r in replen if r["suggested_qty"] > 0)
-    ws2.append(["采购单汇总"])
+    total_items = len(replen)
+    total_suggested = sum(r.get("suggested_qty", 0) or 0 for r in replen)
+    total_b_suggested = sum(r.get("b_suggested", 0) or 0 for r in replen)
+    ws2.append(["补货建议汇总"])
     ws2.append(["生成时间", datetime.utcnow().strftime("%Y-%m-%d %H:%M")])
-    ws2.append(["建议采购SKU数", total_items])
-    ws2.append(["建议采购总量", total_qty])
+    ws2.append(["模式", "BBCC送仓" if mode == 'bbcc' else "传统多仓"])
+    ws2.append(["SKU数", total_items])
+    if mode == 'bbcc':
+        ws2.append(["C仓建议补总量", total_suggested])
+        ws2.append(["B仓需补总量", total_b_suggested])
+    else:
+        ws2.append(["建议补总量", total_suggested])
     ws2.merge_cells('A1:D1')
     ws2['A1'].font = Font(bold=True, size=14)
 
@@ -770,9 +792,7 @@ def export_purchase_excel(days: int = 28, mode: str = 'bbcc', db = get_db()):
     wb.save(buf)
     buf.seek(0)
 
-    from fastapi.responses import Response
-    from urllib.parse import quote
-    filename = f"采购建议_{datetime.utcnow().strftime('%Y%m%d')}.xlsx"
+    filename = f"补货建议_{mode}_{datetime.utcnow().strftime('%Y%m%d')}.xlsx"
     return Response(
         content=buf.getvalue(),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -817,8 +837,6 @@ def export_purchase_suggestions_excel(days: int = 28, mode: str = 'bbcc', db = g
         cell.border = thin
 
     for i, r in enumerate(suggestions, 1):
-        if r["purchase_qty"] <= 0:
-            continue
         ws.append([
             i, r["sku"], r["product_name"], r["warehouse"],
             r["sys_total"], r["sys_available"], r["sys_transit"],
@@ -837,8 +855,8 @@ def export_purchase_suggestions_excel(days: int = 28, mode: str = 'bbcc', db = g
     for i, w in enumerate(widths, 1):
         ws.column_dimensions[ws.cell(1, i).column_letter].width = w
 
-    total_qty = sum(r["purchase_qty"] for r in suggestions if r["purchase_qty"] > 0)
-    total_items = sum(1 for r in suggestions if r["purchase_qty"] > 0)
+    total_qty = sum(r["purchase_qty"] for r in suggestions)
+    total_items = len(suggestions)
 
     ws2 = wb.create_sheet("汇总")
     ws2.append(["采购建议汇总"])

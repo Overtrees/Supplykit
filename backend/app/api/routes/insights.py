@@ -219,7 +219,12 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             t7 = '📈' if ds7 > ds14 * 1.15 else ('📉' if ds7 < ds14 * 0.85 else '➡️')
             t14 = '📈' if ds14 > ds28 * 1.15 else ('📉' if ds14 < ds28 * 0.85 else '➡️')
             trend_text = f"近7{t7} 近14{t14}"
-            if ds7 > ds14 * 1.15 and ds14 > ds28 * 1.1:
+            # 低销量/积压时直接反映，不套用常规趋势
+            if sel_ds > 0 and sel_ds < 5 and combined_turnover_current is not None and combined_turnover_current > 90:
+                trend_text += " 销量极低，库存积压"
+            elif ds7 == 0 and ds14 == 0 and ds28 > 0:
+                trend_text += " 持续下行（近14天无销量）"
+            elif ds7 > ds14 * 1.15 and ds14 > ds28 * 1.1:
                 trend_text += " 持续上行"
             elif ds7 < ds14 * 0.85 and ds14 < ds28 * 0.9:
                 trend_text += " 持续下行"

@@ -21,14 +21,12 @@ export default function InsightsPage() {
   const [tab, setTab] = useState('replen')
   const [replen, setReplen] = useState([])
   const [purchase, setPurchase] = useState([])
-  const [activities, setActivities] = useState([])
   const [slowMoving, setSlowMoving] = useState([])
 
   // 各区块加载状态
   const [replenLoading, setReplenLoading] = useState(true)
   const [purchaseLoading, setPurchaseLoading] = useState(true)
   const [slowLoading, setSlowLoading] = useState(true)
-  const [activityLoading, setActivityLoading] = useState(true)
 
   const [replenMode, setReplenMode] = useState(() => localStorage.getItem('c_replen_mode') || 'bbcc')
 
@@ -95,7 +93,6 @@ export default function InsightsPage() {
     { id: 'replen', label: '补货建议', count: replen.length },
     { id: 'purchase', label: '采购建议', count: purchase.length },
     { id: 'slow', label: '滞销预警', count: slowMoving.filter(x => x.level !== '正常').length },
-    { id: 'activity', label: '操作回溯', count: activities.length },
   ]
 
   const btnStyle = id => ({
@@ -316,36 +313,6 @@ export default function InsightsPage() {
         </div>
       )}
 
-      {/* 操作回溯 */}
-      {tab === 'activity' && (
-        <div className="card">
-          <div className="section-title">操作回溯 <span className="small muted">· 最近操作记录</span></div>
-          {activityLoading ? (
-            <div>
-              {[1,2,3,4,5].map(i => <Skeleton key={i} height={32} style={{ marginBottom: 4 }} />)}
-            </div>
-          ) : (activities.length === 0 ? (
-            <div className="muted" style={{ padding: 12, textAlign: 'center' }}>暂无操作记录</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {activities.map((x, i) => (
-                <div key={i} style={{
-                  fontSize: 12, padding: '8px 12px', background: 'var(--bg)',
-                  border: '1px solid var(--border)', borderRadius: 8,
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-                }}>
-                  <span>
-                    <span className={`pill ${x.level === 'error' ? 'danger' : x.level === 'warning' ? 'warning' : 'info'}`} style={{ fontSize: 10, marginRight: 8 }}>
-                      {x.event_type}
-                    </span>
-                    {x.title}
-                  </span>
-                  <span className="small muted">{(x.created_at || '').slice(0, 16).replace('T', ' ')}</span>
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
       )}
     </div>
   )

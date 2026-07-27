@@ -404,7 +404,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                 "sku": sku, "product_name": inv.get("product_name") or p.get("product_name", ""),
                 "store": inv.get("store"), "warehouse": inv.get("warehouse", ""), "category": p.get("category", ""),
                 "available_qty": avail, "safety_qty": safety, "in_transit_qty": transit,
-                "daily_sales": sel_ds, "daily_sales_7": round(sales_7.get(sku, 0), 1), "daily_sales_14": round(sales_14.get(sku, 0), 1), "daily_sales_28": round(sales_28.get(sku, 0), 1),
+                "daily_sales": sel_ds, "daily_sales_7": round(ds7, 1), "daily_sales_14": round(ds14, 1), "daily_sales_28": round(ds28, 1),
                 "raw_suggested": raw_suggested, "suggested_qty": suggested,
                 "days_to_empty": days_to_empty, "after_turnover": after_turnover, "note": note,
                 "box_qty": box, "urgency": "紧急" if days_to_empty < 3 else ("建议" if suggested > 0 else "正常"),

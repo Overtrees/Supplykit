@@ -14,7 +14,7 @@ export default function RulesPage() {
   const toast = useToast()
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
-  const IS={width:'100%',padding:'6px 8px',fontSize:16,border:'1px solid var(--border)',borderRadius:32,marginTop:4,outline:'none',background:'var(--card)',boxSizing:'border-box'}
+  const IS={width:'100%',padding:'6px 8px',fontSize:16,border:'1px solid var(--border)',borderRadius:26,marginTop:4,outline:'none',background:'var(--card)',boxSizing:'border-box'}
   const [tab,setTab] = useState('rules')
   const [rules,setRules] = useState([])
   const [editing,setEditing] = useState(null)
@@ -111,7 +111,7 @@ const pc=j=>{try{const c=JSON.parse(j);const rt=c.rightType||(LF.find(x=>x.v===c
     </div>
 
     {tab==='rules'&&<>
-      {editing!==null&&<div style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:32,padding:16,marginBottom:16}}>
+      {editing!==null&&<div style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:26,padding:16,marginBottom:16}}>
         <div style={{fontWeight:600,marginBottom:12}}>{editing.id?'编辑规则':'新建规则'}</div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
           {ruleFields.map(({k,l,h,pl,tp})=><label key={k} style={{fontSize:12,display:'block'}}>
@@ -138,7 +138,7 @@ const pc=j=>{try{const c=JSON.parse(j);const rt=c.rightType||(LF.find(x=>x.v===c
               :<input value={cond.right} onChange={e=>setCond(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:80}} placeholder='输入文本'/>}
             <span style={{fontSize:13,color:'var(--muted)'}}>时触发</span>
           </div>
-          <div className='small' style={{marginTop:6,padding:'6px 10px',background:'var(--bg)',borderRadius:32,fontSize:12,color:'var(--primary)'}}>
+          <div className='small' style={{marginTop:6,padding:'6px 10px',background:'var(--bg)',borderRadius:26,fontSize:12,color:'var(--primary)'}}>
             <IconClipboard size={12} style={{display:'inline',verticalAlign:'middle',marginRight:2}} /> 当 <b>{fieldLbl(cond.left)}</b> {opLbl(cond.op)} <b>{cond.rightType==='field'?fieldLbl(cond.right):cond.right}</b>
             {cond2 && cond2.left ? <> 且 <b>{fieldLbl(cond2.left)}</b> {opLbl(cond2.op)} <b>{cond2.rightType==='field'?fieldLbl(cond2.right):cond2.right}</b></> : ''}
             时触发告警
@@ -168,7 +168,7 @@ const pc=j=>{try{const c=JSON.parse(j);const rt=c.rightType||(LF.find(x=>x.v===c
 
       {rules.map(rule => {
         const condInfo = pc(rule.condition_json||'{}')
-        return <div key={rule.id} style={{padding:'10px 14px',border:'1px solid var(--border)',borderRadius:32,marginBottom:6,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        return <div key={rule.id} style={{padding:'10px 14px',border:'1px solid var(--border)',borderRadius:26,marginBottom:6,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
         <div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:14}}>{rule.name}</div>
           <div style={{fontSize:12,color:'var(--muted2)',marginTop:2,display:'flex',flexWrap:'wrap',gap:4,alignItems:'center'}}>
             <span className={'pill '+(rule.is_active?'success':'warning')}>{rule.is_active?'启用':'停用'}</span>
@@ -227,10 +227,10 @@ const pc=j=>{try{const c=JSON.parse(j);const rt=c.rightType||(LF.find(x=>x.v===c
         }catch(e){toast.error('保存失败: '+e.message)}setSaving(false)}} className='btn btn-primary' style={{display:'inline-flex',alignItems:'center',gap:4}}>{saving?<><IconLoading size={14} /> 保存中...</>:<><IconSave size={14} /> 保存参数</>}</button>
       </div>}
       {tab === 'params' && <><div className='section-title' style={{marginTop:16,marginBottom:8,display:'flex',alignItems:'center',gap:4}}><IconTag size={14} /> 活动系数</div>
-      {seasons.map((s,i)=><div key={s.key||i} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 12px',border:'1px solid var(--border)',borderRadius:32,marginBottom:6}}>
-        <input value={s.name} onChange={e=>setSeasons(p=>p.map((x,j)=>j===i?{...x,name:e.target.value}:x))} placeholder='活动名称' style={{width:110,fontSize:16,padding:'5px 8px',border:'1px solid var(--border)',borderRadius:32,outline:'none'}}/>
+      {seasons.map((s,i)=><div key={s.key||i} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 12px',border:'1px solid var(--border)',borderRadius:26,marginBottom:6}}>
+        <input value={s.name} onChange={e=>setSeasons(p=>p.map((x,j)=>j===i?{...x,name:e.target.value}:x))} placeholder='活动名称' style={{width:110,fontSize:16,padding:'5px 8px',border:'1px solid var(--border)',borderRadius:26,outline:'none'}}/>
         <span className='small muted' style={{fontSize:11}}>×</span>
-        <input type='number' value={s.factor} onChange={e=>setSeasons(p=>p.map((x,j)=>j===i?{...x,factor:parseFloat(e.target.value)||1}:x))} step='0.1' min='1' max='3' style={{width:70,fontSize:16,padding:'5px 8px',border:'1px solid var(--border)',borderRadius:32,outline:'none'}}/>
+        <input type='number' value={s.factor} onChange={e=>setSeasons(p=>p.map((x,j)=>j===i?{...x,factor:parseFloat(e.target.value)||1}:x))} step='0.1' min='1' max='3' style={{width:70,fontSize:16,padding:'5px 8px',border:'1px solid var(--border)',borderRadius:26,outline:'none'}}/>
         <span className='small muted' style={{fontSize:11}}>倍销售</span>
         <label style={{fontSize:12,display:'flex',alignItems:'center',gap:4}}>
           <input type='checkbox' checked={s.enabled!==false} onChange={e=>setSeasons(p=>p.map((x,j)=>j===i?{...x,enabled:e.target.checked}:x))} style={{accentColor:'var(--primary)'}}/>

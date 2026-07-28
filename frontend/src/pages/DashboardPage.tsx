@@ -77,7 +77,7 @@ export default function DashboardPage({ onAlert }) {
           return <>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
               <div className="small muted" style={{fontSize:12}}>库存健康度</div>
-              <select value={healthTab} onChange={e=>{const v=e.target.value;localStorage.setItem('health_tab',v);setHealthTab(v)}} style={{fontSize:14,padding:'4px 10px',border:'1px solid var(--border)',borderRadius:32,outline:'none',background:'var(--card)',color:'var(--text)'}}>
+              <select value={healthTab} onChange={e=>{const v=e.target.value;localStorage.setItem('health_tab',v);setHealthTab(v)}} style={{fontSize:14,padding:'4px 10px',border:'1px solid var(--border)',borderRadius:26,outline:'none',background:'var(--card)',color:'var(--text)'}}>
                 <option value="own">自有仓</option>
                 <option value="platform">平台仓</option>
               </select>

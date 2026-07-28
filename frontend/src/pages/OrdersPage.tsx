@@ -68,7 +68,7 @@ export default function OrdersPage() {
           placeholder="搜索单号/商品/SKU" enterKeyHint="search" inputMode="search" autoCorrect="off" />
         {sq && <span className="cancel" onClick={()=>{setSq('');doSearch()}}>清除</span>}
       </div>
-      <select value={ss} onChange={e=>{setSs(e.target.value);setOrderFilter(sq,e.target.value)}} style={{fontSize:16,padding:'8px 12px',border:'1px solid var(--border)',borderRadius:32,outline:'none',background:'var(--card)'}}>
+      <select value={ss} onChange={e=>{setSs(e.target.value);setOrderFilter(sq,e.target.value)}} style={{fontSize:16,padding:'8px 12px',border:'1px solid var(--border)',borderRadius:26,outline:'none',background:'var(--card)'}}>
         {STATUSES.map(s => <option key={s} value={s}>{s||'全部状态'}</option>)}
       </select>
       {(orderSearch||orderStatus) && <button onClick={()=>{setSq('');setSs('');setOrderFilter('','')}} className="btn btn-ghost" style={{fontSize:14}}>重置</button>}
@@ -109,7 +109,7 @@ export default function OrdersPage() {
         <span className="small muted">跳至</span>
         <input type="number" min={1} max={totalPages} defaultValue={orderPage}
           onKeyDown={e=>{if(e.key==='Enter'){const v=parseInt(e.target.value);if(v>=1&&v<=totalPages)setOrderPage(v)}}}
-          style={{width:50,fontSize:12,padding:'4px 6px',border:'1px solid var(--border)',borderRadius:32,textAlign:'center'}} />
+          style={{width:50,fontSize:12,padding:'4px 6px',border:'1px solid var(--border)',borderRadius:26,textAlign:'center'}} />
         <span className="small muted">页</span>
       </span>
     </div>}

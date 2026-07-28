@@ -72,8 +72,8 @@ export default function DashboardPage({ onAlert }) {
     <div className="card-grid" style={{marginBottom:16}}>
       <Card title={periodLabel[periodTab]+' GMV'} value={'¥'+Number(periodMeta.gmv||0).toLocaleString()} sub={periodMeta.orders+' 单'} borderRadius={26} />
       <div className="card" style={{padding:12,position:'relative',borderRadius:26}}>
-        {dashboard?.health_index && (()=>{
-          const h = dashboard.health_index[healthTab]||{}
+        {(()=>{
+          const h = dashboard?.health_index?.[healthTab]||{}
           return <>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
               <div className="small muted" style={{fontSize:12}}>库存健康度</div>

@@ -47,11 +47,8 @@ export default function App() {
   const closeSidebar = withTransition(() => setSidebarOpen(false))
   const navAndClose = withTransition((id, sku) => {
     setSidebarOpen(false)
-    // 先关闭侧边栏同步背景，再切换页面避免底部色块
-    requestAnimationFrame(() => {
-      if (sku) setHighlightSku(sku)
-      setPage(id)
-    })
+    if (sku) setHighlightSku(sku)
+    setPage(id)
   })
 
   useKeyboard({
@@ -60,19 +57,28 @@ export default function App() {
   })
   useEffect(() => { startPolling(); return () => stopAll() }, [])
 
-  // 同步 html/body 背景色 + browser chrome 色，监听系统主题变化
+  // 同步 html/body 背景色 + browser chrome 色
   useEffect(() => {
-    const syncBg = () => {
+    document.documentElement.classList.toggle('sidebar-open', sidebarOpen)
+    document.body.classList.toggle('sidebar-open', sidebarOpen)
+    const themeMeta = document.querySelector('meta[name="theme-color"]')
+    if (themeMeta) {
       const resolved = getComputedStyle(document.documentElement).getPropertyValue(sidebarOpen ? '--sidebar' : '--bg').trim()
-      document.documentElement.style.backgroundColor = resolved
-      document.body.style.backgroundColor = resolved
-      const themeMeta = document.querySelector('meta[name="theme-color"]')
-      if (themeMeta) themeMeta.setAttribute('content', resolved)
+      themeMeta.setAttribute('content', resolved)
     }
-    syncBg()
+  }, [sidebarOpen])
+  // 监听系统主题变化，更新 theme-color
+  useEffect(() => {
+    const syncMeta = () => {
+      const themeMeta = document.querySelector('meta[name="theme-color"]')
+      if (themeMeta) {
+        const resolved = getComputedStyle(document.documentElement).getPropertyValue(sidebarOpen ? '--sidebar' : '--bg').trim()
+        themeMeta.setAttribute('content', resolved)
+      }
+    }
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    mq.addEventListener('change', syncBg)
-    return () => mq.removeEventListener('change', syncBg)
+    mq.addEventListener('change', syncMeta)
+    return () => mq.removeEventListener('change', syncMeta)
   }, [sidebarOpen])
 
   const navigate = useCallback((newPage, sku) => {
@@ -114,7 +120,7 @@ export default function App() {
           </span>
         </div>
       </header>
-      <main className="container" style={{ background:'var(--bg)' }}>
+      <main className="container">
         {sidebarOpen ? (
           <Sidebar page={page} onClose={closeSidebar} onNavigate={navAndClose} lowStock={lowStock} errCount={errCount} apiStatus={apiStatus} />
         ) : (

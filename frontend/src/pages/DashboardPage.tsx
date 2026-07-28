@@ -65,7 +65,7 @@ export default function DashboardPage({ onAlert }) {
         {['today','week','month'].map(k => (
           <span key={k} onClick={() => setPeriodTab(k)} style={{fontSize:12,padding:'3px 10px',borderRadius:99,cursor:'pointer',background:periodTab===k?'rgba(128,128,128,0.2)':'transparent',color:periodTab===k?'#007AFF':'var(--text)',fontWeight:periodTab===k?600:400,whiteSpace:'nowrap'}}>{periodLabel[k]}</span>
         ))}
-        <span className="small muted" style={{paddingLeft:8}}>{periodMeta.date || ''}</span>
+        <span className="small muted" style={{padding:'3px 10px'}}>{periodMeta.date || ''}</span>
       </div>
     </div>
 

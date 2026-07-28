@@ -65,7 +65,7 @@ if bak:
 register_core_handlers()
 start_scheduler()
 
-app = FastAPI(title="SupplyChain V1")
+app = FastAPI(title="Supplykit")
 origins = [x.strip() for x in os.getenv("CORS_ORIGINS", "*").split(",") if x.strip()]
 app.add_middleware(
     CORSMiddleware,
@@ -140,4 +140,4 @@ app.include_router(purchase_orders_router)
 
 @app.get("/")
 def root():
-    return {"ok": True, "name": "SupplyChain V1 API"}
+    return {"ok": True, "name": "Supplykit API"}

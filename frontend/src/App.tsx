@@ -67,13 +67,14 @@ export default function App() {
   // 同步 html/body 背景色 + browser chrome 色，监听系统主题变化
   useEffect(() => {
     const syncBg = () => {
-      const resolvedBg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#f2f2f7'
-      const resolvedSidebar = getComputedStyle(document.documentElement).getPropertyValue('--sidebar').trim() || resolvedBg
-      const bg = sidebarOpen ? resolvedSidebar : resolvedBg
-      document.documentElement.style.backgroundColor = bg
-      document.body.style.backgroundColor = bg
+      document.documentElement.classList.toggle('sidebar-open', sidebarOpen)
+      document.body.classList.toggle('sidebar-open', sidebarOpen)
+      // theme-color 需 JS 更新（CSS 变量不生效于 meta）
       const themeMeta = document.querySelector('meta[name="theme-color"]')
-      if (themeMeta) themeMeta.setAttribute('content', bg)
+      if (themeMeta) {
+        const resolved = getComputedStyle(document.documentElement).getPropertyValue(sidebarOpen ? '--sidebar' : '--bg').trim()
+        themeMeta.setAttribute('content', resolved)
+      }
     }
     syncBg()
     // 监听系统暗/亮模式切换，重新同步背景色

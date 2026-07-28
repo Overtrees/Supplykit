@@ -67,17 +67,13 @@ export default function App() {
   // 同步 html/body 背景色 + browser chrome 色，监听系统主题变化
   useEffect(() => {
     const syncBg = () => {
-      document.documentElement.classList.toggle('sidebar-open', sidebarOpen)
-      document.body.classList.toggle('sidebar-open', sidebarOpen)
-      // theme-color 需 JS 更新（CSS 变量不生效于 meta）
+      const resolved = getComputedStyle(document.documentElement).getPropertyValue(sidebarOpen ? '--sidebar' : '--bg').trim()
+      document.documentElement.style.backgroundColor = resolved
+      document.body.style.backgroundColor = resolved
       const themeMeta = document.querySelector('meta[name="theme-color"]')
-      if (themeMeta) {
-        const resolved = getComputedStyle(document.documentElement).getPropertyValue(sidebarOpen ? '--sidebar' : '--bg').trim()
-        themeMeta.setAttribute('content', resolved)
-      }
+      if (themeMeta) themeMeta.setAttribute('content', resolved)
     }
     syncBg()
-    // 监听系统暗/亮模式切换，重新同步背景色
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
     mq.addEventListener('change', syncBg)
     return () => mq.removeEventListener('change', syncBg)
@@ -109,26 +105,11 @@ export default function App() {
 
   return (
     <ToastProvider>
-      {/* 侧边栏覆盖层 — 用 position:fixed + View Transition 切换 */}
-      {sidebarOpen && (
-        <div style={{
-          position:'fixed', inset:0, zIndex:100,
-          background:'var(--sidebar)',
-          display:'flex', flexDirection:'column',
-        }}>
-          <div style={{ height:'env(safe-area-inset-top,0px)', flexShrink:0, background:'var(--sidebar)' }} />
-          <div style={{ flex:1, overflowY:'auto', WebkitOverflowScrolling:'touch' }}>
-            <Sidebar page={page} onClose={closeSidebar} onNavigate={navAndClose} lowStock={lowStock} errCount={errCount} apiStatus={apiStatus} />
-          </div>
-          <div style={{ height:'env(safe-area-inset-bottom,0px)', flexShrink:0, background:'var(--sidebar)' }} />
-        </div>
-      )}
-
-      {/* 主内容 */}
+      {/* 主内容 — 侧边栏打开时显示菜单，关闭时显示页面 */}
       <header>
         <div className="header-inner">
           <div className="header-left">
-            <button className="menu-btn" onClick={openSidebar}>
+            <button className="menu-btn" onClick={sidebarOpen ? closeSidebar : openSidebar}>
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="4" width="16" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="9.25" width="16" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="14.5" width="16" height="1.5" rx=".75" fill="currentColor"/></svg>
             </button>
           </div>
@@ -137,8 +118,12 @@ export default function App() {
           </span>
         </div>
       </header>
-      <main className="container">
-        {renderPage(page)}
+      <main className="container" style={{ background:'var(--bg)' }}>
+        {sidebarOpen ? (
+          <Sidebar page={page} onClose={closeSidebar} onNavigate={navAndClose} lowStock={lowStock} errCount={errCount} apiStatus={apiStatus} />
+        ) : (
+          renderPage(page)
+        )}
       </main>
     </ToastProvider>
   )

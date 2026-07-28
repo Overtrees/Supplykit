@@ -77,12 +77,12 @@ export default function DashboardPage({ onAlert }) {
           return <>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
               <div className="small muted" style={{fontSize:12}}>库存健康度</div>
-              <div className="card-value" style={{fontSize:20,color:h.level==='danger'?'#ef4444':h.level==='warning'?'#f59e0b':'var(--success)'}}>{h.score||0}分</div>
+              <select value={healthTab} onChange={e=>{const v=e.target.value;localStorage.setItem('health_tab',v);setHealthTab(v)}} style={{fontSize:14,padding:'4px 10px',border:'1px solid var(--border)',borderRadius:32,outline:'none',background:'var(--card)',color:'var(--text)'}}>
+                <option value="own">自有仓</option>
+                <option value="platform">平台仓</option>
+              </select>
             </div>
-            <select value={healthTab} onChange={e=>{const v=e.target.value;localStorage.setItem('health_tab',v);setHealthTab(v)}} style={{fontSize:14,padding:'6px 12px',border:'1px solid var(--border)',borderRadius:32,outline:'none',background:'var(--card)',marginBottom:8,color:'var(--text)'}}>
-              <option value="own">自有仓</option>
-              <option value="platform">平台仓</option>
-            </select>
+            <div className="card-value" style={{fontSize:20,color:h.level==='danger'?'#ef4444':h.level==='warning'?'#f59e0b':'var(--success)',marginBottom:8}}>{h.score||0}分</div>
             <div className="card-sub">{h.healthy||0}健康 · {h.warning||0}偏低 · {h.out_of_stock||0}缺货</div>
           </>
         })()}

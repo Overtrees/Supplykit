@@ -38,16 +38,9 @@ export default function App() {
   }, [])
   useEffect(() => { checkApi(); const t = setInterval(checkApi, 15000); return () => clearInterval(t) }, [checkApi])
 
-  // View Transition 包装器：任何状态变更都走快照过渡
+  // 状态变更直接执行，不使用 View Transition（避免过渡色块问题）
   const withTransition = useCallback((fn) => {
-    return (...args) => {
-      const go = () => fn(...args)
-      if (document.startViewTransition) {
-        document.startViewTransition(go)
-      } else {
-        go()
-      }
-    }
+    return (...args) => fn(...args)
   }, [])
 
   const openSidebar = withTransition(() => setSidebarOpen(true))

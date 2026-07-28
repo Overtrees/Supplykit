@@ -4,12 +4,7 @@ html{background:var(--bg,#f2f2f7);min-height:100%;overflow-y:auto}
 html,body,#root{margin:0;padding:0;min-height:100%;background:var(--bg,#f2f2f7);overflow-x:hidden;overflow-y:auto}
 body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','SF Pro Text','Helvetica Neue',sans-serif;min-height:100vh;min-height:100svh;color:var(--text);background:var(--bg,#f2f2f7);-webkit-font-smoothing:antialiased;overscroll-behavior:none}
 
-/* View Transition — 整页快照滑入/滑出，安全区跟随 */
-::view-transition{background-color:transparent}
-@keyframes vt-slide-left{from{transform:translateX(0)}to{transform:translateX(-15%)}}
-@keyframes vt-slide-right{from{transform:translateX(15%)}to{transform:translateX(0)}}
-::view-transition-old(root){animation:0.06s ease-out both vt-slide-left}
-::view-transition-new(root){animation:0.06s ease-out both vt-slide-right}
+
 
 /* 标题栏 */
 header{padding-top:env(safe-area-inset-top,0px);background:transparent}
@@ -64,7 +59,7 @@ input,select,button,textarea{font-family:inherit;font-size:16px}input[type="file
 
 @media(prefers-color-scheme:dark){
 :root{--bg:#000000;--card:#1a1a1a;--border:#334155;--text:#f1f5f9;--muted:#94a3b8;--muted2:#64748b;--sidebar:#000000;--sidebar-active-bg:rgba(255,255,255,0.15);--sidebar-active-text:#fff}
-body{background:var(--bg,#000000)}::view-transition{background-color:transparent}.card{border-color:var(--border);box-shadow:none}
+body{background:var(--bg,#000000)}.card{border-color:var(--border);box-shadow:none}
 .warning{background:rgba(251,191,36,0.12);color:#fbbf24}.success{background:rgba(5,150,105,0.12);color:#34d399}.danger{background:rgba(225,29,72,0.12);color:#fb7185}.info{background:rgba(29,78,216,0.12);color:#60a5fa}
 td{border-bottom-color:#1e293b}tr:hover td{background:rgba(255,255,255,0.03)}tbody tr:nth-child(even) td{background:rgba(255,255,255,0.02)}tbody tr:nth-child(even):hover td{background:rgba(255,255,255,0.05)}
 .search-bar{background:#334155}.search-bar input::placeholder{color:#64748b}

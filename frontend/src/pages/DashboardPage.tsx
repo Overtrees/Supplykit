@@ -70,8 +70,8 @@ export default function DashboardPage({ onAlert }) {
     </div>
 
     <div className="card-grid" style={{marginBottom:16}}>
-      <Card title={periodLabel[periodTab]+' GMV'} value={'¥'+Number(periodMeta.gmv||0).toLocaleString()} sub={periodMeta.orders+' 单'} />
-      <div className="card" style={{padding:12,position:'relative'}}>
+      <Card title={periodLabel[periodTab]+' GMV'} value={'¥'+Number(periodMeta.gmv||0).toLocaleString()} sub={periodMeta.orders+' 单'} borderRadius={26} />
+      <div className="card" style={{padding:12,position:'relative',borderRadius:26}}>
         {dashboard?.health_index && (()=>{
           const h = dashboard.health_index[healthTab]||{}
           return <>
@@ -87,7 +87,7 @@ export default function DashboardPage({ onAlert }) {
           </>
         })()}
       </div>
-      <Card title="待处理" value={errCount+(dashboard?.summary?.active_alerts||0)} sub={errCount+' 异常 · '+(dashboard?.summary?.active_alerts||0)+' 告警'} badge={errCount>0 ? <span className="pill danger" style={{background:'#ef4444',color:'var(--card)'}}>需处理</span> : null} />
+      <Card title="待处理" value={errCount+(dashboard?.summary?.active_alerts||0)} sub={errCount+' 异常 · '+(dashboard?.summary?.active_alerts||0)+' 告警'} badge={errCount>0 ? <span className="pill danger" style={{background:'#ef4444',color:'var(--card)'}}>需处理</span> : null} borderRadius={26} />
     </div>
 
     <div className="chart-row">

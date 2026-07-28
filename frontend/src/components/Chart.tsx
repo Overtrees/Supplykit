@@ -31,6 +31,13 @@ export default function Chart({ option, height = 260 }) {
           textStyle: { color: textColor, ...option.textStyle },
           title: { ...option.title, textStyle: { color: textColor, ...(option.title?.textStyle || {}) } },
           ...(option.legend ? { legend: { ...option.legend, textStyle: { color: mutedColor, ...(option.legend.textStyle || {}) } } } : {}),
+          // 注入 series label 颜色，适配深色模式
+          ...(option.series ? {
+            series: (Array.isArray(option.series) ? option.series : [option.series]).filter(Boolean).map(s => ({
+              ...s,
+              label: s.label ? { ...s.label, color: textColor, textBorderColor: 'transparent', ...(s.label.color ? {color: s.label.color} : {}) } : s.label,
+            }))
+          } : {}),
         }
         chart.setOption(opt)
         inst.current = chart

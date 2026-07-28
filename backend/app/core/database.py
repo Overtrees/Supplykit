@@ -149,14 +149,18 @@ class QueryBuilder:
             sql = f'SELECT {self._select_cols} FROM "{self.table}" WHERE {self._build_where()}'
             cur = cursor(sql, self._params)
             row = cur.fetchone()
-            return ExecuteResult([], count=row[0] if row else 0)
+            result = ExecuteResult([], count=row[0] if row else 0)
+            if os.getenv('DB_LOG'): import logging; logging.info(f"[DB] count {self.table} → {result.count}")
+            return result
         sql = f'SELECT {self._select_cols} FROM "{self.table}" WHERE {self._build_where()}'
         if self._order: sql += " " + self._order
         if self._limit: sql += f" LIMIT {self._limit}"
         if self._offset: sql += f" OFFSET {self._offset}"
         cur = cursor(sql, self._params)
         rows = [dict(r) for r in cur.fetchall()]
-        return ExecuteResult(rows)
+        result = ExecuteResult(rows)
+        if os.getenv('DB_LOG'): import logging; logging.info(f"[DB] query {self.table} → {len(rows)} rows")
+        return result
 
 class ExecuteResult:
     def __init__(self, data, count=None):
@@ -173,7 +177,9 @@ class InsertBuilder:
         sql = f'INSERT INTO "{self.table}" ({self._cols}) VALUES ({self._vals})'
         cur = self.conn.execute(sql, self._params)
         self.conn.commit()
-        return ExecuteResult([{"id": cur.lastrowid}])
+        result = ExecuteResult([{"id": cur.lastrowid}])
+        if os.getenv('DB_LOG'): import logging; logging.info(f"[DB] insert {self.table} → id={cur.lastrowid}")
+        return result
 
 class UpdateBuilder:
     def __init__(self, table, conn, data):

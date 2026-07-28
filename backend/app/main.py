@@ -30,8 +30,13 @@ if os.path.exists(_env_path):
                 os.environ[_k.strip()] = _v.strip()
 
 # ─── 导入 ───
-from fastapi import FastAPI
+import logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
+logger = logging.getLogger('supplykit')
+
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from app.api.routes.dashboard import router as dashboard_router
 from app.api.routes.orders import router as orders_router
 from app.api.routes.inventory import router as inventory_router
@@ -69,6 +74,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ─── API 请求日志中间件 ─────────────────────────────────────────────────────
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    import time
+    start = time.time()
+    response = await call_next(request)
+    cost = round((time.time() - start) * 1000)
+    if cost > 500:
+        logger.warning(f"[API] {request.method} {request.url.path} {cost}ms {response.status_code}")
+    elif cost > 100:
+        logger.info(f"[API] {request.method} {request.url.path} {cost}ms {response.status_code}")
+    return response
 
 app.include_router(dashboard_router)
 app.include_router(orders_router)

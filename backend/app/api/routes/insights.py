@@ -113,6 +113,10 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
         for sku in set(o.get('sku','') for o in orders):
             if sku not in result:
                 result[sku] = 0
+        if os.getenv('SALES_LOG') and any(v > 0 for v in result.values()):
+            import logging
+            nonzero = {k: round(v, 2) for k, v in result.items() if v > 0}
+            logging.info(f"[SALES] cutoff={cutoff_days}d wh={wh_name} → {len(nonzero)} SKU有销量: {nonzero}")
         return result
 
     def rolling_predict(s7, s14, s28):
@@ -473,6 +477,9 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
                     w = 1.5 if idx >= win-3 else 1.0
                     w_sum += v * w; w_total += w
             result[sku] = round(w_sum/w_total, 1) if w_total > 0 else round(base_avg, 1)
+        if os.getenv('SALES_LOG') and any(v > 0 for v in result.values()):
+            import logging
+            logging.info(f"[PURCHASE_CALC] win={win}d cutoff={cutoff} → {len(result)} SKU, 非零: {{k:round(v,2) for k,v in result.items() if v>0}}")
         return result
     now = datetime.utcnow()
     sales_14 = purchase_calc(14)

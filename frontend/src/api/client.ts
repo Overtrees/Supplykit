@@ -19,7 +19,7 @@ const instance = axios.create({
 // 在途请求去重 Map
 const inflight = new Map()
 
-// 响应拦截器：写缓存 + 清理在途
+// 响应拦截器：写缓存 + 清理在途 + 日志
 instance.interceptors.response.use(
   (response) => {
     const { method, url, params } = response.config
@@ -28,12 +28,14 @@ instance.interceptors.response.use(
       cache.set(key, { data: response.data, ts: Date.now() })
     }
     inflight.delete(key)
+    console.debug(`[API] ${(method||'get').toUpperCase()} ${url} → ${response.status}`, params && Object.keys(params).length ? params : '')
     return response
   },
   (error) => {
     const cfg = (error.config || {}) as any
     const key = cacheKey(cfg.method || 'get', cfg.url || '', cfg.params)
     inflight.delete(key)
+    console.debug(`[API] ${(cfg.method||'get').toUpperCase()} ${cfg.url} → ❌ ${error.message}`)
     return Promise.reject(error)
   }
 )

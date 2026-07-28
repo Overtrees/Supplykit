@@ -61,9 +61,9 @@ export default function DashboardPage({ onAlert }) {
 
   return <div>
     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
-      <div style={{ display:'flex', gap:4 }}>
+      <div style={{display:'flex',gap:2,background:'var(--glass-bg)',borderRadius:99,padding:2,alignItems:'center',backdropFilter:'blur(var(--glass-blur))',WebkitBackdropFilter:'blur(var(--glass-blur))'}}>
         {['today','week','month'].map(k => (
-          <button key={k} onClick={() => setPeriodTab(k)} className={`btn btn-ghost`} style={{fontSize:12,background:periodTab===k?'rgba(128,128,128,0.2)':'transparent',color:periodTab===k?'#007AFF':'',borderColor:periodTab===k?'transparent':''}}>{periodLabel[k]}</button>
+          <span key={k} onClick={() => setPeriodTab(k)} style={{fontSize:12,padding:'3px 10px',borderRadius:99,cursor:'pointer',background:periodTab===k?'rgba(128,128,128,0.2)':'transparent',color:periodTab===k?'#007AFF':'var(--text)',fontWeight:periodTab===k?600:400,whiteSpace:'nowrap'}}>{periodLabel[k]}</span>
         ))}
       </div>
       <div className="small muted">{periodMeta.date ? periodMeta.date : ''}</div>

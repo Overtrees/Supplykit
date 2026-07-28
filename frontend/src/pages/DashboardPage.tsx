@@ -7,7 +7,7 @@ const periodLabel = { today:'今日', week:'本周', month:'本月' }
 
 export default function DashboardPage({ onAlert }) {
   const [periodTab, setPeriodTab] = useState('month')
-  const [healthTab, setHealthTab] = useState(() => localStorage.getItem('health_tab') || 'own')
+  const [healthTab, setHealthTab] = useState(() => localStorage.getItem('health_tab') || 'platform')
   const { dashboard, inventory, qualityLogs, alerts } = useAppStore()
   const periodTrend = dashboard?.periods?.[periodTab + '_trend'] || dashboard?.trend || []
   const periodMeta = dashboard?.periods?.[periodTab] || {}
@@ -79,10 +79,10 @@ export default function DashboardPage({ onAlert }) {
               <div className="small muted" style={{fontSize:12}}>库存健康度</div>
               <div className="card-value" style={{fontSize:20,color:h.level==='danger'?'#ef4444':h.level==='warning'?'#f59e0b':'var(--success)'}}>{h.score||0}分</div>
             </div>
-            <div style={{display:'flex',gap:6,background:'var(--glass-bg)',borderRadius:99,padding:6,alignItems:'center',backdropFilter:'blur(var(--glass-blur))',WebkitBackdropFilter:'blur(var(--glass-blur))',marginBottom:8,flexShrink:0,width:'fit-content'}}>
-              <span onClick={()=>{localStorage.setItem('health_tab','own');setHealthTab('own')}} style={{fontSize:12,padding:'3px 10px',borderRadius:99,cursor:'pointer',background:healthTab==='own'?'rgba(128,128,128,0.2)':'transparent',color:healthTab==='own'?'#007AFF':'var(--text)',fontWeight:healthTab==='own'?600:400,whiteSpace:'nowrap'}}>自有仓</span>
-              <span onClick={()=>{localStorage.setItem('health_tab','platform');setHealthTab('platform')}} style={{fontSize:12,padding:'3px 10px',borderRadius:99,cursor:'pointer',background:healthTab==='platform'?'rgba(128,128,128,0.2)':'transparent',color:healthTab==='platform'?'#007AFF':'var(--text)',fontWeight:healthTab==='platform'?600:400,whiteSpace:'nowrap'}}>平台仓</span>
-            </div>
+            <select value={healthTab} onChange={e=>{const v=e.target.value;localStorage.setItem('health_tab',v);setHealthTab(v)}} style={{fontSize:14,padding:'6px 12px',border:'1px solid var(--border)',borderRadius:32,outline:'none',background:'var(--card)',marginBottom:8,color:'var(--text)'}}>
+              <option value="own">自有仓</option>
+              <option value="platform">平台仓</option>
+            </select>
             <div className="card-sub">{h.healthy||0}健康 · {h.warning||0}偏低 · {h.out_of_stock||0}缺货</div>
           </>
         })()}

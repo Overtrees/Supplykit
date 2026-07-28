@@ -74,9 +74,9 @@ export default function DashboardPage({ onAlert }) {
       <div className="card" style={{padding:12,position:'relative'}}>
         <div style={{ display:'flex', justifyContent:'space-between', gap:8, marginBottom:6, alignItems:'center' }}>
           <div className="small muted" style={{fontSize:12}}>库存健康度</div>
-          <div style={{display:'flex',gap:2,background:'var(--bg)',borderRadius:99,height:26,padding:'0 2px',alignItems:'center',boxSizing:'border-box',overflow:'hidden'}}>
-            <span onClick={()=>{localStorage.setItem('health_tab','own');setHealthTab('own')}} style={{fontSize:12,padding:'3px 10px',borderRadius:99,cursor:'pointer',background:healthTab==='own'?'var(--primary)':'transparent',color:healthTab==='own'?'#fff':'var(--muted)',fontWeight:healthTab==='own'?600:400,whiteSpace:'nowrap',display:'flex',alignItems:'center'}}>自有仓</span>
-            <span onClick={()=>{localStorage.setItem('health_tab','platform');setHealthTab('platform')}} style={{fontSize:12,padding:'3px 10px',borderRadius:99,cursor:'pointer',background:healthTab==='platform'?'var(--primary)':'transparent',color:healthTab==='platform'?'#fff':'var(--muted)',fontWeight:healthTab==='platform'?600:400,whiteSpace:'nowrap',display:'flex',alignItems:'center'}}>平台仓</span>
+          <div style={{display:'flex',gap:2,background:'var(--bg)',borderRadius:99,padding:2,alignItems:'center'}}>
+            <span onClick={()=>{localStorage.setItem('health_tab','own');setHealthTab('own')}} style={{fontSize:12,lineHeight:'20px',padding:'2px 12px',borderRadius:99,cursor:'pointer',textAlign:'center',background:healthTab==='own'?'var(--primary)':'transparent',color:healthTab==='own'?'#fff':'var(--muted)',fontWeight:healthTab==='own'?600:400,whiteSpace:'nowrap'}}>自有仓</span>
+            <span onClick={()=>{localStorage.setItem('health_tab','platform');setHealthTab('platform')}} style={{fontSize:12,lineHeight:'20px',padding:'2px 12px',borderRadius:99,cursor:'pointer',textAlign:'center',background:healthTab==='platform'?'var(--primary)':'transparent',color:healthTab==='platform'?'#fff':'var(--muted)',fontWeight:healthTab==='platform'?600:400,whiteSpace:'nowrap'}}>平台仓</span>
           </div>
         </div>
         {dashboard?.health_index && (()=>{

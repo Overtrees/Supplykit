@@ -24,7 +24,7 @@ export default function Sidebar({ page, onClose, onNavigate, lowStock, errCount,
           return (
             <div key={item.id} onClick={() => onNavigate(item.id)} style={{
               display:'flex', alignItems:'center', gap:12,
-              padding:'13px 16px', borderRadius:12, marginBottom:4,
+              padding:'13px 16px', borderRadius:32, marginBottom:4,
               background: active ? 'var(--sidebar-active-bg)' : 'transparent',
               color: active ? 'var(--sidebar-active-text)' : 'var(--muted)',
               cursor:'pointer', fontWeight: active ? 600 : 400, fontSize:15,

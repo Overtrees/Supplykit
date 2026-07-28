@@ -82,7 +82,7 @@ export default function DashboardPage({ onAlert }) {
                 <option value="platform">平台仓</option>
               </select>
             </div>
-            <div className="card-value" style={{fontSize:20,color:h.level==='danger'?'#ef4444':h.level==='warning'?'#f59e0b':'var(--success)',marginBottom:8,textAlign:'left'}}>{h.score||0}分</div>
+            <div className="card-value" style={{color:h.level==='danger'?'#ef4444':h.level==='warning'?'#f59e0b':'var(--success)',marginBottom:8,textAlign:'left'}}>{h.score||0}分</div>
             <div className="card-sub">{h.healthy||0}健康 · {h.warning||0}偏低 · {h.out_of_stock||0}缺货</div>
           </>
         })()}

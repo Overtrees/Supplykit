@@ -12,7 +12,7 @@ useEffect(()=>{api.get('/api/suppliers').then(r=>{const d=r.data?.items||r.data|
 if(ld)return<div className='card'><div className='section-title'><span>供应商管理</span></div><Skeleton/></div>
 const fl=s?list.filter(x=>(x.supplier_name||x.code||'').includes(s)||(x.contact_person||'').includes(s)):list
 return<div className='card'><div className='section-title'><span>供应商管理</span><span className='small muted'>共 {list.length} 个</span></div>
-<input value={s} onChange={e=>setS(e.target.value)} placeholder='搜索供应商...' style={{width:'100%',padding:'8px 12px',fontSize:16,border:'1px solid var(--border)',borderRadius:8,marginBottom:12,outline:'none',boxSizing:'border-box'}}/>
+<input value={s} onChange={e=>setS(e.target.value)} placeholder='搜索供应商...' style={{width:'100%',padding:'8px 12px',fontSize:16,border:'1px solid var(--border)',borderRadius:32,marginBottom:12,outline:'none',boxSizing:'border-box'}}/>
 {fl.length===0?<EmptyState icon='factory' title={s?'无匹配供应商':'暂无供应商'}/>:<div style={{overflowX:"auto"}}>
 <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 5 列 · 左右滑动查看</div>
 <table><thead><tr>{['编号','名称','联系人','手机','评分'].map(h=><th key={h}>{h}</th>)}</tr></thead>

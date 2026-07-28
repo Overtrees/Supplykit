@@ -112,11 +112,11 @@ export default function App() {
         <div className="header-inner">
           <div className="header-left">
             <button className="menu-btn" onClick={sidebarOpen ? closeSidebar : openSidebar}>
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="4" width="16" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="9.25" width="16" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="14.5" width="16" height="1.5" rx=".75" fill="currentColor"/></svg>
+              <svg width="26" height="26" viewBox="0 0 20 20" fill="none"><rect x="2" y="4" width="16" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="9.25" width="16" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="14.5" width="16" height="1.5" rx=".75" fill="currentColor"/></svg>
             </button>
           </div>
-          <span className="header-status" style={{display:'flex',alignItems:'center',gap:4}}>
-            {wsStatus === 'connected' ? <><IconStatusOnline size={10} /> 实时</> : wsStatus === 'polling' ? <><IconStatusWarning size={10} /> 轮询</> : <><IconStatusOffline size={10} /> 断开</>}
+          <span className="header-status">
+            {wsStatus === 'connected' ? <><IconStatusOnline size={14} /> 实时</> : wsStatus === 'polling' ? <><IconStatusWarning size={14} /> 轮询</> : <><IconStatusOffline size={14} /> 断开</>}
           </span>
         </div>
       </header>

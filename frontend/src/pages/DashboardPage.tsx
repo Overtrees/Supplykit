@@ -63,7 +63,7 @@ export default function DashboardPage({ onAlert }) {
     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
       <div style={{ display:'flex', gap:4 }}>
         {['today','week','month'].map(k => (
-          <button key={k} onClick={() => setPeriodTab(k)} className={`btn btn-ghost`} style={{fontSize:12,background:periodTab===k?'var(--primary)':'transparent',color:periodTab===k?'#fff':'',borderColor:periodTab===k?'transparent':''}}>{periodLabel[k]}</button>
+          <button key={k} onClick={() => setPeriodTab(k)} className={`btn btn-ghost`} style={{fontSize:12,background:periodTab===k?'rgba(128,128,128,0.2)':'transparent',color:periodTab===k?'var(--text)':'',borderColor:periodTab===k?'transparent':''}}>{periodLabel[k]}</button>
         ))}
       </div>
       <div className="small muted">{periodMeta.date ? periodMeta.date : ''}</div>
@@ -80,8 +80,8 @@ export default function DashboardPage({ onAlert }) {
               <div className="card-value" style={{fontSize:20,color:h.level==='danger'?'#ef4444':h.level==='warning'?'#f59e0b':'var(--success)'}}>{h.score||0}分</div>
             </div>
             <div style={{ display:'flex', gap:4, marginBottom:8 }}>
-              <span onClick={()=>{localStorage.setItem('health_tab','own');setHealthTab('own')}} className="btn btn-ghost" style={{fontSize:12,padding:'2px 12px',background:healthTab==='own'?'var(--primary)':'transparent',color:healthTab==='own'?'#fff':'',borderColor:healthTab==='own'?'transparent':''}}>自有仓</span>
-              <span onClick={()=>{localStorage.setItem('health_tab','platform');setHealthTab('platform')}} className="btn btn-ghost" style={{fontSize:12,padding:'2px 12px',background:healthTab==='platform'?'var(--primary)':'transparent',color:healthTab==='platform'?'#fff':'',borderColor:healthTab==='platform'?'transparent':''}}>平台仓</span>
+              <span onClick={()=>{localStorage.setItem('health_tab','own');setHealthTab('own')}} className="btn btn-ghost" style={{fontSize:12,padding:'2px 12px',background:healthTab==='own'?'rgba(128,128,128,0.2)':'transparent',color:healthTab==='own'?'var(--text)':'',borderColor:healthTab==='own'?'transparent':''}}>自有仓</span>
+              <span onClick={()=>{localStorage.setItem('health_tab','platform');setHealthTab('platform')}} className="btn btn-ghost" style={{fontSize:12,padding:'2px 12px',background:healthTab==='platform'?'rgba(128,128,128,0.2)':'transparent',color:healthTab==='platform'?'var(--text)':'',borderColor:healthTab==='platform'?'transparent':''}}>平台仓</span>
             </div>
             <div className="card-sub">{h.healthy||0}健康 · {h.warning||0}偏低 · {h.out_of_stock||0}缺货</div>
           </>

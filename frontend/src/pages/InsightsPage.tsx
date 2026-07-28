@@ -132,7 +132,7 @@ export default function InsightsPage() {
 
   const btnStyle = id => ({
     flex: 1, padding: '10px 12px', fontSize: 13, fontWeight: 500,
-    border: 'none', borderRadius: 26,
+    border: 'none', borderRadius: 32,
     background: tab === id ? 'var(--primary)' : 'transparent',
     color: tab === id ? '#fff' : 'var(--muted)', cursor: 'pointer',
   })
@@ -233,7 +233,7 @@ export default function InsightsPage() {
               {orderedItems.map((po, i) => {
                 const daysSinceArrival = po.arrival_date ? Math.floor((new Date() - new Date(po.arrival_date)) / (1000*60*60*24)) : null
                 const stayColor = daysSinceArrival != null ? (daysSinceArrival > 90 ? '#ef4444' : daysSinceArrival > 15 ? '#f59e0b' : 'var(--text)') : 'var(--muted)'
-                return <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 10px',border:'1px solid var(--border)',borderRadius:26,marginBottom:4,flexWrap:'wrap',gap:4}}>
+                return <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 10px',border:'1px solid var(--border)',borderRadius:32,marginBottom:4,flexWrap:'wrap',gap:4}}>
                   <span>{po.sku} {po.product_name} <span className="pill success" style={{fontSize:10}}>+{(po.actual_qty||po.suggested_qty)}</span></span>
                   <span style={{display:'flex',alignItems:'center',gap:6}}>
                     <span className="small" style={{color:stayColor,fontWeight:600}}>

@@ -9,7 +9,7 @@ export function ToastProvider({children}) {
   return <ToastContext.Provider value={{add,success,error}}>
     {children}
     <div style={{position:'fixed',top:16,right:16,zIndex:9999,display:'flex',flexDirection:'column',gap:8}}>
-      {toasts.map(t => <div key={t.id} style={{padding:'12px 20px',borderRadius:26,
+      {toasts.map(t => <div key={t.id} style={{padding:'12px 20px',borderRadius:32,
         background:t.type==='error'?'rgba(225,29,72,0.1)':'rgba(5,150,105,0.1)',
         border:'1px solid '+(t.type==='error'?'rgba(225,29,72,0.25)':'rgba(5,150,105,0.25)'),
         color:t.type==='error'?'var(--danger)':'var(--success)',

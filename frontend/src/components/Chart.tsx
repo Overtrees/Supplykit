@@ -43,6 +43,7 @@ export default function Chart({ option, height = 260 }) {
             ...option.tooltip,
             backgroundColor: theme === 'dark' ? 'rgba(30,41,59,0.95)' : 'rgba(255,255,255,0.95)',
             borderColor: theme === 'dark' ? '#334155' : '#e2e8f0',
+            borderRadius: 26,
             textStyle: { color: textColor, ...(option.tooltip?.textStyle || {}) },
           },
         }

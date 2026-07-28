@@ -198,13 +198,13 @@ export default function CleansingPage() {
         <span onClick={()=>setMp(p=>({...p,_meta:{data_source:'jd_po'}}))} style={{padding:'2px 8px',fontSize:11,borderRadius:99,border:'1px solid',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:3,background:mp?._meta?.data_source==='jd_po'?'var(--primary)':'var(--card)',color:mp?._meta?.data_source==='jd_po'?'#fff':'var(--muted)',borderColor:mp?._meta?.data_source==='jd_po'?'var(--primary)':'var(--border)'}}><IconPackage size={12} /> 京东采购单</span>
       </span>}</div>
       <div style={{display:'flex',gap:8,marginBottom:12,alignItems:'center',flexWrap:'wrap'}}>
-        <select id="tmplSelect" style={{flex:1,fontSize:16,padding:'6px 8px',border:'1px solid var(--border)',borderRadius:26,minWidth:140}}>
+        <select id="tmplSelect" style={{flex:1,fontSize:16,padding:'6px 8px',border:'1px solid var(--border)',borderRadius:32,minWidth:140}}>
           <option value="">加载映射模板...</option>
           {Array.isArray(templates) && templates.filter(t => t.doc_type === tt).map(t => <option key={t.id} value={JSON.stringify(t.mapping)}>{t.name}</option>)}
           {Array.isArray(templates) && templates.filter(t => t.doc_type !== tt).length > 0 && <option disabled style={{color:'var(--muted2)',fontSize:11}}>── {tt==='order'?'库存':'订单'}模板（{templates.filter(t=>t.doc_type!==tt).length}个） ──</option>}
         </select>
-        <button onClick={()=>{const s=document.getElementById('tmplSelect');if(s.value)try{setMp(JSON.parse(s.value))}catch(e){}}} style={{padding:'6px 14px',fontSize:12,border:'1px solid var(--border)',borderRadius:26,background:'var(--card)',cursor:'pointer'}}>应用</button>
-        <input id="tmplName" placeholder="新模板名称" style={{width:120,fontSize:16,padding:'6px 8px',border:'1px solid var(--border)',borderRadius:26,outline:'none'}}/>
+        <button onClick={()=>{const s=document.getElementById('tmplSelect');if(s.value)try{setMp(JSON.parse(s.value))}catch(e){}}} style={{padding:'6px 14px',fontSize:12,border:'1px solid var(--border)',borderRadius:32,background:'var(--card)',cursor:'pointer'}}>应用</button>
+        <input id="tmplName" placeholder="新模板名称" style={{width:120,fontSize:16,padding:'6px 8px',border:'1px solid var(--border)',borderRadius:32,outline:'none'}}/>
         <button onClick={async()=>{
           const n=document.getElementById('tmplName').value;if(!n)return toast.error('请输入模板名称');
           try {
@@ -212,30 +212,30 @@ export default function CleansingPage() {
             const msg=r?.data?.message||'模板已保存';
             document.getElementById('tmplName').value='';loadTemplates();toast.success(msg);
           } catch(e){toast.error('模板保存失败: '+(e.response?.data?.detail||e.message));}
-        }} style={{padding:'6px 14px',fontSize:12,background:'var(--primary)',color:'var(--card)',border:'none',borderRadius:26,cursor:'pointer'}}>保存</button>
+        }} style={{padding:'6px 14px',fontSize:12,background:'var(--primary)',color:'var(--card)',border:'none',borderRadius:32,cursor:'pointer'}}>保存</button>
       </div>
-      {Array.isArray(cf) && <div style={{marginBottom:10,border:'1px solid var(--border)',borderRadius:26,padding:12,background:'var(--bg)'}}>
+      {Array.isArray(cf) && <div style={{marginBottom:10,border:'1px solid var(--border)',borderRadius:32,padding:12,background:'var(--bg)'}}>
         <div style={{fontSize:12,fontWeight:600,marginBottom:8}}>自定义字段</div>
         {cf.map((f,i) => <div key={i} style={{display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
-          <input value={f.l} onChange={e=>{const v=e.target.value;setCf(p=>p.map((x,k)=>k===i?{...x,l:v}:x))}} placeholder="字段名" style={{flex:1,fontSize:16,padding:'5px 8px',border:'1px solid var(--border)',borderRadius:26,outline:'none'}}/>
-          <select value={f.tp} onChange={e=>{const v=e.target.value;setCf(p=>p.map((x,k)=>k===i?{...x,tp:v}:x))}} style={{fontSize:14,padding:'5px',border:'1px solid var(--border)',borderRadius:26}}>
+          <input value={f.l} onChange={e=>{const v=e.target.value;setCf(p=>p.map((x,k)=>k===i?{...x,l:v}:x))}} placeholder="字段名" style={{flex:1,fontSize:16,padding:'5px 8px',border:'1px solid var(--border)',borderRadius:32,outline:'none'}}/>
+          <select value={f.tp} onChange={e=>{const v=e.target.value;setCf(p=>p.map((x,k)=>k===i?{...x,tp:v}:x))}} style={{fontSize:14,padding:'5px',border:'1px solid var(--border)',borderRadius:32}}>
             <option value="string">文本</option><option value="number">数字</option><option value="date">日期</option>
           </select>
-          <button onClick={()=>delField(i)} style={{background:'rgba(225,29,72,0.12)',border:'none',borderRadius:26,cursor:'pointer',padding:'4px 8px',fontSize:12,color:'var(--danger)'}}>删除</button>
+          <button onClick={()=>delField(i)} style={{background:'rgba(225,29,72,0.12)',border:'none',borderRadius:32,cursor:'pointer',padding:'4px 8px',fontSize:12,color:'var(--danger)'}}>删除</button>
         </div>)}
-        <button onClick={addField} style={{padding:'5px 14px',fontSize:12,border:'1px dashed #94a3b8',borderRadius:26,background:'var(--card)',cursor:'pointer',color:'var(--muted)',width:'100%'}}>+ 添加自定义字段</button>
+        <button onClick={addField} style={{padding:'5px 14px',fontSize:12,border:'1px dashed #94a3b8',borderRadius:32,background:'var(--card)',cursor:'pointer',color:'var(--muted)',width:'100%'}}>+ 添加自定义字段</button>
       </div>}
       {cols.map(c => {
         const matched = ALIAS[c.name]
         const sf = SYS_FIELDS.find(x => x.t === matched)
-        return (<div key={c.name} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 10px',border:'1px solid var(--border)',borderRadius:26,marginBottom:4}}>
+        return (<div key={c.name} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 10px',border:'1px solid var(--border)',borderRadius:32,marginBottom:4}}>
         <div style={{flex:1,fontSize:13,fontWeight:500}}>
           {c.name}
           {matched && sf && <span className="small muted" style={{display:'block',fontSize:11}}>→ {sf.l} ({sf.t})</span>}
         </div>
         <div style={{fontSize:11,color:'var(--muted2)',flexShrink:0}}>→</div>
         <select value={mp[c.name]?.target || ''} onChange={e=>{const v=e.target.value;setMp(p=>({...p,[c.name]:{target:v,type:'string'}}))}}
-          style={{fontSize:13,padding:'5px 8px',border:'1px solid var(--border)',borderRadius:26,flex:1,minWidth:120,background:'var(--card)'}}>
+          style={{fontSize:13,padding:'5px 8px',border:'1px solid var(--border)',borderRadius:32,flex:1,minWidth:120,background:'var(--card)'}}>
           <option value="">-- 不映射 --</option>
           {(tt==='inventory'?INV_FIELDS:SYS_FIELDS).map(f => <option key={f.t} value={f.t}>{f.l}</option>)}
           {cf.filter(f => f.t && f.l).map(f => <option key={f.t} value={f.t}>{f.l}</option>)}

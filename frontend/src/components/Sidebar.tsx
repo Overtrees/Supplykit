@@ -26,7 +26,7 @@ export default function Sidebar({ page, onClose, onNavigate, lowStock, errCount,
               display:'flex', alignItems:'center', gap:12,
               padding:'13px 16px 13px 15px', borderRadius:32, marginBottom:4,
               background: active ? 'var(--sidebar-active-bg)' : 'transparent',
-              color: active ? 'var(--sidebar-active-text)' : 'var(--muted)',
+              color: active ? 'var(--sidebar-active-text)' : 'var(--text)',
               cursor:'pointer', fontWeight: active ? 600 : 400, fontSize:15,
             }}>
               {IconComp && <IconComp size={20} />}

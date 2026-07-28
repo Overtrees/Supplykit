@@ -72,17 +72,17 @@ export default function DashboardPage({ onAlert }) {
     <div className="card-grid" style={{marginBottom:16}}>
       <Card title={periodLabel[periodTab]+' GMV'} value={'¥'+Number(periodMeta.gmv||0).toLocaleString()} sub={periodMeta.orders+' 单'} />
       <div className="card" style={{padding:12,position:'relative'}}>
-        <div style={{ display:'flex', justifyContent:'space-between', gap:8, marginBottom:6, alignItems:'center' }}>
-          <div className="small muted" style={{fontSize:12}}>库存健康度</div>
-          <div style={{display:'flex',gap:2,background:'var(--bg)',borderRadius:99,padding:2,alignItems:'center'}}>
-            <span onClick={()=>{localStorage.setItem('health_tab','own');setHealthTab('own')}} style={{fontSize:12,lineHeight:'20px',padding:'2px 12px',borderRadius:99,cursor:'pointer',textAlign:'center',background:healthTab==='own'?'var(--primary)':'transparent',color:healthTab==='own'?'#fff':'var(--muted)',fontWeight:healthTab==='own'?600:400,whiteSpace:'nowrap'}}>自有仓</span>
-            <span onClick={()=>{localStorage.setItem('health_tab','platform');setHealthTab('platform')}} style={{fontSize:12,lineHeight:'20px',padding:'2px 12px',borderRadius:99,cursor:'pointer',textAlign:'center',background:healthTab==='platform'?'var(--primary)':'transparent',color:healthTab==='platform'?'#fff':'var(--muted)',fontWeight:healthTab==='platform'?600:400,whiteSpace:'nowrap'}}>平台仓</span>
-          </div>
-        </div>
         {dashboard?.health_index && (()=>{
           const h = dashboard.health_index[healthTab]||{}
           return <>
-            <div className="card-value" style={{color:h.level==='danger'?'#ef4444':h.level==='warning'?'#f59e0b':'var(--success)'}}>{h.score||0}分</div>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
+              <div className="small muted" style={{fontSize:12}}>库存健康度</div>
+              <div className="card-value" style={{fontSize:20,color:h.level==='danger'?'#ef4444':h.level==='warning'?'#f59e0b':'var(--success)'}}>{h.score||0}分</div>
+            </div>
+            <div style={{ display:'flex', gap:4, marginBottom:8 }}>
+              <span onClick={()=>{localStorage.setItem('health_tab','own');setHealthTab('own')}} className="btn btn-ghost" style={{fontSize:12,padding:'2px 12px',background:healthTab==='own'?'var(--primary)':'transparent',color:healthTab==='own'?'#fff':'',borderColor:healthTab==='own'?'transparent':''}}>自有仓</span>
+              <span onClick={()=>{localStorage.setItem('health_tab','platform');setHealthTab('platform')}} className="btn btn-ghost" style={{fontSize:12,padding:'2px 12px',background:healthTab==='platform'?'var(--primary)':'transparent',color:healthTab==='platform'?'#fff':'',borderColor:healthTab==='platform'?'transparent':''}}>平台仓</span>
+            </div>
             <div className="card-sub">{h.healthy||0}健康 · {h.warning||0}偏低 · {h.out_of_stock||0}缺货</div>
           </>
         })()}

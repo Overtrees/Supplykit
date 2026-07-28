@@ -115,11 +115,12 @@ export default function App() {
           position:'fixed', inset:0, zIndex:100,
           background:'var(--sidebar)',
           display:'flex', flexDirection:'column',
-          paddingTop:'env(safe-area-inset-top,0px)',
-          paddingBottom:'env(safe-area-inset-bottom,0px)',
-          overflowY:'auto', WebkitOverflowScrolling:'touch',
         }}>
-          <Sidebar page={page} onClose={closeSidebar} onNavigate={navAndClose} lowStock={lowStock} errCount={errCount} apiStatus={apiStatus} />
+          <div style={{ height:'env(safe-area-inset-top,0px)', flexShrink:0, background:'var(--sidebar)' }} />
+          <div style={{ flex:1, overflowY:'auto', WebkitOverflowScrolling:'touch' }}>
+            <Sidebar page={page} onClose={closeSidebar} onNavigate={navAndClose} lowStock={lowStock} errCount={errCount} apiStatus={apiStatus} />
+          </div>
+          <div style={{ height:'env(safe-area-inset-bottom,0px)', flexShrink:0, background:'var(--sidebar)' }} />
         </div>
       )}
 

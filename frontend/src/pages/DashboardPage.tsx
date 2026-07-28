@@ -79,7 +79,7 @@ export default function DashboardPage({ onAlert }) {
               <div className="small muted" style={{fontSize:12}}>库存健康度</div>
               <div className="card-value" style={{fontSize:20,color:h.level==='danger'?'#ef4444':h.level==='warning'?'#f59e0b':'var(--success)'}}>{h.score||0}分</div>
             </div>
-            <div style={{display:'flex',gap:2,background:'var(--glass-bg)',borderRadius:99,padding:6,alignItems:'center',backdropFilter:'blur(var(--glass-blur))',WebkitBackdropFilter:'blur(var(--glass-blur))',border:'1px solid var(--glass-border)',marginBottom:8}}>
+            <div style={{display:'flex',gap:2,background:'var(--glass-bg)',borderRadius:99,padding:6,alignItems:'center',backdropFilter:'blur(var(--glass-blur))',WebkitBackdropFilter:'blur(var(--glass-blur))',marginBottom:8}}>
               <span onClick={()=>{localStorage.setItem('health_tab','own');setHealthTab('own')}} style={{fontSize:12,padding:'3px 10px',borderRadius:99,cursor:'pointer',background:healthTab==='own'?'rgba(128,128,128,0.2)':'transparent',color:healthTab==='own'?'#007AFF':'var(--text)',fontWeight:healthTab==='own'?600:400,whiteSpace:'nowrap'}}>自有仓</span>
               <span onClick={()=>{localStorage.setItem('health_tab','platform');setHealthTab('platform')}} style={{fontSize:12,padding:'3px 10px',borderRadius:99,cursor:'pointer',background:healthTab==='platform'?'rgba(128,128,128,0.2)':'transparent',color:healthTab==='platform'?'#007AFF':'var(--text)',fontWeight:healthTab==='platform'?600:400,whiteSpace:'nowrap'}}>平台仓</span>
             </div>

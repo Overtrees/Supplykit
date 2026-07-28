@@ -48,9 +48,9 @@ export default function DashboardPage({ onAlert }) {
       xAxis: { type: 'value', show: false },
       yAxis: { type: 'category', data: names, axisLabel: { fontSize: 10 } },
       series: [{
-        type: 'bar', data: values.map((v, i) => ({ value: v, itemStyle: { color: ['#f59e0b','#06b6d4','#8b5cf6','#ec4899','#10b981'][i % 5], borderRadius: [0, 4, 4, 0] } })),
+        type: 'bar', data: values.map((v, i) => ({ value: v, itemStyle: { color: ['#f59e0b','#06b6d4','#8b5cf6','#ec4899','#10b981'][i % 5] } })),
         barWidth: '60%',
-        label: { show: true, position: 'right', fontSize: 10, formatter: (p) => `${p.value}单` }
+        label: { show: true, position: 'right', fontSize: 10, formatter: (p) => `${p.value}单`, textBorderColor: 'transparent' }
       }]
     }
   }, [dashboard])

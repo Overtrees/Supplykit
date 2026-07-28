@@ -7,7 +7,7 @@ export default function Card({ title, value, sub, badge, borderRadius, valueColo
         {badge || null}
       </div>
       <div className="card-value" style={{color:valueColor || 'var(--text)'}}>{value}</div>
-      {sub ? <div className="card-sub" style={{color:'var(--muted)'}}>{sub}</div> : null}
+      {sub ? <div className="card-sub" style={{color:'var(--text)'}}>{sub}</div> : null}
     </div>
   )
 }

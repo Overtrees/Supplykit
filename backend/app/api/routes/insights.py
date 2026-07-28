@@ -456,6 +456,12 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
                 daily_raw[s][dt] = daily_raw[s].get(dt, 0) + q
         result = {}
         for sku, daily in daily_raw.items():
+            n = len(daily)
+            total = sum(daily.values())
+            base_avg = total / win
+            if n < 3:
+                result[sku] = round(base_avg, 1)
+                continue
             all_d = [(now - timedelta(days=i)).strftime('%Y-%m-%d') for i in range(win)]
             vals = [daily.get(d, 0) for d in all_d]
             mean = sum(vals) / win
@@ -466,7 +472,7 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
                 if abs(v-mean) <= th:
                     w = 1.5 if idx >= win-3 else 1.0
                     w_sum += v * w; w_total += w
-            result[sku] = round(w_sum/w_total, 1) if w_total > 0 else round(mean, 1)
+            result[sku] = round(w_sum/w_total, 1) if w_total > 0 else round(base_avg, 1)
         return result
     now = datetime.utcnow()
     sales_14 = purchase_calc(14)

@@ -251,12 +251,16 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                 parts.append("🔴 超15天免费期有仓储费")
             elif b_idle > 10:
                 parts.append("⚠️ 接近15天免费期")
-            # 2. 综合周转超90天
+            # 2. 综合周转超90天（有补货用补后综转，无补货用当前综转）
             tw90_val = int(cfg.get('turnover_warning_90', '90'))
-            if combined_turnover_current is not None and combined_turnover_current > tw90_val:
-                parts.append(f"🔴 当前综转{combined_turnover_current}天超{tw90_val}天")
-            elif combined_turnover_current is not None and combined_turnover_current > tw90_val - 15:
-                parts.append(f"⚠️ 当前综转{combined_turnover_current}天接近{tw90_val}天")
+            has_replen = (suggested > 0 or b_box_qty > 0)
+            turn_check = combined_turnover if has_replen and combined_turnover is not None else combined_turnover_current
+            if turn_check is not None and turn_check > tw90_val:
+                label = "补后综转" if has_replen else "当前综转"
+                parts.append(f"🔴 {label}{turn_check}天超{tw90_val}天")
+            elif turn_check is not None and turn_check > tw90_val - 15:
+                label = "补后综转" if has_replen else "当前综转"
+                parts.append(f"⚠️ {label}{turn_check}天接近{tw90_val}天")
             # 3. 趋势分析
             if sel_ds > 0:
                 parts.append(trend_text)

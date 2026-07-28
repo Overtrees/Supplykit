@@ -71,9 +71,9 @@ export default function DashboardPage({ onAlert }) {
 
     <div className="card-grid" style={{marginBottom:16}}>
       <Card title={periodLabel[periodTab]+' GMV'} value={'¥'+Number(periodMeta.gmv||0).toLocaleString()} sub={periodMeta.orders+' 单'} />
-      <div className="card" style={{padding:12,textAlign:'center',position:'relative'}}>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
-          <div className="small muted" style={{fontSize:11}}>库存健康度</div>
+      <div className="card" style={{padding:12,position:'relative'}}>
+        <div style={{ display:'flex', justifyContent:'space-between', gap:8, marginBottom:6 }}>
+          <div className="small muted" style={{fontSize:12}}>库存健康度</div>
           <div style={{display:'flex',gap:2,background:'var(--bg)',borderRadius:99,padding:2}}>
             <span onClick={()=>{localStorage.setItem('health_tab','own');setHealthTab('own')}} style={{fontSize:12,padding:'4px 14px',borderRadius:99,cursor:'pointer',background:healthTab==='own'?'var(--primary)':'transparent',color:healthTab==='own'?'#fff':'var(--muted)',fontWeight:healthTab==='own'?600:400}}>自有仓</span>
             <span onClick={()=>{localStorage.setItem('health_tab','platform');setHealthTab('platform')}} style={{fontSize:12,padding:'4px 14px',borderRadius:99,cursor:'pointer',background:healthTab==='platform'?'var(--primary)':'transparent',color:healthTab==='platform'?'#fff':'var(--muted)',fontWeight:healthTab==='platform'?600:400}}>平台仓</span>
@@ -83,12 +83,7 @@ export default function DashboardPage({ onAlert }) {
           const h = dashboard.health_index[healthTab]||{}
           return <>
             <div className="card-value" style={{color:h.level==='danger'?'#ef4444':h.level==='warning'?'#f59e0b':'var(--success)'}}>{h.score||0}分</div>
-            <div className="small muted" style={{marginTop:4}}>{h.healthy||0}健康 · {h.warning||0}偏低 · {h.out_of_stock||0}缺货</div>
-            <div style={{marginTop:4}}>
-              <span className={'pill '+(h.level==='danger'?'danger':h.level==='warning'?'warning':'success')} style={{fontSize:10}}>
-                {h.level==='danger'?'危险':h.level==='warning'?'关注':'良好'}
-              </span>
-            </div>
+            <div className="card-sub">{h.healthy||0}健康 · {h.warning||0}偏低 · {h.out_of_stock||0}缺货</div>
           </>
         })()}
       </div>

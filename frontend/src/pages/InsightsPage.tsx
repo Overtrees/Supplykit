@@ -3,6 +3,38 @@ import { api } from '../api/client'
 import { useToast } from '../components/Toast'
 import { IconTrendUp, IconTrendDown, IconTrendFlat, IconUndo } from '../components/Icons'
 
+// 备注中 emoji 转 SVG 图标
+const EMOJI_MAP = {
+  '🔴': <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{display:'inline',verticalAlign:'middle',marginRight:2}}><circle cx="7" cy="7" r="6" fill="#ef4444"/></svg>,
+  '⚠️': <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{display:'inline',verticalAlign:'middle',marginRight:2}}><path d="M7 1.5L1 12.5h12L7 1.5z" fill="#f59e0b"/><rect x="6.3" y="5.5" width="1.4" height="4" rx=".7" fill="#fff"/><circle cx="7" cy="11" r=".7" fill="#fff"/></svg>,
+  '⚪': <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{display:'inline',verticalAlign:'middle',marginRight:2}}><circle cx="7" cy="7" r="6" fill="#94a3b8"/></svg>,
+  '✅': <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{display:'inline',verticalAlign:'middle',marginRight:2}}><circle cx="7" cy="7" r="6" fill="#22c55e"/><path d="M4.5 7l2 2 3.5-3.5" stroke="#fff" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+}
+function renderNote(text) {
+  if (!text) return '-'
+  const parts = []
+  let i = 0
+  while (i < text.length) {
+    // 检测多字符 emoji（如 ⚠️ 是 2 个字符）
+    const c = text[i]
+    const c2 = c + (text[i+1] || '')
+    if (EMOJI_MAP[c2]) {
+      parts.push(<React.Fragment key={i}>{EMOJI_MAP[c2]}</React.Fragment>)
+      i += 2
+    } else if (EMOJI_MAP[c]) {
+      parts.push(<React.Fragment key={i}>{EMOJI_MAP[c]}</React.Fragment>)
+      i += 1
+    } else {
+      // 收集连续的非 emoji 文本
+      let j = i
+      while (j < text.length && !EMOJI_MAP[text[j]] && !EMOJI_MAP[text[j] + (text[j+1] || '')]) j++
+      parts.push(<React.Fragment key={i}>{text.slice(i, j)}</React.Fragment>)
+      i = j
+    }
+  }
+  return parts.length === 1 ? parts[0] : parts
+}
+
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
 
 const pillStyle = (cond, yes = 'danger', no = 'info') => ({
@@ -180,7 +212,7 @@ export default function InsightsPage() {
                           <td style={{fontSize:11,fontWeight:700,color:x.combined_turnover != null && x.combined_turnover > 90 ? '#ef4444' : x.combined_turnover != null && x.combined_turnover > 15 ? 'var(--warning)' : 'var(--text)'}}>{(x.suggested_qty > 0 || x.b_suggested > 0) && x.combined_turnover != null ? x.combined_turnover+'天' : '-'}</td></>
                         : <><td style={{color:'var(--success)',fontWeight:700}}>{x.suggested_qty > 0 ? x.suggested_qty : '-'}</td></>}
                       {replenMode!=='bbcc' && <td style={{fontWeight:600,color:x.suggested_qty > 0 && (x.after_turnover||0) > 15 ? '#ef4444' : 'var(--text)'}}>{x.suggested_qty > 0 ? x.after_turnover+'天' : '-'}</td>}
-                      <td className="col-name" style={{color:'var(--muted2)',fontSize:12}}>{x.note || '-'}</td>
+                      <td className="col-name" style={{color:'var(--muted2)',fontSize:12}}>{renderNote(x.note)}</td>
                       {replenMode==='bbcc' && <td><span onClick={()=>{
                         if ((x.suggested_qty > 0 || x.b_suggested > 0) && x.combined_turnover > 90 && !window.confirm(`补后综合周转${x.combined_turnover}天，已超90天考核红线，仍标记操作？`)) return
                         toggleOrdered(x.sku, x.store, x.product_name, x.suggested_qty || x.b_suggested)
@@ -262,7 +294,7 @@ export default function InsightsPage() {
                       <td style={{fontSize:12,fontWeight:600,whiteSpace:'nowrap'}}>{x.daily_sales}<span style={{fontSize:10,fontWeight:400,color:'var(--muted2)'}}> /{x.daily_sales_14||0}/{x.daily_sales_28||0}</span></td>
                       <td style={{fontWeight:700,color:x.actual_purchase > 0 ? 'var(--success)' : 'var(--muted2)'}}>{x.actual_purchase > 0 ? '+'+x.actual_purchase : (x.actual_purchase === 0 ? '0' : '-')}</td>
                       <td style={{fontWeight:600,color: x.actual_purchase > 0 ? (x.target_turnover > 0 && x.after_turnover > x.target_turnover ? '#ef4444' : 'var(--text)') : 'var(--muted2)'}}>{x.actual_purchase > 0 ? x.after_turnover+'天' : '-'}</td>
-                      <td className="col-name" style={{color:'var(--muted2)',fontSize:12}}>{x.note || '无需采购'}</td>
+                      <td className="col-name" style={{color:'var(--muted2)',fontSize:12}}>{renderNote(x.note) || '无需采购'}</td>
                       <td><span className={`pill ${timing==='建议'?'warning':'info'}`}>{timing}</span></td>
                     </tr>
                     )

@@ -38,6 +38,13 @@ export default function Chart({ option, height = 260 }) {
               label: s.label ? { ...s.label, color: textColor, textBorderColor: 'transparent', ...(s.label.color ? {color: s.label.color} : {}) } : s.label,
             }))
           } : {}),
+          // tooltip 深色模式适配
+          tooltip: {
+            ...option.tooltip,
+            backgroundColor: theme === 'dark' ? 'rgba(30,41,59,0.95)' : 'rgba(255,255,255,0.95)',
+            borderColor: theme === 'dark' ? '#334155' : '#e2e8f0',
+            textStyle: { color: textColor, ...(option.tooltip?.textStyle || {}) },
+          },
         }
         chart.setOption(opt)
         inst.current = chart

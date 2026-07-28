@@ -75,8 +75,8 @@ export default function DashboardPage({ onAlert }) {
         <div style={{ display:'flex', justifyContent:'space-between', gap:8, marginBottom:6 }}>
           <div className="small muted" style={{fontSize:12}}>库存健康度</div>
           <div style={{display:'flex',gap:2,background:'var(--bg)',borderRadius:99,padding:2}}>
-            <span onClick={()=>{localStorage.setItem('health_tab','own');setHealthTab('own')}} style={{fontSize:12,padding:'4px 14px',borderRadius:99,cursor:'pointer',background:healthTab==='own'?'var(--primary)':'transparent',color:healthTab==='own'?'#fff':'var(--muted)',fontWeight:healthTab==='own'?600:400}}>自有仓</span>
-            <span onClick={()=>{localStorage.setItem('health_tab','platform');setHealthTab('platform')}} style={{fontSize:12,padding:'4px 14px',borderRadius:99,cursor:'pointer',background:healthTab==='platform'?'var(--primary)':'transparent',color:healthTab==='platform'?'#fff':'var(--muted)',fontWeight:healthTab==='platform'?600:400}}>平台仓</span>
+            <span onClick={()=>{localStorage.setItem('health_tab','own');setHealthTab('own')}} style={{fontSize:12,padding:'3px 10px',borderRadius:99,cursor:'pointer',background:healthTab==='own'?'var(--primary)':'transparent',color:healthTab==='own'?'#fff':'var(--muted)',fontWeight:healthTab==='own'?600:400}}>自有仓</span>
+            <span onClick={()=>{localStorage.setItem('health_tab','platform');setHealthTab('platform')}} style={{fontSize:12,padding:'3px 10px',borderRadius:99,cursor:'pointer',background:healthTab==='platform'?'var(--primary)':'transparent',color:healthTab==='platform'?'#fff':'var(--muted)',fontWeight:healthTab==='platform'?600:400}}>平台仓</span>
           </div>
         </div>
         {dashboard?.health_index && (()=>{

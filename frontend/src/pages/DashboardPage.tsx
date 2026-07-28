@@ -71,7 +71,7 @@ export default function DashboardPage({ onAlert }) {
 
     <div className="card-grid" style={{marginBottom:16}}>
       <Card title={periodLabel[periodTab]+' GMV'} value={'¥'+Number(periodMeta.gmv||0).toLocaleString()} sub={periodMeta.orders+' 单'} borderRadius={26} />
-      <div className="card" style={{position:'relative',borderRadius:32}}>
+      <div className="card" style={{position:'relative',borderRadius:32,containerType:'inline-size'}}>
         {(()=>{
           const h = dashboard?.health_index?.[healthTab]||{}
           return <>

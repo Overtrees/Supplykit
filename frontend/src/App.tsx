@@ -47,8 +47,11 @@ export default function App() {
   const closeSidebar = withTransition(() => setSidebarOpen(false))
   const navAndClose = withTransition((id, sku) => {
     setSidebarOpen(false)
-    if (sku) setHighlightSku(sku)
-    setPage(id)
+    // 先关闭侧边栏同步背景，再切换页面避免底部色块
+    requestAnimationFrame(() => {
+      if (sku) setHighlightSku(sku)
+      setPage(id)
+    })
   })
 
   useKeyboard({

@@ -6,7 +6,7 @@ export default function Sidebar({ page, onClose, onNavigate, lowStock, errCount,
   return (
     <div style={{ display:'flex', flexDirection:'column', flex:1, color:'var(--text)' }}>
       {/* 头部 */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'16px 20px', flexShrink:0 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'16px 20px 16px 15px', flexShrink:0 }}>
         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
           <span style={{ color:'var(--text)', fontWeight:700, fontSize:17 }}>媒介</span>
         </div>
@@ -17,14 +17,14 @@ export default function Sidebar({ page, onClose, onNavigate, lowStock, errCount,
       </div>
 
       {/* 导航项 */}
-      <nav style={{ flex:1, padding:'8px 12px', overflow:'auto' }}>
+      <nav style={{ flex:1, padding:'8px 12px 8px 0', overflow:'auto' }}>
         {NAV.map(item => {
           const active = page === item.id
           const IconComp = NAV_ICONS[item.id]
           return (
             <div key={item.id} onClick={() => onNavigate(item.id)} style={{
               display:'flex', alignItems:'center', gap:12,
-              padding:'13px 16px', borderRadius:32, marginBottom:4,
+              padding:'13px 16px 13px 15px', borderRadius:32, marginBottom:4,
               background: active ? 'var(--sidebar-active-bg)' : 'transparent',
               color: active ? 'var(--sidebar-active-text)' : 'var(--muted)',
               cursor:'pointer', fontWeight: active ? 600 : 400, fontSize:15,

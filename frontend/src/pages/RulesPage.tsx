@@ -136,28 +136,31 @@ export default function RulesPage() {
         {/* 告警内容 */}
         <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:32,padding:14}}>
           <div style={{fontWeight:600,fontSize:13,marginBottom:10,display:'flex',alignItems:'center',gap:4}}><IconAlert size={14} /> 告警内容</div>
-          <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
+          <div style={{display:'flex',gap:12,flexWrap:'wrap',marginBottom:8}}>
             <label style={{flex:1,minWidth:180,fontSize:12}}>
               告警标题
-              <div style={{display:'flex',gap:4,marginBottom:4,flexWrap:'wrap'}}>
+              <div style={{marginTop:4,padding:'6px 10px',background:'var(--bg)',borderRadius:32,fontSize:12,minHeight:28,display:'flex',alignItems:'center',flexWrap:'wrap',gap:2}}>
+                {renderTmpl(f.alert_title) || <span className="muted" style={{fontSize:11}}>点击下方按钮插入变量</span>}
+              </div>
+              <input value={f.alert_title} onChange={e=>setF({...f,alert_title:e.target.value})} style={{...IS,fontSize:13,marginTop:4}} placeholder='输入文字...'/>
+              <div style={{display:'flex',gap:4,marginTop:4,flexWrap:'wrap'}}>
                 {[{v:'{product_name}',l:'+商品名'},{v:'{sku}',l:'+SKU'}].map(t=>
                   <span key={t.v} onClick={()=>setF({...f,alert_title:f.alert_title+t.v})} style={{padding:'2px 8px',borderRadius:99,fontSize:10,background:'rgba(29,78,216,0.1)',color:'var(--primary)',cursor:'pointer',border:'1px solid rgba(29,78,216,0.2)'}}>{t.l}</span>
                 )}
               </div>
-              <input value={f.alert_title} onChange={e=>setF({...f,alert_title:e.target.value})} style={IS} placeholder='低库存预警: 商品名'/>
             </label>
             <label style={{flex:1,minWidth:180,fontSize:12}}>
               告警描述
-              <div style={{display:'flex',gap:4,marginBottom:4,flexWrap:'wrap'}}>
+              <div style={{marginTop:4,padding:'6px 10px',background:'var(--bg)',borderRadius:32,fontSize:12,minHeight:28,display:'flex',alignItems:'center',flexWrap:'wrap',gap:2}}>
+                {renderTmpl(f.alert_desc) || <span className="muted" style={{fontSize:11}}>点击下方按钮插入变量</span>}
+              </div>
+              <input value={f.alert_desc} onChange={e=>setF({...f,alert_desc:e.target.value})} style={{...IS,fontSize:13,marginTop:4}} placeholder='输入文字...'/>
+              <div style={{display:'flex',gap:4,marginTop:4,flexWrap:'wrap'}}>
                 {[{v:'{avail}',l:'+可用量'},{v:'{safety}',l:'+安全线'},{v:'{sku}',l:'+SKU'}].map(t=>
                   <span key={t.v} onClick={()=>setF({...f,alert_desc:f.alert_desc+t.v})} style={{padding:'2px 8px',borderRadius:99,fontSize:10,background:'rgba(29,78,216,0.1)',color:'var(--primary)',cursor:'pointer',border:'1px solid rgba(29,78,216,0.2)'}}>{t.l}</span>
                 )}
               </div>
-              <input value={f.alert_desc} onChange={e=>setF({...f,alert_desc:e.target.value})} style={IS} placeholder='可用量 低于 安全线'/>
             </label>
-          </div>
-          <div style={{marginTop:6,padding:'6px 10px',background:'var(--bg)',borderRadius:32,fontSize:12,color:'var(--muted)'}}>
-            ⓘ 示例：{renderTmpl(f.alert_title || '低库存预警: 商品名')} · {renderTmpl(f.alert_desc || '可用量 低于 安全线')}
           </div>
         </div>
 

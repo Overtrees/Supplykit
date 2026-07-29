@@ -157,7 +157,7 @@ export default function InsightsPage() {
               补货建议{replen.length > 0 && <span className="small muted" style={{ marginLeft: 8 }}></span>}
               <span style={{marginLeft:12,display:'inline-flex',flexWrap:'wrap',gap:4}}>
                 <span onClick={()=>switchMode('bbcc')} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',background:replenMode==='bbcc'?'var(--primary)':'transparent',color:replenMode==='bbcc'?'#fff':''}}>BBCC</span>
-                <span onClick={()=>switchMode('traditional')} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',background:replenMode==='traditional'?'var(--primary)':'transparent',color:replenMode==='traditional'?'#fff':''}}>传统</span>
+                <span onClick={()=>switchMode('traditional')} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',background:replenMode==='traditional'?'var(--primary)':'transparent',color:replenMode==='traditional'?'#fff':''}}>传统多仓</span>
                 <button onClick={async()=>{
                   try {
                     const r = await fetch(API+'/api/insights/export-purchase?days=28&mode='+replenMode)

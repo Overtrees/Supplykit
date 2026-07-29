@@ -37,7 +37,10 @@ instance.interceptors.response.use(
         err.status = response.status
         return Promise.reject(err)
       }
-      response.data = response.data.data  // 解包 data 字段给上层
+      // 有 data 字段才解包，否则保留原始响应（如清洗接口的 {ok,success,failed}）
+      if ('data' in response.data) {
+        response.data = response.data.data
+      }
     }
 
     return response

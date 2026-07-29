@@ -256,12 +256,14 @@ export default function CleansingPage() {
         </div>
         {(() => {
           if (!pv.preview?.length) return null
+          // 只显示有映射的字段（排除 _source）
           const keys = Object.keys(pv.preview[0]).filter(k => k !== '_source').filter(k => {
             for (const cfg of Object.values(mp)) {
-              if (cfg && cfg.target === k) return true
+              if (cfg && cfg.target && cfg.target === k) return true
             }
             return false
           })
+          if (keys.length === 0) return <div className="small muted" style={{padding:20,textAlign:'center'}}>没有已映射的字段，请返回并设置字段映射</div>
           return <div style={{marginBottom:12}}>
             <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>← 左右滑动查看所有已映射字段 →</div>
             <div style={{overflowX:"auto"}}>
@@ -274,7 +276,7 @@ export default function CleansingPage() {
           </div>
         })()}
         <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
-          {btn('← 返回', ()=>setS(1), 'ghost')}
+          {btn('← 返回', ()=>{setS(1);setPv(null)}, 'ghost')}
           {btn('确认写入 ('+pv.total+' 条)', doExecute, 'success')}
         </div>
       </div>}

@@ -13,6 +13,24 @@ const EMOJI_MAP = {
   '📉': <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{display:'inline',verticalAlign:'middle',marginRight:1}}><path d="M2 4l3.5 4 3-2.5L12 11" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M8.5 11H12V7.5" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>,
   '➡️': <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{display:'inline',verticalAlign:'middle',marginRight:1}}><path d="M1 7h12M9 3.5L12.5 7 9 10.5" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>,
 }
+// ── 列配置 ──────────────────────────────────────────────────────────────
+const BBCC_COLS = [
+  {id:'seq',label:''},{id:'sku',label:'SKU'},{id:'name',label:'商品'},{id:'warehouse',label:'仓库'},
+  {id:'b_stock',label:'B仓可用库存'},{id:'b_turn',label:'B仓周转'},{id:'c_stock',label:'C仓总和可用'},
+  {id:'transit',label:'B-C调拨在途'},{id:'sales',label:'C仓日销'},{id:'c_turn',label:'C仓周转'},
+  {id:'transit_turn',label:'B→C调拨周转'},{id:'suggest',label:'C仓建议补'},{id:'b_suggest',label:'B仓需补'},
+  {id:'cur_turn',label:'当前综转'},{id:'after_turn',label:'补后综转'},{id:'note',label:'备注'},{id:'action',label:'标记操作'},
+]
+const TRAD_COLS = [
+  {id:'seq',label:''},{id:'sku',label:'SKU'},{id:'name',label:'商品'},{id:'store',label:'仓库'},
+  {id:'avail',label:'现有'},{id:'transit',label:'在途'},{id:'sales',label:'日销'},
+  {id:'safety',label:'安全线'},{id:'turn',label:'在库周转'},{id:'after_turn',label:'补后周转'},
+  {id:'suggest',label:'建议补'},{id:'note',label:'备注'},
+]
+const colKey = m => 'c_cols_' + m
+function getVis(m) {try{return JSON.parse(localStorage.getItem(colKey(m))||'null')}catch{return null}}
+function defVis(cols){return cols.map(c=>c.id).filter((_,i)=>[0,1,2,3,4,8,11,12,15].includes(i))} // 默认9列
+
 function renderNote(text) {
   if (!text) return '-'
   const parts = []
@@ -64,8 +82,11 @@ export default function InsightsPage() {
   const [slowLoading, setSlowLoading] = useState(true)
 
   const [replenMode, setReplenMode] = useState(() => localStorage.getItem('c_replen_mode') || 'bbcc')
+  const currentCols = replenMode === 'bbcc' ? BBCC_COLS : TRAD_COLS
+  const [visCols, setVisCols] = useState(() => getVis(replenMode) || defVis(currentCols))
+  const [showColPicker, setShowColPicker] = useState(false)
 
-  const switchMode = (m) => { setReplenMode(m); localStorage.setItem('c_replen_mode', m); loadReplen(m) }
+  const switchMode = (m) => { setReplenMode(m); localStorage.setItem('c_replen_mode', m); const cols = m === 'bbcc' ? BBCC_COLS : TRAD_COLS; setVisCols(getVis(m) || defVis(cols)); loadReplen(m) }
   const loadReplen = async (mode) => {
     setReplenLoading(true)
     try { const r = await api.get('/api/insights/replenishment?days=28&mode=' + (mode||replenMode)); setReplen(r.data || [])
@@ -170,6 +191,23 @@ export default function InsightsPage() {
                   } catch(e) { toast.error('导出失败: '+e.message) }
                 }}
                   className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px'}}>导出</button>
+                <div style={{position:'relative',display:'inline-block'}}>
+                  <span onClick={()=>setShowColPicker(!showColPicker)} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',cursor:'pointer'}}>列 {visCols.length}/{currentCols.length}</span>
+                  {showColPicker && <div style={{position:'absolute',top:'100%',right:0,zIndex:10,background:'var(--card)',border:'1px solid var(--border)',borderRadius:16,padding:8,minWidth:160,boxShadow:'0 4px 12px rgba(0,0,0,0.15)'}}>
+                    <div style={{fontSize:11,fontWeight:600,marginBottom:4,color:'var(--muted)'}}>显示列</div>
+                    {currentCols.map(col => <label key={col.id} style={{display:'flex',alignItems:'center',gap:6,padding:'3px 4',fontSize:12,cursor:'pointer',whiteSpace:'nowrap'}}>
+                      <input type="checkbox" checked={visCols.includes(col.id)} onChange={e=>{
+                        const next = e.target.checked ? [...visCols, col.id] : visCols.filter(c=>c!==col.id)
+                        setVisCols(next); localStorage.setItem(colKey(replenMode), JSON.stringify(next))
+                      }} style={{accentColor:'var(--primary)'}} />
+                      {col.label || '(序号)'}
+                    </label>)}
+                    <div style={{borderTop:'1px solid var(--border)',marginTop:4,paddingTop:4,display:'flex',gap:6}}>
+                      <span onClick={()=>{const d=defVis(currentCols);setVisCols(d);localStorage.setItem(colKey(replenMode),JSON.stringify(d));setShowColPicker(false)}} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>默认</span>
+                      <span onClick={()=>{const a=currentCols.map(c=>c.id);setVisCols(a);localStorage.setItem(colKey(replenMode),JSON.stringify(a));setShowColPicker(false)}} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>全部</span>
+                    </div>
+                  </div>}
+                </div>
               </span>
             </span>
           </div>
@@ -182,8 +220,9 @@ export default function InsightsPage() {
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>库存健康，暂无补货建议</div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
-              <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 {replenMode==='bbcc'?14:12} 列 · 左右滑动查看</div>
+              <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {visCols.length}/{currentCols.length} 列 · 点击"列"按钮切换</div>
               <table>
+                <colgroup>{currentCols.map(col => <col key={col.id} style={visCols.includes(col.id)?{}:{display:'none'}} />)}</colgroup>
                 <thead><tr>{['','SKU','商品','仓库',...(replenMode==='bbcc'?['B仓可用库存','B仓周转','全国C仓总和可用库存',`B-C仓调拨在途`, `全国C仓日销(融合/7/14/28)`]:['现有','在途',`日销(融合/7/14/28)`]),...(replenMode==='bbcc'?['全国C仓总和周转','B→C 调拨在途总和周转']:['安全线','在库周转','补后周转']),...(replenMode==='bbcc'?['C仓建议补','B仓需补','当前综转','补后综转']:['建议补']),'备注',...(replenMode==='bbcc'?['标记操作（用于B仓入库批次统计）']:[])].map(h => <th key={h} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{h}</th>)}</tr></thead>
                 <tbody>
                   {replen.filter(x => !orderedKeys.includes(x.sku+'|'+x.store)).map((x, i) => (

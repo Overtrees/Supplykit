@@ -168,17 +168,27 @@ const pc=j=>{try{const c=JSON.parse(j);const rt=c.rightType||(LF.find(x=>x.v===c
 
       {rules.map(rule => {
         const condInfo = pc(rule.condition_json||'{}')
-        return <div key={rule.id} style={{padding:'10px 14px',border:'1px solid var(--border)',borderRadius:32,marginBottom:6,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:14}}>{rule.name}</div>
-          <div style={{fontSize:12,color:'var(--muted2)',marginTop:2,display:'flex',flexWrap:'wrap',gap:4,alignItems:'center'}}>
-            <span className={'pill '+(rule.is_active?'success':'warning')}>{rule.is_active?'启用':'停用'}</span>
-            <span className={'pill '+sevCls(rule.severity)}>{sevLbl(rule.severity)}</span>
-            <span className='small muted' style={{marginLeft:2}}>{rule.event}</span>
-            <span style={{fontSize:11,color:'var(--muted)'}}>· 当 {fieldLbl(condInfo.left)} {opLbl(condInfo.op)} {condInfo.rightType==='field'?fieldLbl(condInfo.right):condInfo.right}{condInfo.and ? <> 且 {fieldLbl(condInfo.and.left)} {opLbl(condInfo.and.op)} {condInfo.and.rightType==='field'?fieldLbl(condInfo.and.right):condInfo.and.right}</> : ''}</span>
-          </div></div>
-        <div style={{display:'flex',gap:6}}>
+        const condText = `当 ${fieldLbl(condInfo.left)} ${opLbl(condInfo.op)} ${condInfo.rightType==='field'?fieldLbl(condInfo.right):condInfo.right}${condInfo.and ? ` 且 ${fieldLbl(condInfo.and.left)} ${opLbl(condInfo.and.op)} ${condInfo.and.rightType==='field'?fieldLbl(condInfo.and.right):condInfo.and.right}` : ''}`
+        return <div key={rule.id} style={{padding:'10px 14px',border:'1px solid var(--border)',borderRadius:32,marginBottom:6}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontWeight:600,fontSize:14,display:'flex',alignItems:'center',gap:6}}>
+            {rule.name}
+            <span className={'pill '+(rule.is_active?'success':'warning')} style={{fontSize:9,padding:'1px 6px',minHeight:'auto',lineHeight:'16px'}}>{rule.is_active?'启用':'停用'}</span>
+            <span className={'pill '+sevCls(rule.severity)} style={{fontSize:9,padding:'1px 6px',minHeight:'auto',lineHeight:'16px'}}>{sevLbl(rule.severity)}</span>
+          </div>
+          <div style={{fontSize:12,color:'var(--muted2)',marginTop:4,display:'flex',flexWrap:'wrap',gap:4,alignItems:'center'}}>
+            <span className='small muted'>{EVENTS.find(e=>e.value===rule.event)?.label||rule.event}</span>
+          </div>
+          <div style={{marginTop:4,padding:'6px 10px',background:'var(--bg)',borderRadius:32,fontSize:12,color:'var(--primary)',display:'inline-block'}}>
+            <IconScale size={12} style={{display:'inline',verticalAlign:'middle',marginRight:2}} /> {condText}
+          </div>
+          <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>{rule.alert_title}{rule.alert_desc ? ' · '+rule.alert_desc : ''}</div>
+        </div>
+        <div style={{display:'flex',gap:6,flexShrink:0}}>
           <button onClick={()=>{const c=pc(rule.condition_json||'{}');setEditing(rule);setF({name:rule.name,event:rule.event,alert_type:rule.alert_type||'',alert_title:rule.alert_title||'',alert_desc:rule.alert_desc||'',severity:rule.severity||'warning',condition_json:rule.condition_json||'{}'});setCond(c);setCond2(c.and||null)}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 10px',minHeight:0}}>编辑</button>
           <button onClick={()=>del(rule.id)} className="btn btn-danger" style={{fontSize:12,padding:'4px 10px',minHeight:0}}>删除</button>
+        </div>
         </div>
       </div>})}
       {rules.length===0&&<div className='small muted' style={{textAlign:'center',padding:40}}>暂无规则</div>}

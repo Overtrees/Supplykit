@@ -140,29 +140,28 @@ export default function RulesPage() {
             <label style={{flex:1,minWidth:180,fontSize:12}}>
               告警标题
               <div style={{marginTop:4,padding:'8px 12px',background:'var(--bg)',borderRadius:32,fontSize:14,minHeight:36,border:'1px solid var(--border)',display:'flex',alignItems:'center',flexWrap:'wrap',gap:3}}>
-                {renderTmpl(f.alert_title) || <span className="muted" style={{fontSize:12}}>点击下方按钮插入变量</span>}
+                {renderTmpl(f.alert_title) || <span className="muted" style={{fontSize:12}}>输入文字或点击下方按钮插入变量</span>}
               </div>
-              <div style={{display:'flex',gap:4,marginTop:6,flexWrap:'wrap'}}>
-                {[{v:'{product_name}',l:'+商品名'},{v:'{sku}',l:'+SKU'}].map(t=>
-                  <span key={t.v} onClick={()=>setF({...f,alert_title:f.alert_title+t.v})} style={{padding:'2px 10px',borderRadius:99,fontSize:11,background:'rgba(29,78,216,0.1)',color:'var(--primary)',cursor:'pointer',border:'1px solid rgba(29,78,216,0.2)',display:'inline-flex',alignItems:'center',gap:2}}>➕{t.l.replace('+','')}</span>
+              <input value={f.alert_title} onChange={e=>setF({...f,alert_title:e.target.value})} style={{...IS,fontSize:13,marginTop:4}} placeholder='输入文字，点击下方按钮插入变量'/>
+              <div style={{display:'flex',gap:4,marginTop:4,flexWrap:'wrap'}}>
+                {[{v:'{product_name}',l:'商品名'},{v:'{sku}',l:'SKU'}].map(t=>
+                  <span key={t.v} onClick={()=>setF({...f,alert_title:f.alert_title+t.v})} style={{padding:'2px 10px',borderRadius:99,fontSize:11,background:'rgba(29,78,216,0.1)',color:'var(--primary)',cursor:'pointer',border:'1px solid rgba(29,78,216,0.2)',display:'inline-flex',alignItems:'center',gap:2}}>➕{t.l}</span>
                 )}
-                <span onClick={()=>setF({...f,alert_title:''})} style={{padding:'2px 10px',borderRadius:99,fontSize:11,color:'var(--danger)',cursor:'pointer',border:'1px dashed var(--border)'}}>清空</span>
               </div>
             </label>
             <label style={{flex:1,minWidth:180,fontSize:12}}>
               告警描述
               <div style={{marginTop:4,padding:'8px 12px',background:'var(--bg)',borderRadius:32,fontSize:14,minHeight:36,border:'1px solid var(--border)',display:'flex',alignItems:'center',flexWrap:'wrap',gap:3}}>
-                {renderTmpl(f.alert_desc) || <span className="muted" style={{fontSize:12}}>点击下方按钮插入变量</span>}
+                {renderTmpl(f.alert_desc) || <span className="muted" style={{fontSize:12}}>输入文字或点击下方按钮插入变量</span>}
               </div>
-              <div style={{display:'flex',gap:4,marginTop:6,flexWrap:'wrap'}}>
+              <input value={f.alert_desc} onChange={e=>setF({...f,alert_desc:e.target.value})} style={{...IS,fontSize:13,marginTop:4}} placeholder='输入文字，点击下方按钮插入变量'/>
+              <div style={{display:'flex',gap:4,marginTop:4,flexWrap:'wrap'}}>
                 {[{v:'{avail}',l:'可用量'},{v:'{safety}',l:'安全线'},{v:'{sku}',l:'SKU'}].map(t=>
                   <span key={t.v} onClick={()=>setF({...f,alert_desc:f.alert_desc+t.v})} style={{padding:'2px 10px',borderRadius:99,fontSize:11,background:'rgba(29,78,216,0.1)',color:'var(--primary)',cursor:'pointer',border:'1px solid rgba(29,78,216,0.2)',display:'inline-flex',alignItems:'center',gap:2}}>➕{t.l}</span>
                 )}
-                <span onClick={()=>setF({...f,alert_desc:''})} style={{padding:'2px 10px',borderRadius:99,fontSize:11,color:'var(--danger)',cursor:'pointer',border:'1px dashed var(--border)'}}>清空</span>
               </div>
             </label>
           </div>
-          <div className="small muted" style={{fontSize:10,marginTop:-4,textAlign:'center',color:'var(--muted2)'}}>点击 ➕ 按钮插入变量，实际告警时会自动替换为真实数据</div>
         </div>
 
         <div style={{marginTop:12,display:'flex',gap:8}}>

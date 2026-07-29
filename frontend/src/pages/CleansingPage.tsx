@@ -203,10 +203,10 @@ export default function CleansingPage() {
       <div style={{display:'flex',gap:8,marginBottom:12,alignItems:'center',flexWrap:'wrap'}}>
         <select id="tmplSelect" style={{flex:1,fontSize:16,padding:'6px 8px',border:'1px solid var(--border)',borderRadius:32,minWidth:140}}>
           <option value="">加载映射模板...</option>
-          {Array.isArray(templates) && templates.filter(t => t.doc_type === tt).map(t => <option key={t.id} value={JSON.stringify(t.mapping)}>{t.name}</option>)}
+          {Array.isArray(templates) && templates.filter(t => t.doc_type === tt).map(t => <option key={t.id} value={t.mapping}>{t.name}</option>)}
           {Array.isArray(templates) && templates.filter(t => t.doc_type !== tt).length > 0 && <option disabled style={{color:'var(--muted2)',fontSize:11}}>── {tt==='order'?'库存':'订单'}模板（{templates.filter(t=>t.doc_type!==tt).length}个） ──</option>}
         </select>
-        <button onClick={()=>{const s=document.getElementById('tmplSelect');if(s.value)try{setMp(JSON.parse(s.value))}catch(e){}}} style={{padding:'6px 14px',fontSize:12,border:'1px solid var(--border)',borderRadius:32,background:'var(--card)',cursor:'pointer'}}>应用</button>
+        <button onClick={()=>{const s=document.getElementById('tmplSelect');if(s.value)try{const m=typeof s.value==='string'&&s.value.startsWith('{')?JSON.parse(s.value):s.value;setMp(m&&typeof m==='object'?m:{})}catch(e){console.error(e)}}} style={{padding:'6px 14px',fontSize:12,border:'1px solid var(--border)',borderRadius:32,background:'var(--card)',cursor:'pointer'}}>应用</button>
         <input id="tmplName" placeholder="新模板名称" style={{width:120,fontSize:16,padding:'6px 8px',border:'1px solid var(--border)',borderRadius:32,outline:'none'}}/>
         <button onClick={async()=>{
           const n=document.getElementById('tmplName').value;if(!n)return toast.error('请输入模板名称');

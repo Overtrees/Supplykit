@@ -128,8 +128,9 @@ export default function InsightsPage() {
 
   // 设置到B仓日期
   const setArrivalDate = async (item, date) => {
-    try { await api.put('/api/purchase-orders/' + item.id, {arrival_date: date}) } catch(e) {}
-    await loadOrdered()
+    // 乐观更新
+    setOrderedItems(prev => prev.map(x => x.id === item.id ? {...x, arrival_date: date} : x))
+    api.put('/api/purchase-orders/' + item.id, {arrival_date: date}).catch(() => loadOrdered())
   }
 
   const todayStr = new Date().toISOString().slice(0, 10)

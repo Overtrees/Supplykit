@@ -112,14 +112,18 @@ export default function InsightsPage() {
 
   const toggleOrdered = async (sku, store, product_name, suggested_qty) => {
     const key = sku + '|' + store
-    if (orderedKeys.includes(key)) {
-      try { await api.delete('/api/purchase-orders?sku=' + encodeURIComponent(sku) + '&store=' + encodeURIComponent(store)) } catch(e) {}
+    const isOrdered = orderedKeys.includes(key)
+    // 乐观更新：立即更新本地状态，不等 API 返回
+    if (isOrdered) {
+      setOrderedKeys(prev => prev.filter(k => k !== key))
+      setOrderedItems(prev => prev.filter(x => x.sku !== sku || x.store !== store))
+      api.delete('/api/purchase-orders?sku=' + encodeURIComponent(sku) + '&store=' + encodeURIComponent(store)).catch(() => loadOrdered())
     } else {
-      try {
-        await api.post('/api/purchase-orders?sku=' + encodeURIComponent(sku) + '&store=' + encodeURIComponent(store) + '&product_name=' + encodeURIComponent(product_name || '') + '&suggested_qty=' + (suggested_qty || 0))
-      } catch(e) {}
+      const newItem = {sku, store, product_name: product_name || '', suggested_qty: suggested_qty || 0, arrival_date: ''}
+      setOrderedKeys(prev => [...prev, key])
+      setOrderedItems(prev => [...prev, newItem])
+      api.post('/api/purchase-orders?sku=' + encodeURIComponent(sku) + '&store=' + encodeURIComponent(store) + '&product_name=' + encodeURIComponent(product_name || '') + '&suggested_qty=' + (suggested_qty || 0)).catch(() => loadOrdered())
     }
-    await loadOrdered()
   }
 
   // 设置到B仓日期

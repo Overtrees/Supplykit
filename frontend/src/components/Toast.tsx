@@ -10,10 +10,11 @@ export function ToastProvider({children}) {
     {children}
     <div style={{position:'fixed',top:16,right:16,zIndex:9999,display:'flex',flexDirection:'column',gap:8}}>
       {toasts.map(t => <div key={t.id} style={{padding:'12px 20px',borderRadius:32,
-        background:t.type==='error'?'rgba(225,29,72,0.1)':'rgba(5,150,105,0.1)',
+        background:t.type==='error'?'rgba(225,29,72,0.12)':'rgba(5,150,105,0.12)',
         border:'1px solid '+(t.type==='error'?'rgba(225,29,72,0.25)':'rgba(5,150,105,0.25)'),
         color:t.type==='error'?'var(--danger)':'var(--success)',
-        fontSize:14,fontWeight:500,boxShadow:'0 2px 8px rgba(0,0,0,0.1)',maxWidth:360}}>{t.title}</div>)}
+        fontSize:14,fontWeight:500,boxShadow:'0 2px 8px rgba(0,0,0,0.1)',maxWidth:360,
+        backdropFilter:'blur(var(--glass-blur))',WebkitBackdropFilter:'blur(var(--glass-blur))'}}>{t.title}</div>)}
     </div>
   </ToastContext.Provider>
 }

@@ -65,7 +65,7 @@ if bak:
 register_core_handlers()
 start_scheduler()
 
-app = FastAPI(title="Supplykit")
+app = FastAPI(title="Supplykit", openapi_url="/api/docs.json", docs_url="/api/docs")
 origins = [x.strip() for x in os.getenv("CORS_ORIGINS", "*").split(",") if x.strip()]
 app.add_middleware(
     CORSMiddleware,

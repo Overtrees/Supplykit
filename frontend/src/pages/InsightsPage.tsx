@@ -216,20 +216,26 @@ export default function InsightsPage() {
               <Skeleton height={14} width="30%" style={{ marginBottom: 8 }} />
               {[1,2,3,4,5].map(i => <Skeleton key={i} height={36} style={{ marginBottom: 4 }} />)}
             </div>
-          ) : (replen.filter(x => !orderedKeys.includes(x.sku+'|'+x.store)).length === 0 ? (
+          ) : replen.length === 0 ? (
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>库存健康，暂无补货建议</div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
-              <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {visCols.length}/{currentCols.length} 列 · 点击"列"按钮切换</div>
+              <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4,display:'flex',gap:8,alignItems:'center'}}>
+                <span>显示 {visCols.length}/{currentCols.length} 列 · 点击"列"按钮切换</span>
+                {orderedKeys.length > 0 && <span className="pill success" style={{fontSize:10}}>已下单 {orderedKeys.length} 项</span>}
+              </div>
               <table>
                 <colgroup>{currentCols.map(col => <col key={col.id} style={visCols.includes(col.id)?{}:{display:'none'}} />)}</colgroup>
-                <thead><tr>{['','SKU','商品','仓库',...(replenMode==='bbcc'?['B仓可用库存','B仓周转','全国C仓总和可用库存',`B-C仓调拨在途`, `全国C仓日销(融合/7/14/28)`]:['现有','在途',`日销(融合/7/14/28)`]),...(replenMode==='bbcc'?['全国C仓总和周转','B→C 调拨在途总和周转']:['安全线','在库周转','补后周转']),...(replenMode==='bbcc'?['C仓建议补','B仓需补','当前综转','补后综转']:['建议补']),'备注',...(replenMode==='bbcc'?['标记操作（用于B仓入库批次统计）']:[])].map(h => <th key={h} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{h}</th>)}</tr></thead>
+                <thead><tr>{['','SKU','商品','仓库',...(replenMode==='bbcc'?['B仓可用库存','B仓周转','全国C仓总和可用库存',`B-C仓调拨在途`, `全国C仓日销(融合/7/14/28)`]:['现有','在途',`日销(融合/7/14/28)`]),...(replenMode==='bbcc'?['全国C仓总和周转','B→C 调拨在途总和周转']:['安全线','在库周转','补后周转']),...(replenMode==='bbcc'?['C仓建议补','B仓需补','当前综转','补后综转']:['建议补']),'备注',...(replenMode==='bbcc'?['标记操作']:[])].map(h => <th key={h} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{h}</th>)}</tr></thead>
                 <tbody>
-                  {replen.filter(x => !orderedKeys.includes(x.sku+'|'+x.store)).map((x, i) => (
-                    <tr key={i}>
+                  {replen.map((x, i) => {
+                    const isOrdered = orderedKeys.includes(x.sku+'|'+x.store)
+                    const rowStyle = isOrdered ? {opacity:0.55,background:'var(--bg)'} : {}
+                    return (
+                    <tr key={i} style={rowStyle}>
                       <td style={{fontSize:11,color:'var(--muted2)'}}>{i+1}</td>
-                      <td className="mono" style={{ fontSize: 12 }}>{x.sku}</td>
-                      <td>{x.product_name}</td><td className="col-store">{replenMode==='bbcc' ? 'B仓' : (x.warehouse || x.store || '-')}</td>
+                      <td className="mono" style={{fontSize:12,textDecoration:isOrdered?'line-through':'none'}}>{x.sku}</td>
+                      <td style={{textDecoration:isOrdered?'line-through':'none'}}>{x.product_name}</td><td className="col-store">{replenMode==='bbcc' ? 'B仓' : (x.warehouse || x.store || '-')}</td>
                       {replenMode==='bbcc' ?<>
                       <td style={{color:'var(--primary)',fontWeight:600}}>{x.b_stock ?? '-'}</td>
                       <td style={{fontSize:11,fontWeight:600,color:x.b_stock > 0 && (x.daily_sales > 0 ? (x.b_stock/x.daily_sales) : Infinity) > 15 ? '#ef4444' : x.b_stock > 0 && x.daily_sales > 0 && (x.b_stock/x.daily_sales) > 10 ? 'var(--warning)' : 'var(--text)'}}>{x.b_stock > 0 ? (x.daily_sales > 0 ? (x.b_stock/x.daily_sales).toFixed(1)+'天' : '∞') : '-'}</td>
@@ -255,19 +261,21 @@ export default function InsightsPage() {
                         : <><td style={{color:'var(--success)',fontWeight:700}}>{x.suggested_qty > 0 ? x.suggested_qty : '-'}</td></>}
                       {replenMode!=='bbcc' && <td style={{fontWeight:600,color:x.suggested_qty > 0 && (x.after_turnover||0) > 15 ? '#ef4444' : 'var(--text)'}}>{x.suggested_qty > 0 ? x.after_turnover+'天' : '-'}</td>}
                       <td className="col-name" style={{color:'var(--muted2)',fontSize:12}}>{renderNote(x.note)}</td>
-                      {replenMode==='bbcc' && <td><span onClick={()=>{
-                        if ((x.suggested_qty > 0 || x.b_suggested > 0) && x.combined_turnover > 90 && !window.confirm(`补后综合周转${x.combined_turnover}天，已超90天考核红线，仍标记操作？`)) return
-                        toggleOrdered(x.sku, x.store, x.product_name, x.suggested_qty || x.b_suggested)
-                      }} style={{cursor:'pointer',fontSize:18,opacity:0.5}}>☐</span></td>}
+                      {replenMode==='bbcc' && <td>{isOrdered
+                        ? <span onClick={()=>toggleOrdered(x.sku, x.store, x.product_name, x.suggested_qty || x.b_suggested)} style={{cursor:'pointer',fontSize:16,color:'var(--success)',display:'inline-flex',alignItems:'center',gap:2}}>✓<span style={{fontSize:9,color:'var(--muted2)'}}>撤销</span></span>
+                        : <span onClick={()=>{
+                          if ((x.suggested_qty > 0 || x.b_suggested > 0) && x.combined_turnover > 90 && !window.confirm(`补后综合周转${x.combined_turnover}天，已超90天考核红线，仍标记操作？`)) return
+                          toggleOrdered(x.sku, x.store, x.product_name, x.suggested_qty || x.b_suggested)
+                        }} style={{cursor:'pointer',fontSize:18,opacity:0.5}}>☐</span>}</td>}
                     </tr>
-                  ))}
+                  )})}
                 </tbody>
               </table>
             </div>
-          ))}
-          {/* 已下单区域（仅BBCC模式） */}
-          {replenMode==='bbcc' && orderedKeys.length > 0 && <details style={{marginTop:12}}>
-            <summary className="small muted" style={{cursor:'pointer',fontSize:12}}>已下单 {orderedKeys.length} 项</summary>
+          )}
+          {/* 已下单明细（仅BBCC模式） */}
+          {replenMode==='bbcc' && orderedItems.length > 0 && <details style={{marginTop:12}} open>
+            <summary className="small muted" style={{cursor:'pointer',fontSize:12,fontWeight:600}}>📦 已下单 {orderedItems.length} 项 · 点击查看入库日期与仓储天数</summary>
             <div style={{fontSize:12,marginTop:8}}>
               {orderedItems.map((po, i) => {
                 const daysSinceArrival = po.arrival_date ? Math.floor((new Date() - new Date(po.arrival_date)) / (1000*60*60*24)) : null

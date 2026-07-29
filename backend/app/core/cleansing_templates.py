@@ -39,7 +39,7 @@ def save_template(data: dict, db=None):
     if existing:
         db.table("cleansing_templates").update({
             "mapping": json.dumps(data.get('mapping', {}), ensure_ascii=False),
-            "target": data.get('target', 'order'),
+            "doc_type": data.get('doc_type', data.get('target', 'order')),
             "updated_at": __import__('datetime').datetime.utcnow().isoformat(),
         }).eq("id", existing[0]["id"]).execute()
     else:

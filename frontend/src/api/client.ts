@@ -90,7 +90,8 @@ function invalidateCache() {
 export const api = {
   get: apiGet,
   post: async (url, data, config) => {
-    const r = await instance.post(url, data, config)
+    const merged = {timeout: 30000, ...config}
+    const r = await instance.post(url, data, merged)
     invalidateCache()
     return r
   },

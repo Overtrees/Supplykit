@@ -104,11 +104,14 @@ export default function CleansingPage() {
     setBs('预览中')
     const fd = new FormData(); fd.append('file', f); fd.append('mapping', JSON.stringify(mp)); fd.append('target', tt)
     try {
-      const r = await api.post('/api/cleansing/preview', fd)
+      const r = await api.post('/api/cleansing/preview', fd, {timeout: 60000})
       const d = r.data
       if (!d.ok) { toast.error(d.error||'预览失败'); setBs(''); return }
       setPv(d); setS(2)
-    } catch(e) { toast.error('请求异常: '+e.message) }
+    } catch(e) {
+      const msg = e.response?.data?.error || e.message || '请求失败'
+      toast.error('预览失败: '+msg)
+    }
     setBs('')
   }
 

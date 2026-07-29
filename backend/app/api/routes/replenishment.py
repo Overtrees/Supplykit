@@ -178,6 +178,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             })
     else:
         # 传统模式
+        all_inv = db.table("inventory").select("*").execute().data
         for inv in db.table("inventory").select("*").in_("warehouse_type", ["platform"]).execute().data:
             sku = inv.get("sku", "")
             warehouse = inv.get("warehouse", "")
@@ -211,7 +212,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                 else: parts.append("⚪ 近30天无销量")
             if sel_ds > 0: parts.append(trend_text)
             if box_qty > 0: parts.append(f"建议补{box_qty}件 · 箱规{box}件")
-            wh_data = [x for x in inventory if x.get('sku')==sku and x.get('warehouse')!=warehouse]
+            wh_data = [x for x in all_inv if x.get('sku')==sku and x.get('warehouse')!=warehouse]
             if wh_data: parts.append(f"跨仓提示: {wh_data[0].get('warehouse','')}还有{wh_data[0].get('available_qty',0)}件")
             if not parts: parts.append("库存充足")
             note = " · ".join(parts)

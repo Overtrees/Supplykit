@@ -73,15 +73,6 @@ const typeMap={'field':'字段','number':'数值','text':'文本'}
 const pc=j=>{try{const c=JSON.parse(j);const rt=c.rightType||(LF.find(x=>x.v===c.right)?'field':(typeof c.right==='string'&&!c.right.replace('.','').match(/^\d+$/)?'text':'number'));return{left:c.left||'inv.available_qty',op:c.op||'<',right:c.right||'inv.safety_qty',rightType:rt}}catch{return{left:'inv.available_qty',op:'<',right:'inv.safety_qty',rightType:'field'}}}
   const sevLbl=s=>s==='error'?'严重':s==='info'?'提示':'警告'
 
-  const ruleFields=[
-    {k:'name',l:'规则名称',h:'唯一标识名称',pl:'低库存预警'},
-    {k:'event',l:'触发事件',h:'选择何时触发此规则',tp:'select'},
-    {k:'alert_type',l:'告警标识',h:'内部代号：low_stock/replenish/oversell',pl:'low_stock'},
-    {k:'severity',l:'严重级别',h:'告警显示颜色',tp:'sev'},
-    {k:'alert_title',l:'告警标题',h:'可用变量：{product_name} {sku}',pl:'低库存预警: {product_name}'},
-    {k:'alert_desc',l:'告警描述',h:'可用变量：{avail} {safety} {sku}',pl:'可用 {avail} < 安全线 {safety}'},
-  ]
-
   const isBBCC = (cfg.replenishment_mode||'bbcc')==='bbcc'
   const cParams= isBBCC ? [
     {k:'b_to_c_days',l:'B→C调拨(天)',h:'京东B仓→C仓调拨时效'},
@@ -151,19 +142,27 @@ const pc=j=>{try{const c=JSON.parse(j);const rt=c.rightType||(LF.find(x=>x.v===c
           </label>
         </div>
 
-        {/* 告警模板 */}
+        {/* 告警模板 — 变量用彩色标签插入，无需手动写 {var} */}
         <div style={{marginTop:12,display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
           <label style={{fontSize:12}}>
             告警标题
-            <input value={f.alert_title} onChange={e=>setF({...f,alert_title:e.target.value})} style={IS} placeholder='低库存预警: {product_name}'/>
-            <div className='small muted' style={{fontSize:11,marginTop:2}}>可用变量：{renderTmpl('{product_name}')} {renderTmpl('{sku}')}</div>
-            {f.alert_title && /\{/.test(f.alert_title) && <div style={{marginTop:4,padding:'4px 8px',background:'var(--card)',borderRadius:32,fontSize:11,color:'var(--muted)',border:'1px dashed var(--border)'}}>ⓘ 预览：{renderTmpl(f.alert_title)}</div>}
+            <div style={{display:'flex',gap:4,marginBottom:4,flexWrap:'wrap'}}>
+              {[{v:'{product_name}',l:'商品名'},{v:'{sku}',l:'SKU'}].map(t=>
+                <span key={t.v} onClick={()=>setF({...f,alert_title:f.alert_title+t.v})} style={{padding:'2px 8px',borderRadius:99,fontSize:10,background:'rgba(29,78,216,0.1)',color:'var(--primary)',cursor:'pointer',border:'1px solid rgba(29,78,216,0.2)'}}>+{t.l}</span>
+              )}
+            </div>
+            <input value={f.alert_title} onChange={e=>setF({...f,alert_title:e.target.value})} style={IS} placeholder='例：低库存预警: 商品名'/>
+            {f.alert_title && <div style={{marginTop:4,padding:'4px 8px',background:'var(--card)',borderRadius:32,fontSize:11,color:'var(--muted)',border:'1px dashed var(--border)'}}>ⓘ 预览：{renderTmpl(f.alert_title)}</div>}
           </label>
           <label style={{fontSize:12}}>
             告警描述
-            <input value={f.alert_desc} onChange={e=>setF({...f,alert_desc:e.target.value})} style={IS} placeholder='可用 {avail} < 安全线 {safety}'/>
-            <div className='small muted' style={{fontSize:11,marginTop:2}}>可用变量：{renderTmpl('{avail}')} {renderTmpl('{safety}')} {renderTmpl('{sku}')}</div>
-            {f.alert_desc && /\{/.test(f.alert_desc) && <div style={{marginTop:4,padding:'4px 8px',background:'var(--card)',borderRadius:32,fontSize:11,color:'var(--muted)',border:'1px dashed var(--border)'}}>ⓘ 预览：{renderTmpl(f.alert_desc)}</div>}
+            <div style={{display:'flex',gap:4,marginBottom:4,flexWrap:'wrap'}}>
+              {[{v:'{avail}',l:'可用量'},{v:'{safety}',l:'安全线'},{v:'{sku}',l:'SKU'}].map(t=>
+                <span key={t.v} onClick={()=>setF({...f,alert_desc:f.alert_desc+t.v})} style={{padding:'2px 8px',borderRadius:99,fontSize:10,background:'rgba(29,78,216,0.1)',color:'var(--primary)',cursor:'pointer',border:'1px solid rgba(29,78,216,0.2)'}}>+{t.l}</span>
+              )}
+            </div>
+            <input value={f.alert_desc} onChange={e=>setF({...f,alert_desc:e.target.value})} style={IS} placeholder='例：可用 可用量 < 安全线 安全线'/>
+            {f.alert_desc && <div style={{marginTop:4,padding:'4px 8px',background:'var(--card)',borderRadius:32,fontSize:11,color:'var(--muted)',border:'1px dashed var(--border)'}}>ⓘ 预览：{renderTmpl(f.alert_desc)}</div>}
           </label>
         </div>
 
@@ -244,9 +243,9 @@ const pc=j=>{try{const c=JSON.parse(j);const rt=c.rightType||(LF.find(x=>x.v===c
           <div style={{marginTop:4,padding:'6px 10px',background:'var(--bg)',borderRadius:32,fontSize:12,color:'var(--primary)',display:'inline-block'}}>
             <IconScale size={12} style={{display:'inline',verticalAlign:'middle',marginRight:2}} /> {condText}
           </div>
-          <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>
-            {rule.alert_title ? <span>{rule.alert_title.replace(/\{(\w+)\}/g, (_,v)=>{const m={product_name:'商品名',sku:'SKU',avail:'可用量',safety:'安全线',days:'天数',stock:'库存量'}; return '['+(m[v]||v)+']'})}</span> : ''}
-            {rule.alert_desc ? <span className="small muted" style={{marginLeft:rule.alert_title?4:0}}>· {rule.alert_desc.replace(/\{(\w+)\}/g, (_,v)=>{const m={product_name:'商品名',sku:'SKU',avail:'可用量',safety:'安全线',days:'天数',stock:'库存量'}; return '['+(m[v]||v)+']'})}</span> : ''}
+          <div style={{fontSize:11,color:'var(--muted)',marginTop:2,display:'flex',flexWrap:'wrap',gap:2,alignItems:'center'}}>
+            {renderTmpl(rule.alert_title) || <span className="small muted">无标题</span>}
+            {rule.alert_desc ? <><span style={{color:'var(--muted2)',margin:'0 2px'}}>·</span>{renderTmpl(rule.alert_desc)}</> : ''}
           </div>
         </div>
         <div style={{display:'flex',gap:6,flexShrink:0}}>

@@ -6,6 +6,7 @@ import logging
 logger = logging.getLogger(__name__)
 from app.core.database import get_db, submit_task, get_task, backup_db
 from app.core.response import ok, fail
+from app.core.cleansing_utils import parse_file, cleanse_value, extract_field_mapping, detect_target
 from app.api.routes.ws import broadcast
 from app.api.routes.insights import auto_adjust_inventory
 
@@ -162,10 +163,14 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
     db = get_db()
     rows = parse_file(content, filename)
     if not rows:
+        from app.core.database import update_task
+        update_task(task_id, progress=100)
         return {'ok': False, 'error': '文件为空', 'success': 0, 'failed': 0, 'file': filename}
     try:
         mapping_config = json.loads(mapping_json) if mapping_json else {}
     except json.JSONDecodeError:
+        from app.core.database import update_task
+        update_task(task_id, progress=100)
         return {'ok': False, 'error': '映射配置格式错误', 'success': 0, 'failed': 0, 'file': filename}
     # 从映射中提取 data_source（前端通过自定义字段传入，或默认空）
     data_source = mapping_config.get('_meta', {}).get('data_source', '')
@@ -193,10 +198,8 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
         # 更新进度
         if idx % 50 == 0:
             try:
-                from app.core.database import get_task, submit_task
-                existing = get_task(task_id)
-                if existing:
-                    existing["progress"] = round(idx / len(rows) * 100)
+                from app.core.database import update_task
+                update_task(task_id, progress=round(idx / len(rows) * 100))
             except Exception:
                 pass
 
@@ -365,6 +368,8 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
             from app.api.routes.insights import sync_inventory_from_orders
             submit_task(f"inv_sync_{datetime.utcnow().strftime('%H%M%S')}", sync_inventory_from_orders, 200)
         except Exception as e:
+            from app.core.database import update_task
+            update_task(task_id, progress=100)
             return {'ok': False, 'error': f'清洗写入失败: {str(e)[:200]}', 'success': 0, 'failed': 0, 'file': filename, 'target': target}
 
     msg_parts = []
@@ -476,6 +481,8 @@ async def execute_cleansing_async(file: UploadFile = File(...), mapping: str = F
     content = await file.read()
     task_id = str(uuid.uuid4())[:8]
     submit_task(task_id, _run_cleansing, content, file.filename, mapping, target, template_name)
+    from app.core.database import update_task
+    update_task(task_id, progress=0)
     return {'ok': True, 'task_id': task_id, 'message': '任务已提交'}
 
 # ─── 异步任务进度 ───────────────────────────────────────────────────────────
@@ -496,23 +503,4 @@ def trigger_backup():
         return {'ok': True, 'path': path, 'message': f'备份完成: {os.path.basename(path)}'}
     return {'ok': False, 'error': '备份失败'}
 
-# ─── 清洗工具函数 ────────────────────────────────────────────────────────────
-
-def cleanse_value(raw_val, cfg):
-    if raw_val is None or str(raw_val).strip() == '':
-        return cfg.get('default', '')
-    v = str(raw_val).strip()
-    field_type = cfg.get('type', 'string')
-    fmt_str = cfg.get('format', '')
-    try:
-        if field_type == 'number':
-            cleaned = re.sub(r'[^\d.\-]', '', v)
-            return float(cleaned) if '.' in cleaned else int(float(cleaned))
-        elif field_type == 'date':
-            if fmt_str == 'YMD':
-                return v[:10]
-            return v
-        else:
-            return v
-    except:
-        return v
+# ─── 清洗工具函数（迁移到 app.core.cleansing_utils）───

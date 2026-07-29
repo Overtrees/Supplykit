@@ -54,6 +54,12 @@ def get_task(task_id: str):
     with _task_lock:
         return _task_results.get(task_id)
 
+def update_task(task_id: str, **kwargs):
+    """更新任务的进度等信息（从任务内部调用）"""
+    with _task_lock:
+        if task_id in _task_results:
+            _task_results[task_id].update(kwargs)
+
 def get_conn():
     if not hasattr(_local, "conn") or _local.conn is None:
         _local.conn = sqlite3.connect(DB_PATH)

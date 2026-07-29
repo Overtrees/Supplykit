@@ -13,6 +13,7 @@ export const useAppStore = create((set, get) => ({
   qualityLogs: [],
   alerts: [],
   stockRisk: [],
+  loading: false,  // 统一 loading 状态
   wsStatus: 'idle',
   importLogs: [],
   poller: null,
@@ -26,6 +27,7 @@ export const useAppStore = create((set, get) => ({
   setSidebarOpen: (v) => set({ sidebarOpen: v }),
 
   async loadAll(page) {
+    set({ loading: true })
     const p = page ?? get().orderPage
     const s = get().orderSearch
     const st = get().orderStatus
@@ -51,9 +53,11 @@ export const useAppStore = create((set, get) => ({
         alerts: alerts.data || [],
         stockRisk: stockRisk.data || [],
         dataLoaded: true,
+        loading: false,
       })
     } catch (e) {
       console.error('loadAll failed:', e)
+      set({ loading: false })
     }
   },
 

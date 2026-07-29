@@ -10,6 +10,7 @@ from collections import defaultdict
 from typing import Any, Optional
 
 DB_PATH = os.getenv("SQLITE_PATH", os.path.join(os.path.dirname(__file__), "..", "supplykit.db"))
+SCHEMA_VERSION = 1  # 当前 schema 版本，每次改表结构+1
 
 _local = threading.local()
 
@@ -548,6 +549,18 @@ def init_db(path=None):
     try: conn.execute("ALTER TABLE purchase_orders ADD COLUMN arrival_date TEXT DEFAULT ''")
     except: pass
     conn.commit()
+    # ── schema 版本检查 ──
+    try:
+        ver = conn.execute("SELECT value FROM _schema_version LIMIT 1").fetchone()
+        ver = int(ver[0]) if ver else 0
+    except:
+        conn.execute("CREATE TABLE IF NOT EXISTS _schema_version (key TEXT PRIMARY KEY, value TEXT)")
+        ver = 0
+    if ver < SCHEMA_VERSION:
+        conn.execute("INSERT OR REPLACE INTO _schema_version(key,value) VALUES('version',?)", (str(SCHEMA_VERSION),))
+        conn.commit()
+        import logging
+        logging.info(f"[DB] Schema migrated: {ver} → {SCHEMA_VERSION}")
     conn.close()
 def _seed_builtin_rules():
     try:

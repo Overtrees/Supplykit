@@ -2,13 +2,15 @@ from fastapi import APIRouter
 from app.core.dashboard_cache import get_dashboard
 from app.core.database import get_db
 from app.core.sales_utils import calc_sales, rolling_predict
+from app.core.response import ok, fail
 from datetime import datetime, timedelta
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
 @router.get("/summary")
 def dashboard_summary():
-    return get_dashboard()
+    data = get_dashboard()
+    return ok(data)
 
 @router.get("/stock-risk")
 def stock_risk():
@@ -121,4 +123,4 @@ def stock_risk():
         })
 
     result.sort(key=lambda x: x["days_to_empty"])
-    return result[:10]
+    return ok(result[:10])

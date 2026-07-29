@@ -19,7 +19,7 @@ const instance = axios.create({
 // 在途请求去重 Map
 const inflight = new Map()
 
-// 响应拦截器：写缓存 + 清理在途 + 日志
+// 响应拦截器：写缓存 + 清理在途 + 日志 + 自动解包 {ok,data}
 instance.interceptors.response.use(
   (response) => {
     const { method, url, params } = response.config
@@ -29,6 +29,17 @@ instance.interceptors.response.use(
     }
     inflight.delete(key)
     console.debug(`[API] ${(method||'get').toUpperCase()} ${url} → ${response.status}`, params && Object.keys(params).length ? params : '')
+
+    // 自动解包统一响应格式 {ok, data, error}
+    if (response.data && typeof response.data === 'object' && 'ok' in response.data) {
+      if (!response.data.ok) {
+        const err = new Error(response.data.error || '请求失败')
+        err.status = response.status
+        return Promise.reject(err)
+      }
+      response.data = response.data.data  // 解包 data 字段给上层
+    }
+
     return response
   },
   (error) => {

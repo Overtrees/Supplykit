@@ -42,11 +42,13 @@ const IS={width:'100%',padding:'6px 8px',fontSize:16,border:'1px solid var(--bor
     let rv = cond.right
     if (cond.rightType==='number') rv = parseFloat(cond.right)||0
     else if (cond.rightType==='field') rv = cond.right
+    else if (cond.rightType==='pct') rv = `max(1,${cond.right}*${(cond.pctValue||100)/100})`
     let cj
     if (cond2 && cond2.left) {
       let rv2 = cond2.right
       if (cond2.rightType==='number') rv2 = parseFloat(cond2.right)||0
       else if (cond2.rightType==='field') rv2 = cond2.right
+      else if (cond2.rightType==='pct') rv2 = `max(1,${cond2.right}*${(cond2.pctValue||100)/100})`
       cj = JSON.stringify({left:cond.left,op:cond.op,right:rv,rightType:cond.rightType,and:{left:cond2.left,op:cond2.op,right:rv2,rightType:cond2.rightType}})
     } else {
       cj = JSON.stringify({left:cond.left,op:cond.op,right:rv,rightType:cond.rightType})
@@ -69,9 +71,17 @@ const LF=[
 const OPS=[{l:'< 小于',v:'<'},{l:'≤ 小于等于',v:'<='},{l:'> 大于',v:'>'},{l:'≥ 大于等于',v:'>='},{l:'== 等于',v:'=='},{l:'≠ 不等于',v:'!='}]
 const fieldLbl=v=>{const f=LF.find(x=>x.v===v);return f?f.l:v}
 const opLbl=v=>{const o=OPS.find(x=>x.v===v);return o?o.l:v}
-const typeMap={'field':'字段','number':'数值','text':'文本'}
-const pc=j=>{try{const c=JSON.parse(j);const rt=c.rightType||(LF.find(x=>x.v===c.right)?'field':(typeof c.right==='string'&&!c.right.replace('.','').match(/^\d+$/)?'text':'number'));return{left:c.left||'inv.available_qty',op:c.op||'<',right:c.right||'inv.safety_qty',rightType:rt}}catch{return{left:'inv.available_qty',op:'<',right:'inv.safety_qty',rightType:'field'}}}
-  const sevLbl=s=>s==='error'?'严重':s==='info'?'提示':'警告'
+const typeMap={'field':'字段','number':'数值','pct':'百分比','text':'文本'}
+const pctFields=['inv.safety_qty']  // 支持百分比比较的字段列表
+// 解析条件 JSON，支持百分比表达式 max(1, field*X)
+const pc=j=>{try{const c=JSON.parse(j);let rt=c.rightType||'field';let r=c.right||'inv.safety_qty';let pct=100
+  // 检测 max(1, field*X) 格式 → 百分比比较
+  const m=typeof r==='string'?r.match(/^max\(1,\s*(\w+(?:\.\w+)*)\s*\*\s*([\d.]+)\)$/):null
+  if(m){r=m[1];rt='pct';pct=Math.round(parseFloat(m[2])*100)}
+  if(!rt||rt==='field'){const f=LF.find(x=>x.v===r);if(!f&&typeof r==='string'&&!r.replace('.','').match(/^\d+$/))rt='text';else if(!f)rt='number'}
+  return{left:c.left||'inv.available_qty',op:c.op||'<',right:r,rightType:rt,pctValue:pct}}catch{return{left:'inv.available_qty',op:'<',right:'inv.safety_qty',rightType:'field',pctValue:100}}
+}
+const sevLbl=s=>s==='error'?'严重':s==='info'?'提示':'警告'
 
   const isBBCC = (cfg.replenishment_mode||'bbcc')==='bbcc'
   const cParams= isBBCC ? [
@@ -174,13 +184,21 @@ const pc=j=>{try{const c=JSON.parse(j);const rt=c.rightType||(LF.find(x=>x.v===c
               <span style={{fontSize:13,fontWeight:500}}>当</span>
               <select value={cond.left} onChange={e=>setCond(p=>({...p,left:e.target.value}))} style={{...IS,flex:1,minWidth:130,fontSize:13}}>{LF.map(f=><option key={f.v} value={f.v}>{f.l}</option>)}</select>
               <select value={cond.op} onChange={e=>setCond(p=>({...p,op:e.target.value}))} style={{...IS,width:80,fontSize:13}}>{OPS.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select>
-              <select value={cond.rightType} onChange={e=>{const v=e.target.value;setCond(p=>({...p,rightType:v,right:v==='field'?'inv.safety_qty':''}))}} style={{...IS,width:60,fontSize:12}}>
+              <select value={cond.rightType} onChange={e=>{const v=e.target.value;setCond(p=>({...p,rightType:v,right:v==='field'?'inv.safety_qty':(v==='pct'?'inv.safety_qty':''),pctValue:v==='pct'?30:undefined}))}} style={{...IS,width:70,fontSize:12}}>
                 <option value='field'>字段</option>
                 <option value='number'>数值</option>
+                {pctFields.includes(cond.left) && <option value='pct'>百分比</option>}
                 <option value='text'>文本</option>
               </select>
               {cond.rightType==='field'
                 ?<select value={cond.right} onChange={e=>setCond(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:130,fontSize:13}}>{LF.map(f=><option key={f.v} value={f.v}>{f.l}</option>)}</select>
+                :cond.rightType==='pct'
+                ?<span style={{display:'flex',alignItems:'center',gap:4,flex:1,minWidth:80}}>
+                  <select value={cond.right} onChange={e=>setCond(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,fontSize:13}}>{pctFields.map(f=><option key={f} value={f}>{fieldLbl(f)}</option>)}</select>
+                  <span style={{fontSize:13,color:'var(--muted)'}}>的</span>
+                  <input type='number' value={cond.pctValue||30} onChange={e=>setCond(p=>({...p,pctValue:parseInt(e.target.value)||0}))} min={1} max={200} style={{...IS,width:70,fontSize:13}}/>
+                  <span style={{fontSize:13,color:'var(--muted)'}}>%</span>
+                </span>
                 :cond.rightType==='number'
                 ?<input type='number' value={cond.right} onChange={e=>setCond(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:80,fontSize:13}}/>
                 :cond.left==='inv.warehouse_type'
@@ -192,8 +210,8 @@ const pc=j=>{try{const c=JSON.parse(j);const rt=c.rightType||(LF.find(x=>x.v===c
             {/* 条件预览 */}
             <div className='small' style={{marginTop:8,padding:'6px 10px',background:'var(--bg)',borderRadius:32,fontSize:12,color:'var(--primary)'}}>
               <IconClipboard size={12} style={{display:'inline',verticalAlign:'middle',marginRight:4}} />
-              当 <b>{fieldLbl(cond.left)}</b> {opLbl(cond.op)} <b>{cond.rightType==='field'?fieldLbl(cond.right):cond.right}</b>
-              {cond2 && cond2.left ? <> 且 <b style={{color:'var(--success)'}}>{fieldLbl(cond2.left)}</b> {opLbl(cond2.op)} <b style={{color:'var(--success)'}}>{cond2.rightType==='field'?fieldLbl(cond2.right):cond2.right}</b></> : ''}
+              当 <b>{fieldLbl(cond.left)}</b> {opLbl(cond.op)} <b>{cond.rightType==='pct' ? fieldLbl(cond.right)+'的'+cond.pctValue+'%' : (cond.rightType==='field'?fieldLbl(cond.right):cond.right)}</b>
+              {cond2 && cond2.left ? <> 且 <b style={{color:'var(--success)'}}>{fieldLbl(cond2.left)}</b> {opLbl(cond2.op)} <b style={{color:'var(--success)'}}>{cond2.rightType==='pct' ? fieldLbl(cond2.right)+'的'+cond2.pctValue+'%' : (cond2.rightType==='field'?fieldLbl(cond2.right):cond2.right)}</b></> : ''}
               时触发告警
             </div>
 
@@ -202,13 +220,21 @@ const pc=j=>{try{const c=JSON.parse(j);const rt=c.rightType||(LF.find(x=>x.v===c
               <span style={{fontSize:12,fontWeight:600,color:'var(--success)'}}>且</span>
               <select value={cond2.left} onChange={e=>setCond2(p=>({...p,left:e.target.value}))} style={{...IS,flex:1,minWidth:130,fontSize:13}}>{LF.map(f=><option key={f.v} value={f.v}>{f.l}</option>)}</select>
               <select value={cond2.op} onChange={e=>setCond2(p=>({...p,op:e.target.value}))} style={{...IS,width:80,fontSize:13}}>{OPS.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select>
-              <select value={cond2.rightType} onChange={e=>{const v=e.target.value;setCond2(p=>({...p,rightType:v,right:v==='field'?'inv.safety_qty':''}))}} style={{...IS,width:60,fontSize:12}}>
+              <select value={cond2.rightType} onChange={e=>{const v=e.target.value;setCond2(p=>({...p,rightType:v,right:v==='field'?'inv.safety_qty':(v==='pct'?'inv.safety_qty':''),pctValue:v==='pct'?30:undefined}))}} style={{...IS,width:70,fontSize:12}}>
                 <option value='field'>字段</option>
                 <option value='number'>数值</option>
+                {pctFields.includes(cond2.left) && <option value='pct'>百分比</option>}
                 <option value='text'>文本</option>
               </select>
               {cond2.rightType==='field'
                 ?<select value={cond2.right} onChange={e=>setCond2(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:130,fontSize:13}}>{LF.map(f=><option key={f.v} value={f.v}>{f.l}</option>)}</select>
+                :cond2.rightType==='pct'
+                ?<span style={{display:'flex',alignItems:'center',gap:4,flex:1,minWidth:80}}>
+                  <select value={cond2.right} onChange={e=>setCond2(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,fontSize:13}}>{pctFields.map(f=><option key={f} value={f}>{fieldLbl(f)}</option>)}</select>
+                  <span style={{fontSize:13,color:'var(--muted)'}}>的</span>
+                  <input type='number' value={cond2.pctValue||30} onChange={e=>setCond2(p=>({...p,pctValue:parseInt(e.target.value)||0}))} min={1} max={200} style={{...IS,width:70,fontSize:13}}/>
+                  <span style={{fontSize:13,color:'var(--muted)'}}>%</span>
+                </span>
                 :cond2.rightType==='number'
                 ?<input type='number' value={cond2.right} onChange={e=>setCond2(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:80,fontSize:13}}/>
                 :cond2.left==='inv.warehouse_type'
@@ -228,7 +254,7 @@ const pc=j=>{try{const c=JSON.parse(j);const rt=c.rightType||(LF.find(x=>x.v===c
 
       {rules.map(rule => {
         const condInfo = pc(rule.condition_json||'{}')
-        const condText = `当 ${fieldLbl(condInfo.left)} ${opLbl(condInfo.op)} ${condInfo.rightType==='field'?fieldLbl(condInfo.right):condInfo.right}${condInfo.and ? ` 且 ${fieldLbl(condInfo.and.left)} ${opLbl(condInfo.and.op)} ${condInfo.and.rightType==='field'?fieldLbl(condInfo.and.right):condInfo.and.right}` : ''}`
+        const condText = `当 ${fieldLbl(condInfo.left)} ${opLbl(condInfo.op)} ${condInfo.rightType==='pct'?fieldLbl(condInfo.right)+'的'+condInfo.pctValue+'%':(condInfo.rightType==='field'?fieldLbl(condInfo.right):condInfo.right)}${condInfo.and ? ` 且 ${fieldLbl(condInfo.and.left)} ${opLbl(condInfo.and.op)} ${condInfo.and.rightType==='pct'?fieldLbl(condInfo.and.right)+'的'+condInfo.and.pctValue+'%':(condInfo.and.rightType==='field'?fieldLbl(condInfo.and.right):condInfo.and.right)}` : ''}`
         return <div key={rule.id} style={{padding:'10px 14px',border:'1px solid var(--border)',borderRadius:32,marginBottom:6}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
         <div style={{flex:1,minWidth:0}}>

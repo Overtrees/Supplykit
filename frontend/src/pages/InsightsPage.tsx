@@ -85,14 +85,19 @@ export default function InsightsPage() {
   const currentCols = replenMode === 'bbcc' ? BBCC_COLS : TRAD_COLS
   const [visCols, setVisCols] = useState(() => getVis(replenMode) || defVis(currentCols))
   const [showColPicker, setShowColPicker] = useState(false)
-  const reqSeq = useRef(0)  // 请求序列号，防止快速切换竞态
+  const reqSeq = useRef(0)
 
   const switchMode = (m) => { setReplenMode(m); localStorage.setItem('c_replen_mode', m); const cols = m === 'bbcc' ? BBCC_COLS : TRAD_COLS; setVisCols(getVis(m) || defVis(cols)); loadReplen(m) }
   const loadReplen = async (mode) => {
-    const seq = ++reqSeq.current  // 标记当前请求
+    const seq = ++reqSeq.current
     setReplenLoading(true)
-    try { const r = await api.get('/api/insights/replenishment?days=28&mode=' + (mode||replenMode)); if (seq === reqSeq.current) setReplen(Array.isArray(r.data) ? r.data : [])
-    } catch(e) { if (seq === reqSeq.current) setReplen([]) }
+    try {
+      const r = await api.get('/api/insights/replenishment?days=28&mode=' + mode)
+      if (seq === reqSeq.current) setReplen(Array.isArray(r.data) ? r.data : [])
+    } catch(e) {
+      console.error('loadReplen:', e)
+      if (seq === reqSeq.current) setReplen([])
+    }
     if (seq === reqSeq.current) setReplenLoading(false)
   }
 

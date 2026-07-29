@@ -61,7 +61,8 @@ export default function RulesPage() {
   const loadSeasons = async (mode) => { try { const m=mode||cfg.replenishment_mode||'bbcc'; const r=await api.get('/api/replenishment-config/seasons?mode='+m); setSeasons(r.data||[]) } catch(e) {} }
   useEffect(() => { Promise.all([load(), loadCfg(), loadSeasons()]).finally(() => setLoading(false)) }, [])
 
-  const resetForm = () => { setEditing(null); setF(defaultF); setCond({left:'inv.available_qty', op:'<', right:'inv.safety_qty', rightType:'field', pctValue:100}) }
+  const resetForm = () => { setEditing({}); setF(defaultF); setCond({left:'inv.available_qty', op:'<', right:'inv.safety_qty', rightType:'field', pctValue:100}) }
+  const cancelEdit = () => { setEditing(null); setF(defaultF); setCond({left:'inv.available_qty', op:'<', right:'inv.safety_qty', rightType:'field', pctValue:100}) }
 
   const save = async () => {
     let rv = cond.right
@@ -72,7 +73,7 @@ export default function RulesPage() {
     const isNew = !editing || !editing.id
     const url = isNew ? API+'/api/rules' : API+'/api/rules/'+editing.id
     await fetch(url, {method: isNew?'POST':'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({...f, condition_json:cj})})
-    resetForm(); load()
+    cancelEdit(); load()
   }
   const del = async id => { await fetch(API+'/api/rules/'+id, {method:'DELETE'}); load() }
 
@@ -166,7 +167,7 @@ export default function RulesPage() {
 
         <div style={{marginTop:12,display:'flex',gap:8}}>
           <button onClick={save} className="btn btn-primary" style={{display:'inline-flex',alignItems:'center',gap:4}}><IconSave size={14} /> 保存</button>
-          <button onClick={resetForm} className="btn btn-ghost">取消</button>
+          <button onClick={cancelEdit} className="btn btn-ghost">取消</button>
         </div>
       </div>}
 

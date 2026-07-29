@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 from app.core.database import get_db
 from app.core.response import ok, fail
 from app.core.sales_utils import calc_sales, rolling_predict
+from app.api.routes.replenishment import get_replenishment_suggestions
 from datetime import datetime
 import json, os
 
@@ -60,19 +61,21 @@ def get_insight_summary(db = get_db()):
     low_stock = len([x for x in inv if int(x.get("available_qty") or 0) < int(x.get("safety_qty") or 0)])
     out_of_stock = len([x for x in inv if int(x.get("available_qty") or 0) == 0])
 
-    replen = get_replenishment_suggestions(db=db)
-    urgent = len([x for x in replen if x["urgency"] == "紧急"])
+    replen_raw = get_replenishment_suggestions(db=db)
+    replen = replen_raw.get("data") if isinstance(replen_raw, dict) and "data" in replen_raw else replen_raw
+    urgent = len([x for x in replen if x.get("suggested_qty", 0) > 0]) if isinstance(replen, list) else 0
 
     slow = get_slow_moving_products(db)
-    slow_count = len([x for x in slow if x["level"] == "滞销"])
-    cold_count = len([x for x in slow if x["level"] == "冷淡"])
+    slow_list = slow.get("data") if isinstance(slow, dict) and "data" in slow else (slow if isinstance(slow, list) else [])
+    slow_count = len([x for x in slow_list if x.get("level") == "滞销"])
+    cold_count = len([x for x in slow_list if x.get("level") == "冷淡"])
 
     return {
         "total_products": total,
         "low_stock": low_stock,
         "out_of_stock": out_of_stock,
         "urgent_replenish": urgent,
-        "suggestions_count": len(replen),
+        "suggestions_count": len(replen) if isinstance(replen, list) else 0,
         "slow_moving": slow_count,
         "cold_count": cold_count,
     }

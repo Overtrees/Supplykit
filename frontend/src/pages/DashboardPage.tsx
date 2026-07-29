@@ -8,7 +8,7 @@ const periodLabel = { today:'今日', week:'本周', month:'本月' }
 export default function DashboardPage({ onAlert }) {
   const [periodTab, setPeriodTab] = useState('month')
   const [healthTab, setHealthTab] = useState(() => localStorage.getItem('health_tab') || 'platform')
-  const { dashboard, inventory, qualityLogs, alerts } = useAppStore()
+  const { dashboard, inventory, qualityLogs, alerts, stockRisk } = useAppStore()
   const periodTrend = dashboard?.periods?.[periodTab + '_trend'] || dashboard?.trend || []
   const periodMeta = dashboard?.periods?.[periodTab] || {}
 
@@ -71,6 +71,7 @@ export default function DashboardPage({ onAlert }) {
 
     <div className="card-grid" style={{marginBottom:16}}>
       <Card title={periodLabel[periodTab]+' GMV'} value={'¥'+Number(periodMeta.gmv||0).toLocaleString()} sub={periodMeta.orders+' 单'} borderRadius={26} />
+      <Card title="待处理" value={errCount+(dashboard?.summary?.active_alerts||0)} sub={errCount+' 异常 · '+(dashboard?.summary?.active_alerts||0)+' 告警'} borderRadius={26} valueColor={errCount+(dashboard?.summary?.active_alerts||0) > 10 ? '#ef4444' : (errCount+(dashboard?.summary?.active_alerts||0) > 5 ? '#f59e0b' : 'var(--text)')} />
       <div className="card" style={{position:'relative',borderRadius:32,containerType:'inline-size'}}>
         {(()=>{
           const h = dashboard?.health_index?.[healthTab]||{}
@@ -87,7 +88,25 @@ export default function DashboardPage({ onAlert }) {
           </>
         })()}
       </div>
-      <Card title="待处理" value={errCount+(dashboard?.summary?.active_alerts||0)} sub={errCount+' 异常 · '+(dashboard?.summary?.active_alerts||0)+' 告警'} borderRadius={26} valueColor={errCount+(dashboard?.summary?.active_alerts||0) > 10 ? '#ef4444' : (errCount+(dashboard?.summary?.active_alerts||0) > 5 ? '#f59e0b' : 'var(--text)')} />
+      <div className="card" style={{position:'relative',borderRadius:32,containerType:'inline-size'}}>
+        <div className="small muted" style={{fontSize:12,marginBottom:6}}>濒临断货 TOP 10</div>
+        {(!stockRisk || stockRisk.length === 0)
+          ? <div className="small muted" style={{padding:'12px 0',textAlign:'center'}}>库存充足</div>
+          : <>
+              <div className="card-value" style={{color:'#ef4444',textAlign:'left'}}>{stockRisk.length}</div>
+              <div className="card-sub" style={{marginBottom:6}}>最短 {stockRisk[0].days_to_empty} 天断货</div>
+              {stockRisk.slice(0,5).map(x => (
+                <div key={x.sku+'-'+x.warehouse} onClick={() => onAlert && onAlert(x.sku)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'3px 0',fontSize:11,borderBottom:'1px solid var(--border)',cursor:'pointer'}}>
+                  <span style={{display:'flex',alignItems:'center',gap:4,minWidth:0}}>
+                    <span className={'pill '+(x.type==='B'?'info':'warning')} style={{fontSize:9,padding:'1px 6px',minHeight:'auto',lineHeight:'16px'}}>{x.type}</span>
+                    <span className="mono" style={{fontSize:10,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{x.sku}</span>
+                  </span>
+                  <span style={{fontWeight:600,fontSize:11,flexShrink:0,color:x.days_to_empty <= 3 ? '#ef4444' : 'var(--warning)'}}>{x.days_to_empty}天</span>
+                </div>
+              ))}
+              {stockRisk.length > 5 && <div className="small muted" style={{textAlign:'center',padding:4,fontSize:10}}>还有 {stockRisk.length - 5} 个...</div>}
+            </>}
+      </div>
     </div>
 
     <div className="chart-row">

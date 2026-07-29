@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
 from app.core.database import get_db
+from app.core.sales_utils import calc_sales, rolling_predict
 from datetime import datetime
 import json, os
 
@@ -66,80 +67,10 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     products = {p["sku"]: p for p in db.table("products").select("*").execute().data}
     orders = db.table("orders").select("*").execute().data
 
-# 三周期日销预计算（可选按数据源和仓库过滤）——返回日均值（含异常剔除+趋势加权）
-    def calc_sales(cutoff_days, wh_name=None):
-        from datetime import timedelta
-        cutoff = (datetime.utcnow() - timedelta(days=cutoff_days)).strftime('%Y-%m-%d')
-        daily_by_sku = {}
-        for o in orders:
-            if source and o.get('data_source','') != source: continue
-            if wh_name and o.get('warehouse','') != wh_name: continue
-            sku = o.get('sku', '')
-            if not sku: continue
-            dt = str(o.get('ordered_at', ''))[:10]
-            qty = int(o.get('quantity', 0) or 0)
-            if dt >= cutoff:
-                if sku not in daily_by_sku:
-                    daily_by_sku[sku] = {}
-                daily_by_sku[sku][dt] = daily_by_sku[sku].get(dt, 0) + qty
-
-        from datetime import timedelta
-        result = {}
-        for sku, daily in daily_by_sku.items():
-            n = len(daily)
-            total = sum(daily.values())
-            base_avg = total / cutoff_days
-            if n < 3 or cutoff_days < 7:
-                result[sku] = base_avg
-                continue
-            all_days = []
-            for i in range(cutoff_days):
-                d = (datetime.utcnow() - timedelta(days=i)).strftime("%Y-%m-%d")
-                all_days.append(daily.get(d, 0))
-            nd = cutoff_days
-            mean = sum(all_days) / nd
-            var = sum((v - mean) ** 2 for v in all_days) / nd
-            std = var ** 0.5
-            threshold = max(3 * std, mean * 1.5)
-            weighted_sum = 0
-            weight_total = 0
-            for idx, v in enumerate(reversed(all_days)):
-                if abs(v - mean) <= threshold:
-                    w = 1.5 if idx >= nd - 3 else 1.0
-                    weighted_sum += v * w
-                    weight_total += w
-            result[sku] = weighted_sum / weight_total if weight_total > 0 else 0
-        # 补0日销的SKU
-        for sku in set(o.get('sku','') for o in orders):
-            if sku not in result:
-                result[sku] = 0
-        if os.getenv('SALES_LOG') and any(v > 0 for v in result.values()):
-            import logging
-            nonzero = {k: round(v, 2) for k, v in result.items() if v > 0}
-            logging.info(f"[SALES] cutoff={cutoff_days}d wh={wh_name} → {len(nonzero)} SKU有销量: {nonzero}")
-        return result
-
-    def rolling_predict(s7, s14, s28):
-        """三窗口滚动预测：按趋势信号分配权重融合"""
-        a7 = 1 if s7 > s14 * 1.15 else (-1 if s7 < s14 * 0.85 else 0)
-        a14 = 1 if s14 > s28 * 1.15 else (-1 if s14 < s28 * 0.85 else 0)
-        weights = {
-            (1, 1): (0.50, 0.30, 0.20),   # 持续上行
-            (1, 0): (0.35, 0.40, 0.25),   # 刚抬头
-            (1, -1): (0.25, 0.35, 0.40),  # 短期冲高回落
-            (0, 1): (0.20, 0.40, 0.40),   # 中期走强
-            (0, 0): (0.10, 0.20, 0.70),   # 平稳
-            (0, -1): (0.15, 0.35, 0.50),  # 中期走弱
-            (-1, 1): (0.25, 0.35, 0.40),  # 短期跌中期回升
-            (-1, 0): (0.20, 0.30, 0.50),  # 短期走弱
-            (-1, -1): (0.40, 0.35, 0.25), # 持续下行
-        }
-        w7, w14, w28 = weights.get((a7, a14), (0.10, 0.20, 0.70))
-        return s7 * w7 + s14 * w14 + s28 * w28
-
-    sales_7 = calc_sales(7)
-    sales_14 = calc_sales(14)
-    sales_28 = calc_sales(28)
+# 三周期日销（复用共享模块，含异常剔除+趋势加权）
+    sales_7 = calc_sales(orders, 7, source=source)
+    sales_14 = calc_sales(orders, 14, source=source)
+    sales_28 = calc_sales(orders, 28, source=source)
 
     if mode == 'bbcc':
         # BBCC：仅算B→C调拨周期（不算生产到货和发B仓）

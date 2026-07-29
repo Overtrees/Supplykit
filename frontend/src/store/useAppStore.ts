@@ -12,6 +12,7 @@ export const useAppStore = create((set, get) => ({
   inventory: [],
   qualityLogs: [],
   alerts: [],
+  stockRisk: [],
   wsStatus: 'idle',
   importLogs: [],
   poller: null,
@@ -35,8 +36,9 @@ export const useAppStore = create((set, get) => ({
         api.get('/api/inventory'),
         api.get('/api/quality-logs'),
         api.get('/api/alerts'),
+        api.get('/api/dashboard/stock-risk'),
       ])
-      const [dashboard, orders, inventory, qualityLogs, alerts] = results.map(r =>
+      const [dashboard, orders, inventory, qualityLogs, alerts, stockRisk] = results.map(r =>
         r.status === 'fulfilled' ? r.value : { data: null }
       )
       set({
@@ -47,6 +49,7 @@ export const useAppStore = create((set, get) => ({
         inventory: inventory.data?.items || inventory.data || [],
         qualityLogs: qualityLogs.data || [],
         alerts: alerts.data || [],
+        stockRisk: stockRisk.data || [],
         dataLoaded: true,
       })
     } catch (e) {

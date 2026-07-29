@@ -15,7 +15,7 @@ const SYS_FIELDS = [
   {t:'store',l:'店铺',tp:'string'},{t:'warehouse',l:'仓库',tp:'string'},
   {t:'sku',l:'SKU',tp:'string'},{t:'product_name',l:'商品名称',tp:'string'},
   {t:'quantity',l:'数量',tp:'number'},{t:'unit_price',l:'单价',tp:'number'},{t:'total_amount',l:'金额',tp:'number'},
-  {t:'order_status',l:'状态',tp:'string'},{t:'ordered_at',l:'订购时间',tp:'date'},
+  {t:'order_status',l:'状态',tp:'string'},{t:'ordered_at',l:'下单日期',tp:'date'},
   {t:'supplier',l:'供应商',tp:'string'},{t:'supplier_code',l:'供应商编码',tp:'string'},
   {t:'remark',l:'备注',tp:'string'},{t:'platform',l:'平台',tp:'string'},
   {t:'paid_at',l:'付款时间',tp:'date'},{t:'shipped_at',l:'发货时间',tp:'date'},

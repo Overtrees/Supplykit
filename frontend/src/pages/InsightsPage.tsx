@@ -89,8 +89,8 @@ export default function InsightsPage() {
   const switchMode = (m) => { setReplenMode(m); localStorage.setItem('c_replen_mode', m); const cols = m === 'bbcc' ? BBCC_COLS : TRAD_COLS; setVisCols(getVis(m) || defVis(cols)); loadReplen(m) }
   const loadReplen = async (mode) => {
     setReplenLoading(true)
-    try { const r = await api.get('/api/insights/replenishment?days=28&mode=' + (mode||replenMode)); setReplen(r.data || [])
-    } catch(e) {}
+    try { const r = await api.get('/api/insights/replenishment?days=28&mode=' + (mode||replenMode)); setReplen(Array.isArray(r.data) ? r.data : [])
+    } catch(e) { setReplen([]) }
     setReplenLoading(false)
   }
 
@@ -221,7 +221,7 @@ export default function InsightsPage() {
               <Skeleton height={14} width="30%" style={{ marginBottom: 8 }} />
               {[1,2,3,4,5].map(i => <Skeleton key={i} height={36} style={{ marginBottom: 4 }} />)}
             </div>
-          ) : replen.length === 0 ? (
+          ) : !Array.isArray(replen) || replen.length === 0 ? (
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>库存健康，暂无补货建议</div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
@@ -233,7 +233,7 @@ export default function InsightsPage() {
                 <colgroup>{currentCols.map(col => <col key={col.id} style={visCols.includes(col.id)?{}:{display:'none'}} />)}</colgroup>
                 <thead><tr>{['','SKU','商品','仓库',...(replenMode==='bbcc'?['B仓可用库存','B仓周转','全国C仓总和可用库存',`B-C仓调拨在途`, `全国C仓日销(融合/7/14/28)`]:['现有','在途',`日销(融合/7/14/28)`]),...(replenMode==='bbcc'?['全国C仓总和周转','B→C 调拨在途总和周转']:['安全线','在库周转','补后周转']),...(replenMode==='bbcc'?['C仓建议补','B仓需补','当前综转','补后综转']:['建议补']),'备注',...(replenMode==='bbcc'?['标记操作']:[])].map(h => <th key={h} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{h}</th>)}</tr></thead>
                 <tbody>
-                  {replen.map((x, i) => {
+                  {Array.isArray(replen) && replen.map((x, i) => {
                     const isOrdered = orderedKeys.includes(x.sku+'|'+x.store)
                     const rowStyle = isOrdered ? {opacity:0.55,background:'var(--bg)'} : {}
                     return (

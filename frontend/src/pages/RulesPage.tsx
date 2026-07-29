@@ -123,58 +123,106 @@ const pc=j=>{try{const c=JSON.parse(j);const rt=c.rightType||(LF.find(x=>x.v===c
     {tab==='rules'&&<>
       {editing!==null&&<div style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:32,padding:16,marginBottom:16}}>
         <div style={{fontWeight:600,marginBottom:12}}>{editing.id?'编辑规则':'新建规则'}</div>
+
+        {/* 基本信息 */}
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
-          {ruleFields.map(({k,l,h,pl,tp})=><label key={k} style={{fontSize:12,display:'block'}}>
-            {l}
-            {tp==='select'?<select value={f.event} onChange={e=>setF({...f,event:e.target.value})} style={IS}>{EVENTS.map(ev=><option key={ev.value} value={ev.value}>{ev.label}</option>)}</select>
-            :tp==='sev'?<select value={f.severity} onChange={e=>setF({...f,severity:e.target.value})} style={IS}><option value='warning'>警告</option><option value='error'>严重</option><option value='info'>提示</option></select>
-            :<input value={f[k]} onChange={e=>setF({...f,[k]:e.target.value})} style={IS} placeholder={pl||''}/>}
-            <div className='small muted' style={{fontSize:11,marginTop:2}}>{h}</div>
-            {(k==='alert_title'||k==='alert_desc') && f[k] && /\{/.test(f[k]) && <div style={{marginTop:4,padding:'4px 8px',background:'var(--card)',borderRadius:32,fontSize:11,color:'var(--muted)',border:'1px dashed var(--border)'}}>
-              ⓘ 预览：{renderTmpl(f[k])}
-            </div>}
-          </label>)}
+          <label style={{fontSize:12}}>规则名称<input value={f.name} onChange={e=>setF({...f,name:e.target.value})} style={IS} placeholder='低库存预警'/></label>
+          <label style={{fontSize:12}}>触发事件
+            <select value={f.event} onChange={e=>setF({...f,event:e.target.value})} style={IS}>
+              {EVENTS.map(ev=><option key={ev.value} value={ev.value}>{ev.label}</option>)}
+            </select>
+          </label>
+          <label style={{fontSize:12}}>告警标识
+            <select value={f.alert_type} onChange={e=>setF({...f,alert_type:e.target.value})} style={IS}>
+              <option value='low_stock'>低库存预警</option>
+              <option value='replenish'>紧急补货</option>
+              <option value='oversell'>超卖保护</option>
+              <option value='slow_moving'>滞销识别</option>
+              <option value='b_storage_warn'>B仓仓储告警</option>
+            </select>
+            <div className='small muted' style={{fontSize:11,marginTop:2}}>用于区分告警类型和显示颜色</div>
+          </label>
+          <label style={{fontSize:12}}>严重级别
+            <div style={{display:'flex',gap:6,marginTop:6}}>
+              {[{v:'warning',l:'⚠ 警告',c:'var(--warning)'},{v:'error',l:'🔴 严重',c:'var(--danger)'},{v:'info',l:'💡 提示',c:'var(--primary)'}].map(({v,l,c}) =>
+                <span key={v} onClick={()=>setF({...f,severity:v})} style={{flex:1,padding:'6px 8px',borderRadius:32,fontSize:12,fontWeight:600,textAlign:'center',cursor:'pointer',background:f.severity===v?c:'transparent',color:f.severity===v?'#fff':'var(--muted)',border:'1px solid',borderColor:f.severity===v?c:'var(--border)'}}>{l}</span>
+              )}
+            </div>
+          </label>
         </div>
-        <div style={{marginTop:12}}>
+
+        {/* 告警模板 */}
+        <div style={{marginTop:12,display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+          <label style={{fontSize:12}}>
+            告警标题
+            <input value={f.alert_title} onChange={e=>setF({...f,alert_title:e.target.value})} style={IS} placeholder='低库存预警: {product_name}'/>
+            <div className='small muted' style={{fontSize:11,marginTop:2}}>可用变量：{renderTmpl('{product_name}')} {renderTmpl('{sku}')}</div>
+            {f.alert_title && /\{/.test(f.alert_title) && <div style={{marginTop:4,padding:'4px 8px',background:'var(--card)',borderRadius:32,fontSize:11,color:'var(--muted)',border:'1px dashed var(--border)'}}>ⓘ 预览：{renderTmpl(f.alert_title)}</div>}
+          </label>
+          <label style={{fontSize:12}}>
+            告警描述
+            <input value={f.alert_desc} onChange={e=>setF({...f,alert_desc:e.target.value})} style={IS} placeholder='可用 {avail} < 安全线 {safety}'/>
+            <div className='small muted' style={{fontSize:11,marginTop:2}}>可用变量：{renderTmpl('{avail}')} {renderTmpl('{safety}')} {renderTmpl('{sku}')}</div>
+            {f.alert_desc && /\{/.test(f.alert_desc) && <div style={{marginTop:4,padding:'4px 8px',background:'var(--card)',borderRadius:32,fontSize:11,color:'var(--muted)',border:'1px dashed var(--border)'}}>ⓘ 预览：{renderTmpl(f.alert_desc)}</div>}
+          </label>
+        </div>
+
+        {/* 触发条件 */}
+        <div style={{marginTop:14}}>
           <div style={{fontWeight:600,fontSize:13,marginBottom:8,display:'flex',alignItems:'center',gap:4}}><IconScale size={14} /> 触发条件</div>
-          <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
-            <span style={{fontSize:13,color:'var(--muted)'}}>当</span>
-            <select value={cond.left} onChange={e=>setCond(p=>({...p,left:e.target.value}))} style={{...IS,flex:1,minWidth:140}}>{LF.map(f=><option key={f.v} value={f.v}>{f.l}</option>)}</select>
-            <select value={cond.op} onChange={e=>setCond(p=>({...p,op:e.target.value}))} style={{...IS,width:80}}>{OPS.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select>
-            <select value={cond.rightType} onChange={e=>{const v=e.target.value;setCond(p=>({...p,rightType:v,right:v==='field'?'inv.safety_qty':''}))}} style={{...IS,width:60}}><option value='field'>字段</option><option value='number'>数值</option><option value='text'>文本</option></select>
-            {cond.rightType==='field'
-              ?<select value={cond.right} onChange={e=>setCond(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:140}}>{LF.map(f=><option key={f.v} value={f.v}>{f.l}</option>)}</select>
-              :cond.rightType==='number'
-              ?<input type='number' value={cond.right} onChange={e=>setCond(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:80}}/>
-              :cond.left==='inv.warehouse_type'
-              ?<select value={cond.right} onChange={e=>setCond(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:120}}><option value=''>请选择</option><option value='platform'>C仓（platform）</option><option value='platform_b'>B仓（platform_b）</option><option value='own'>自有仓（own）</option></select>
-              :<input value={cond.right} onChange={e=>setCond(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:80}} placeholder='输入文本'/>}
-            <span style={{fontSize:13,color:'var(--muted)'}}>时触发</span>
+          <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:32,padding:12}}>
+            <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
+              <span style={{fontSize:13,fontWeight:500}}>当</span>
+              <select value={cond.left} onChange={e=>setCond(p=>({...p,left:e.target.value}))} style={{...IS,flex:1,minWidth:130,fontSize:13}}>{LF.map(f=><option key={f.v} value={f.v}>{f.l}</option>)}</select>
+              <select value={cond.op} onChange={e=>setCond(p=>({...p,op:e.target.value}))} style={{...IS,width:80,fontSize:13}}>{OPS.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select>
+              <select value={cond.rightType} onChange={e=>{const v=e.target.value;setCond(p=>({...p,rightType:v,right:v==='field'?'inv.safety_qty':''}))}} style={{...IS,width:60,fontSize:12}}>
+                <option value='field'>字段</option>
+                <option value='number'>数值</option>
+                <option value='text'>文本</option>
+              </select>
+              {cond.rightType==='field'
+                ?<select value={cond.right} onChange={e=>setCond(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:130,fontSize:13}}>{LF.map(f=><option key={f.v} value={f.v}>{f.l}</option>)}</select>
+                :cond.rightType==='number'
+                ?<input type='number' value={cond.right} onChange={e=>setCond(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:80,fontSize:13}}/>
+                :cond.left==='inv.warehouse_type'
+                ?<select value={cond.right} onChange={e=>setCond(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:120,fontSize:13}}><option value=''>请选择</option><option value='platform'>C仓（platform）</option><option value='platform_b'>B仓（platform_b）</option><option value='own'>自有仓（own）</option></select>
+                :<input value={cond.right} onChange={e=>setCond(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:80,fontSize:13}} placeholder='输入文本'/>}
+              <span style={{fontSize:13,fontWeight:500}}>时</span>
+            </div>
+
+            {/* 条件预览 */}
+            <div className='small' style={{marginTop:8,padding:'6px 10px',background:'var(--bg)',borderRadius:32,fontSize:12,color:'var(--primary)'}}>
+              <IconClipboard size={12} style={{display:'inline',verticalAlign:'middle',marginRight:4}} />
+              当 <b>{fieldLbl(cond.left)}</b> {opLbl(cond.op)} <b>{cond.rightType==='field'?fieldLbl(cond.right):cond.right}</b>
+              {cond2 && cond2.left ? <> 且 <b style={{color:'var(--success)'}}>{fieldLbl(cond2.left)}</b> {opLbl(cond2.op)} <b style={{color:'var(--success)'}}>{cond2.rightType==='field'?fieldLbl(cond2.right):cond2.right}</b></> : ''}
+              时触发告警
+            </div>
+
+            {/* 第二条件（AND） */}
+            {cond2 && cond2.left !== undefined ? <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap',marginTop:8,padding:'8px 10px',background:'rgba(5,150,105,0.05)',borderRadius:32,border:'1px dashed var(--success)'}}>
+              <span style={{fontSize:12,fontWeight:600,color:'var(--success)'}}>且</span>
+              <select value={cond2.left} onChange={e=>setCond2(p=>({...p,left:e.target.value}))} style={{...IS,flex:1,minWidth:130,fontSize:13}}>{LF.map(f=><option key={f.v} value={f.v}>{f.l}</option>)}</select>
+              <select value={cond2.op} onChange={e=>setCond2(p=>({...p,op:e.target.value}))} style={{...IS,width:80,fontSize:13}}>{OPS.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select>
+              <select value={cond2.rightType} onChange={e=>{const v=e.target.value;setCond2(p=>({...p,rightType:v,right:v==='field'?'inv.safety_qty':''}))}} style={{...IS,width:60,fontSize:12}}>
+                <option value='field'>字段</option>
+                <option value='number'>数值</option>
+                <option value='text'>文本</option>
+              </select>
+              {cond2.rightType==='field'
+                ?<select value={cond2.right} onChange={e=>setCond2(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:130,fontSize:13}}>{LF.map(f=><option key={f.v} value={f.v}>{f.l}</option>)}</select>
+                :cond2.rightType==='number'
+                ?<input type='number' value={cond2.right} onChange={e=>setCond2(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:80,fontSize:13}}/>
+                :cond2.left==='inv.warehouse_type'
+                ?<select value={cond2.right} onChange={e=>setCond2(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:120,fontSize:13}}><option value=''>请选择</option><option value='platform'>C仓（platform）</option><option value='platform_b'>B仓（platform_b）</option><option value='own'>自有仓（own）</option></select>
+                :<input value={cond2.right} onChange={e=>setCond2(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:80,fontSize:13}} placeholder='输入文本'/>}
+              <span onClick={()=>setCond2(null)} style={{cursor:'pointer',display:'inline-flex',padding:'4px',borderRadius:'50%',background:'rgba(225,29,72,0.1)',color:'var(--danger)'}}><IconClose size={14} /></span>
+            </div> : <div style={{marginTop:8}}>
+              <span onClick={()=>setCond2({left:'',op:'==',right:'',rightType:'text'})} className="btn btn-ghost" style={{fontSize:11,padding:'3px 12px',border:'1px dashed var(--border)'}}>+ 添加条件（且）</span>
+            </div>}
           </div>
-          <div className='small' style={{marginTop:6,padding:'6px 10px',background:'var(--bg)',borderRadius:32,fontSize:12,color:'var(--primary)'}}>
-            <IconClipboard size={12} style={{display:'inline',verticalAlign:'middle',marginRight:2}} /> 当 <b>{fieldLbl(cond.left)}</b> {opLbl(cond.op)} <b>{cond.rightType==='field'?fieldLbl(cond.right):cond.right}</b>
-            {cond2 && cond2.left ? <> 且 <b>{fieldLbl(cond2.left)}</b> {opLbl(cond2.op)} <b>{cond2.rightType==='field'?fieldLbl(cond2.right):cond2.right}</b></> : ''}
-            时触发告警
-          </div>
-          {cond2 && cond2.left !== undefined ? <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap',marginTop:6}}>
-            <span style={{fontSize:12,fontWeight:600,color:'var(--muted)'}}>且</span>
-            <select value={cond2.left} onChange={e=>setCond2(p=>({...p,left:e.target.value}))} style={{...IS,flex:1,minWidth:140}}>{LF.map(f=><option key={f.v} value={f.v}>{f.l}</option>)}</select>
-            <select value={cond2.op} onChange={e=>setCond2(p=>({...p,op:e.target.value}))} style={{...IS,width:80}}>{OPS.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select>
-            <select value={cond2.rightType} onChange={e=>{const v=e.target.value;setCond2(p=>({...p,rightType:v,right:v==='field'?'inv.safety_qty':''}))}} style={{...IS,width:60}}><option value='field'>字段</option><option value='number'>数值</option><option value='text'>文本</option></select>
-            {cond2.rightType==='field'
-              ?<select value={cond2.right} onChange={e=>setCond2(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:140}}>{LF.map(f=><option key={f.v} value={f.v}>{f.l}</option>)}</select>
-              :cond2.rightType==='number'
-              ?<input type='number' value={cond2.right} onChange={e=>setCond2(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:80}}/>
-              :cond2.left==='inv.warehouse_type'
-              ?<select value={cond2.right} onChange={e=>setCond2(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:120}}><option value=''>请选择</option><option value='platform'>C仓（platform）</option><option value='platform_b'>B仓（platform_b）</option><option value='own'>自有仓（own）</option></select>
-              :<input value={cond2.right} onChange={e=>setCond2(p=>({...p,right:e.target.value}))} style={{...IS,flex:1,minWidth:80}} placeholder='输入文本'/>}
-            <span onClick={()=>setCond2(null)} style={{cursor:'pointer',fontSize:16,color:'var(--danger)',display:'inline-flex'}}><IconClose size={16} /></span>
-          </div> : <div style={{marginTop:6}}>
-            <span onClick={()=>setCond2({left:'',op:'==',right:'',rightType:'text'})} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px'}}>+ 添加条件（且）</span>
-          </div>}
         </div>
         <div style={{marginTop:12,display:'flex',gap:8}}>
-          <button onClick={save} className="btn btn-primary">保存</button>
+          <button onClick={save} className="btn btn-primary" style={{display:'inline-flex',alignItems:'center',gap:4}}><IconSave size={14} /> 保存</button>
           <button onClick={()=>{setEditing(null);setF({name:'',event:'inventory.changed',alert_type:'',alert_title:'',alert_desc:'',severity:'warning',condition_json:'{}'});setCond({left:'inv.available_qty',op:'<',right:'inv.safety_qty',rightType:'field'});setCond2(null)}} className="btn btn-ghost">取消</button>
         </div>
       </div>}

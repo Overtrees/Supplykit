@@ -6,7 +6,8 @@ import logging
 logger = logging.getLogger(__name__)
 from app.core.database import get_db, submit_task, get_task, backup_db
 from app.core.response import ok, fail
-from app.core.cleansing_utils import parse_file, cleanse_value, extract_field_mapping, detect_target
+from app.core.cleansing_parser import parse_file, cleanse_value
+from app.core.cleansing_templates import load_custom_fields, save_custom_fields, list_templates, save_template, delete_template, get_system_fields
 from app.api.routes.ws import broadcast
 from app.api.routes.insights import auto_adjust_inventory
 
@@ -345,13 +346,65 @@ async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''
                              target: str = Form('order'), template_name: str = Form('')):
     content = await file.read()
     return _run_cleansing(content, file.filename, mapping, target, template_name)
+
+@router.post('/execute-async')
+async def execute_cleansing_async(file: UploadFile = File(...), mapping: str = Form(''),
+                                   target: str = Form('order'), template_name: str = Form('')):
+    import uuid
+    content = await file.read()
+    task_id = str(uuid.uuid4())[:8]
+    submit_task(task_id, _run_cleansing, content, file.filename, mapping, target, template_name)
+    from app.core.database import update_task
+    update_task(task_id, progress=0)
+    return {'ok': True, 'task_id': task_id, 'message': '任务已提交'}
+
 @router.get('/templates')
+def list_templates_route(db = get_db()):
+    return ok(list_templates(db))
+
+@router.post('/templates')
+def save_template_route(data: dict, db = get_db()):
+    save_template(data, db)
+    return {'ok': True, 'message': '模板已保存'}
+
+@router.delete('/templates/{template_id}')
+def delete_template_route(template_id: int, db = get_db()):
+    delete_template(template_id, db)
+    return {'ok': True, 'message': '已删除'}
+
 @router.get('/task/{task_id}')
 def get_task_status(task_id: str):
     task = get_task(task_id)
     if not task:
         raise HTTPException(status_code=404, detail='任务不存在')
     return {'ok': True, 'task_id': task_id, **task}
+
+@router.get('/fields/{target}')
+def get_fields_route(target: str):
+    return ok(get_system_fields(target))
+
+@router.get('/custom-fields/{target}')
+def list_custom_fields_route(target: str):
+    cf = load_custom_fields()
+    return {'ok': True, 'fields': cf.get(target, [])}
+
+@router.post('/custom-fields/{target}')
+def add_custom_field_route(target: str, data: dict):
+    cf = load_custom_fields()
+    if target not in cf: cf[target] = []
+    if any(f.get('key') == data.get('key') for f in cf[target]):
+        return ok('字段已存在')
+    cf[target].append(data)
+    save_custom_fields(cf)
+    return {'ok': True, 'message': '字段已添加'}
+
+@router.delete('/custom-fields/{target}/{field_key}')
+def remove_custom_field_route(target: str, field_key: str):
+    cf = load_custom_fields()
+    if target in cf:
+        cf[target] = [f for f in cf[target] if f.get('key') != field_key]
+        save_custom_fields(cf)
+    return {'ok': True, 'message': '已删除'}
 
 # ─── 数据库备份 ──────────────────────────────────────────────────────────────
 
@@ -361,5 +414,3 @@ def trigger_backup():
     if path:
         return {'ok': True, 'path': path, 'message': f'备份完成: {os.path.basename(path)}'}
     return {'ok': False, 'error': '备份失败'}
-
-# ─── 清洗工具函数（迁移到 app.core.cleansing_utils）───

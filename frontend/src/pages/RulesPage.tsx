@@ -14,7 +14,17 @@ export default function RulesPage() {
   const toast = useToast()
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
-  const IS={width:'100%',padding:'6px 8px',fontSize:16,border:'1px solid var(--border)',borderRadius:32,marginTop:4,outline:'none',background:'var(--card)',boxSizing:'border-box'}
+  const VARS = {product_name:'商品名',sku:'SKU',avail:'可用量',safety:'安全线',days:'天数',stock:'库存量',order_qty:'订单数',store:'店铺',warehouse:'仓库'}
+const renderTmpl = (text) => {
+  if (!text) return null
+  const parts = text.split(/(\{(\w+)\})/g)
+  return parts.map((p,i) => {
+    if (i%3===1) return <span key={i} style={{display:'inline-block',background:'rgba(29,78,216,0.1)',color:'var(--primary)',padding:'0 4px',borderRadius:4,fontWeight:600,fontSize:10}}>{VARS[parts[i+1]]||parts[i+1]}</span>
+    if (i%3===2) return null
+    return <span key={i}>{p}</span>
+  })
+}
+const IS={width:'100%',padding:'6px 8px',fontSize:16,border:'1px solid var(--border)',borderRadius:32,marginTop:4,outline:'none',background:'var(--card)',boxSizing:'border-box'}
   const [tab,setTab] = useState('rules')
   const [rules,setRules] = useState([])
   const [editing,setEditing] = useState(null)
@@ -120,6 +130,9 @@ const pc=j=>{try{const c=JSON.parse(j);const rt=c.rightType||(LF.find(x=>x.v===c
             :tp==='sev'?<select value={f.severity} onChange={e=>setF({...f,severity:e.target.value})} style={IS}><option value='warning'>警告</option><option value='error'>严重</option><option value='info'>提示</option></select>
             :<input value={f[k]} onChange={e=>setF({...f,[k]:e.target.value})} style={IS} placeholder={pl||''}/>}
             <div className='small muted' style={{fontSize:11,marginTop:2}}>{h}</div>
+            {(k==='alert_title'||k==='alert_desc') && f[k] && /\{/.test(f[k]) && <div style={{marginTop:4,padding:'4px 8px',background:'var(--card)',borderRadius:32,fontSize:11,color:'var(--muted)',border:'1px dashed var(--border)'}}>
+              ⓘ 预览：{renderTmpl(f[k])}
+            </div>}
           </label>)}
         </div>
         <div style={{marginTop:12}}>

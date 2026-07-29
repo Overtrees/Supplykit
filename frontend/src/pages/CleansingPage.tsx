@@ -269,7 +269,12 @@ export default function CleansingPage() {
             <div style={{overflowX:"auto"}}>
             <table><thead><tr>{keys.map(h=>{
               const sf = SYS_FIELDS.find(x => x.t === h) || cf.find(x => x.t === h)
-              return <th key={h} style={{minWidth:80,whiteSpace:'nowrap'}}>{sf ? sf.l : h}</th>
+              // 找出映射到此目标的所有来源列
+              const srcCols = Object.entries(mp).filter(([,v]) => v && v.target === h).map(([k]) => k)
+              return <th key={h} style={{minWidth:80,whiteSpace:'nowrap',verticalAlign:'top'}}>
+                {sf ? sf.l : h}
+                <div className="small muted" style={{fontSize:9,fontWeight:400}}>{srcCols.join(', ')}</div>
+              </th>
             })}</tr></thead>
             <tbody>{pv.preview.map((r,i)=><tr key={i}>{keys.map(k=><td key={k} style={{minWidth:80,whiteSpace:'nowrap',maxWidth:200,overflow:'hidden',textOverflow:'ellipsis'}}>{String(r[k]||'')}</td>)}</tr>)}</tbody></table>
             </div>

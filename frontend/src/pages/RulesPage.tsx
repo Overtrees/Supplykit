@@ -183,7 +183,10 @@ const pc=j=>{try{const c=JSON.parse(j);const rt=c.rightType||(LF.find(x=>x.v===c
           <div style={{marginTop:4,padding:'6px 10px',background:'var(--bg)',borderRadius:32,fontSize:12,color:'var(--primary)',display:'inline-block'}}>
             <IconScale size={12} style={{display:'inline',verticalAlign:'middle',marginRight:2}} /> {condText}
           </div>
-          <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>{rule.alert_title}{rule.alert_desc ? ' · '+rule.alert_desc : ''}</div>
+          <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>
+            {rule.alert_title ? <span>{rule.alert_title.replace(/\{(\w+)\}/g, (_,v)=>{const m={product_name:'商品名',sku:'SKU',avail:'可用量',safety:'安全线',days:'天数',stock:'库存量'}; return '['+(m[v]||v)+']'})}</span> : ''}
+            {rule.alert_desc ? <span className="small muted" style={{marginLeft:rule.alert_title?4:0}}>· {rule.alert_desc.replace(/\{(\w+)\}/g, (_,v)=>{const m={product_name:'商品名',sku:'SKU',avail:'可用量',safety:'安全线',days:'天数',stock:'库存量'}; return '['+(m[v]||v)+']'})}</span> : ''}
+          </div>
         </div>
         <div style={{display:'flex',gap:6,flexShrink:0}}>
           <button onClick={()=>{const c=pc(rule.condition_json||'{}');setEditing(rule);setF({name:rule.name,event:rule.event,alert_type:rule.alert_type||'',alert_title:rule.alert_title||'',alert_desc:rule.alert_desc||'',severity:rule.severity||'warning',condition_json:rule.condition_json||'{}'});setCond(c);setCond2(c.and||null)}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 10px',minHeight:0}}>编辑</button>

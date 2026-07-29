@@ -265,27 +265,27 @@ export default function CleansingPage() {
         </div>
         {(() => {
           if (!pv.preview?.length) return null
-          // 只显示有映射的字段（排除 _source）
-          const keys = Object.keys(pv.preview[0]).filter(k => k !== '_source').filter(k => {
-            for (const cfg of Object.values(mp)) {
-              if (cfg && cfg.target && cfg.target === k) return true
-            }
-            return false
+          // 按来源列显示：只显示有映射的列（target 非空），unmap 的列直接不出现
+          const mappedSources = Object.entries(mp).filter(([, v]) => v && v.target)
+          const cols = mappedSources.map(([src, cfg]) => {
+            const sf = SYS_FIELDS.find(x => x.t === cfg.target) || cf.find(x => x.t === cfg.target)
+            return {src, target: cfg.target, label: sf ? sf.l : cfg.target}
           })
-          if (keys.length === 0) return <div className="small muted" style={{padding:20,textAlign:'center'}}>没有已映射的字段，请返回并设置字段映射</div>
+          if (cols.length === 0) return <div className="small muted" style={{padding:20,textAlign:'center'}}>没有已映射的字段，请返回并设置字段映射</div>
           return <div style={{marginBottom:12}}>
-            <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>← 左右滑动查看所有已映射字段 →</div>
+            <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>← 左右滑动查看 · 仅显示已映射的 {cols.length} 列 →</div>
             <div style={{overflowX:"auto"}}>
-            <table><thead><tr>{keys.map(h=>{
-              const sf = SYS_FIELDS.find(x => x.t === h) || cf.find(x => x.t === h)
-              // 找出映射到此目标的所有来源列
-              const srcCols = Object.entries(mp).filter(([,v]) => v && v.target === h).map(([k]) => k)
-              return <th key={h} style={{minWidth:80,whiteSpace:'nowrap',verticalAlign:'top'}}>
-                {sf ? sf.l : h}
-                <div className="small muted" style={{fontSize:9,fontWeight:400}}>{srcCols.join(', ')}</div>
+            <table><thead><tr>{cols.map(col => (
+              <th key={col.src} style={{minWidth:80,whiteSpace:'nowrap',verticalAlign:'top'}}>
+                {col.label}
+                <div className="small muted" style={{fontSize:9,fontWeight:400}}>← {col.src}</div>
               </th>
-            })}</tr></thead>
-            <tbody>{pv.preview.map((r,i)=><tr key={i}>{keys.map(k=><td key={k} style={{minWidth:80,whiteSpace:'nowrap',maxWidth:200,overflow:'hidden',textOverflow:'ellipsis'}}>{String(r[k]||'')}</td>)}</tr>)}</tbody></table>
+            ))}</tr></thead>
+            <tbody>{pv.preview.map((r,i) => (
+              <tr key={i}>{cols.map(col => (
+                <td key={col.src} style={{minWidth:80,whiteSpace:'nowrap',maxWidth:200,overflow:'hidden',textOverflow:'ellipsis'}}>{String(r[col.target]||'')}</td>
+              ))}</tr>
+            ))}</tbody></table>
             </div>
           </div>
         })()}

@@ -364,8 +364,13 @@ def list_templates_route(db = get_db()):
 
 @router.post('/templates')
 def save_template_route(data: dict, db = get_db()):
-    save_template(data, db)
-    return {'ok': True, 'message': '模板已保存'}
+    try:
+        save_template(data, db)
+        return {'ok': True, 'message': '模板已保存'}
+    except Exception as e:
+        import logging
+        logging.error(f"save_template failed: {e}")
+        return fail(str(e)[:200])
 
 @router.delete('/templates/{template_id}')
 def delete_template_route(template_id: int, db = get_db()):

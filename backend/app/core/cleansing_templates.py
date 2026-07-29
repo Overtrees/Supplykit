@@ -46,7 +46,7 @@ def save_template(data: dict, db=None):
         db.table("cleansing_templates").insert({
             "name": name,
             "mapping": json.dumps(data.get('mapping', {}), ensure_ascii=False),
-            "target": data.get('target', 'order'),
+            "doc_type": data.get('doc_type', data.get('target', 'order')),
         }).execute()
     return True
 

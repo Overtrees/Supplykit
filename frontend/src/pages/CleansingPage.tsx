@@ -277,7 +277,7 @@ export default function CleansingPage() {
       </div>}
     {s === 1 && <div style={{marginTop:12,display:'flex',gap:8,justifyContent:'flex-end'}}>
       {btn('← 返回', ()=>setS(0), 'ghost')}
-      {btn('下一步 预览 →', ()=>setS(2), 'primary')}
+      {btn('下一步 预览 →', preview, 'primary')}
       {btn(<><IconLightning size={14} /> 一键执行</>, quickExecute, 'success')}
     </div>}
 

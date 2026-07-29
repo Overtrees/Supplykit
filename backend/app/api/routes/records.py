@@ -1,6 +1,7 @@
 """采购入库 / 出库调拨 记录"""
 from fastapi import APIRouter
 from app.core.database import get_db
+from app.core.response import ok, fail
 from datetime import datetime
 
 router = APIRouter(prefix="/api/records", tags=["records"])
@@ -23,7 +24,7 @@ def delete_inbound(iid: int, db = get_db()):
 def clear_inbound(db = get_db()):
     for r in db.table("inbound_records").select("id").execute().data or []:
         db.table("inbound_records").delete().eq("id", r["id"]).execute()
-    return {"ok": True, "deleted": "all"}
+    return ok({"deleted": "all"})
 
 
 @router.post('/inbound')
@@ -55,7 +56,7 @@ def delete_outbound(iid: int, db = get_db()):
 def clear_outbound(db = get_db()):
     for r in db.table("outbound_records").select("id").execute().data or []:
         db.table("outbound_records").delete().eq("id", r["id"]).execute()
-    return {"ok": True, "deleted": "all"}
+    return ok({"deleted": "all"})
 
 
 @router.post('/outbound')

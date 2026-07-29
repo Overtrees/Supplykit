@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from app.core.database import get_db
+from app.core.response import ok, fail
 
 router = APIRouter(prefix="/api/inventory", tags=["inventory"])
 
@@ -105,14 +106,14 @@ def batch_set_warehouse_type(ids: str = '', warehouse: str = '', warehouse_type:
         rows = db.table("inventory").select("id").eq("warehouse", warehouse).execute().data or []
         for r in rows:
             db.table("inventory").update({"warehouse_type": warehouse_type}).eq("id", r["id"]).execute()
-        return {"ok": True, "updated": len(rows), "warehouse": warehouse}
+        return ok({"updated": len(rows), "warehouse": warehouse})
     if ids == 'all':
         db.table("inventory").update({"warehouse_type": warehouse_type}).eq("warehouse_type", "platform").execute()
-        return {"ok": True, "updated": "all"}
+        return ok({"updated": "all"})
     id_list = [int(x.strip()) for x in ids.split(',') if x.strip().isdigit()]
     for iid in id_list:
         db.table("inventory").update({"warehouse_type": warehouse_type}).eq("id", iid).execute()
-    return {"ok": True, "updated": len(id_list)}
+    return ok({"updated": len(id_list)})
 
 
 @router.post("/adjust")
@@ -123,7 +124,7 @@ def adjust_inventory(body: dict, db = get_db()):
     inv = db.table("inventory").select("*").eq("id", iid).execute().data
     inv = inv[0] if inv else None
     if not inv:
-        return {"ok": False, "error": "not found"}
+        return fail("not found")
     avail = int(inv.get("available_qty") or 0)
     new_avail = avail
     if action == "in":

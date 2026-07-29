@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
 from app.core.database import get_db
+from app.core.response import ok, fail
 
 router = APIRouter(prefix="/api/events", tags=["events"])
 
@@ -7,9 +8,9 @@ router = APIRouter(prefix="/api/events", tags=["events"])
 def list_events(db = get_db()):
     try:
         data = db.table("events").select("*").order("id", desc=True).limit(50).execute().data
-        return data or []
+        return ok(data or [])
     except Exception:
-        return []
+        return ok([])
 
 def create_event(db, event_type: str, entity_type: str,
                   entity_id: str, title: str, payload: dict):

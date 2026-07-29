@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
 from app.core.database import get_db
+from app.core.response import ok, fail
 
 router = APIRouter(prefix="/api/suppliers", tags=["suppliers"])
 
@@ -10,7 +11,7 @@ def list_suppliers(db = get_db(), search: str = ""):
         like = f"%{search}%"
         q = q.ilike("supplier_name", like) | q.ilike("supplier_code", like)
     data = q.order("id", desc=True).execute().data
-    return data
+    return ok(data)
 
 @router.post("")
 def create_supplier(body: dict, db = get_db()):

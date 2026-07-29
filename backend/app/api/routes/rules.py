@@ -1,6 +1,7 @@
 """规则管理 API"""
 from fastapi import APIRouter, HTTPException
 from app.core.database import get_db
+from app.core.response import ok, fail
 import json
 
 router = APIRouter(prefix="/api/rules", tags=["rules"])
@@ -21,7 +22,7 @@ def create_rule(data: dict, db = get_db()):
         "is_active": 1 if data.get("is_active",True) else 0,
     }
     db.table("rules").insert(payload).execute()
-    return {"ok": True, "message": f"规则已创建"}
+    return ok({"message": f"规则已创建"})
 
 @router.put("/{rule_id}")
 def update_rule(rule_id: int, data: dict, db = get_db()):
@@ -33,12 +34,12 @@ def update_rule(rule_id: int, data: dict, db = get_db()):
     if "condition" in data: update["condition_json"] = json.dumps(data["condition"])
     if "is_active" in data: update["is_active"] = 1 if data["is_active"] else 0
     db.table("rules").update(update).eq("id", rule_id).execute()
-    return {"ok": True, "message": "已更新"}
+    return ok({"message": "已更新"})
 
 @router.delete("/{rule_id}")
 def delete_rule(rule_id: int, db = get_db()):
     db.table("rules").delete().eq("id", rule_id).execute()
-    return {"ok": True, "message": "已删除"}
+    return ok({"message": "已删除"})
 
 @router.post("/evaluate-all")
 def evaluate_all_rules(db = get_db()):
@@ -48,4 +49,4 @@ def evaluate_all_rules(db = get_db()):
     for r in rules_data:
         try: rule_evaluate(r["event"], {"db": db, "rule": r}); count += 1
         except: pass
-    return {"ok": True, "message": f"已评估 {count} 条规则", "count": count}
+    return ok({"message": f"已评估 {count} 条规则", "count": count})

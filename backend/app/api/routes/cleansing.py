@@ -5,6 +5,7 @@ from openpyxl import load_workbook
 import logging
 logger = logging.getLogger(__name__)
 from app.core.database import get_db, submit_task, get_task, backup_db
+from app.core.response import ok, fail
 from app.api.routes.ws import broadcast
 from app.api.routes.insights import auto_adjust_inventory
 
@@ -80,7 +81,7 @@ def parse_file(content, filename):
     ws = wb[wb.sheetnames[0]]
     raw = list(ws.iter_rows(values_only=True))
     if not raw:
-        return []
+        return ok([])
     headers = [str(c).strip() if c is not None else '' for c in raw[0]]
     return [{headers[i]: raw[r][i] for i in range(len(headers))} for r in range(1, len(raw))]
 
@@ -129,7 +130,6 @@ async def preview_cleansing(file: UploadFile = File(...), mapping: str = Form(''
             if w:
                 warehouse_in_file.add(w)
         # 查现有库存中的仓库
-        from app.core.database import get_db
         db = get_db()
         existing = set()
         for i in db.table("inventory").select("warehouse").execute().data or []:

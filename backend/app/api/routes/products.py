@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
 from app.core.database import get_db
+from app.core.response import ok, fail
 
 router = APIRouter(prefix="/api/products", tags=["products"])
 
@@ -10,7 +11,7 @@ def list_products(db = get_db(), search: str = ""):
         like = f"%{search}%"
         q = q.ilike("product_name", like) | q.ilike("sku", like)
     data = q.order("id", desc=True).execute().data
-    return data
+    return ok(data)
 
 @router.post("")
 def create_product(body: dict, db = get_db()):
@@ -41,4 +42,4 @@ def delete_product(pid: int, db = get_db()):
 def batch_delete_products(ids: str, db = get_db()):
     id_list = [int(x.strip()) for x in ids.split(",") if x.strip().isdigit()]
     data = db.table("products").delete().in_("id", id_list).execute().data
-    return {"ok": True, "deleted": len(data)}
+    return ok({"deleted": len(data)})

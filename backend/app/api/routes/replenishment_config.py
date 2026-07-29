@@ -1,6 +1,7 @@
 
 from fastapi import APIRouter
 from app.core.database import get_db
+from app.core.response import ok, fail
 from datetime import datetime, timedelta
 from collections import defaultdict
 
@@ -13,7 +14,7 @@ def get_config(mode: str = None, db=get_db()):
     if mode:
         prefix = f'mode_{mode}_'
         return {k[len(prefix):]: v for k, v in all_config.items() if k.startswith(prefix)}
-    return all_config
+    return ok(all_config)
 
 @router.put("")
 def update_config(data: dict, mode: str = '', db=get_db()):
@@ -47,7 +48,7 @@ def update_seasons(data: dict, mode: str = 'bbcc', db=get_db()):
     val = json.dumps(list(items), ensure_ascii=False)
     key = f'season_config_{mode}'
     db.table("replenishment_config").upsert({"key": key, "value": val, "updated_at": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}, conflict_col='key')
-    return items
+    return ok(items)
 @router.get('/calculate')
 def calculate(mode: str = 'bbcc', db=get_db()):
     prefix = f'mode_{mode}_'

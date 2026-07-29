@@ -1,6 +1,7 @@
 """采购记录（补货/采购"已下单"标记）持久化"""
 from fastapi import APIRouter
 from app.core.database import get_db
+from app.core.response import ok, fail
 from datetime import datetime
 
 router = APIRouter(prefix="/api/purchase-orders", tags=["purchase_orders"])
@@ -9,7 +10,7 @@ router = APIRouter(prefix="/api/purchase-orders", tags=["purchase_orders"])
 @router.get("")
 def list_purchase_orders(db = get_db()):
     items = db.table("purchase_orders").select("*").order("id", desc=True).execute().data or []
-    return items
+    return ok(items)
 
 
 @router.post("")
@@ -26,7 +27,7 @@ def create_purchase_order(sku: str, store: str = '', product_name: str = '',
             "arrival_date": arrival_date,
             "status": "pending",
         })
-        return {"ok": True, "sku": sku, "store": store}
+        return ok({"sku": sku, "store": store})
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
@@ -41,6 +42,6 @@ def update_purchase_order(iid: int, body: dict, db = get_db()):
 def delete_purchase_order(sku: str, store: str = '', db = get_db()):
     try:
         db.table("purchase_orders").delete().eq("sku", sku).eq("store", store).execute()
-        return {"ok": True, "sku": sku, "store": store}
+        return ok({"sku": sku, "store": store})
     except Exception as e:
         return {"ok": False, "error": str(e)}

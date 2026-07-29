@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
 from app.core.database import get_db
+from app.core.response import ok, fail
 from app.core.sales_utils import calc_sales, rolling_predict
 from datetime import datetime
 import json, os
@@ -9,7 +10,7 @@ router = APIRouter(prefix="/api/insights", tags=["insights"])
 
 @router.get('/ping')
 def ping():
-    return {"ok": True, "time": datetime.utcnow().isoformat()}
+    return ok({"time": datetime.utcnow().isoformat()})
 
 @router.get('/replenishment')
 def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 'bbcc', db = get_db()):
@@ -350,7 +351,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             })
 
     suggestions.sort(key=lambda x: x['days_to_empty'])
-    return suggestions
+    return ok(suggestions)
 
 
 @router.get('/replenishment/compare')
@@ -415,7 +416,7 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
         if os.getenv('SALES_LOG') and any(v > 0 for v in result.values()):
             import logging
             logging.info(f"[PURCHASE_CALC] win={win}d cutoff={cutoff} → {len(result)} SKU, 非零: {{k:round(v,2) for k,v in result.items() if v>0}}")
-        return result
+        return ok(result)
     now = datetime.utcnow()
     sales_14 = purchase_calc(14)
     sales_28 = purchase_calc(28)
@@ -535,13 +536,12 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
                 # 库存充足 → 关闭已有告警
                 db.table("alerts").update({"status":"closed"}).eq("alert_type","purchase_need").eq("related_sku",r['sku']).eq("status","active").execute()
             except: pass
-    return {"suggestions": result}
-
-
+    return ok({"suggestions": result})
 def detect_slow_moving_products(db=None, create_alerts=False):
     from datetime import datetime, timedelta
     if db is None:
-        from app.core.database import get_db; db = get_db()
+        from app.core.database import get_db
+        db = get_db()
     orders = db.table("orders").select("*").execute().data
     products_map = {p["sku"]: p for p in db.table("products").select("*").execute().data}
     inventory_map = {i["sku"]: i for i in db.table("inventory").select("*").execute().data}
@@ -571,7 +571,7 @@ def detect_slow_moving_products(db=None, create_alerts=False):
                 if not ex:
                     db.table("alerts").insert({"alert_type":"slow_moving", "title":f"滞销: {result[-1]['product_name']}", "description":f"{days} 天无销售，库存 {stock} 件", "severity":"warning", "source":"event_bus", "related_sku":sku, "status":"active"}).execute()
     result.sort(key=lambda x: -x["days_since_last"])
-    return result
+    return ok(result)
 
 @router.get('/slow-moving')
 def get_slow_moving_products(db = get_db()):
@@ -1002,4 +1002,4 @@ def inventory_with_sales(db = get_db()):
             'month_end': month_end,
             'turnover_days': round((begin + inbound_month.get(sku, 0)) / outbound_month.get(sku, 0), 1) if outbound_month.get(sku, 0) > 0 else None,
         })
-    return result
+    return ok(result)

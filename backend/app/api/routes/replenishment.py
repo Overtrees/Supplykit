@@ -120,6 +120,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             after_turnover = round(after_stock / sel_ds, 1) if sel_ds > 0 else 999
             days_to_empty = round(avail / sel_ds, 1) if sel_ds > 0 else 999
             combined_turnover_current = round((avail + transit + b_stock.get(sku, 0)) / sel_ds, 1) if sel_ds > 0 else None
+            combined_turnover = round((avail + transit + suggested + b_stock.get(sku, 0) + b_box_qty) / sel_ds, 1) if sel_ds > 0 else None
             t7 = '📈' if ds7 > ds14 * 1.15 else ('📉' if ds7 < ds14 * 0.85 else '➡️')
             t14 = '📈' if ds14 > ds28 * 1.15 else ('📉' if ds14 < ds28 * 0.85 else '➡️')
             trend_text = f"近7{t7} 近14{t14}"
@@ -162,7 +163,6 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             note = " · ".join(parts)
             c_turnover = round(avail / sel_ds, 1) if sel_ds > 0 else None
             transit_turnover = round(transit / sel_ds, 1) if sel_ds > 0 else None
-            combined_turnover = round((avail + transit + suggested + b_stock.get(sku, 0) + b_box_qty) / sel_ds, 1) if sel_ds > 0 else None
             suggestions.append({
                 "sku": sku, "product_name": prod.get('product_name', ''),
                 "store": prod.get('store', ''), "category": prod.get('category', ''),

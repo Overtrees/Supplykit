@@ -168,7 +168,13 @@ for sku_info in SKUS:
         ("武汉", random.uniform(0.08, 0.15)),
         ("成都", random.uniform(0.05, 0.10)),
     ]
-    total_c = safety * 2  # C仓总库存约为安全库存的2倍
+    # C仓总库存：让热销品产生补货缺口
+    if base >= 20:
+        total_c = max(1, round(safety * random.uniform(0.2, 0.4)))
+    elif base >= 10:
+        total_c = max(1, round(safety * random.uniform(0.4, 0.6)))
+    else:
+        total_c = max(1, round(safety * random.uniform(0.6, 1.0)))
     
     for wh, ratio in c_warehouses:
         avail = max(1, round(total_c * ratio))

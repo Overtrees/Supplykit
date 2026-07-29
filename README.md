@@ -23,7 +23,6 @@
 ## 快速开始
 
 ```bash
-# 克隆仓库
 git clone https://github.com/Overtrees/Supplykit.git
 cd Supplykit
 
@@ -33,24 +32,19 @@ cd frontend && npm install && npm run dev
 # 后端
 cd ../backend && pip install -r requirements.txt
 uvicorn app.main:app --reload
+
+# 生成模拟数据（可选）
+python seed_realistic.py
 ```
 
-环境变量（前端 `.env`）：
+环境变量：
 
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
 | `VITE_API_BASE_URL` | 后端 API 地址 | `https://overtrees.pythonanywhere.com` |
-
----
-
-## 架构
-
-```
-前端 (Cloudflare Pages)       后端 (PythonAnywhere)    数据库
-React 18 + TypeScript          FastAPI                  SQLite → PostgreSQL
-ECharts 5 + React Query        WebSocket(降级轮询)      owner_id / created_at
-Zustand + ErrorBoundary        APScheduler 定时任务     raw_data 全部表已带
-```
+| `SQLITE_PATH` | 数据库路径 | `app/supplykit.db` |
+| `CORS_ORIGINS` | 跨域允许来源 | `*` |
+| `PYTHONANYWHERE_TOKEN` | PA 部署 Token | — |
 
 ---
 
@@ -58,47 +52,56 @@ Zustand + ErrorBoundary        APScheduler 定时任务     raw_data 全部表�
 
 | 页面 | 说明 |
 |------|------|
-| 📊 总览 | 时段切换、GMV趋势、漏斗图、分类饼图、库存健康度、告警列表(点击→库存高亮) |
-| 🏷️ 商品 | 列表 + 搜索 |
-| 🏭 供应商 | 列表 + 搜索 |
-| 📋 订单 | 分页 + 仓库列 |
-| 📦 库存 | 列表 + 告警高亮(从总览跳转) |
-| 💡 建议 | 补货 BBCC/传统双模式 + 滚动预测融合日销 / 采购14+28融合 / 滞销 / 回溯 |
-| 🧹 清洗 | 上传→智能匹配→字段映射→预览→异步执行→异常池，支持模板保存/加载、自定义字段 |
-| ⚙️ 规则 | 自定义规则引擎（低库存/补货/超卖/滞销） + 补货参数（BBCC分C仓/B仓两组 / 传统） |
-| 📤 导入 | Excel 批量导入，成功后自动跳转 |
-| ⚠️ 异常 | 数据质量日志 |
+| 📊 **看板** | GMV趋势、店铺GMV、订单阶段转化漏斗、库存健康度、濒临断货TOP10、待处理告警 |
+| 🏷️ **商品** | 列表 + 搜索 |
+| 🏭 **供应商** | 列表 + 搜索 + 评分 |
+| 📋 **订单** | 分页 + 搜索 + 状态筛选 |
+| 📦 **库存** | 进销存台账 + 周转计算 |
+| 💡 **补货建议** | BBCC（全国一盘棋）/ 传统（按仓逐条）双模式，三窗口滚动预测日销 |
+| 📦 **采购建议** | 14+28天双窗口融合，系统总库存视角，MOQ兜底 |
+| 🧹 **清洗导入** | 上传→智能匹配→字段映射→预览→执行，支持模板/自定义字段/异步导入 |
+| ⚙️ **规则引擎** | 事件驱动（库存变动/订单创建/每日定时），条件可视化编辑，百分比比较 |
+| ⚠️ **异常记录** | 数据质量日志 |
 
 ---
 
-## 技术栈
+## 架构
 
-- **TypeScript** 全量迁移（.tsx / .ts，非严格模式）
-- **组件拆分**：App.tsx ~60行，Card/Chart/Sidebar/UploadPanel + 8 页面文件
-- **ErrorBoundary** 包裹所有页面，崩溃时显示错误信息而非空白
-- **键盘快捷键**：Cmd+B 开关侧栏、Esc 关闭
-- **智能列名匹配**：30+ 组中文→字段名自动映射（ALIAS 表）
-- **React Query** 已接入（QueryClientProvider）
-- **Toast 通知** 替代 alert()，已全局注入
-- **颜色 token** 集中管理（theme.ts）
-- **WebSocket** 10s 重连退避，失败降级 30s 轮询
-- **EmptyState** 空状态引导组件
-- **localStorage** 自定义字段持久化
+```
+前端 (Cloudflare Pages)              后端 (PythonAnywhere)         数据库
+┌─────────────────────┐              ┌──────────────────────┐      ┌─────────┐
+│ React 18 + TypeScript│              │ FastAPI + 18 路由模块  │      │ SQLite  │
+│ ECharts 5            │  HTTPS       │ sales_utils (日销融合) │      │ WAL模式 │
+│ Zustand 状态管理      │◄───────────►│ response (统一响应格式) │─────►│ 每日备份│
+│ Axios + 缓存/去重     │              │ cleansing_parser       │      │ SCHEMA  │
+│ ErrorBoundary 页面    │              │ APScheduler 定时任务   │      │ 版本管理│
+└─────────────────────┘              │ WebSocket + 30s轮询    │      └─────────┘
+                                      │ 56 个测试用例           │
+                                      └──────────────────────┘
+```
 
----
+### 后端模块（18个路由）
 
-## 清洗页特性
-
-| 功能 | 说明 |
-|------|------|
-| 智能列名匹配 | 30+ 组中文别名自动映射 |
-| 系统字段 | 26 个（订单号、SKU、数量、金额、供应商、平台、收货人、币种等） |
-| 自定义字段 | 运行时添加/删除，持久化到 localStorage，预览时显示中文名 |
-| 映射模板 | 保存/加载/应用，支持同名覆盖 |
-| 异步执行 | 提交→轮询进度→结果展示 |
-| 预览表头 | 中文显示（映射字段查找系统字段或自定义字段的中文名） |
-
----
+| 路由 | 前缀 | 功能 |
+|------|------|------|
+| `dashboard` | `/api/dashboard` | 看板摘要 + 濒临断货 TOP10 |
+| `replenishment` | `/api/insights` | BBCC + 传统补货建议、导出 |
+| `purchase` | `/api/insights` | 采购建议 + 导出 |
+| `insights` | `/api/insights` | 慢动识别、趋势分析、同步、库存带日销 |
+| `cleansing` | `/api/cleansing` | 数据清洗导入、模板、字段管理 |
+| `orders` | `/api/orders` | 订单 CRUD + 分页 |
+| `inventory` | `/api/inventory` | 库存 CRUD + 仓库类型管理 |
+| `products` | `/api/products` | 商品 CRUD |
+| `suppliers` | `/api/suppliers` | 供应商 CRUD |
+| `alerts` | `/api/alerts` | 告警列表 |
+| `rules` | `/api/rules` | 规则引擎 CRUD |
+| `purchase_orders` | `/api/purchase-orders` | 采购单标记 |
+| `replenishment_config` | `/api/replenishment-config` | 补货参数配置 |
+| `records` | `/api/records` | 出入库记录 |
+| `events` | `/api/events` | 事件记录 |
+| `quality_logs` | `/api/quality-logs` | 质量日志 |
+| `sync_tasks` | `/api/sync-tasks` | 同步任务状态 |
+| `ws` | `/ws/events` | WebSocket 实时推送 |
 
 ---
 
@@ -122,8 +125,6 @@ Zustand + ErrorBoundary        APScheduler 定时任务     raw_data 全部表�
 | ➡️➡️ 平稳 | 10% | 20% | 70% |
 | 📉📉 持续下行 | 40% | 35% | 25% |
 
-**采购建议**另用14+28双窗口融合（去7天），权重按趋势在(55/45)~(35/65)间切换，排除促销秒杀干扰。
-
 ### BBCC两列拆分
 
 | C仓建议补 | B仓需补 |
@@ -133,16 +134,31 @@ Zustand + ErrorBoundary        APScheduler 定时任务     raw_data 全部表�
 
 ---
 
-## 联动链路
+## 数据清洗
 
-| 链路 | 说明 |
+| 功能 | 说明 |
 |------|------|
-| 总览告警→库存高亮 | 点击告警 → 切换到库存页 → 自动滚动并黄色高亮对应 SKU 行 |
-| 清洗导入→库存同步 | `data.cleaned` → `sync_inventory_from_orders` 异步同步 |
-| 库存变动→规则评估 | `inventory.changed` → 低库存预警/补货规则 |
-| 订单创建→超卖保护 | `order.created` → 检查库存 → 超卖告警 |
-| 每日定时→滞销识别 | `scheduled.daily` → 30天无销售→滞销标记 |
-| EventBus→看板刷新 | 任何事件 → 看板缓存失效 → WS/轮询 → 前端刷新 |
+| 支持格式 | CSV / XLSX |
+| 导入类型 | 订单 / 库存 / 入库 / 出库 |
+| 智能匹配 | 30+ 组中文别名自动映射 |
+| 系统字段 | 26 个（订单号、SKU、数量、金额、供应商、平台等） |
+| 自定义字段 | 运行时可添加/删除，持久化到 localStorage |
+| 映射模板 | 保存/加载/应用，支持同名覆盖 |
+| 异步执行 | 提交→轮询进度（每50条更新）→结果展示 |
+| 去重保护 | `order_no + sku` 唯一索引 |
+
+---
+
+## 规则引擎
+
+| 规则 | 触发条件 | 严重级别 |
+|------|---------|---------|
+| 低库存预警 | 可用库存 < 安全库存 | ⚠️ 警告 |
+| 紧急补货 | 可用库存 ≤ 安全库存的 30% | 🔴 严重 |
+| 超卖保护 | 订单数量 > 可用库存 | 🔴 严重 |
+| 滞销识别 | 30 天无销售 | ⚠️ 警告 |
+
+条件编辑支持可视化字段选择器 + 百分比比较，无需手写 `max(1, safety*0.3)` 公式。
 
 ---
 
@@ -150,45 +166,55 @@ Zustand + ErrorBoundary        APScheduler 定时任务     raw_data 全部表�
 
 ```
 frontend/src/
-├── App.tsx                   路由 + 全局 layout（~60行）
-├── main.tsx                  QueryClientProvider
-├── theme.ts                  颜色 token
-├── version.ts                构建版本
-├── api/client.ts             axios 实例
-├── store/useAppStore.ts      Zustand + WebSocket
-├── hooks/useKeyboard.ts      键盘快捷键
-├── components/
-│   ├── Card.tsx / Chart.tsx / Sidebar.tsx
-│   ├── UploadPanel.tsx / Toast.tsx / EmptyState.tsx
-│   └── ErrorBoundary.tsx     错误边界
-└── pages/
-    ├── DashboardPage.tsx / OrdersPage.tsx / InventoryPage.tsx
-    ├── ProductPage.tsx / SupplierPage.tsx
-    ├── InsightsPage.tsx / CleansingPage.tsx
-    ├── RulesPage.tsx / QualityPage.tsx
+├── App.tsx / main.tsx / theme.ts
+├── api/client.ts          axios + 缓存 + 统一响应解包
+├── store/useAppStore.ts   Zustand + WebSocket
+├── pages/ (9个页面)
+└── components/ (10个组件)
 
 backend/app/
-├── main.py                   FastAPI 入口
+├── main.py                FastAPI 入口
+├── api/routes/ (18个路由)
 ├── core/
-│   ├── database.py           SQLite 包装器
-│   ├── rules.py              规则引擎
-│   ├── events.py             EventBus
-│   ├── scheduler.py          APScheduler
-│   └── dashboard_cache.py
-├── api/routes/               12 个路由模块
-├── models/                   SQLAlchemy（预留）
-└── alembic/                  数据迁移（预留）
+│   ├── database.py        SQLite ORM + 任务系统 + 版本管理
+│   ├── sales_utils.py     三窗口日销融合
+│   ├── response.py        统一响应 ok()/fail()
+│   ├── dashboard_cache.py 看板缓存
+│   ├── cleansing_parser.py 文件解析 + 字段清洗
+│   ├── cleansing_templates.py 模板管理 + 系统字段
+│   ├── rules.py / events.py / scheduler.py
+└── tests/ (3个文件, 56个测试)
+    test_core.py (34) / test_e2e.py (13) / test_more.py (9)
 ```
+
+---
+
+## 测试
+
+```bash
+cd backend
+python -m pytest tests/ -v          # 全部 56 个
+python -m pytest tests/test_e2e.py  # 端到端 13 个
+python -m pytest tests/test_more.py # 补充 9 个
+```
+
+## 模拟数据
+
+```bash
+cd backend && python seed_realistic.py
+```
+生成 12 SKU × 60 天 × ~900 订单，含促销波峰、断货、滞销等真实场景。
 
 ---
 
 ## 部署
 
-| 组件 | 位置 | 自动部署 |
+| 组件 | 位置 | 部署方式 |
 |------|------|---------|
-| [前端](https://supplykit-frontend.pages.dev) | Cloudflare Pages | 推 main 自动构建 |
-| [后端 API](https://overtrees.pythonanywhere.com) | PythonAnywhere | 手动上传 + reload |
-| 数据库 | SQLite（本地文件） | 每天 2:00 自动备份 |
+| [前端](https://supplykit-frontend.pages.dev) | Cloudflare Pages | 推 `main` 自动构建 |
+| [后端 API](https://overtrees.pythonanywhere.com) | PythonAnywhere | `curl` 上传 + `reload` |
+| [API 文档](https://overtrees.pythonanywhere.com/api/docs) | Swagger UI | 自动生成 |
+| 数据库 | SQLite | 每日 2:00 自动备份 |
 
 ---
 
@@ -206,5 +232,5 @@ backend/app/
 <p align="center">
   <a href="https://github.com/Overtrees/Supplykit">GitHub 仓库</a> ·
   <a href="https://supplykit-frontend.pages.dev">在线体验</a> ·
-  <a href="https://overtrees.pythonanywhere.com/docs">API 文档</a>
+  <a href="https://overtrees.pythonanywhere.com/api/docs">API 文档</a>
 </p>

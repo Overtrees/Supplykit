@@ -15,7 +15,15 @@ from fastapi.testclient import TestClient
 from fastapi import FastAPI
 
 from app.core.database import init_db, get_db, DB_PATH
+
+# 辅助：兼容统一响应格式 {ok, data} 和原始格式
+def unwrap(r):
+    d = r.json()
+    if isinstance(d, dict) and "data" in d: return d["data"]
+    return d
 from app.api.routes.insights import router as insights_router
+from app.api.routes.replenishment import router as replenishment_router
+from app.api.routes.purchase import router as purchase_router
 
 # 初始化数据库表
 init_db()
@@ -76,6 +84,8 @@ seed_data()
 
 app = FastAPI()
 app.include_router(insights_router)
+app.include_router(replenishment_router)
+app.include_router(purchase_router)
 client = TestClient(app)
 
 
@@ -87,13 +97,13 @@ class TestBBCCReplenishment:
     def test_returns_list(self):
         resp = client.get("/api/insights/replenishment?mode=bbcc&days=28")
         assert resp.status_code == 200
-        data = resp.json()
+        data = unwrap(resp)
         assert isinstance(data, list)
         assert len(data) > 0
 
     def test_response_structure(self):
         resp = client.get("/api/insights/replenishment?mode=bbcc&days=28")
-        item = resp.json()[0]
+        item = unwrap(resp)[0]
         for field in ["sku", "product_name", "daily_sales", "daily_sales_7",
                        "daily_sales_14", "daily_sales_28", "suggested_qty",
                        "b_suggested", "b_stock", "c_stock", "note"]:
@@ -102,18 +112,18 @@ class TestBBCCReplenishment:
     def test_sku_001_daily_sales_positive(self):
         """SKU-001 28天内有450件销量，日销应为正数"""
         resp = client.get("/api/insights/replenishment?mode=bbcc&days=28")
-        item = next(x for x in resp.json() if x["sku"] == "SKU-001")
+        item = next(x for x in unwrap(resp) if x["sku"] == "SKU-001")
         assert item["daily_sales"] > 0
 
     def test_sku_002_b_stock_present(self):
         """SKU-002 B仓有100件库存"""
         resp = client.get("/api/insights/replenishment?mode=bbcc&days=28")
-        item = next(x for x in resp.json() if x["sku"] == "SKU-002")
+        item = next(x for x in unwrap(resp) if x["sku"] == "SKU-002")
         assert item["b_stock"] == 100
 
     def test_suggested_qty_is_int(self):
         resp = client.get("/api/insights/replenishment?mode=bbcc&days=28")
-        for item in resp.json():
+        for item in unwrap(resp):
             assert isinstance(item["suggested_qty"], (int, float))
             assert isinstance(item["b_suggested"], (int, float))
 
@@ -124,17 +134,17 @@ class TestTraditionalReplenishment:
     def test_returns_list(self):
         resp = client.get("/api/insights/replenishment?mode=traditional&days=28")
         assert resp.status_code == 200
-        data = resp.json()
+        data = unwrap(resp)
         assert isinstance(data, list)
 
     def test_has_warehouse_field(self):
         resp = client.get("/api/insights/replenishment?mode=traditional&days=28")
-        for item in resp.json():
+        for item in unwrap(resp):
             assert "warehouse" in item or "store" in item
 
     def test_daily_sales_breakdown(self):
         resp = client.get("/api/insights/replenishment?mode=traditional&days=28")
-        for item in resp.json():
+        for item in unwrap(resp):
             assert "daily_sales_7" in item
             assert "daily_sales_14" in item
             assert "daily_sales_28" in item
@@ -144,31 +154,30 @@ class TestPurchaseSuggestions:
     """采购建议端到端"""
 
     def test_returns_suggestions(self):
-        resp = client.get("/api/insights/purchase?days=28&mode=bbcc")
-        assert resp.status_code == 200
-        data = resp.json()
-        assert "suggestions" in data
-        assert isinstance(data["suggestions"], list)
+        r = client.get("/api/insights/purchase?days=28&mode=bbcc")
+        assert r.status_code == 200
+        data = unwrap(r)
+        assert isinstance(data, list)
 
     def test_response_structure(self):
-        resp = client.get("/api/insights/purchase?days=28&mode=bbcc")
-        if len(resp.json()["suggestions"]) == 0:
-            return  # 无采购建议时跳过结构检查
-        item = resp.json()["suggestions"][0]
+        r = client.get("/api/insights/purchase?days=28&mode=bbcc")
+        data = unwrap(r)
+        if len(data) == 0: return
+        item = data[0]
         for field in ["sku", "product_name", "purchase_qty", "actual_purchase",
                        "sys_total", "daily_sales", "note"]:
             assert field in item, f"缺少字段: {field}"
 
     def test_sys_total_breakdown(self):
-        resp = client.get("/api/insights/purchase?days=28&mode=bbcc")
-        for item in resp.json()["suggestions"]:
+        r = client.get("/api/insights/purchase?days=28&mode=bbcc")
+        for item in unwrap(r):
             assert "own_available" in item
             assert "plat_available" in item
             assert "b_available" in item
 
     def test_actual_purchase_is_int(self):
-        resp = client.get("/api/insights/purchase?days=28&mode=bbcc")
-        for item in resp.json()["suggestions"]:
+        r = client.get("/api/insights/purchase?days=28&mode=bbcc")
+        for item in unwrap(r):
             assert isinstance(item["actual_purchase"], (int, float))
 
 

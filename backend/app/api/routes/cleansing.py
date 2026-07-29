@@ -14,65 +14,9 @@ router = APIRouter(prefix="/api/cleansing", tags=["cleansing"])
 
 # ─── 系统目标字段定义 ────────────────────────────────────────────────────────
 
-SYSTEM_FIELDS = {
-    'order': [
-        {'key':'order_no',       'label':'订单号',     'type':'string'},
-        {'key':'store',          'label':'店铺',       'type':'string'},
-        {'key':'warehouse',      'label':'仓库',       'type':'string'},
-        {'key':'sku',            'label':'商品编号',   'type':'string'},
-        {'key':'product_name',   'label':'商品名称',   'type':'string'},
-        {'key':'quantity',       'label':'数量',       'type':'number'},
-        {'key':'unit_price',     'label':'单价',       'type':'number'},
-        {'key':'total_amount',   'label':'总金额',     'type':'number'},
-        {'key':'order_status',   'label':'状态',       'type':'string'},
-        {'key':'ordered_at',     'label':'日期',       'type':'date'},
-        {'key':'supplier',       'label':'供应商',     'type':'string'},
-        {'key':'remark',         'label':'备注',       'type':'string'},
-    ],
-    'inventory': [
-        {'key':'store',          'label':'店铺',       'type':'string'},
-        {'key':'warehouse',      'label':'仓库',       'type':'string'},
-        {'key':'sku',            'label':'商品编号',   'type':'string'},
-        {'key':'product_name',   'label':'商品名称',   'type':'string'},
-        {'key':'available_qty',  'label':'可用库存',   'type':'number'},
-        {'key':'locked_qty',     'label':'锁定库存',   'type':'number'},
-        {'key':'in_transit_qty', 'label':'在途数量',   'type':'number'},
-        {'key':'safety_qty',     'label':'安全库存',   'type':'number'},
-    ],
-    'inbound': [
-        {'key':'sku',            'label':'商品编号',   'type':'string'},
-        {'key':'product_name',   'label':'商品名称',   'type':'string'},
-        {'key':'quantity',       'label':'入库数量',   'type':'number'},
-        {'key':'supplier',       'label':'供应商',     'type':'string'},
-        {'key':'inbound_date',   'label':'入库日期',   'type':'date'},
-    ],
-    'outbound': [
-        {'key':'sku',            'label':'商品编号',   'type':'string'},
-        {'key':'product_name',   'label':'商品名称',   'type':'string'},
-        {'key':'quantity',       'label':'出库数量',   'type':'number'},
-        {'key':'target_warehouse','label':'目标仓库',   'type':'string'},
-        {'key':'outbound_date',  'label':'出库日期',   'type':'date'},
-    ],
-}
-
 # ─── 自定义字段存储 ────────────────────────────────────────────────────────────
 
 CUSTOM_FIELDS_PATH = '/home/Overtrees/Supplykit/backend/custom_fields.json'
-
-def load_custom_fields():
-    if os.path.exists(CUSTOM_FIELDS_PATH):
-        try:
-            with open(CUSTOM_FIELDS_PATH) as f:
-                return json.load(f)
-        except: pass
-    return {'order': [], 'inventory': []}
-
-def save_custom_fields(data):
-    os.makedirs(os.path.dirname(CUSTOM_FIELDS_PATH), exist_ok=True)
-    with open(CUSTOM_FIELDS_PATH, 'w') as f:
-        json.dump(data, f, ensure_ascii=False)
-
-# ─── 文件解析 ────────────────────────────────────────────────────────────────
 
 def parse_file(content, filename):
     if filename.lower().endswith('.csv'):
@@ -402,91 +346,6 @@ async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''
     content = await file.read()
     return _run_cleansing(content, file.filename, mapping, target, template_name)
 @router.get('/templates')
-def list_templates(db = get_db()):
-    templates = db.table("cleansing_templates").select("*").order("updated_at", desc=True).execute().data
-    return [{
-        'id': t['id'], 'name': t['name'], 'doc_type': t['doc_type'],
-        'mapping': json.loads(t.get('mapping') or '{}'),
-        'updated_at': t.get('updated_at'),
-    } for t in templates]
-
-@router.post('/templates')
-def save_template(data: dict, db = get_db()):
-    name = data.get('name', '').strip()
-    if not name:
-        raise HTTPException(status_code=400, detail='模板名称不能为空')
-    existing = db.table("cleansing_templates").select("id").eq("name", name).execute().data
-    payload = {
-        'name': name,
-        'doc_type': data.get('doc_type', 'order'),
-        'mapping': json.dumps(data.get('mapping', {}), ensure_ascii=False),
-        'updated_at': datetime.utcnow().isoformat()[:19],
-    }
-    if existing:
-        db.table("cleansing_templates").update(payload).eq("id", existing[0]['id']).execute()
-        return {'ok': True, 'message': f'模板「{name}」已更新', 'id': existing[0]['id']}
-    else:
-        db.table("cleansing_templates").insert(payload).execute()
-        return {'ok': True, 'message': f'模板「{name}」已保存'}
-
-@router.delete('/templates/{template_id}')
-def delete_template(template_id: int, db = get_db()):
-    data = db.table("cleansing_templates").select("id").eq("id", template_id).execute().data
-    if not data:
-        raise HTTPException(status_code=404, detail='模板不存在')
-    db.table("cleansing_templates").delete().eq("id", template_id).execute()
-    return {'ok': True}
-
-# ─── 字段管理 ────────────────────────────────────────────────────────────────
-
-@router.get('/fields/{target}')
-def get_fields(target: str):
-    system = SYSTEM_FIELDS.get(target)
-    if not system:
-        raise HTTPException(status_code=404, detail=f'目标 {target} 不存在')
-    custom = load_custom_fields().get(target, [])
-    return {'system': system, 'custom': custom, 'all': system + custom}
-
-@router.get('/custom-fields/{target}')
-def list_custom_fields(target: str):
-    data = load_custom_fields()
-    return data.get(target, [])
-
-@router.post('/custom-fields/{target}')
-def add_custom_field(target: str, data: dict):
-    if target not in ('order', 'inventory'):
-        raise HTTPException(status_code=400, detail='目标必须是 order 或 inventory')
-    key = str(data.get('key', '')).strip()
-    label = str(data.get('label', key)).strip()
-    ftype = str(data.get('type', 'string')).strip()
-    if not key:
-        raise HTTPException(status_code=400, detail='字段名不能为空')
-    cf = load_custom_fields()
-    existing = [f for f in cf.get(target, []) if f['key'] == key]
-    if not existing:
-        cf[target].append({'key': key, 'label': label, 'type': ftype})
-        save_custom_fields(cf)
-    return {'ok': True, 'fields': cf[target]}
-
-@router.delete('/custom-fields/{target}/{field_key}')
-def remove_custom_field(target: str, field_key: str):
-    cf = load_custom_fields()
-    cf[target] = [f for f in cf.get(target, []) if f['key'] != field_key]
-    save_custom_fields(cf)
-    return {'ok': True}
-
-@router.post('/execute-async')
-async def execute_cleansing_async(file: UploadFile = File(...), mapping: str = Form(''),
-                                   target: str = Form('order'), template_name: str = Form('')):
-    content = await file.read()
-    task_id = str(uuid.uuid4())[:8]
-    submit_task(task_id, _run_cleansing, content, file.filename, mapping, target, template_name)
-    from app.core.database import update_task
-    update_task(task_id, progress=0)
-    return {'ok': True, 'task_id': task_id, 'message': '任务已提交'}
-
-# ─── 异步任务进度 ───────────────────────────────────────────────────────────
-
 @router.get('/task/{task_id}')
 def get_task_status(task_id: str):
     task = get_task(task_id)

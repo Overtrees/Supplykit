@@ -231,6 +231,13 @@ export default function CleansingPage() {
       {cols.map(c => {
         const matched = ALIAS[c.name]
         const sf = SYS_FIELDS.find(x => x.t === matched)
+        // 统计每个目标被几个来源列映射
+        const targetCounts = {}
+        for (const [, cfg] of Object.entries(mp)) {
+          if (cfg && cfg.target) targetCounts[cfg.target] = (targetCounts[cfg.target] || 0) + 1
+        }
+        const currentTarget = mp[c.name]?.target
+        const isShared = currentTarget && targetCounts[currentTarget] > 1
         return (<div key={c.name} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 10px',border:'1px solid var(--border)',borderRadius:32,marginBottom:4}}>
         <div style={{flex:1,fontSize:13,fontWeight:500}}>
           {c.name}
@@ -243,7 +250,9 @@ export default function CleansingPage() {
           {(tt==='inventory'?INV_FIELDS:SYS_FIELDS).map(f => <option key={f.t} value={f.t}>{f.l}</option>)}
           {cf.filter(f => f.t && f.l).map(f => <option key={f.t} value={f.t}>{f.l}</option>)}
         </select>
-        <div className="small muted" style={{fontSize:11,width:36,textAlign:'right'}}>{mp[c.name]?.target ? '' : ''}</div>
+        <div style={{fontSize:11,width:50,textAlign:'right',flexShrink:0}}>
+          {isShared ? <span className="pill warning" style={{fontSize:9,padding:'1px 6px',minHeight:'auto',lineHeight:'16px'}}>×{targetCounts[currentTarget]}</span> : null}
+        </div>
       </div>)
       })}
       </div>}

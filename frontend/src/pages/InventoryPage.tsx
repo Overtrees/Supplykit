@@ -63,16 +63,6 @@ export default function InventoryPage({ highlightSku }) {
       ? (valid.reduce((s,x) => s + x.turnover_days, 0) / valid.length).toFixed(1)
       : null
   }, [inventory])
-  const footerRow = whType === 'own' && totalTurnover != null
-    ? <tfoot><tr style={{fontWeight:700,borderTop:'2px solid var(--border)'}}>
-        <td colSpan={5} style={{textAlign:'right',fontSize:12}}>合计</td>
-        <td>{inventory.reduce((s,x)=>s+(x.month_inbound||0),0)}</td>
-        <td>{inventory.reduce((s,x)=>s+(x.month_outbound||0),0)}</td>
-        <td>{inventory.reduce((s,x)=>s+(x.available_qty||0),0)}</td>
-        <td style={{fontSize:13}}>{totalTurnover} 天</td>
-        <td></td>
-      </tr></tfoot>
-    : null
 
   const delInv = async () => {
     if (!confirmDel) return
@@ -120,16 +110,13 @@ export default function InventoryPage({ highlightSku }) {
       </span>
     </div>
     <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap',alignItems:'center'}}>
-      <div className='search-bar' style={{maxWidth:200,flex:'none'}}>
-        <IconSearch size={16} style={{color:'var(--muted2)',flexShrink:0}} />
-        <input value={s} onChange={e=>setS(e.target.value)} placeholder='搜索SKU/商品名' enterKeyHint='search' autoCorrect='off' />
-      </div>
       <select value={whType} onChange={e=>{const v=e.target.value;setWhType(v);const d=WH_COLS[v].map(c=>c.id);setVisCols(getVis(v)||d);localStorage.setItem(COL_KEY+'_'+v,JSON.stringify(d))}} style={{fontSize:16,padding:'8px 12px',border:'1px solid var(--border)',borderRadius:32,outline:'none',background:'var(--card)'}}>
         <option value='own'>自有仓</option>
         <option value='platform'>平台仓</option>
         <option value='platform_b'>B仓</option>
       </select>
     </div>
+    <div className='search-bar' style={{maxWidth:200,marginBottom:12}}>
       <IconSearch size={16} style={{color:'var(--muted2)',flexShrink:0}} />
       <input value={s} onChange={e=>setS(e.target.value)} placeholder='搜索SKU/商品名' enterKeyHint='search' autoCorrect='off' />
     </div>
@@ -146,9 +133,18 @@ export default function InventoryPage({ highlightSku }) {
         return React.createElement('tr',{key:x.id,id:'hl-'+x.sku,style:isHL?{background:'rgba(245,158,11,0.15)',outline:'2px solid #f59e0b'}:{}},visCells)
       })}
       </tbody>
-      {footerRow}
+      {totalTurnover != null && <tfoot>
+        <tr style={{fontWeight:700,borderTop:'2px solid var(--border)'}}>
+          <td colSpan={5} style={{textAlign:'right',fontSize:12}}>合计</td>
+          <td>{inventory.reduce((s,x)=>s+(x.month_inbound||0),0)}</td>
+          <td>{inventory.reduce((s,x)=>s+(x.month_outbound||0),0)}</td>
+          <td>{inventory.reduce((s,x)=>s+(x.available_qty||0),0)}</td>
+          <td style={{fontSize:13}}>{totalTurnover} 天</td>
+          <td></td>
+        </tr>
+      </tfoot>}
               </table>
-    </div>
+    </div>}
     <ConfirmDialog open={!!confirmDel} title='删除库存记录' desc='删除后不可恢复' confirmLabel='删除' onConfirm={delInv} onCancel={()=>setConfirmDel(null)} />
   </div>
 }

@@ -106,9 +106,7 @@ export default function OrdersPage() {
         <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {visCols.length}/{COLS.length} 列</div>
       <table><colgroup>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>
       <thead><tr>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<th key={col.id}>{col.label}</th>:null})}</tr></thead>
-      <tbody>
-        {orders.map(x => {
-          return <tr key={x.id}>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return null;
+      <tbody>{(()=>{const rows=[];for(const x of orders){const cells=visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return null;
             if(col.id==='order_no')return <td key={col.id} className="mono col-sku">{x.order_no}</td>
             if(col.id==='barcode')return <td key={col.id} className='mono' style={{fontSize:11}}>{x.barcode||'-'}</td>
             if(col.id==='store')return <td key={col.id} className="col-store">{x.store||'-'}</td>
@@ -118,9 +116,7 @@ export default function OrdersPage() {
             if(col.id==='status')return <td key={col.id}><span className={`pill ${x.order_status==='已完成'?'success':x.order_status==='待发货'?'warning':x.order_status==='已发货'?'info':x.order_status==='申请退款'?'danger':''}`}>{x.order_status}</span></td>
             if(col.id==='date')return <td key={col.id} className="col-date">{x.ordered_at}</td>
             return <td key={col.id} className="small muted" style={{fontSize:11}}>-</td>
-          })}
-        </tr>
-      </tbody>
+;});rows.push(<tr key={x.id}>{cells}</tr>);}return rows;})()}</tbody>
       </table>
     </div>}
     <ConfirmDialog open={!!confirmDel} title='删除订单' desc='删除后不可恢复' confirmLabel='删除' onConfirm={delOrder} onCancel={()=>setConfirmDel(null)} />

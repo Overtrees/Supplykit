@@ -217,16 +217,21 @@ def inventory_with_sales(db = get_db()):
             s = r['sku']
             outbound_month[s] = outbound_month.get(s, 0) + int(r.get('quantity',0) or 0)
     sales_28 = {}
+    products_for_barcode = {p["sku"]: p for p in (db.table("products").select("*").execute().data or [])}
     for o in orders:
         sku = o.get('sku','')
         dt = str(o.get('ordered_at',''))[:10]
         qty = int(o.get('quantity',0) or 0)
-        if sku and dt >= cutoff_28:
-            sales_28[sku] = sales_28.get(sku, 0) + qty
+        if not sku or dt < cutoff_28: continue
+        bc = (products_for_barcode.get(sku) or {}).get('barcode', '')
+        key = f"{sku}|{bc}" if bc else sku
+        sales_28[key] = sales_28.get(key, 0) + qty
     result = []
     for i in inv:
         sku = i['sku']
-        ds = round(sales_28.get(sku, 0), 1)
+        bc = (products_for_barcode.get(sku) or {}).get('barcode', '')
+        sales_key = f"{sku}|{bc}" if bc else sku
+        ds = round(sales_28.get(sales_key, 0), 1)
         avail = int(i.get('available_qty',0) or 0)
         begin = avail - inbound_month.get(sku, 0) + outbound_month.get(sku, 0)
         result.append({

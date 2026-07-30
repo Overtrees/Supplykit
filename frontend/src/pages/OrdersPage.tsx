@@ -118,7 +118,8 @@ export default function OrdersPage() {
             if(col.id==='status')return <td key={col.id}><span className={`pill ${x.order_status==='已完成'?'success':x.order_status==='待发货'?'warning':x.order_status==='已发货'?'info':x.order_status==='申请退款'?'danger':''}`}>{x.order_status}</span></td>
             if(col.id==='date')return <td key={col.id} className="col-date">{x.ordered_at}</td>
             return <td key={col.id} className="small muted" style={{fontSize:11}}>-</td>
-          })}</tr>
+          })}
+        </tr>
       </tbody></table>
     </div>}
     <ConfirmDialog open={!!confirmDel} title='删除订单' desc='删除后不可恢复' confirmLabel='删除' onConfirm={delOrder} onCancel={()=>setConfirmDel(null)} />

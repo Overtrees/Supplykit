@@ -63,6 +63,16 @@ export default function InventoryPage({ highlightSku }) {
       ? (valid.reduce((s,x) => s + x.turnover_days, 0) / valid.length).toFixed(1)
       : null
   }, [inventory])
+  const footerRow = whType === 'own' && totalTurnover != null
+    ? <tfoot><tr style={{fontWeight:700,borderTop:'2px solid var(--border)'}}>
+        <td colSpan={5} style={{textAlign:'right',fontSize:12}}>合计</td>
+        <td>{inventory.reduce((s,x)=>s+(x.month_inbound||0),0)}</td>
+        <td>{inventory.reduce((s,x)=>s+(x.month_outbound||0),0)}</td>
+        <td>{inventory.reduce((s,x)=>s+(x.available_qty||0),0)}</td>
+        <td style={{fontSize:13}}>{totalTurnover} 天</td>
+        <td></td>
+      </tr></tfoot>
+    : null
 
   const delInv = async () => {
     if (!confirmDel) return
@@ -136,18 +146,9 @@ export default function InventoryPage({ highlightSku }) {
         return React.createElement('tr',{key:x.id,id:'hl-'+x.sku,style:isHL?{background:'rgba(245,158,11,0.15)',outline:'2px solid #f59e0b'}:{}},visCells)
       })}
       </tbody>
-      {whType === 'own' && totalTurnover != null ? <tfoot>
-        <tr style={{fontWeight:700,borderTop:'2px solid var(--border)'}}>
-          <td colSpan={5} style={{textAlign:'right',fontSize:12}}>合计</td>
-          <td>{inventory.reduce((s,x)=>s+(x.month_inbound||0),0)}</td>
-          <td>{inventory.reduce((s,x)=>s+(x.month_outbound||0),0)}</td>
-          <td>{inventory.reduce((s,x)=>s+(x.available_qty||0),0)}</td>
-          <td style={{fontSize:13}}>{totalTurnover} 天</td>
-          <td></td>
-        </tr>
-      </tfoot> : null}
+      {footerRow}
               </table>
-    </div>}
+    </div>
     <ConfirmDialog open={!!confirmDel} title='删除库存记录' desc='删除后不可恢复' confirmLabel='删除' onConfirm={delInv} onCancel={()=>setConfirmDel(null)} />
   </div>
 }

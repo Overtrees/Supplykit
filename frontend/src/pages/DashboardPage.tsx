@@ -8,10 +8,10 @@ const periodLabel = { today:'今日', week:'本周', month:'本月' }
 export default function DashboardPage({ onAlert }) {
   const [periodTab, setPeriodTab] = useState('month')
   const [healthTab, setHealthTab] = useState(() => localStorage.getItem('health_tab') || 'platform')
-  const { dashboard, inventory, qualityLogs, alerts, stockRisk, channelVersion, dataLoaded } = useAppStore()
+  const { dashboard, inventory, qualityLogs, alerts, stockRisk, channel, loading } = useAppStore()
   const [chLoading, setChLoading] = useState(false)
-  useEffect(() => { setChLoading(true); useAppStore.getState().loadAll() }, [channelVersion])
-  useEffect(() => { if (dataLoaded) setChLoading(false) }, [dataLoaded])
+  useEffect(() => { setChLoading(true); useAppStore.getState().loadAll() }, [channel])
+  useEffect(() => { if (!loading) setChLoading(false) }, [loading])
   const periodTrend = dashboard?.periods?.[periodTab + '_trend'] || dashboard?.trend || []
   const periodMeta = dashboard?.periods?.[periodTab] || {}
 

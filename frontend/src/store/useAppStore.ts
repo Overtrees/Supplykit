@@ -27,7 +27,7 @@ export const useAppStore = create((set, get) => ({
   dataLoaded: false,
   sidebarOpen: false,
   setSidebarOpen: (v) => set({ sidebarOpen: v }),
-  setChannel: async (ch) => { localStorage.setItem('c_channel', ch); set({ channel: ch, channelVersion: Date.now(), dataLoaded: false, loading: true }); await get().loadAll() },
+  setChannel: (ch) => { localStorage.setItem('c_channel', ch); set({ channel: ch, channelVersion: Date.now(), dataLoaded: false, loading: true }); get().loadAll() },
 
   async loadAll(page) {
     set({ loading: true })

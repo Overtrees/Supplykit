@@ -29,7 +29,7 @@ function OrderSkeleton() {
 
 export default function OrdersPage() {
   const toast = useToast()
-  const { orders, orderTotal, orderPage, orderLoading, setOrderPage, setOrderFilter, orderSearch, orderStatus } = useAppStore()
+  const { orders, orderTotal, orderPage, orderLoading, setOrderPage, setOrderFilter, orderSearch, orderStatus, dataLoaded } = useAppStore()
   const [sq, setSq] = useState(orderSearch)
   const [ss, setSs] = useState(orderStatus)
   const [confirmDel, setConfirmDel] = useState(null)
@@ -99,7 +99,7 @@ export default function OrdersPage() {
     </div>
     {orderSearch && <div className="small muted" style={{marginBottom:8}}>搜索 "{orderSearch}" 共 {orderTotal} 条结果</div>}
 
-    {orderLoading ? <OrderSkeleton />
+    {orderLoading || !dataLoaded ? <OrderSkeleton />
     : orders.length === 0
       ? <EmptyState icon='clipboard' title={orderSearch?'无匹配订单':'暂无订单'} desc={orderSearch?'换个关键词试试':''} />
       : <div style={{overflowX:"auto"}}>

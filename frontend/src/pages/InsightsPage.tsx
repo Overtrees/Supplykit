@@ -220,7 +220,6 @@ export default function InsightsPage() {
                         onTouchEnd={isVis?e=>{const start=e.currentTarget._dragStart;if(!start)return;const t=e.changedTouches[0];const dropEl=document.elementFromPoint(t.clientX,t.clientY);if(dropEl&&dropEl._dragStart&&dropEl._dragStart.id!==start.id){const from=start.id;const to=dropEl._dragStart.id;const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(to);nxt.splice(toIdx,0,from);setVisCols(nxt);localStorage.setItem(colKey(replenMode),JSON.stringify(nxt))}}:undefined}
                         style={{display:'flex',alignItems:'center',gap:4,padding:'4px 6px',borderRadius:6,cursor:isVis?'grab':'default',fontSize:12,whiteSpace:'nowrap',borderTop:'1px solid transparent',background:isVis?'var(--card)':'transparent',opacity:isVis?1:0.4,userSelect:'none',WebkitUserSelect:'none'}}>
                         <span style={{color:'var(--muted2)',fontSize:12,width:16,flexShrink:0,textAlign:'center',cursor:isVis?'grab':'default'}}>{isVis?'⠿':'○'}</span>
-                        <input type="checkbox" checked={isVis} onChange={e=>{
                         <input type="checkbox" checked={isVis} onChange={e=>{const n=e.target.checked?[...visCols,col.id]:visCols.filter(c=>c!==col.id);setVisCols(n);localStorage.setItem(colKey(replenMode),JSON.stringify(n))}} style={{accentColor:'var(--primary)'}} />
                         <span style={{flex:1}}>{col.label || '(序号)'}</span>
                         <span style={{fontSize:9,color:'var(--muted2)'}}>{isVis ? '#'+(visCols.indexOf(col.id)+1) : ''}</span>

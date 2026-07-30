@@ -6,6 +6,7 @@ const WS_URL = import.meta.env.VITE_WS_URL || 'wss://overtrees.pythonanywhere.co
 
 export const useAppStore = create((set, get) => ({
   channel: localStorage.getItem('c_channel') || 'jd',
+  channelVersion: 0,
   dashboard: null,
   orders: [],
   orderTotal: 0,
@@ -26,7 +27,7 @@ export const useAppStore = create((set, get) => ({
   dataLoaded: false,
   sidebarOpen: false,
   setSidebarOpen: (v) => set({ sidebarOpen: v }),
-  setChannel: (ch) => { localStorage.setItem('c_channel', ch); set({ channel: ch, dataLoaded: false, loading: true }); setTimeout(() => get().loadAll(), 50) },
+  setChannel: (ch) => { localStorage.setItem('c_channel', ch); set({ channel: ch, channelVersion: get().channelVersion + 1, dataLoaded: false, loading: true }); get().loadAll() },
 
   async loadAll(page) {
     set({ loading: true })

@@ -92,15 +92,15 @@ export default function App() {
   const renderPage = (pageId) => {
     const wrap = (el) => <ErrorBoundary key={pageId}>{el}</ErrorBoundary>
     switch (pageId) {
-      case 'dash': return wrap(<DashboardPage onAlert={(s)=>{navigate('inv',s)}} />)
-      case 'products': return wrap(<ProductPage />)
-      case 'suppliers': return wrap(<SupplierPage />)
-      case 'orders': return wrap(<OrdersPage />)
-      case 'inv': return wrap(<InventoryPage highlightSku={highlightSku || ''} />)
-      case 'insights': return wrap(<InsightsPage />)
-      case 'cleansing': return wrap(<CleansingPage />)
-      case 'rules': return wrap(<RulesPage />)
-      case 'quality': return wrap(<QualityPage />)
+      case 'dash': return wrap(<DashboardPage key={channel} onAlert={(s)=>{navigate('inv',s)}} />)
+      case 'products': return wrap(<ProductPage key={channel} />)
+      case 'suppliers': return wrap(<SupplierPage key={channel} />)
+      case 'orders': return wrap(<OrdersPage key={channel} />)
+      case 'inv': return wrap(<InventoryPage key={channel} highlightSku={highlightSku || ''} />)
+      case 'insights': return wrap(<InsightsPage key={channel} />)
+      case 'cleansing': return wrap(<CleansingPage key={channel} />)
+      case 'rules': return wrap(<RulesPage key={channel} />)
+      case 'quality': return wrap(<QualityPage key={channel} />)
       default: return null
     }
   }

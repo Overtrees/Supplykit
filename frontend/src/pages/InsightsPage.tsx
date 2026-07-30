@@ -209,20 +209,15 @@ export default function InsightsPage() {
                     <div style={{fontSize:10,color:'var(--muted2)',marginBottom:4,padding:'0 4px'}}>拖拽 ⋮ 调整列顺序</div>
                     {currentCols.map((col, idx) => {
                       const isVis = visCols.includes(col.id)
-                      const dragProps = {}
-                      if (isVis) {
-                        dragProps.draggable = true
-                        dragProps.onDragStart = e => { e.dataTransfer.setData('text/plain', col.id); e.target.style.opacity = '0.4' }
-                        dragProps.onDragEnd = e => e.target.style.opacity = '1'
-                        dragProps.onDragOver = e => { e.preventDefault(); e.currentTarget.style.borderTop = '2px solid var(--primary)' }
-                        dragProps.onDragLeave = e => e.currentTarget.style.borderTop = '1px solid transparent'
-                        dragProps.onDrop = e => { e.preventDefault(); e.currentTarget.style.borderTop = '1px solid transparent'; const from = e.dataTransfer.getData('text/plain'); if (from === col.id) return; const nxt = visCols.filter(c => c !== from); const toIdx = nxt.indexOf(col.id); nxt.splice(toIdx, 0, from); setVisCols(nxt); localStorage.setItem(colKey(replenMode), JSON.stringify(nxt)) }
-                        // 移动端触摸支持
-                        dragProps.onTouchStart = e => { const t = e.touches[0]; e.currentTarget._dragStart = { x: t.clientX, y: t.clientY, id: col.id } }
-                        dragProps.onTouchMove = e => { e.preventDefault(); const t = e.touches[0]; const el = document.elementFromPoint(t.clientX, t.clientY); if (el && el !== e.currentTarget && el._dragStart) { el.style.borderTop = '2px solid var(--primary)' } }
-                        dragProps.onTouchEnd = e => { const start = e.currentTarget._dragStart; if (!start) return; const t = e.changedTouches[0]; const dropEl = document.elementFromPoint(t.clientX, t.clientY); if (dropEl && dropEl._dragStart && dropEl._dragStart.id !== start.id) { const from = start.id; const to = dropEl._dragStart.id; const nxt = visCols.filter(c => c !== from); const toIdx = nxt.indexOf(to); nxt.splice(toIdx, 0, from); setVisCols(nxt); localStorage.setItem(colKey(replenMode), JSON.stringify(nxt)) } }
-                      }
-                      return <div key={col.id} {...dragProps}
+                      return <div key={col.id} draggable={isVis?true:undefined}
+                        onDragStart={isVis?e=>{e.dataTransfer.setData('text/plain',col.id);e.target.style.opacity='0.4'}:undefined}
+                        onDragEnd={isVis?e=>e.target.style.opacity='1':undefined}
+                        onDragOver={isVis?e=>{e.preventDefault();e.currentTarget.style.borderTop='2px solid var(--primary)'}:undefined}
+                        onDragLeave={isVis?e=>e.currentTarget.style.borderTop='1px solid transparent':undefined}
+                        onDrop={isVis?e=>{e.preventDefault();e.currentTarget.style.borderTop='1px solid transparent';const from=e.dataTransfer.getData('text/plain');if(from===col.id)return;const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(col.id);nxt.splice(toIdx,0,from);setVisCols(nxt);localStorage.setItem(colKey(replenMode),JSON.stringify(nxt))}:undefined}
+                        onTouchStart={isVis?e=>{const t=e.touches[0];e.currentTarget._dragStart={x:t.clientX,y:t.clientY,id:col.id}}:undefined}
+                        onTouchMove={isVis?e=>{e.preventDefault();const t=e.touches[0];const el=document.elementFromPoint(t.clientX,t.clientY);if(el&&el!==e.currentTarget&&el._dragStart)el.style.borderTop='2px solid var(--primary)'}:undefined}
+                        onTouchEnd={isVis?e=>{const start=e.currentTarget._dragStart;if(!start)return;const t=e.changedTouches[0];const dropEl=document.elementFromPoint(t.clientX,t.clientY);if(dropEl&&dropEl._dragStart&&dropEl._dragStart.id!==start.id){const from=start.id;const to=dropEl._dragStart.id;const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(to);nxt.splice(toIdx,0,from);setVisCols(nxt);localStorage.setItem(colKey(replenMode),JSON.stringify(nxt))}}:undefined}
                         style={{display:'flex',alignItems:'center',gap:4,padding:'4px 6px',borderRadius:6,cursor:isVis?'grab':'default',fontSize:12,whiteSpace:'nowrap',borderTop:'1px solid transparent',background:isVis?'var(--card)':'transparent',opacity:isVis?1:0.4,userSelect:'none',WebkitUserSelect:'none'}}>
                         <span style={{color:'var(--muted2)',fontSize:12,width:16,flexShrink:0,textAlign:'center',cursor:isVis?'grab':'default'}}>{isVis?'⠿':'○'}</span>
                         <input type="checkbox" checked={isVis} onChange={e=>{

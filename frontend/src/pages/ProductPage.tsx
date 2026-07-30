@@ -42,12 +42,12 @@ return<div className='card' style={{containerType:'inline-size'}}>
 <table><colgroup>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>
 <thead><tr>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<th key={col.id}>{col.label}</th>:null})}</tr></thead>
 <tbody>{fl.map(x=><tr key={x.id}>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return null;
-  if(c.id==='sku')return <td key={c.id} className='mono col-sku'>{x.sku}</td>
-  if(c.id==='name')return <td key={c.id} className='col-name'>{x.product_name}</td>
-  if(c.id==='store')return <td key={c.id} className='col-store'>{x.store}</td>
-  if(c.id==='cat')return <td key={c.id} className='col-store'>{x.category}</td>
-  if(c.id==='price')return <td key={c.id} className='col-price'>¥{x.price}</td>
-  if(c.id==='box')return <td key={c.id} className='col-qty' style={{fontSize:12}}>{x.box_qty||1}瓶/箱</td>
-  if(c.id==='status')return <td key={c.id}><span className={'pill '+(x.status==='active'?'success':'warning')}>{x.status==='active'?'在售':x.status}</span></td>
+  if(col.id==='sku')return <td key={col.id} className='mono col-sku'>{x.sku}</td>
+  if(col.id==='name')return <td key={col.id} className='col-name'>{x.product_name}</td>
+  if(col.id==='store')return <td key={col.id} className='col-store'>{x.store}</td>
+  if(col.id==='cat')return <td key={col.id} className='col-store'>{x.category}</td>
+  if(col.id==='price')return <td key={col.id} className='col-price'>¥{x.price}</td>
+  if(col.id==='box')return <td key={col.id} className='col-qty' style={{fontSize:12}}>{x.box_qty||1}瓶/箱</td>
+  if(col.id==='status')return <td key={col.id}><span className={'pill '+(x.status==='active'?'success':'warning')}>{x.status==='active'?'在售':x.status}</span></td>
   return null
 })}</tr>)}</tbody></table></div>}</div>}

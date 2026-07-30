@@ -37,10 +37,10 @@ return<div className='card'><div className='section-title' style={{display:'flex
 <table><colgroup>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>
 <thead><tr>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<th key={col.id}>{col.label}</th>:null})}</tr></thead>
 <tbody>{fl.map(x=><tr key={x.id}>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return null;
-  if(c.id==='code')return <td key={c.id} className='mono col-sku'>{x.supplier_code||x.code}</td>
-  if(c.id==='name')return <td key={c.id} className='col-name'>{x.supplier_name}</td>
-  if(c.id==='contact')return <td key={c.id} className='col-store'>{x.contact_person}</td>
-  if(c.id==='phone')return <td key={c.id} className='col-store'>{x.contact_phone||x.phone}</td>
-  if(c.id==='score')return <td key={c.id} className='col-price'><span className={'pill '+(x.score>3?'success':'warning')}>{x.score}/5</span></td>
+  if(col.id==='code')return <td key={col.id} className='mono col-sku'>{x.supplier_code||x.code}</td>
+  if(col.id==='name')return <td key={col.id} className='col-name'>{x.supplier_name}</td>
+  if(col.id==='contact')return <td key={col.id} className='col-store'>{x.contact_person}</td>
+  if(col.id==='phone')return <td key={col.id} className='col-store'>{x.contact_phone||x.phone}</td>
+  if(col.id==='score')return <td key={col.id} className='col-price'><span className={'pill '+(x.score>3?'success':'warning')}>{x.score}/5</span></td>
   return null
 })}</tr>)}</tbody></table></div>}</div>}

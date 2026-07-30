@@ -107,15 +107,15 @@ export default function OrdersPage() {
         {orders.map(x => {
           const pi = platformInv[x.sku + '|' + x.warehouse] || {}
           return <tr key={x.id}>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return null;
-            if(c.id==='order_no')return <td key={c.id} className="mono col-sku">{x.order_no}</td>
-            if(c.id==='store')return <td key={c.id} className="col-store">{x.store||'-'}</td>
-            if(c.id==='warehouse')return <td key={c.id} className="col-store">{x.warehouse||'-'}</td>
-            if(c.id==='product')return <td key={c.id} className="col-name">{x.product_name}</td>
-            if(c.id==='amount')return <td key={c.id} className="col-price">¥{Number(x.total_amount).toLocaleString()}</td>
-            if(c.id==='status')return <td key={c.id}><span className={`pill ${x.order_status==='已完成'?'success':x.order_status==='待发货'?'warning':x.order_status==='已发货'?'info':x.order_status==='申请退款'?'danger':''}`}>{x.order_status}</span></td>
-            if(c.id==='date')return <td key={c.id} className="col-date">{x.ordered_at}</td>
-            if(c.id==='plat_avail')return <td key={c.id} className="col-qty" style={{fontWeight:600,color:pi.available>0?'var(--text)':'var(--muted2)'}} title={pi.available===undefined?'该仓库无库存数据':''}>{pi.available===undefined?'—':pi.available}</td>
-            if(c.id==='plat_transit')return <td key={c.id} className="col-qty" style={{color:pi.transit>0?'var(--text)':'var(--muted2)'}} title={pi.transit===undefined?'该仓库无库存数据':''}>{pi.transit===undefined?'—':pi.transit}</td>
+            if(col.id==='order_no')return <td key={col.id} className="mono col-sku">{x.order_no}</td>
+            if(col.id==='store')return <td key={col.id} className="col-store">{x.store||'-'}</td>
+            if(col.id==='warehouse')return <td key={col.id} className="col-store">{x.warehouse||'-'}</td>
+            if(col.id==='product')return <td key={col.id} className="col-name">{x.product_name}</td>
+            if(col.id==='amount')return <td key={col.id} className="col-price">¥{Number(x.total_amount).toLocaleString()}</td>
+            if(col.id==='status')return <td key={col.id}><span className={`pill ${x.order_status==='已完成'?'success':x.order_status==='待发货'?'warning':x.order_status==='已发货'?'info':x.order_status==='申请退款'?'danger':''}`}>{x.order_status}</span></td>
+            if(col.id==='date')return <td key={col.id} className="col-date">{x.ordered_at}</td>
+            if(col.id==='plat_avail')return <td key={col.id} className="col-qty" style={{fontWeight:600,color:pi.available>0?'var(--text)':'var(--muted2)'}} title={pi.available===undefined?'该仓库无库存数据':''}>{pi.available===undefined?'—':pi.available}</td>
+            if(col.id==='plat_transit')return <td key={col.id} className="col-qty" style={{color:pi.transit>0?'var(--text)':'var(--muted2)'}} title={pi.transit===undefined?'该仓库无库存数据':''}>{pi.transit===undefined?'—':pi.transit}</td>
             return null
           })}</tr>
         })}

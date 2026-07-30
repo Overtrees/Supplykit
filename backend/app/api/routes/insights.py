@@ -229,6 +229,13 @@ def inventory_with_sales(wh_type: str = 'own', db = get_db()):
         key = f"{sku}|{bc}" if bc else sku
         sales_28[key] = sales_28.get(key, 0) + qty
     result = []
+    # 当查询 B 仓时，预加载 C 仓在途用于 B→C 调拨在途列
+    c_transit = {}
+    if wh_type == 'platform_b':
+        c_inv = db.table("inventory").select("*").eq("warehouse_type", "platform").execute().data or []
+        for ci in c_inv:
+            s = ci['sku']
+            c_transit[s] = c_transit.get(s, 0) + int(ci.get('in_transit_qty', 0) or 0)
     for i in inv:
         sku = i['sku']
         bc = (products_for_barcode.get(sku) or {}).get('barcode', '')
@@ -245,6 +252,7 @@ def inventory_with_sales(wh_type: str = 'own', db = get_db()):
             'warehouse_type': i.get('warehouse_type','platform'),
             'available_qty': avail,
             'in_transit_qty': int(i.get('in_transit_qty',0) or 0),
+            'c_transit': c_transit.get(sku, 0) if wh_type == 'platform_b' else 0,
             'daily_sales': ds,
             'month_inbound': inbound_month.get(sku, 0),
             'month_outbound': outbound_month.get(sku, 0),

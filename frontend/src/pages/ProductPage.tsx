@@ -2,8 +2,9 @@ import React,{useEffect,useState, useRef} from 'react'
 import {api} from '../api/client'
 import EmptyState from '../components/EmptyState'
 
+import { useAppStore } from '../store/useAppStore'
 const COLS = [
-  {id:'barcode',label:'69码'},{id:'sku',label:'SKU'},{id:'name',label:'名称'},{id:'store',label:'店铺'},
+  {id:'barcode',label:'69码'},{id:'channel',label:'平台'},{id:'sku',label:'SKU'},{id:'name',label:'名称'},{id:'store',label:'店铺'},
   {id:'cat',label:'分类'},{id:'price',label:'单价'},{id:'box',label:'箱规'},{id:'weight',label:'箱重/KG'},{id:'volume',label:'体积/方'},{id:'status',label:'状态'},
 ]
 const COL_KEY = 'c_cols_products'
@@ -60,6 +61,7 @@ return<div className='card' style={{containerType:'inline-size'}}>
 <thead><tr>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<th key={col.id}>{col.label}</th>:null})}</tr></thead>
 <tbody>{fl.map(x=><tr key={x.id}>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return <td key={col.id} className="small muted" style={{fontSize:11}}>-</td>;
   if(col.id==='barcode')return <td key={col.id} className='mono' style={{fontSize:11}}>{x.barcode||'-'}</td>
+  if(col.id==='channel')return <td key={col.id} style={{fontSize:11}}>{(useAppStore.getState().channel)==='other'?'其他':'京东'}</td>
   if(col.id==='sku')return <td key={col.id} className='mono col-sku'>{x.sku}</td>
   if(col.id==='name')return <td key={col.id} className='col-name'>{x.product_name}</td>
   if(col.id==='store')return <td key={col.id} className='col-store'>{x.store}</td>

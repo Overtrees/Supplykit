@@ -209,15 +209,20 @@ def _rebuild(channel='jd'):
     except: pass
 
 
+_cache_by_channel = {}
+
 def get_dashboard(channel='jd'):
     """Return cached dashboard data, rebuilding if dirty or expired."""
-    global _cache, _cache_ts, _cache_dirty
+    global _cache, _cache_ts, _cache_dirty, _cache_by_channel
     now = time.time()
-    if _cache is None or _cache_dirty or (now - _cache_ts) > _CACHE_TTL:
-        _cache = _rebuild(channel)
+    cached = _cache_by_channel.get(channel)
+    if cached is None or _cache_dirty or (now - cached['ts']) > _CACHE_TTL:
+        data = _rebuild(channel)
+        _cache_by_channel[channel] = {'data': data, 'ts': now}
         _cache_ts = now
         _cache_dirty = False
-    return _cache
+        return data
+    return cached['data']
 
 
 def invalidate():

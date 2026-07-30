@@ -8,7 +8,7 @@ router = APIRouter(prefix="/api/orders", tags=["orders"])
 @router.get("")
 def list_orders(db = get_db(), page: int = 1, page_size: int = 50,
                 search: str = '', status: str = '', store: str = '',
-                sort_by: str = 'id', sort_order: str = 'desc'):
+                sort_by: str = 'id', sort_order: str = 'desc', channel: str = 'jd'):
     """订单列表 — 数据库级过滤+排序+分页"""
     # 白名单排序字段防注入
     allowed_sort = {'id','order_no','ordered_at','total_amount','quantity','order_status','store','sku'}
@@ -16,6 +16,11 @@ def list_orders(db = get_db(), page: int = 1, page_size: int = 50,
 
     # 构建查询
     q = db.table("orders").select("*")
+    # 渠道过滤：jd → platform=京东或空, other → 非京东
+    if channel == 'jd':
+        q = q.in_("platform", ["京东", ""])
+    else:
+        q = q.neq("platform", "京东").neq("platform", "")
 
     # 多字段搜索（OR）
     if search:

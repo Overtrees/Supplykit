@@ -5,8 +5,8 @@ from app.core.response import ok, fail
 router = APIRouter(prefix="/api/products", tags=["products"])
 
 @router.get("")
-def list_products(db = get_db(), search: str = ""):
-    q = db.table("products").select("*")
+def list_products(db = get_db(), search: str = "", channel: str = 'jd'):
+    q = db.table("products").select("*").eq("channel", channel)
     if search:
         like = f"%{search}%"
         q = q.ilike("product_name", like) | q.ilike("sku", like)

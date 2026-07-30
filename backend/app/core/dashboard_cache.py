@@ -130,7 +130,7 @@ def _rebuild(channel='jd'):
     inv = db.table("inventory").select("*").eq("channel", channel).execute().data or []
     products = db.table("products").select("*").execute().data or []
     suppliers = db.table("suppliers").select("*").execute().data or []
-    alerts = db.table("alerts").select("*").eq("status", "active").execute().data or []
+    alerts = db.table("alerts").select("*").eq("status", "active").eq("channel", channel).execute().data or []
 
     gmv = sum(float(x.get("total_amount") or 0) for x in orders if x.get("order_status") == "已完成")
     pending = len([x for x in orders if x.get("order_status") == "待发货"])

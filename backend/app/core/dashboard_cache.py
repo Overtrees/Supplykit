@@ -115,6 +115,11 @@ def _rebuild(channel='jd'):
     """Full rebuild of dashboard data from database."""
     db = get_db()
     orders = db.table("orders").select("*").execute().data or []
+    # 渠道过滤：jd → 京东订单, other → 非京东订单
+    if channel == 'jd':
+        orders = [o for o in orders if o.get('platform') in ('京东', '', None)]
+    else:
+        orders = [o for o in orders if o.get('platform') not in ('京东', '', None)]
     
     # 若数据库为空则自动 seed 演示数据
     if not orders:
@@ -128,7 +133,7 @@ def _rebuild(channel='jd'):
             print(f"[auto-seed] {e}")
     
     inv = db.table("inventory").select("*").eq("channel", channel).execute().data or []
-    products = db.table("products").select("*").execute().data or []
+    products = db.table("products").select("*").eq("channel", channel).execute().data or []
     suppliers = db.table("suppliers").select("*").execute().data or []
     alerts = db.table("alerts").select("*").eq("status", "active").eq("channel", channel).execute().data or []
 

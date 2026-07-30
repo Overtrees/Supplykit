@@ -13,8 +13,8 @@ const COLS = [
   {id:'product',label:'商品'},{id:'amount',label:'金额'},{id:'status',label:'状态'},
   {id:'date',label:'日期'},
 ]
-const COL_KEY='c_cols_orders'
-const getVis=()=>{try{return JSON.parse(localStorage.getItem(COL_KEY)||'null')}catch{return null}}
+const COL_KEY = () => 'c_cols_orders_' + (useAppStore.getState().channel || 'jd')
+const getVis=()=>{try{return JSON.parse(localStorage.getItem(COL_KEY())||'null')}catch{return null}}
 
 function OrderSkeleton() {
   return <div>
@@ -34,7 +34,7 @@ export default function OrdersPage() {
   const [sq, setSq] = useState(orderSearch)
   const [ss, setSs] = useState(orderStatus)
   const [confirmDel, setConfirmDel] = useState(null)
-  const [visCols, setVisCols] = useState(() => getVis() || COLS.map(c => c.id))
+  const [visCols, setVisCols] = useState(() => getVis(COL_KEY()) || COLS.map(c => c.id))
   const [showPicker, setShowPicker] = useState(false)
   const totalPages = Math.max(1, Math.ceil(orderTotal / 8))
 
@@ -64,21 +64,21 @@ export default function OrdersPage() {
         return <div key={col.id} draggable={isVis?true:undefined}
           onDragStart={isVis?e=>{e.dataTransfer.setData('text/plain',col.id);e.target.style.opacity='0.4';e.currentTarget.parentNode._dragId=col.id}:undefined}
           onDragEnd={isVis?e=>e.target.style.opacity='1':undefined}
-          onDragOver={isVis?e=>{e.preventDefault();e.currentTarget.style.borderTop='2px solid var(--primary)';const from=e.currentTarget.parentNode._dragId;if(from&&from!==col.id){const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(col.id);nxt.splice(toIdx,0,from);setVisCols(nxt);localStorage.setItem(COL_KEY,JSON.stringify(nxt))}}:undefined}
+          onDragOver={isVis?e=>{e.preventDefault();e.currentTarget.style.borderTop='2px solid var(--primary)';const from=e.currentTarget.parentNode._dragId;if(from&&from!==col.id){const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(col.id);nxt.splice(toIdx,0,from);setVisCols(nxt);localStorage.setItem(COL_KEY(),JSON.stringify(nxt))}}:undefined}
           onDragLeave={isVis?e=>e.currentTarget.style.borderTop='1px solid transparent':undefined}
-          onDrop={isVis?e=>{e.preventDefault();e.currentTarget.style.borderTop='1px solid transparent';const from=e.dataTransfer.getData('text/plain');if(from===col.id)return;const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(col.id);nxt.splice(toIdx,0,from);setVisCols(nxt);localStorage.setItem(COL_KEY,JSON.stringify(nxt));e.currentTarget.parentNode._dragId=null}:undefined}
+          onDrop={isVis?e=>{e.preventDefault();e.currentTarget.style.borderTop='1px solid transparent';const from=e.dataTransfer.getData('text/plain');if(from===col.id)return;const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(col.id);nxt.splice(toIdx,0,from);setVisCols(nxt);localStorage.setItem(COL_KEY(),JSON.stringify(nxt));e.currentTarget.parentNode._dragId=null}:undefined}
           onTouchStart={isVis?e=>{const t=e.touches[0];e.currentTarget._dragStart={x:t.clientX,y:t.clientY,id:col.id}}:undefined}
           onTouchMove={isVis?e=>{e.preventDefault();const t=e.touches[0];const el=document.elementFromPoint(t.clientX,t.clientY);if(el&&el!==e.currentTarget&&el._dragStart)el.style.borderTop='2px solid var(--primary)'}:undefined}
-          onTouchEnd={isVis?e=>{const start=e.currentTarget._dragStart;if(!start)return;const t=e.changedTouches[0];const dropEl=document.elementFromPoint(t.clientX,t.clientY);if(dropEl&&dropEl._dragStart&&dropEl._dragStart.id!==start.id){const from=start.id;const to=dropEl._dragStart.id;const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(to);nxt.splice(toIdx,0,from);setVisCols(nxt);localStorage.setItem(COL_KEY,JSON.stringify(nxt))}}:undefined}
+          onTouchEnd={isVis?e=>{const start=e.currentTarget._dragStart;if(!start)return;const t=e.changedTouches[0];const dropEl=document.elementFromPoint(t.clientX,t.clientY);if(dropEl&&dropEl._dragStart&&dropEl._dragStart.id!==start.id){const from=start.id;const to=dropEl._dragStart.id;const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(to);nxt.splice(toIdx,0,from);setVisCols(nxt);localStorage.setItem(COL_KEY(),JSON.stringify(nxt))}}:undefined}
           style={{display:'flex',alignItems:'center',gap:4,padding:'4px 6px',borderRadius:6,cursor:isVis?'grab':'default',fontSize:12,whiteSpace:'nowrap',borderTop:'1px solid transparent',background:isVis?'var(--card)':'transparent',opacity:isVis?1:0.4,userSelect:'none',WebkitUserSelect:'none'}}>
           <span style={{color:'var(--muted2)',fontSize:12,width:16,flexShrink:0,textAlign:'center',cursor:isVis?'grab':'default'}}>{isVis?'⠿':'○'}</span>
-          <input type="checkbox" checked={isVis} onChange={e=>{const n=e.target.checked?[...visCols,col.id]:visCols.filter(c=>c!==col.id);setVisCols(n);localStorage.setItem(COL_KEY,JSON.stringify(n))}} style={{accentColor:'var(--primary)'}} />
+          <input type="checkbox" checked={isVis} onChange={e=>{const n=e.target.checked?[...visCols,col.id]:visCols.filter(c=>c!==col.id);setVisCols(n);localStorage.setItem(COL_KEY(),JSON.stringify(n))}} style={{accentColor:'var(--primary)'}} />
           <span style={{flex:1}}>{col.label}</span>
           <span style={{fontSize:9,color:'var(--muted2)'}}>{isVis?'#'+(visCols.indexOf(col.id)+1):''}</span>
         </div>
       })}
       <div style={{borderTop:'1px solid var(--border)',marginTop:4,paddingTop:4}}>
-        <span onClick={()=>{const d=COLS.map(c=>c.id);setVisCols(d);localStorage.setItem(COL_KEY,JSON.stringify(d));setShowPicker(false)}} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>全部</span>
+        <span onClick={()=>{const d=COLS.map(c=>c.id);setVisCols(d);localStorage.setItem(COL_KEY(),JSON.stringify(d));setShowPicker(false)}} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>全部</span>
       </div>
     </div>}
         </span>

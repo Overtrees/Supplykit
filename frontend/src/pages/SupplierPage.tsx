@@ -3,8 +3,8 @@ import {api} from '../api/client'
 import EmptyState from '../components/EmptyState'
 
 const COLS = [{id:'code',label:'编号'},{id:'name',label:'名称'},{id:'contact',label:'联系人'},{id:'phone',label:'手机'},{id:'score',label:'评分'}]
-const COL_KEY='c_cols_suppliers'
-const getVis=()=>{try{return JSON.parse(localStorage.getItem(COL_KEY)||'null')}catch{return <td key={col.id} className="small muted" style={{fontSize:11}}>-</td>}}
+const COL_KEY = () => 'c_cols_suppliers_' + (useAppStore.getState().channel || 'jd')
+const getVis=()=>{try{return JSON.parse(localStorage.getItem(COL_KEY())||'null')}catch{return <td key={col.id} className="small muted" style={{fontSize:11}}>-</td>}}
 
 function Skeleton(){return <div>{[1,2,3].map(i=><div key={i} style={{display:'flex',gap:8,padding:'8px 0',borderBottom:'1px solid var(--border)'}}>
   <div className="skeleton" style={{width:60,height:14}}/><div className="skeleton" style={{flex:1,height:14}}/>
@@ -13,7 +13,7 @@ function Skeleton(){return <div>{[1,2,3].map(i=><div key={i} style={{display:'fl
 
 import { useAppStore } from '../store/useAppStore'
 export default function SupplierPage(){const[list,setList]=useState([]);const[s,setS]=useState('');const[ld,setLd]=useState(true)
-const[visCols,setVisCols]=useState(()=>getVis()||COLS.map(c=>c.id));const[showPicker,setShowPicker]=useState(false)
+const[visCols,setVisCols]=useState(()=>getVis(COL_KEY())||COLS.map(c=>c.id));const[showPicker,setShowPicker]=useState(false)
 const { channelVersion } = useAppStore()
 useEffect(()=>{api.get('/api/suppliers').then(r=>{const d=r.data?.items||r.data||[];setList(d);setLd(false)}).catch(()=>setLd(false))},[channelVersion])
 if(ld)return<div className='card'><div className='section-title'><span>供应商管理</span></div><Skeleton/></div>
@@ -30,21 +30,21 @@ return<div className='card'><div className='section-title' style={{display:'flex
         return <div key={col.id} draggable={isVis?true:undefined}
           onDragStart={isVis?e=>{e.dataTransfer.setData('text/plain',col.id);e.target.style.opacity='0.4';e.currentTarget.parentNode._dragId=col.id}:undefined}
           onDragEnd={isVis?e=>e.target.style.opacity='1':undefined}
-          onDragOver={isVis?e=>{e.preventDefault();e.currentTarget.style.borderTop='2px solid var(--primary)';const from=e.currentTarget.parentNode._dragId;if(from&&from!==col.id){const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(col.id);nxt.splice(toIdx,0,from);setVisCols(nxt);localStorage.setItem(COL_KEY,JSON.stringify(nxt))}}:undefined}
+          onDragOver={isVis?e=>{e.preventDefault();e.currentTarget.style.borderTop='2px solid var(--primary)';const from=e.currentTarget.parentNode._dragId;if(from&&from!==col.id){const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(col.id);nxt.splice(toIdx,0,from);setVisCols(nxt);localStorage.setItem(COL_KEY(),JSON.stringify(nxt))}}:undefined}
           onDragLeave={isVis?e=>e.currentTarget.style.borderTop='1px solid transparent':undefined}
-          onDrop={isVis?e=>{e.preventDefault();e.currentTarget.style.borderTop='1px solid transparent';const from=e.dataTransfer.getData('text/plain');if(from===col.id)return;const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(col.id);nxt.splice(toIdx,0,from);setVisCols(nxt);localStorage.setItem(COL_KEY,JSON.stringify(nxt));e.currentTarget.parentNode._dragId=null}:undefined}
+          onDrop={isVis?e=>{e.preventDefault();e.currentTarget.style.borderTop='1px solid transparent';const from=e.dataTransfer.getData('text/plain');if(from===col.id)return;const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(col.id);nxt.splice(toIdx,0,from);setVisCols(nxt);localStorage.setItem(COL_KEY(),JSON.stringify(nxt));e.currentTarget.parentNode._dragId=null}:undefined}
           onTouchStart={isVis?e=>{const t=e.touches[0];e.currentTarget._dragStart={x:t.clientX,y:t.clientY,id:col.id}}:undefined}
           onTouchMove={isVis?e=>{e.preventDefault();const t=e.touches[0];const el=document.elementFromPoint(t.clientX,t.clientY);if(el&&el!==e.currentTarget&&el._dragStart)el.style.borderTop='2px solid var(--primary)'}:undefined}
-          onTouchEnd={isVis?e=>{const start=e.currentTarget._dragStart;if(!start)return;const t=e.changedTouches[0];const dropEl=document.elementFromPoint(t.clientX,t.clientY);if(dropEl&&dropEl._dragStart&&dropEl._dragStart.id!==start.id){const from=start.id;const to=dropEl._dragStart.id;const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(to);nxt.splice(toIdx,0,from);setVisCols(nxt);localStorage.setItem(COL_KEY,JSON.stringify(nxt))}}:undefined}
+          onTouchEnd={isVis?e=>{const start=e.currentTarget._dragStart;if(!start)return;const t=e.changedTouches[0];const dropEl=document.elementFromPoint(t.clientX,t.clientY);if(dropEl&&dropEl._dragStart&&dropEl._dragStart.id!==start.id){const from=start.id;const to=dropEl._dragStart.id;const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(to);nxt.splice(toIdx,0,from);setVisCols(nxt);localStorage.setItem(COL_KEY(),JSON.stringify(nxt))}}:undefined}
           style={{display:'flex',alignItems:'center',gap:4,padding:'4px 6px',borderRadius:6,cursor:isVis?'grab':'default',fontSize:12,whiteSpace:'nowrap',borderTop:'1px solid transparent',background:isVis?'var(--card)':'transparent',opacity:isVis?1:0.4,userSelect:'none',WebkitUserSelect:'none'}}>
           <span style={{color:'var(--muted2)',fontSize:12,width:16,flexShrink:0,textAlign:'center',cursor:isVis?'grab':'default'}}>{isVis?'⠿':'○'}</span>
-          <input type="checkbox" checked={isVis} onChange={e=>{const n=e.target.checked?[...visCols,col.id]:visCols.filter(c=>c!==col.id);setVisCols(n);localStorage.setItem(COL_KEY,JSON.stringify(n))}} style={{accentColor:'var(--primary)'}} />
+          <input type="checkbox" checked={isVis} onChange={e=>{const n=e.target.checked?[...visCols,col.id]:visCols.filter(c=>c!==col.id);setVisCols(n);localStorage.setItem(COL_KEY(),JSON.stringify(n))}} style={{accentColor:'var(--primary)'}} />
           <span style={{flex:1}}>{col.label}</span>
           <span style={{fontSize:9,color:'var(--muted2)'}}>{isVis?'#'+(visCols.indexOf(col.id)+1):''}</span>
         </div>
       })}
       <div style={{borderTop:'1px solid var(--border)',marginTop:4,paddingTop:4}}>
-        <span onClick={()=>{const d=COLS.map(c=>c.id);setVisCols(d);localStorage.setItem(COL_KEY,JSON.stringify(d));setShowPicker(false)}} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>全部</span>
+        <span onClick={()=>{const d=COLS.map(c=>c.id);setVisCols(d);localStorage.setItem(COL_KEY(),JSON.stringify(d));setShowPicker(false)}} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>全部</span>
       </div>
     </div>}
 

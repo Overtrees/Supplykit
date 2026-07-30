@@ -92,28 +92,11 @@ export default function InventoryPage({ highlightSku }) {
       : <div style={{overflowX:"auto"}}>
         <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {visCols.length}/{COLS.length} 列</div>
       <table><colgroup>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>
-        <thead>
-          <tr>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return null;
-            if (col.id === 'month_in') return <th key={col.id}>{col.label}<br/><span className="small" style={{fontWeight:400}}>{monthRange}</span></th>
-            if (col.id === 'month_out') return <th key={col.id}>{col.label}<br/><span className="small" style={{fontWeight:400}}>{monthRange}</span></th>
-            return <th key={col.id}>{col.label}</th>
-          })}</tr>
-      </thead>
+        <thead><tr>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return null;let el;if(col.id==='month_in')el=<th key={col.id}>{col.label}<br/><span className=\"small\" style={{fontWeight:400}}>{monthRange}</span></th>;else if(col.id==='month_out')el=<th key={col.id}>{col.label}<br/><span className=\"small\" style={{fontWeight:400}}>{monthRange}</span></th>;else el=<th key={col.id}>{col.label}</th>;return el})}</tr></thead>
       <tbody>{fl.map(x => {
         const isHL = highlightSku && x.sku === highlightSku
-        return <tr key={x.id} id={'hl-'+x.sku} style={isHL ? {background:'rgba(245,158,11,0.15)',outline:'2px solid #f59e0b'} : {}}>
-        {visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return null;
-          if(col.id==='warehouse')return <td key={col.id} className="col-store">{x.warehouse||'-'}</td>
-          if(col.id==='sku')return <td key={col.id} className="mono col-sku">{x.sku}</td>
-          if(col.id==='name')return <td key={col.id} className="col-name">{x.product_name}</td>
-          if(col.id==='begin')return <td key={col.id} className="col-qty" style={{fontWeight:600}}>{x.beginning_stock ?? '-'}</td>
-          if(col.id==='transit')return <td key={col.id} className="col-qty">{x.in_transit_qty}</td>
-          if(col.id==='month_in')return <td key={col.id} className="col-qty">{x.month_inbound ?? 0}</td>
-          if(col.id==='month_out')return <td key={col.id} className="col-qty" style={{fontWeight:600}}>{x.month_outbound ?? 0}</td>
-          if(col.id==='avail')return <td key={col.id} className="col-qty" style={{fontWeight:600}}>{x.available_qty}</td>
-          if(col.id==='turnover')return <td key={col.id} className="col-qty" style={{fontWeight:600,color:x.turnover_days != null && x.turnover_days > 30 ? '#ef4444' : x.turnover_days != null && x.turnover_days > 15 ? 'var(--warning)' : 'var(--text)'}}>{x.turnover_days != null ? x.turnover_days+'天' : '∞'}</td>
-          return null
-        })}</tr>
+        const visCells = visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return null;let el;if(col.id==='warehouse')el=<td key={col.id} className=\"col-store\">{x.warehouse||'-'}</td>;else if(col.id==='sku')el=<td key={col.id} className=\"mono col-sku\">{x.sku}</td>;else if(col.id==='name')el=<td key={col.id} className=\"col-name\">{x.product_name}</td>;else if(col.id==='begin')el=<td key={col.id} className=\"col-qty\" style={{fontWeight:600}}>{x.beginning_stock ?? '-'}</td>;else if(col.id==='transit')el=<td key={col.id} className=\"col-qty\">{x.in_transit_qty}</td>;else if(col.id==='month_in')el=<td key={col.id} className=\"col-qty\">{x.month_inbound ?? 0}</td>;else if(col.id==='month_out')el=<td key={col.id} className=\"col-qty\" style={{fontWeight:600}}>{x.month_outbound ?? 0}</td>;else if(col.id==='avail')el=<td key={col.id} className=\"col-qty\" style={{fontWeight:600}}>{x.available_qty}</td>;else if(col.id==='turnover'){const tc=x.turnover_days;el=<td key={col.id} className=\"col-qty\" style={{fontWeight:600,color:tc!=null&&tc>30?'#ef4444':tc!=null&&tc>15?'var(--warning)':'var(--text)'}}>{tc!=null?tc+'天':'∞'}</td>}return el})
+        return <tr key={x.id} id={'hl-'+x.sku} style={isHL ? {background:'rgba(245,158,11,0.15)',outline:'2px solid #f59e0b'} : {}}>{visCells}</tr>
       </tbody>
       {totalTurnover != null && <tfoot>
         <tr style={{fontWeight:700,borderTop:'2px solid var(--border)'}}>

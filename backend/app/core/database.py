@@ -484,9 +484,11 @@ def init_db(path=None):
 
         CREATE TABLE IF NOT EXISTS replenishment_config (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            key TEXT UNIQUE NOT NULL,
+            key TEXT NOT NULL,
             value TEXT DEFAULT '',
-            updated_at TEXT DEFAULT (datetime('now'))
+            channel TEXT DEFAULT 'jd',
+            updated_at TEXT DEFAULT (datetime('now')),
+            UNIQUE(key, channel)
         );
         INSERT OR IGNORE INTO replenishment_config(key,value) VALUES('lead_time_days','10');
         INSERT OR IGNORE INTO replenishment_config(key,value) VALUES('safety_multiplier','1.0');

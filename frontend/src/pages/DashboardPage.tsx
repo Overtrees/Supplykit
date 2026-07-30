@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react"
+import { api } from '../api/client'
 import { useAppStore } from '../store/useAppStore'
 import Card from '../components/Card'
 import Chart from '../components/Chart'

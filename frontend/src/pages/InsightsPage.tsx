@@ -205,15 +205,26 @@ export default function InsightsPage() {
                   className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px'}}>导出</button>
                 <div style={{position:'relative',display:'inline-block'}}>
                   <span onClick={()=>setShowColPicker(!showColPicker)} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',cursor:'pointer'}}>列 {visCols.length}/{currentCols.length}</span>
-                  {showColPicker && <div style={{position:'absolute',top:'100%',right:0,zIndex:10,background:'var(--card)',border:'1px solid var(--border)',borderRadius:16,padding:8,minWidth:160,boxShadow:'0 4px 12px rgba(0,0,0,0.15)'}}>
-                    <div style={{fontSize:11,fontWeight:600,marginBottom:4,color:'var(--muted)'}}>显示列</div>
-                    {currentCols.map(col => <label key={col.id} style={{display:'flex',alignItems:'center',gap:6,padding:'3px 4',fontSize:12,cursor:'pointer',whiteSpace:'nowrap'}}>
-                      <input type="checkbox" checked={visCols.includes(col.id)} onChange={e=>{
-                        const next = e.target.checked ? [...visCols, col.id] : visCols.filter(c=>c!==col.id)
-                        setVisCols(next); localStorage.setItem(colKey(replenMode), JSON.stringify(next))
-                      }} style={{accentColor:'var(--primary)'}} />
-                      {col.label || '(序号)'}
-                    </label>)}
+                  {showColPicker && <div style={{position:'absolute',top:'100%',right:0,zIndex:10,background:'var(--card)',border:'1px solid var(--border)',borderRadius:16,padding:6,minWidth:180,boxShadow:'0 4px 12px rgba(0,0,0,0.15)'}}>
+                    <div style={{fontSize:10,color:'var(--muted2)',marginBottom:4,padding:'0 4px'}}>拖拽 ⋮ 调整列顺序</div>
+                    {currentCols.map((col, idx) => {
+                      const isVis = visCols.includes(col.id)
+                      return <div key={col.id} draggable={isVis}
+                        onDragStart={e=>{e.dataTransfer.setData('text/plain',col.id);e.target.style.opacity='0.4'}}
+                        onDragEnd={e=>e.target.style.opacity='1'}
+                        onDragOver={e=>{e.preventDefault();e.currentTarget.style.borderTop='2px solid var(--primary)'}}
+                        onDragLeave={e=>e.currentTarget.style.borderTop='1px solid transparent'}
+                        onDrop={e=>{e.preventDefault();e.currentTarget.style.borderTop='1px solid transparent';const from=e.dataTransfer.getData('text/plain');if(from===col.id)return;const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(col.id);nxt.splice(toIdx,0,from);setVisCols(nxt);localStorage.setItem(colKey(replenMode),JSON.stringify(nxt))}}
+                        style={{display:'flex',alignItems:'center',gap:4,padding:'4px 6px',borderRadius:6,cursor:isVis?'grab':'default',fontSize:12,whiteSpace:'nowrap',borderTop:'1px solid transparent',background:isVis?'var(--card)':'transparent',opacity:isVis?1:0.4}}>
+                        <span style={{color:'var(--muted2)',fontSize:10,width:14,flexShrink:0,textAlign:'center',cursor:isVis?'grab':'default'}}>{isVis?'⋮':'○'}</span>
+                        <input type="checkbox" checked={isVis} onChange={e=>{
+                          const next = e.target.checked ? [...visCols, col.id] : visCols.filter(c=>c!==col.id)
+                          setVisCols(next); localStorage.setItem(colKey(replenMode), JSON.stringify(next))
+                        }} style={{accentColor:'var(--primary)'}} />
+                        <span style={{flex:1}}>{col.label || '(序号)'}</span>
+                        <span style={{fontSize:9,color:'var(--muted2)'}}>{isVis ? '#'+(visCols.indexOf(col.id)+1) : ''}</span>
+                      </div>
+                    })}
                     <div style={{borderTop:'1px solid var(--border)',marginTop:4,paddingTop:4,display:'flex',gap:6}}>
                       <span onClick={()=>{const d=defVis(currentCols);setVisCols(d);localStorage.setItem(colKey(replenMode),JSON.stringify(d));setShowColPicker(false)}} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>默认</span>
                       <span onClick={()=>{const a=currentCols.map(c=>c.id);setVisCols(a);localStorage.setItem(colKey(replenMode),JSON.stringify(a));setShowColPicker(false)}} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>全部</span>
@@ -237,48 +248,61 @@ export default function InsightsPage() {
                 {replenMode==='bbcc' && orderedKeys.length > 0 && <span className="pill success" style={{fontSize:10}}>已下单 {orderedKeys.length} 项</span>}
               </div>
               <table>
-                <colgroup>{currentCols.map(col => <col key={col.id} style={visCols.includes(col.id)?{}:{display:'none'}} />)}</colgroup>
-                <thead><tr>{['','SKU','商品','仓库',...(replenMode==='bbcc'?['B仓可用库存','B仓周转','全国C仓总和可用库存',`B-C仓调拨在途`, `全国C仓日销(融合/7/14/28)`]:['现有','在途',`日销(融合/7/14/28)`]),...(replenMode==='bbcc'?['全国C仓总和周转','B→C 调拨在途总和周转']:['安全线','在库周转','补后周转']),...(replenMode==='bbcc'?['C仓建议补','B仓需补','当前综转','补后综转']:['建议补']),'备注',...(replenMode==='bbcc'?['标记操作']:[])].map(h => <th key={h} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{h}</th>)}</tr></thead>
+                <colgroup>{visCols.map(id => {const col = currentCols.find(c => c.id === id); return col ? <col key={col.id} /> : null})}</colgroup>
+                <thead><tr>{visCols.map(id => {const col = currentCols.find(c => c.id === id); return col ? <th key={col.id} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{col.label}</th> : null})}</tr></thead>
                 <tbody>
                   {Array.isArray(replen) && replen.map((x, i) => {
                     const isOrdered = orderedKeys.includes(x.sku+'|'+x.store)
                     const rowStyle = isOrdered ? {opacity:0.55,background:'var(--bg)'} : {}
                     return (
                     <tr key={i} style={rowStyle}>
-                      <td style={{fontSize:11,color:'var(--muted2)'}}>{i+1}</td>
-                      <td className="mono" style={{fontSize:12,textDecoration:isOrdered?'line-through':'none'}}>{x.sku}</td>
-                      <td style={{textDecoration:isOrdered?'line-through':'none'}}>{x.product_name}</td><td className="col-store">{replenMode==='bbcc' ? 'B仓' : (x.warehouse || x.store || '-')}</td>
-                      {replenMode==='bbcc' ?<>
-                      <td style={{color:'var(--primary)',fontWeight:600}}>{x.b_stock ?? '-'}</td>
-                      <td style={{fontSize:11,fontWeight:600,color:x.b_stock > 0 && (x.daily_sales > 0 ? (x.b_stock/x.daily_sales) : Infinity) > 15 ? '#ef4444' : x.b_stock > 0 && x.daily_sales > 0 && (x.b_stock/x.daily_sales) > 10 ? 'var(--warning)' : 'var(--text)'}}>{x.b_stock > 0 ? (x.daily_sales > 0 ? (x.b_stock/x.daily_sales).toFixed(1)+'天' : '∞') : '-'}</td>
-                      <td style={{fontWeight:600}}>{x.c_stock ?? x.available_qty}</td>
-                      </> : <td style={{fontWeight:600}}>{x.available_qty}</td>}
-                      <td>{x.in_transit_qty}</td>
-                      <td style={{fontSize:11,fontWeight:600,whiteSpace:'nowrap'}}>{x.daily_sales}<span style={{fontSize:10,fontWeight:400,color:'var(--muted2)'}}>
-                        /{x.daily_sales_7||0 > (x.daily_sales_14||0)*1.15 ? <IconTrendUp size={12} style={{display:'inline',verticalAlign:'middle'}} /> : x.daily_sales_7||0 < (x.daily_sales_14||0)*0.85 ? <IconTrendDown size={12} style={{display:'inline',verticalAlign:'middle'}} /> : <IconTrendFlat size={12} style={{display:'inline',verticalAlign:'middle'}} />}{x.daily_sales_7||0}
-                        /{x.daily_sales_14||0 > (x.daily_sales_28||0)*1.15 ? <IconTrendUp size={12} style={{display:'inline',verticalAlign:'middle'}} /> : x.daily_sales_14||0 < (x.daily_sales_28||0)*0.85 ? <IconTrendDown size={12} style={{display:'inline',verticalAlign:'middle'}} /> : <IconTrendFlat size={12} style={{display:'inline',verticalAlign:'middle'}} />}{x.daily_sales_14||0}
-                        /{x.daily_sales_28||0}</span></td>
-                      {replenMode==='bbcc' ? <>
-                      <td style={{fontSize:11,fontWeight:600}}>{x.c_turnover != null ? x.c_turnover+'天' : '∞'}</td>
-                      <td style={{fontSize:11}}>{x.transit_turnover != null ? x.transit_turnover+'天' : '∞'}</td>
-                      </> : <>
-                      <td>{x.safety_qty}</td>
-                      <td style={{color: x.days_to_empty < 5 ? '#ef4444' : x.days_to_empty < 10 ? 'var(--warning)' : 'var(--text)'}}>{x.days_to_empty > 999 ? '∞' : x.days_to_empty}</td>
-                      </>}
-                      {replenMode==='bbcc'
-                        ? <><td style={{color:'var(--primary)',fontWeight:600}}>{x.suggested_qty > 0 ? x.suggested_qty : '-'}</td>
-                          <td style={{color:'var(--success)',fontWeight:700}}>{x.b_suggested > 0 ? x.b_suggested : '-'}</td>
-                          <td style={{fontSize:11}}>{x.combined_turnover_current != null ? x.combined_turnover_current+'天' : '∞'}</td>
-                          <td style={{fontSize:11,fontWeight:700,color:x.combined_turnover != null && x.combined_turnover > 90 ? '#ef4444' : x.combined_turnover != null && x.combined_turnover > 15 ? 'var(--warning)' : 'var(--text)'}}>{(x.suggested_qty > 0 || x.b_suggested > 0) && x.combined_turnover != null ? x.combined_turnover+'天' : '-'}</td></>
-                        : <><td style={{color:'var(--success)',fontWeight:700}}>{x.suggested_qty > 0 ? x.suggested_qty : '-'}</td></>}
-                      {replenMode!=='bbcc' && <td style={{fontWeight:600,color:x.suggested_qty > 0 && (x.after_turnover||0) > 15 ? '#ef4444' : 'var(--text)'}}>{x.suggested_qty > 0 ? x.after_turnover+'天' : '-'}</td>}
-                      <td className="col-name" style={{color:'var(--muted2)',fontSize:12}}>{renderNote(x.note)}</td>
-                      {replenMode==='bbcc' && <td>{isOrdered
-                        ? <span onClick={()=>toggleOrdered(x.sku, x.store, x.product_name, x.suggested_qty || x.b_suggested)} style={{cursor:'pointer',fontSize:16,color:'var(--success)',display:'inline-flex',alignItems:'center',gap:2}}>✓<span style={{fontSize:9,color:'var(--muted2)'}}>撤销</span></span>
-                        : <span onClick={()=>{
-                          if ((x.suggested_qty > 0 || x.b_suggested > 0) && x.combined_turnover > 90 && !window.confirm(`补后综合周转${x.combined_turnover}天，已超90天考核红线，仍标记操作？`)) return
-                          toggleOrdered(x.sku, x.store, x.product_name, x.suggested_qty || x.b_suggested)
-                        }} style={{cursor:'pointer',fontSize:18,opacity:0.5}}>☐</span>}</td>}
+                      {visCols.map(id => {
+                        const col = currentCols.find(c => c.id === id)
+                        if (!col) return null
+                        // 序号列
+                        if (col.id === 'seq') return <td key={col.id} style={{fontSize:11,color:'var(--muted2)'}}>{i+1}</td>
+                        // SKU
+                        if (col.id === 'sku') return <td key={col.id} className="mono" style={{fontSize:12,textDecoration:isOrdered?'line-through':'none'}}>{x.sku}</td>
+                        // 商品名
+                        if (col.id === 'name') return <td key={col.id} style={{textDecoration:isOrdered?'line-through':'none'}}>{x.product_name}</td>
+                        // 仓库
+                        if (col.id === 'warehouse') return <td key={col.id} className="col-store">{replenMode==='bbcc' ? 'B仓' : (x.warehouse || x.store || '-')}</td>
+                        // B仓可用库存
+                        if (col.id === 'b_stock') return <td key={col.id} style={{color:'var(--primary)',fontWeight:600}}>{x.b_stock ?? '-'}</td>
+                        // B仓周转
+                        if (col.id === 'b_turn') return <td key={col.id} style={{fontSize:11,fontWeight:600,color:x.b_stock > 0 && (x.daily_sales > 0 ? (x.b_stock/x.daily_sales) : Infinity) > 15 ? '#ef4444' : x.b_stock > 0 && x.daily_sales > 0 && (x.b_stock/x.daily_sales) > 10 ? 'var(--warning)' : 'var(--text)'}}>{x.b_stock > 0 ? (x.daily_sales > 0 ? (x.b_stock/x.daily_sales).toFixed(1)+'天' : '∞') : '-'}</td>
+                        // C仓总和可用
+                        if (col.id === 'c_stock') return <td key={col.id} style={{fontWeight:600}}>{x.c_stock ?? x.available_qty}</td>
+                        // 在途
+                        if (col.id === 'transit') return <td key={col.id}>{x.in_transit_qty}</td>
+                        // 日销
+                        if (col.id === 'sales') return <td key={col.id} style={{fontSize:11,fontWeight:600,whiteSpace:'nowrap'}}>{x.daily_sales}<span style={{fontSize:10,fontWeight:400,color:'var(--muted2)'}}>
+                          /{x.daily_sales_7||0 > (x.daily_sales_14||0)*1.15 ? <IconTrendUp size={12} style={{display:'inline',verticalAlign:'middle'}} /> : x.daily_sales_7||0 < (x.daily_sales_14||0)*0.85 ? <IconTrendDown size={12} style={{display:'inline',verticalAlign:'middle'}} /> : <IconTrendFlat size={12} style={{display:'inline',verticalAlign:'middle'}} />}{x.daily_sales_7||0}
+                          /{x.daily_sales_14||0 > (x.daily_sales_28||0)*1.15 ? <IconTrendUp size={12} style={{display:'inline',verticalAlign:'middle'}} /> : x.daily_sales_14||0 < (x.daily_sales_28||0)*0.85 ? <IconTrendDown size={12} style={{display:'inline',verticalAlign:'middle'}} /> : <IconTrendFlat size={12} style={{display:'inline',verticalAlign:'middle'}} />}{x.daily_sales_14||0}
+                          /{x.daily_sales_28||0}</span></td>
+                        // C仓周转
+                        if (col.id === 'c_turn') return <td key={col.id} style={{fontSize:11,fontWeight:600}}>{x.c_turnover != null ? x.c_turnover+'天' : '∞'}</td>
+                        // 在途周转
+                        if (col.id === 'transit_turn') return <td key={col.id} style={{fontSize:11}}>{x.transit_turnover != null ? x.transit_turnover+'天' : '∞'}</td>
+                        // C仓建议补
+                        if (col.id === 'suggest') return <td key={col.id} style={{color:'var(--primary)',fontWeight:600}}>{x.suggested_qty > 0 ? x.suggested_qty : '-'}</td>
+                        // B仓需补
+                        if (col.id === 'b_suggest') return <td key={col.id} style={{color:'var(--success)',fontWeight:700}}>{x.b_suggested > 0 ? x.b_suggested : '-'}</td>
+                        // 当前综转
+                        if (col.id === 'cur_turn') return <td key={col.id} style={{fontSize:11}}>{x.combined_turnover_current != null ? x.combined_turnover_current+'天' : '∞'}</td>
+                        // 补后综转
+                        if (col.id === 'after_turn') return <td key={col.id} style={{fontSize:11,fontWeight:700,color:x.combined_turnover != null && x.combined_turnover > 90 ? '#ef4444' : x.combined_turnover != null && x.combined_turnover > 15 ? 'var(--warning)' : 'var(--text)'}}>{(x.suggested_qty > 0 || x.b_suggested > 0) && x.combined_turnover != null ? x.combined_turnover+'天' : '-'}</td>
+                        // 备注
+                        if (col.id === 'note') return <td key={col.id} className="col-name" style={{color:'var(--muted2)',fontSize:12}}>{renderNote(x.note)}</td>
+                        // 标记操作
+                        if (col.id === 'action') return <td key={col.id}>{isOrdered
+                          ? <span onClick={()=>toggleOrdered(x.sku, x.store, x.product_name, x.suggested_qty || x.b_suggested)} style={{cursor:'pointer',fontSize:16,color:'var(--success)',display:'inline-flex',alignItems:'center',gap:2}}>✓<span style={{fontSize:9,color:'var(--muted2)'}}>撤销</span></span>
+                          : <span onClick={()=>{
+                            if ((x.suggested_qty > 0 || x.b_suggested > 0) && x.combined_turnover > 90 && !window.confirm(`补后综合周转${x.combined_turnover}天，已超90天考核红线，仍标记操作？`)) return
+                            toggleOrdered(x.sku, x.store, x.product_name, x.suggested_qty || x.b_suggested)
+                          }} style={{cursor:'pointer',fontSize:18,opacity:0.5}}>☐</span>}</td>
+                        return null
+                      })}
                     </tr>
                   )})}
                 </tbody>

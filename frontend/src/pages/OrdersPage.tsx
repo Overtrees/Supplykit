@@ -101,12 +101,12 @@ export default function OrdersPage() {
       ? <EmptyState icon='clipboard' title={orderSearch?'无匹配订单':'暂无订单'} desc={orderSearch?'换个关键词试试':''} />
       : <div style={{overflowX:"auto"}}>
         <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {visCols.length}/{COLS.length} 列</div>
-      <table><colgroup>{COLS.map(col=><col key={col.id} style={visCols.includes(col.id)?{}:{display:'none'}} />)}</colgroup>
-      <thead><tr>{COLS.filter(c=>visCols.includes(c.id)).map(h=><th key={h.id}>{h.label}</th>)}</tr></thead>
+      <table><colgroup>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>
+      <thead><tr>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<th key={col.id}>{col.label}</th>:null})}</tr></thead>
       <tbody>
         {orders.map(x => {
           const pi = platformInv[x.sku + '|' + x.warehouse] || {}
-          return <tr key={x.id}>{COLS.filter(c=>visCols.includes(c.id)).map(c=>{
+          return <tr key={x.id}>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return null;const c=col;
             if(c.id==='order_no')return <td key={c.id} className="mono col-sku">{x.order_no}</td>
             if(c.id==='store')return <td key={c.id} className="col-store">{x.store||'-'}</td>
             if(c.id==='warehouse')return <td key={c.id} className="col-store">{x.warehouse||'-'}</td>

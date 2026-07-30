@@ -1,4 +1,4 @@
-import React,{useEffect,useState} from 'react'
+import React,{useEffect,useState, useRef} from 'react'
 import {api} from '../api/client'
 import EmptyState from '../components/EmptyState'
 
@@ -39,9 +39,9 @@ return<div className='card' style={{containerType:'inline-size'}}>
 <input value={s} onChange={e=>setS(e.target.value)} placeholder='搜索SKU/名称/店铺...' style={{width:'100%',padding:'8px 12px',fontSize:16,border:'1px solid var(--border)',borderRadius:32,marginBottom:12,outline:'none',boxSizing:'border-box'}}/>
 {fl.length===0?<EmptyState icon='tag' title={s?'无匹配商品':'暂无商品'} desc={s?'换个关键词试试':''}/>:<div style={{overflowX:"auto"}}>
 <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {visCols.length}/{COLS.length} 列</div>
-<table><colgroup>{COLS.map(col=><col key={col.id} style={visCols.includes(col.id)?{}:{display:'none'}} />)}</colgroup>
-<thead><tr>{COLS.filter(c=>visCols.includes(c.id)).map(h=><th key={h.id}>{h.label}</th>)}</tr></thead>
-<tbody>{fl.map(x=><tr key={x.id}>{COLS.filter(c=>visCols.includes(c.id)).map(c=>{
+<table><colgroup>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>
+<thead><tr>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<th key={col.id}>{col.label}</th>:null})}</tr></thead>
+<tbody>{fl.map(x=><tr key={x.id}>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return null;const c=col;
   if(c.id==='sku')return <td key={c.id} className='mono col-sku'>{x.sku}</td>
   if(c.id==='name')return <td key={c.id} className='col-name'>{x.product_name}</td>
   if(c.id==='store')return <td key={c.id} className='col-store'>{x.store}</td>

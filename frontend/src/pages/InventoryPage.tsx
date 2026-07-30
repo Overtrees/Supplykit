@@ -91,7 +91,7 @@ export default function InventoryPage({ highlightSku }) {
       ? <EmptyState icon='package' title={s?'无匹配':'暂无数据'} desc={s?'换个关键词试试':'通过清洗导入数据'} />
       : <div style={{overflowX:"auto"}}>
         <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {visCols.length}/{COLS.length} 列</div>
-      <table><colgroup>{COLS.map(col=><col key={col.id} style={visCols.includes(col.id)?{}:{display:'none'}} />)}</colgroup>
+      <table><colgroup>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>
         <thead>
           <tr>{COLS.filter(c=>visCols.includes(c.id)).map(h => {
             if (h.id === 'month_in') return <th key={h.id}>{h.label}<br/><span className="small" style={{fontWeight:400}}>{monthRange}</span></th>
@@ -102,7 +102,7 @@ export default function InventoryPage({ highlightSku }) {
       <tbody>{fl.map(x => {
         const isHL = highlightSku && x.sku === highlightSku
         return <tr key={x.id} id={'hl-'+x.sku} style={isHL ? {background:'rgba(245,158,11,0.15)',outline:'2px solid #f59e0b'} : {}}>
-        {COLS.filter(c=>visCols.includes(c.id)).map(c=>{
+        {visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return null;const c=col;
           if(c.id==='warehouse')return <td key={c.id} className="col-store">{x.warehouse||'-'}</td>
           if(c.id==='sku')return <td key={c.id} className="mono col-sku">{x.sku}</td>
           if(c.id==='name')return <td key={c.id} className="col-name">{x.product_name}</td>

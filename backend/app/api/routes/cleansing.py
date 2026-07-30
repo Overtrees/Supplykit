@@ -127,7 +127,7 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
     errors = []
     success = 0
     failed = 0
-    is_inv = (target == 'inventory' || target == 'platform_inv')
+    is_inv = (target == 'inventory' or target == 'platform_inv')
     is_inbound = (target == 'inbound')
     is_outbound = (target == 'outbound')
     is_product = (target == 'product')

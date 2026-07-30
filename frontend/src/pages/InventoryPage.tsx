@@ -136,7 +136,7 @@ export default function InventoryPage({ highlightSku }) {
         return React.createElement('tr',{key:x.id,id:'hl-'+x.sku,style:isHL?{background:'rgba(245,158,11,0.15)',outline:'2px solid #f59e0b'}:{}},visCells)
       })}
       </tbody>
-      {totalTurnover != null && <tfoot>
+      {whType === 'own' && totalTurnover != null && <tfoot>
         <tr style={{fontWeight:700,borderTop:'2px solid var(--border)'}}>
           <td colSpan={5} style={{textAlign:'right',fontSize:12}}>合计</td>
           <td>{inventory.reduce((s,x)=>s+(x.month_inbound||0),0)}</td>

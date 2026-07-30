@@ -11,6 +11,12 @@ const INV_FIELDS = [
   {t:'in_transit_qty',l:'在途',tp:'number'},{t:'safety_qty',l:'安全线',tp:'number'},
   {t:'weight',l:'箱重/KG',tp:'number'},{t:'volume',l:'体积/方',tp:'number'},
 ]
+const PROD_FIELDS = [
+  {t:'sku',l:'SKU',tp:'string'},{t:'product_name',l:'商品名称',tp:'string'},
+  {t:'store',l:'店铺',tp:'string'},{t:'category',l:'分类',tp:'string'},
+  {t:'price',l:'单价',tp:'number'},{t:'box_qty',l:'箱规',tp:'number'},
+  {t:'barcode',l:'69码',tp:'string'},{t:'weight',l:'箱重/KG',tp:'number'},{t:'volume',l:'体积/方',tp:'number'},
+]
 const SYS_FIELDS = [
   {t:'order_no',l:'订单号',tp:'string'},{t:'source_order_id',l:'原始单号',tp:'string'},
   {t:'store',l:'店铺',tp:'string'},{t:'warehouse',l:'仓库',tp:'string'},
@@ -189,6 +195,7 @@ export default function CleansingPage() {
         <button onClick={()=>setTt('inventory')} style={{padding:'6px 16px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:4,background:tt==='inventory'?'var(--success)':'var(--card)',color:tt==='inventory'?'#fff':'var(--muted)',borderColor:tt==='inventory'?'var(--success)':'var(--border)',fontWeight:tt==='inventory'?600:400}}><IconPackage size={14} /> 导入库存</button>
         <button onClick={()=>setTt('inbound')} style={{padding:'6px 16px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:4,background:tt==='inbound'?'var(--primary)':'var(--card)',color:tt==='inbound'?'#fff':'var(--muted)',borderColor:tt==='inbound'?'var(--primary)':'var(--border)',fontWeight:tt==='inbound'?600:400}}><IconImport size={14} /> 导入入库</button>
         <button onClick={()=>setTt('outbound')} style={{padding:'6px 16px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:4,background:tt==='outbound'?'var(--primary)':'var(--card)',color:tt==='outbound'?'#fff':'var(--muted)',borderColor:tt==='outbound'?'var(--primary)':'var(--border)',fontWeight:tt==='outbound'?600:400}}><IconExport size={14} /> 导入出库</button>
+        <button onClick={()=>setTt('product')} style={{padding:'6px 16px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:4,background:tt==='product'?'var(--primary)':'var(--card)',color:tt==='product'?'#fff':'var(--muted)',borderColor:tt==='product'?'var(--primary)':'var(--border)',fontWeight:tt==='product'?600:400}}><IconTag size={14} /> 导入商品</button>
       </div>
       <label className="btn btn-primary">
         {bs?'识别中...':'选择文件'}
@@ -249,7 +256,7 @@ export default function CleansingPage() {
         <select value={mp[c.name]?.target || ''} onChange={e=>{const v=e.target.value;setMp(p=>({...p,[c.name]:{target:v,type:'string'}}))}}
           style={{fontSize:13,padding:'5px 8px',border:'1px solid var(--border)',borderRadius:32,flex:1,minWidth:120,background:'var(--card)'}}>
           <option value="">-- 不映射 --</option>
-          {(tt==='inventory'?INV_FIELDS:SYS_FIELDS).map(f => <option key={f.t} value={f.t}>{f.l}</option>)}
+          {(tt==='inventory'?INV_FIELDS:tt==='product'?PROD_FIELDS:SYS_FIELDS).map(f => <option key={f.t} value={f.t}>{f.l}</option>)}
           {cf.filter(f => f.t && f.l).map(f => <option key={f.t} value={f.t}>{f.l}</option>)}
         </select>
         <div style={{fontSize:11,width:50,textAlign:'right',flexShrink:0}}>

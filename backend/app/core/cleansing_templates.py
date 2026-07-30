@@ -103,6 +103,17 @@ SYSTEM_FIELDS = {
         {'key': 'quantity', 'label': '出库数量', 'type': 'number'},
         {'key': 'outbound_date', 'label': '出库日期', 'type': 'date', 'format': 'YMD'},
     ],
+    'product': [
+        {'key': 'sku', 'label': 'SKU', 'type': 'string', 'required': True},
+        {'key': 'product_name', 'label': '商品名称', 'type': 'string'},
+        {'key': 'store', 'label': '店铺', 'type': 'string'},
+        {'key': 'category', 'label': '分类', 'type': 'string'},
+        {'key': 'price', 'label': '单价', 'type': 'number'},
+        {'key': 'box_qty', 'label': '箱规', 'type': 'number'},
+        {'key': 'barcode', 'label': '69码', 'type': 'string'},
+        {'key': 'weight', 'label': '箱重/KG', 'type': 'number'},
+        {'key': 'volume', 'label': '体积/方', 'type': 'number'},
+    ],
 }
 
 

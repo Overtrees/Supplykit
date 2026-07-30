@@ -130,10 +130,12 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
     is_inv = (target == 'inventory')
     is_inbound = (target == 'inbound')
     is_outbound = (target == 'outbound')
+    is_product = (target == 'product')
     orders_to_insert = [] if not is_inv else None
     inv_to_insert = [] if is_inv else None
     inbound_to_insert = [] if is_inbound else None
     outbound_to_insert = [] if is_outbound else None
+    product_to_insert = [] if is_product else None
     sku_seen = set()
 
     for idx, row in enumerate(rows):
@@ -256,6 +258,20 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                 "outbound_date": str(data.get('outbound_date', ''))[:50],
             })
             success += 1
+        # 商品信息导入
+        if is_product:
+            product_to_insert.append({
+                "sku": sku[:100],
+                "product_name": str(data.get('product_name', ''))[:200],
+                "store": str(data.get('store', ''))[:100],
+                "category": str(data.get('category', ''))[:100],
+                "price": float(data.get('unit_price', data.get('price', 0))),
+                "box_qty": int(float(data.get('box_qty', 0))),
+                "barcode": str(data.get('barcode', ''))[:100],
+                "weight": float(data.get('weight', 0)),
+                "volume": float(data.get('volume', 0)),
+            })
+            success += 1
         else:
             orders_to_insert.append({
                 "order_no": order_no, "store": str(data.get('store', '未知'))[:100],
@@ -270,8 +286,8 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
             })
             success += 1
 
-    insert_table = 'inventory' if is_inv else ('inbound_records' if is_inbound else ('outbound_records' if is_outbound else 'orders'))
-    data_list = inv_to_insert if is_inv else (inbound_to_insert if is_inbound else (outbound_to_insert if is_outbound else orders_to_insert))
+    insert_table = 'products' if is_product else ('inventory' if is_inv else ('inbound_records' if is_inbound else ('outbound_records' if is_outbound else 'orders')))
+    data_list = product_to_insert if is_product else (inv_to_insert if is_inv else (inbound_to_insert if is_inbound else (outbound_to_insert if is_outbound else orders_to_insert)))
     if data_list:
         try:
             # 逐条 upsert 避免 UNIQUE 冲突（数据库已有相同 order_no+sku 时覆盖更新）

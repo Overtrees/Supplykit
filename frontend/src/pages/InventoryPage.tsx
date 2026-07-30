@@ -93,7 +93,7 @@ export default function InventoryPage({ highlightSku }) {
         <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {visCols.length}/{COLS.length} 列</div>
       <table><colgroup>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>
         <thead>
-          <tr>{COLS.filter(c=>visCols.includes(c.id)).map(h => {
+          <tr>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return null;const h=col;
             if (h.id === 'month_in') return <th key={h.id}>{h.label}<br/><span className="small" style={{fontWeight:400}}>{monthRange}</span></th>
             if (h.id === 'month_out') return <th key={h.id}>{h.label}<br/><span className="small" style={{fontWeight:400}}>{monthRange}</span></th>
             return <th key={h.id}>{h.label}</th>
@@ -114,6 +114,7 @@ export default function InventoryPage({ highlightSku }) {
           if(c.id==='turnover')return <td key={c.id} className="col-qty" style={{fontWeight:600,color:x.turnover_days != null && x.turnover_days > 30 ? '#ef4444' : x.turnover_days != null && x.turnover_days > 15 ? 'var(--warning)' : 'var(--text)'}}>{x.turnover_days != null ? x.turnover_days+'天' : '∞'}</td>
           return null
         })}</tr>
+      </tbody>
       {totalTurnover != null && <tfoot>
         <tr style={{fontWeight:700,borderTop:'2px solid var(--border)'}}>
           <td colSpan={5} style={{textAlign:'right',fontSize:12}}>合计</td>

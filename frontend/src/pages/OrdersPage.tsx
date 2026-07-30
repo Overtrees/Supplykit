@@ -11,7 +11,7 @@ const STATUSES = ['','已完成','待发货','已发货','待确认','申请退�
 const COLS = [
   {id:'order_no',label:'订单号'},{id:'barcode',label:'69码'},{id:'store',label:'店铺'},{id:'warehouse',label:'仓库'},
   {id:'product',label:'商品'},{id:'amount',label:'金额'},{id:'status',label:'状态'},
-  {id:'date',label:'日期'},{id:'plat_avail',label:'平台可用'},{id:'plat_transit',label:'平台在途'},
+  {id:'date',label:'日期'},
 ]
 const COL_KEY='c_cols_orders'
 const getVis=()=>{try{return JSON.parse(localStorage.getItem(COL_KEY)||'null')}catch{return null}}
@@ -33,7 +33,6 @@ export default function OrdersPage() {
   const [sq, setSq] = useState(orderSearch)
   const [ss, setSs] = useState(orderStatus)
   const [confirmDel, setConfirmDel] = useState(null)
-  const [platformInv, setPlatformInv] = useState({})
   const [visCols, setVisCols] = useState(() => getVis() || COLS.map(c => c.id))
   const [showPicker, setShowPicker] = useState(false)
   const totalPages = Math.max(1, Math.ceil(orderTotal / 8))
@@ -41,18 +40,6 @@ export default function OrdersPage() {
   const doSearch = () => setOrderFilter(sq, ss)
 
   // 加载平台仓库存（按 SKU+仓库 维度）
-  useEffect(() => {
-    api.get('/api/inventory?warehouse_type=platform').then(r => {
-      const data = r.data?.items || r.data || []
-      const map = {}
-      data.forEach(i => {
-        const key = i.sku + '|' + i.warehouse
-        map[key] = { available: Number(i.available_qty || 0), transit: Number(i.in_transit_qty || 0) }
-      })
-      setPlatformInv(map)
-    }).catch(() => {})
-  }, [])
-
   const delOrder = async () => {
     if (!confirmDel) return
     try {
@@ -121,7 +108,6 @@ export default function OrdersPage() {
       <thead><tr>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<th key={col.id}>{col.label}</th>:null})}</tr></thead>
       <tbody>
         {orders.map(x => {
-          const pi = platformInv[x.sku + '|' + x.warehouse] || {}
           return <tr key={x.id}>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return null;
             if(col.id==='order_no')return <td key={col.id} className="mono col-sku">{x.order_no}</td>
             if(col.id==='store')return <td key={col.id} className="col-store">{x.store||'-'}</td>
@@ -130,8 +116,7 @@ export default function OrdersPage() {
             if(col.id==='amount')return <td key={col.id} className="col-price">¥{Number(x.total_amount).toLocaleString()}</td>
             if(col.id==='status')return <td key={col.id}><span className={`pill ${x.order_status==='已完成'?'success':x.order_status==='待发货'?'warning':x.order_status==='已发货'?'info':x.order_status==='申请退款'?'danger':''}`}>{x.order_status}</span></td>
             if(col.id==='date')return <td key={col.id} className="col-date">{x.ordered_at}</td>
-            if(col.id==='plat_avail')return <td key={col.id} className="col-qty" style={{fontWeight:600,color:pi.available>0?'var(--text)':'var(--muted2)'}} title={pi.available===undefined?'该仓库无库存数据':''}>{pi.available===undefined?'—':pi.available}</td>
-            if(col.id==='plat_transit')return <td key={col.id} className="col-qty" style={{color:pi.transit>0?'var(--text)':'var(--muted2)'}} title={pi.transit===undefined?'该仓库无库存数据':''}>{pi.transit===undefined?'—':pi.transit}</td>
+
             return null
           })}</tr>
         })}

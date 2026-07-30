@@ -9,9 +9,8 @@ export default function DashboardPage({ onAlert }) {
   const [periodTab, setPeriodTab] = useState('month')
   const [healthTab, setHealthTab] = useState(() => localStorage.getItem('health_tab') || 'platform')
   const { dashboard, inventory, qualityLogs, alerts, stockRisk, channelVersion } = useAppStore()
-  const [chKey, setChKey] = useState(channelVersion)
-  useEffect(() => { if (chKey !== channelVersion) { setChKey(channelVersion); setChLoading(true); setTimeout(() => setChLoading(false), 300) } }, [channelVersion])
   const [chLoading, setChLoading] = useState(false)
+  useEffect(() => { setChLoading(true); setTimeout(() => setChLoading(false), 100) }, [channelVersion])
   const periodTrend = dashboard?.periods?.[periodTab + '_trend'] || dashboard?.trend || []
   const periodMeta = dashboard?.periods?.[periodTab] || {}
 

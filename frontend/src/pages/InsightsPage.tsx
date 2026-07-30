@@ -84,7 +84,7 @@ export default function InsightsPage() {
   const [slowLoading, setSlowLoading] = useState(true)
 
   const [replenMode, setReplenMode] = useState(() => localStorage.getItem('c_replen_mode') || 'bbcc')
-  const { channel: globalChannel } = useAppStore()
+  const { channel: globalChannel, channelVersion } = useAppStore()
   const currentCols = replenMode === 'bbcc' ? BBCC_COLS : TRAD_COLS
   const [visCols, setVisCols] = useState(() => getVis(replenMode) || (replenMode==='bbcc'?defVis(BBCC_COLS):defVisTrad(TRAD_COLS)))
   const [showColPicker, setShowColPicker] = useState(false)
@@ -158,7 +158,7 @@ export default function InsightsPage() {
       setSlowMoving(r.data || [])
       setSlowLoading(false)
     }).catch(() => setSlowLoading(false))
-  }, [globalChannel])
+  }, [globalChannel, channelVersion])
 
   const tabs = [
     { id: 'replen', label: '补货建议', count: replen.length },

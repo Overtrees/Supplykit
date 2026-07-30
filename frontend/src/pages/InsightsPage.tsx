@@ -83,17 +83,19 @@ export default function InsightsPage() {
   const [slowLoading, setSlowLoading] = useState(true)
 
   const [replenMode, setReplenMode] = useState(() => localStorage.getItem('c_replen_mode') || 'bbcc')
+  const [replenChannel, setReplenChannel] = useState(() => localStorage.getItem('c_replen_channel') || 'jd')
   const currentCols = replenMode === 'bbcc' ? BBCC_COLS : TRAD_COLS
   const [visCols, setVisCols] = useState(() => getVis(replenMode) || (replenMode==='bbcc'?defVis(BBCC_COLS):defVisTrad(TRAD_COLS)))
   const [showColPicker, setShowColPicker] = useState(false)
   const reqSeq = useRef(0)
 
-  const switchMode = (m) => { setReplenMode(m); localStorage.setItem('c_replen_mode', m); const cols = m === 'bbcc' ? BBCC_COLS : TRAD_COLS; setVisCols(getVis(m) || (m==='bbcc'?defVis(BBCC_COLS):defVisTrad(TRAD_COLS))); loadReplen(m) }
-  const loadReplen = async (mode) => {
+  const switchMode = (m) => { setReplenMode(m); localStorage.setItem('c_replen_mode', m); const cols = m === 'bbcc' ? BBCC_COLS : TRAD_COLS; setVisCols(getVis(m) || (m==='bbcc'?defVis(BBCC_COLS):defVisTrad(TRAD_COLS))); loadReplen(m, replenChannel) }
+  const switchChannel = (ch) => { setReplenChannel(ch); localStorage.setItem('c_replen_channel', ch); if (ch !== 'jd') setReplenMode('traditional'); loadReplen(replenMode, ch) }
+  const loadReplen = async (mode, ch) => {
     const seq = ++reqSeq.current
     setReplenLoading(true)
     try {
-      const r = await api.get('/api/insights/replenishment?days=28&mode=' + mode)
+      const r = await api.get('/api/insights/replenishment?days=28&mode=' + mode + '&channel=' + (ch||'jd'))
       if (seq === reqSeq.current) setReplen(Array.isArray(r.data) ? r.data : [])
     } catch(e) {
       console.error('loadReplen:', e)
@@ -146,7 +148,7 @@ export default function InsightsPage() {
   useEffect(() => {
     loadOrdered()
     // 补货建议独立加载
-    loadReplen(replenMode)
+    loadReplen(replenMode, replenChannel)
     // 其余数据同时加载
     api.get('/api/insights/purchase?days=28&mode=' + replenMode).then(r => {
       setPurchase(r.data?.suggestions || r.data || [])
@@ -189,8 +191,12 @@ export default function InsightsPage() {
           <div className="section-title" style={{display:'flex',flexWrap:'wrap',gap:6}}>
             <span>
               补货建议{replen.length > 0 && <span className="small muted" style={{ marginLeft: 8 }}></span>}
+              <select value={replenChannel} onChange={e=>switchChannel(e.target.value)} style={{fontSize:12,padding:'3px 8px',border:'1px solid var(--border)',borderRadius:32,outline:'none',background:'var(--card)',marginLeft:12,verticalAlign:'middle'}}>
+                <option value='jd'>京东</option>
+                <option value='other'>其他渠道</option>
+              </select>
               <span style={{marginLeft:12,display:'inline-flex',flexWrap:'wrap',gap:4}}>
-                <span onClick={()=>switchMode('bbcc')} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',background:replenMode==='bbcc'?'var(--primary)':'transparent',color:replenMode==='bbcc'?'#fff':''}}>BBCC</span>
+                {replenChannel==='jd' && <span onClick={()=>switchMode('bbcc')} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',background:replenMode==='bbcc'?'var(--primary)':'transparent',color:replenMode==='bbcc'?'#fff':''}}>BBCC</span>}
                 <span onClick={()=>switchMode('traditional')} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',background:replenMode==='traditional'?'var(--primary)':'transparent',color:replenMode==='traditional'?'#fff':''}}>传统多仓</span>
                 <button onClick={async()=>{
                   try {

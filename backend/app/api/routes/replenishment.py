@@ -10,7 +10,7 @@ router = APIRouter(prefix="/api/insights", tags=["insights"])
 
 
 @router.get('/replenishment')
-def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 'bbcc', db = get_db()):
+def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 'bbcc', channel: str = 'jd', db = get_db()):
     """补货建议，支持 days=7/14/28 切换，mode=bbcc/traditional 切换模型"""
     from datetime import timedelta
 
@@ -42,7 +42,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                 db.table("alerts").update({"description":f"入库已{days_stored}天，即将超B仓15天免费期"}).eq("id",existing[0]["id"]).execute()
     except: pass
 
-    cfg_rows = db.table("replenishment_config").select("*").execute().data
+    cfg_rows = db.table("replenishment_config").select("*").eq("channel", channel).execute().data
     raw = {r['key']: r['value'] for r in cfg_rows}
     cfg = {}
     prefix = f'mode_{mode}_'
@@ -91,7 +91,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     suggestions = []
 
     if mode == 'bbcc':
-        items = db.table("inventory").select("*").in_("warehouse_type", ["platform", "platform_b"]).execute().data
+        items = db.table("inventory").select("*").in_("warehouse_type", ["platform", "platform_b"]).eq("channel", channel).execute().data
         agg = {}; wh_detail = {}; b_stock = {}
         for inv in items:
             sku = inv.get("sku", "")
@@ -190,8 +190,8 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             })
     else:
         # 传统模式
-        all_inv = db.table("inventory").select("*").execute().data
-        for inv in db.table("inventory").select("*").in_("warehouse_type", ["platform"]).execute().data:
+        all_inv = db.table("inventory").select("*").eq("channel", channel).execute().data
+        for inv in db.table("inventory").select("*").in_("warehouse_type", ["platform"]).eq("channel", channel).execute().data:
             sku = inv.get("sku", "")
             warehouse = inv.get("warehouse", "")
             avail = int(inv.get("available_qty") or 0)
@@ -278,7 +278,7 @@ def export_orders_excel(db = get_db()):
 def export_inventory_excel(db = get_db()):
     from openpyxl import Workbook
     from io import BytesIO; from fastapi.responses import Response; from urllib.parse import quote
-    inv = db.table("inventory").select("*").execute().data
+    inv = db.table("inventory").select("*").eq("channel", channel).execute().data
     wb = Workbook(); ws = wb.active; ws.title = "库存"
     ws.append(["SKU","商品","仓库","仓库类型","可用","在途","安全库存"])
     from openpyxl.styles import Font, Alignment, PatternFill, Border, Side

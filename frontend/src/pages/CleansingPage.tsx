@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { api } from '../api/client'
 import { useToast } from '../components/Toast'
-import { IconBroom, IconClipboard, IconPackage, IconImport, IconExport, IconTrendUp, IconLightning, IconCheck, IconAlert, IconLoading, IconFolder } from '../components/Icons'
+import { IconBroom, IconClipboard, IconPackage, IconImport, IconExport, IconTrendUp, IconLightning, IconCheck, IconAlert, IconLoading, IconFolder, IconTag } from '../components/Icons'
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
 const INV_FIELDS = [

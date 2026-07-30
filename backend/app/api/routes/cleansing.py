@@ -103,7 +103,7 @@ async def preview_cleansing(file: UploadFile = File(...), mapping: str = Form(''
 
 # ─── 执行清洗 ────────────────────────────────────────────────────────────────
 
-def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str, template_name: str = ''):
+def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str, template_name: str = '', channel: str = 'jd'):
     """清洗核心逻辑，含格式校验 → 业务校验 → 补全推断"""
     db = get_db()
     rows = parse_file(content, filename)
@@ -236,6 +236,7 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                 "store": str(data.get('store', '未知'))[:100],
                 "warehouse": str(data.get('warehouse', ''))[:100],
                 "warehouse_type": 'platform' if platform_inv else 'own',
+                "channel": channel,
                 "available_qty": int(float(data.get('available_qty', 0))),
                 "locked_qty": int(float(data.get('locked_qty', 0))),
                 "in_transit_qty": int(float(data.get('in_transit_qty', 0))),
@@ -361,17 +362,17 @@ def get_cleansing_errors(file: str = '', db = get_db()):
 
 @router.post('/execute')
 async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''),
-                             target: str = Form('order'), template_name: str = Form('')):
+                             target: str = Form('order'), template_name: str = Form(''), channel: str = 'jd'):
     content = await file.read()
-    return _run_cleansing(content, file.filename, mapping, target, template_name)
+    return _run_cleansing(content, file.filename, mapping, target, template_name, channel)
 
 @router.post('/execute-async')
 async def execute_cleansing_async(file: UploadFile = File(...), mapping: str = Form(''),
-                                   target: str = Form('order'), template_name: str = Form('')):
+                                   target: str = Form('order'), template_name: str = Form(''), channel: str = 'jd'):
     import uuid
     content = await file.read()
     task_id = str(uuid.uuid4())[:8]
-    submit_task(task_id, _run_cleansing, content, file.filename, mapping, target, template_name)
+    submit_task(task_id, _run_cleansing, content, file.filename, mapping, target, template_name, channel)
     from app.core.database import update_task
     update_task(task_id, progress=0)
     return {'ok': True, 'task_id': task_id, 'message': '任务已提交'}

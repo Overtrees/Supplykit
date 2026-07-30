@@ -62,6 +62,7 @@ export default function CleansingPage() {
   const [cols,setCols] = useState([])
   const [tr,setTr] = useState(0)
   const [tt,setTt] = useState('order')
+  const [ch,setCh] = useState('jd')
   const [mp,setMp] = useState({})
   const [pv,setPv] = useState(null)
   const [res,setRes] = useState(null)
@@ -110,7 +111,7 @@ export default function CleansingPage() {
 
   const preview = async () => {
     setBs('预览中')
-    const fd = new FormData(); fd.append('file', f); fd.append('mapping', JSON.stringify(mp)); fd.append('target', tt)
+    const fd = new FormData(); fd.append('file', f); fd.append('mapping', JSON.stringify(mp)); fd.append('target', tt); fd.append('channel', ch)
     try {
       const r = await api.post('/api/cleansing/preview', fd, {timeout: 60000})
       const d = r.data
@@ -129,7 +130,7 @@ export default function CleansingPage() {
     execLock.current = true
     try {
     setBs('清洗中...')
-    const fd = new FormData(); fd.append('file', f); fd.append('mapping', JSON.stringify(mp)); fd.append('target', tt)
+    const fd = new FormData(); fd.append('file', f); fd.append('mapping', JSON.stringify(mp)); fd.append('target', tt); fd.append('channel', ch)
     try {
       const r = await api.post('/api/cleansing/execute-async', fd)
       const d = r.data
@@ -154,7 +155,7 @@ export default function CleansingPage() {
 
   const quickExecute = async () => {
     setBs('执行中')
-    const fd = new FormData(); fd.append('file', f); fd.append('mapping', JSON.stringify(mp)); fd.append('target', tt)
+    const fd = new FormData(); fd.append('file', f); fd.append('mapping', JSON.stringify(mp)); fd.append('target', tt); fd.append('channel', ch)
     try {
       const r = await api.post('/api/cleansing/preview', fd)
       const d = r.data
@@ -190,13 +191,20 @@ export default function CleansingPage() {
 
     {s === 0 && <div style={{textAlign:'center',padding:40}}>
       <div style={{fontSize:28,marginBottom:12,opacity:.3}}><IconBroom size={28} /></div>
-      <div style={{display:'flex',justifyContent:'center',gap:8,marginBottom:12,flexWrap:'wrap'}}>
-        <button onClick={()=>setTt('order')} style={{padding:'6px 16px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:4,background:tt==='order'?'var(--primary)':'var(--card)',color:tt==='order'?'#fff':'var(--muted)',borderColor:tt==='order'?'var(--primary)':'var(--border)',fontWeight:tt==='order'?600:400}}><IconClipboard size={14} /> 导入订单</button>
-        <button onClick={()=>setTt('inventory')} style={{padding:'6px 16px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:4,background:tt==='inventory'?'var(--success)':'var(--card)',color:tt==='inventory'?'#fff':'var(--muted)',borderColor:tt==='inventory'?'var(--success)':'var(--border)',fontWeight:tt==='inventory'?600:400}}><IconPackage size={14} /> 导入库存</button>
-        <button onClick={()=>setTt('inbound')} style={{padding:'6px 16px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:4,background:tt==='inbound'?'var(--primary)':'var(--card)',color:tt==='inbound'?'#fff':'var(--muted)',borderColor:tt==='inbound'?'var(--primary)':'var(--border)',fontWeight:tt==='inbound'?600:400}}><IconImport size={14} /> 导入入库</button>
-        <button onClick={()=>setTt('outbound')} style={{padding:'6px 16px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:4,background:tt==='outbound'?'var(--primary)':'var(--card)',color:tt==='outbound'?'#fff':'var(--muted)',borderColor:tt==='outbound'?'var(--primary)':'var(--border)',fontWeight:tt==='outbound'?600:400}}><IconExport size={14} /> 导入出库</button>
-        <button onClick={()=>setTt('product')} style={{padding:'6px 16px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:4,background:tt==='product'?'var(--primary)':'var(--card)',color:tt==='product'?'#fff':'var(--muted)',borderColor:tt==='product'?'var(--primary)':'var(--border)',fontWeight:tt==='product'?600:400}}><IconTag size={14} /> 导入商品</button>
-        <button onClick={()=>setTt('platform_inv')} style={{padding:'6px 16px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:4,background:tt==='platform_inv'?'var(--primary)':'var(--card)',color:tt==='platform_inv'?'#fff':'var(--muted)',borderColor:tt==='platform_inv'?'var(--primary)':'var(--border)',fontWeight:tt==='platform_inv'?600:400}}><IconPackage size={14} /> 平台仓库存</button>
+      <div style={{display:'flex',justifyContent:'center',gap:8,marginBottom:12}}>
+        <span onClick={()=>setCh('jd')} className="btn btn-ghost" style={{fontSize:13,padding:'4px 16px',cursor:'pointer',background:ch==='jd'?'var(--primary)':'transparent',color:ch==='jd'?'#fff':''}}>京东</span>
+        <span onClick={()=>setCh('other')} className="btn btn-ghost" style={{fontSize:13,padding:'4px 16px',cursor:'pointer',background:ch==='other'?'var(--primary)':'transparent',color:ch==='other'?'#fff':''}}>其他渠道</span>
+      </div>
+      <div style={{display:'flex',justifyContent:'center',gap:8,marginBottom:12}}>
+        <select value={tt} onChange={e=>setTt(e.target.value)} style={{fontSize:16,padding:'8px 16px',border:'1px solid var(--border)',borderRadius:32,outline:'none',background:'var(--card)',minWidth:180}}>
+          <option value='order'>导入订单</option>
+          <option value='inventory'>导入库存</option>
+          <option value='platform_inv'>导入平台仓库存</option>
+          <option value='inbound'>导入入库</option>
+          <option value='outbound'>导入出库</option>
+          <option value='product'>导入商品</option>
+        </select>
+      </div>
       </div>
       <label className="btn btn-primary">
         {bs?'识别中...':'选择文件'}

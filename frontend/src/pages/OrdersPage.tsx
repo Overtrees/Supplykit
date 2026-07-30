@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useAppStore } from '../store/useAppStore'
 import { api } from '../api/client'
 import EmptyState from '../components/EmptyState'
@@ -8,6 +8,13 @@ import { IconSearch, IconTrash, IconExport } from '../components/Icons'
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
 const STATUSES = ['','已完成','待发货','已发货','待确认','申请退款']
+const COLS = [
+  {id:'order_no',label:'订单号'},{id:'store',label:'店铺'},{id:'warehouse',label:'仓库'},
+  {id:'product',label:'商品'},{id:'amount',label:'金额'},{id:'status',label:'状态'},
+  {id:'date',label:'日期'},{id:'plat_avail',label:'平台可用'},{id:'plat_transit',label:'平台在途'},
+]
+const COL_KEY='c_cols_orders'
+const getVis=()=>{try{return JSON.parse(localStorage.getItem(COL_KEY)||'null')}catch{return null}}
 
 function OrderSkeleton() {
   return <div>
@@ -27,6 +34,8 @@ export default function OrdersPage() {
   const [ss, setSs] = useState(orderStatus)
   const [confirmDel, setConfirmDel] = useState(null)
   const [platformInv, setPlatformInv] = useState({})
+  const [visCols, setVisCols] = useState(() => getVis() || COLS.map(c => c.id))
+  const [showPicker, setShowPicker] = useState(false)
   const totalPages = Math.max(1, Math.ceil(orderTotal / 8))
 
   const doSearch = () => setOrderFilter(sq, ss)
@@ -55,11 +64,23 @@ export default function OrdersPage() {
   }
 
   return <div className="card">
-    <div className="section-title" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+    <div className="section-title" style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:6}}>
       <span>订单 <span className="small muted">共 {orderTotal} 条</span></span>
-      <button onClick={async()=>{try{const r=await fetch(API+'/api/insights/export-orders');const b=await r.blob();const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='orders_'+new Date().toISOString().slice(0,10)+'.xlsx';document.body.appendChild(a);a.click();a.remove()}catch(e){toast.error('导出失败')}}}
-        className="btn btn-ghost" style={{fontSize:12,padding:'4px 12px',display:'flex',alignItems:'center',gap:4}}><IconExport size={14} /> 导出</button>
+      <span style={{display:'flex',gap:6,alignItems:'center'}}>
+        <span onClick={()=>setShowPicker(!showPicker)} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',cursor:'pointer'}}>列 {visCols.length}/{COLS.length}</span>
+        <button onClick={async()=>{try{const r=await fetch(API+'/api/insights/export-orders');const b=await r.blob();const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='orders_'+new Date().toISOString().slice(0,10)+'.xlsx';document.body.appendChild(a);a.click();a.remove()}catch(e){toast.error('导出失败')}}}
+          className="btn btn-ghost" style={{fontSize:12,padding:'4px 12px',display:'flex',alignItems:'center',gap:4}}><IconExport size={14} /> 导出</button>
+      </span>
     </div>
+    {showPicker && <div style={{position:'absolute',zIndex:10,background:'var(--card)',border:'1px solid var(--border)',borderRadius:16,padding:8,minWidth:140,boxShadow:'0 4px 12px rgba(0,0,0,0.15)',right:0}}>
+      {COLS.map(col=><label key={col.id} style={{display:'flex',alignItems:'center',gap:6,padding:'3px 4',fontSize:12,cursor:'pointer',whiteSpace:'nowrap'}}>
+        <input type="checkbox" checked={visCols.includes(col.id)} onChange={e=>{const n=e.target.checked?[...visCols,col.id]:visCols.filter(c=>c!==col.id);setVisCols(n);localStorage.setItem(COL_KEY,JSON.stringify(n))}} style={{accentColor:'var(--primary)'}} />
+        {col.label}
+      </label>)}
+      <div style={{borderTop:'1px solid var(--border)',marginTop:4,paddingTop:4}}>
+        <span onClick={()=>{const d=COLS.map(c=>c.id);setVisCols(d);localStorage.setItem(COL_KEY,JSON.stringify(d));setShowPicker(false)}} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>全部</span>
+      </div>
+    </div>}
 
     <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}}>
       <div className="search-bar">
@@ -79,21 +100,24 @@ export default function OrdersPage() {
     : orders.length === 0
       ? <EmptyState icon='clipboard' title={orderSearch?'无匹配订单':'暂无订单'} desc={orderSearch?'换个关键词试试':''} />
       : <div style={{overflowX:"auto"}}>
-        <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 9 列 · 左右滑动查看</div>
-      <table><thead><tr>{['订单号','店铺','仓库','商品','金额','状态','日期','平台可用','平台在途',''].map(h=><th key={h}>{h}</th>)}</tr></thead>
+        <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {visCols.length}/{COLS.length} 列</div>
+      <table><colgroup>{COLS.map(col=><col key={col.id} style={visCols.includes(col.id)?{}:{display:'none'}} />)}</colgroup>
+      <thead><tr>{COLS.filter(c=>visCols.includes(c.id)).map(h=><th key={h.id}>{h.label}</th>)}</tr></thead>
       <tbody>
         {orders.map(x => {
           const pi = platformInv[x.sku + '|' + x.warehouse] || {}
-          return <tr key={x.id}>
-          <td className="mono col-sku">{x.order_no}</td>
-          <td className="col-store">{x.store||'-'}</td><td className="col-store">{x.warehouse||'-'}</td><td className="col-name">{x.product_name}</td>
-          <td className="col-price">¥{Number(x.total_amount).toLocaleString()}</td>
-          <td><span className={`pill ${x.order_status==='已完成'?'success':x.order_status==='待发货'?'warning':x.order_status==='已发货'?'info':x.order_status==='申请退款'?'danger':''}`}>{x.order_status}</span></td>
-          <td className="col-date">{x.ordered_at}</td>
-          <td className="col-qty" style={{fontWeight:600,color:pi.available>0?'var(--text)':'var(--muted2)'}} title={pi.available===undefined?'该仓库无库存数据':''}>{pi.available===undefined?'—':pi.available}</td>
-          <td className="col-qty" style={{color:pi.transit>0?'var(--text)':'var(--muted2)'}} title={pi.transit===undefined?'该仓库无库存数据':''}>{pi.transit===undefined?'—':pi.transit}</td>
-          <td><span onClick={()=>setConfirmDel(x.id)} className="btn btn-ghost" style={{padding:'4px 8px',opacity:0.5,minHeight:0,display:'inline-flex'}} title='删除'><IconTrash size={16} /></span></td>
-        </tr>
+          return <tr key={x.id}>{COLS.filter(c=>visCols.includes(c.id)).map(c=>{
+            if(c.id==='order_no')return <td key={c.id} className="mono col-sku">{x.order_no}</td>
+            if(c.id==='store')return <td key={c.id} className="col-store">{x.store||'-'}</td>
+            if(c.id==='warehouse')return <td key={c.id} className="col-store">{x.warehouse||'-'}</td>
+            if(c.id==='product')return <td key={c.id} className="col-name">{x.product_name}</td>
+            if(c.id==='amount')return <td key={c.id} className="col-price">¥{Number(x.total_amount).toLocaleString()}</td>
+            if(c.id==='status')return <td key={c.id}><span className={`pill ${x.order_status==='已完成'?'success':x.order_status==='待发货'?'warning':x.order_status==='已发货'?'info':x.order_status==='申请退款'?'danger':''}`}>{x.order_status}</span></td>
+            if(c.id==='date')return <td key={c.id} className="col-date">{x.ordered_at}</td>
+            if(c.id==='plat_avail')return <td key={c.id} className="col-qty" style={{fontWeight:600,color:pi.available>0?'var(--text)':'var(--muted2)'}} title={pi.available===undefined?'该仓库无库存数据':''}>{pi.available===undefined?'—':pi.available}</td>
+            if(c.id==='plat_transit')return <td key={c.id} className="col-qty" style={{color:pi.transit>0?'var(--text)':'var(--muted2)'}} title={pi.transit===undefined?'该仓库无库存数据':''}>{pi.transit===undefined?'—':pi.transit}</td>
+            return null
+          })}</tr>
         })}
       </tbody></table>
     </div>}

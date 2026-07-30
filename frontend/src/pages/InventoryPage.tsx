@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useRef } from 'react'
 import { api } from '../api/client'
 import EmptyState from '../components/EmptyState'
 import { useToast } from '../components/Toast'
@@ -6,11 +6,20 @@ import ConfirmDialog from '../components/ConfirmDialog'
 import { IconSearch, IconTrash, IconExport } from '../components/Icons'
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
+const COLS = [
+  {id:'warehouse',label:'仓库'},{id:'sku',label:'SKU'},{id:'name',label:'商品'},
+  {id:'begin',label:'期初库存'},{id:'transit',label:'在途'},{id:'month_in',label:'当月采购入库'},
+  {id:'month_out',label:'当月出库'},{id:'avail',label:'可用'},{id:'turnover',label:'在库周转'},
+]
+const COL_KEY='c_cols_inventory'
+const getVis=()=>{try{return JSON.parse(localStorage.getItem(COL_KEY)||'null')}catch{return null}}
 
 export default function InventoryPage({ highlightSku }) {
   const toast = useToast()
   const [inventory, setInventory] = useState([])
   const [loading, setLoading] = useState(true)
+  const [visCols, setVisCols] = useState(() => getVis() || COLS.map(c => c.id))
+  const [showPicker, setShowPicker] = useState(false)
   const [s, setS] = useState('')
   const [confirmDel, setConfirmDel] = useState(null)
   const [monthRange, setMonthRange] = useState('')
@@ -58,6 +67,7 @@ export default function InventoryPage({ highlightSku }) {
     <div className="section-title" style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
       <span>进销存 <span className="small muted">共 {inventory.length} 条</span></span>
       <div style={{display:'flex',gap:8,alignItems:'center'}}>
+        <span onClick={()=>setShowPicker(!showPicker)} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',cursor:'pointer'}}>列 {visCols.length}/{COLS.length}</span>
         <div className="search-bar" style={{maxWidth:200,flex:'none'}}>
           <IconSearch size={16} style={{color:'var(--muted2)',flexShrink:0}} />
           <input value={s} onChange={e=>setS(e.target.value)} placeholder="搜索SKU/商品名" enterKeyHint="search" autoCorrect="off" />
@@ -66,33 +76,44 @@ export default function InventoryPage({ highlightSku }) {
           className="btn btn-ghost" style={{fontSize:12,padding:'4px 12px',display:'flex',alignItems:'center',gap:4}}><IconExport size={14} /> 导出</button>
       </div>
     </div>
+    {showPicker && <div style={{position:'absolute',zIndex:10,background:'var(--card)',border:'1px solid var(--border)',borderRadius:16,padding:8,minWidth:140,boxShadow:'0 4px 12px rgba(0,0,0,0.15)',right:0}}>
+      {COLS.map(col=><label key={col.id} style={{display:'flex',alignItems:'center',gap:6,padding:'3px 4',fontSize:12,cursor:'pointer',whiteSpace:'nowrap'}}>
+        <input type="checkbox" checked={visCols.includes(col.id)} onChange={e=>{const n=e.target.checked?[...visCols,col.id]:visCols.filter(c=>c!==col.id);setVisCols(n);localStorage.setItem(COL_KEY,JSON.stringify(n))}} style={{accentColor:'var(--primary)'}} />
+        {col.label}
+      </label>)}
+      <div style={{borderTop:'1px solid var(--border)',marginTop:4,paddingTop:4}}>
+        <span onClick={()=>{const d=COLS.map(c=>c.id);setVisCols(d);localStorage.setItem(COL_KEY,JSON.stringify(d));setShowPicker(false)}} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>全部</span>
+      </div>
+    </div>}
 
     {loading ? <div>{[1,2,3,4].map(i=><div key={i} className="skeleton" style={{height:36,marginBottom:4}}/>)}</div>
     : fl.length === 0
       ? <EmptyState icon='package' title={s?'无匹配':'暂无数据'} desc={s?'换个关键词试试':'通过清洗导入数据'} />
       : <div style={{overflowX:"auto"}}>
-        <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 10 列 · 左右滑动查看</div>
-      <table>
+        <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {visCols.length}/{COLS.length} 列</div>
+      <table><colgroup>{COLS.map(col=><col key={col.id} style={visCols.includes(col.id)?{}:{display:'none'}} />)}</colgroup>
         <thead>
-          <tr>{['仓库','SKU','商品','期初库存','在途','当月采购入库','当月出库','可用','在库周转',''].map(h => {
-            if (h === '当月采购入库') return <th key={h}>{h}<br/><span className="small" style={{fontWeight:400}}>{monthRange}</span></th>
-            if (h === '当月出库') return <th key={h}>{h}<br/><span className="small" style={{fontWeight:400}}>{monthRange}</span></th>
-            return <th key={h}>{h}</th>
+          <tr>{COLS.filter(c=>visCols.includes(c.id)).map(h => {
+            if (h.id === 'month_in') return <th key={h.id}>{h.label}<br/><span className="small" style={{fontWeight:400}}>{monthRange}</span></th>
+            if (h.id === 'month_out') return <th key={h.id}>{h.label}<br/><span className="small" style={{fontWeight:400}}>{monthRange}</span></th>
+            return <th key={h.id}>{h.label}</th>
           })}</tr>
       </thead>
       <tbody>{fl.map(x => {
         const isHL = highlightSku && x.sku === highlightSku
         return <tr key={x.id} id={'hl-'+x.sku} style={isHL ? {background:'rgba(245,158,11,0.15)',outline:'2px solid #f59e0b'} : {}}>
-        <td className="col-store">{x.warehouse||'-'}</td>
-        <td className="mono col-sku">{x.sku}</td><td className="col-name">{x.product_name}</td>
-        <td className="col-qty" style={{fontWeight:600}}>{x.beginning_stock ?? '-'}</td>
-        <td className="col-qty">{x.in_transit_qty}</td>
-        <td className="col-qty">{x.month_inbound ?? 0}</td>
-        <td className="col-qty" style={{fontWeight:600}}>{x.month_outbound ?? 0}</td>
-        <td className="col-qty" style={{fontWeight:600}}>{x.available_qty}</td>
-        <td className="col-qty" style={{fontWeight:600,color:x.turnover_days != null && x.turnover_days > 30 ? '#ef4444' : x.turnover_days != null && x.turnover_days > 15 ? 'var(--warning)' : 'var(--text)'}}>{x.turnover_days != null ? x.turnover_days+'天' : '∞'}</td>
-        <td><span onClick={()=>setConfirmDel(x.id)} className="btn btn-ghost" style={{fontSize:16,padding:'4px 8px',opacity:0.5,minHeight:0,display:'inline-flex'}} title='删除'><IconTrash size={16} /></span></td>
-      </tr>})}</tbody>
+        {COLS.filter(c=>visCols.includes(c.id)).map(c=>{
+          if(c.id==='warehouse')return <td key={c.id} className="col-store">{x.warehouse||'-'}</td>
+          if(c.id==='sku')return <td key={c.id} className="mono col-sku">{x.sku}</td>
+          if(c.id==='name')return <td key={c.id} className="col-name">{x.product_name}</td>
+          if(c.id==='begin')return <td key={c.id} className="col-qty" style={{fontWeight:600}}>{x.beginning_stock ?? '-'}</td>
+          if(c.id==='transit')return <td key={c.id} className="col-qty">{x.in_transit_qty}</td>
+          if(c.id==='month_in')return <td key={c.id} className="col-qty">{x.month_inbound ?? 0}</td>
+          if(c.id==='month_out')return <td key={c.id} className="col-qty" style={{fontWeight:600}}>{x.month_outbound ?? 0}</td>
+          if(c.id==='avail')return <td key={c.id} className="col-qty" style={{fontWeight:600}}>{x.available_qty}</td>
+          if(c.id==='turnover')return <td key={c.id} className="col-qty" style={{fontWeight:600,color:x.turnover_days != null && x.turnover_days > 30 ? '#ef4444' : x.turnover_days != null && x.turnover_days > 15 ? 'var(--warning)' : 'var(--text)'}}>{x.turnover_days != null ? x.turnover_days+'天' : '∞'}</td>
+          return null
+        })}</tr>
       {totalTurnover != null && <tfoot>
         <tr style={{fontWeight:700,borderTop:'2px solid var(--border)'}}>
           <td colSpan={5} style={{textAlign:'right',fontSize:12}}>合计</td>

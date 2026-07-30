@@ -2,18 +2,45 @@ import React,{useEffect,useState} from 'react'
 import {api} from '../api/client'
 import EmptyState from '../components/EmptyState'
 
+const COLS = [{id:'code',label:'编号'},{id:'name',label:'名称'},{id:'contact',label:'联系人'},{id:'phone',label:'手机'},{id:'score',label:'评分'}]
+const COL_KEY='c_cols_suppliers'
+const getVis=()=>{try{return JSON.parse(localStorage.getItem(COL_KEY)||'null')}catch{return null}}
+
 function Skeleton(){return <div>{[1,2,3].map(i=><div key={i} style={{display:'flex',gap:8,padding:'8px 0',borderBottom:'1px solid var(--border)'}}>
   <div className="skeleton" style={{width:60,height:14}}/><div className="skeleton" style={{flex:1,height:14}}/>
   <div className="skeleton" style={{width:50,height:14}}/><div className="skeleton" style={{width:40,height:14}}/>
 </div>)}</div>}
 
 export default function SupplierPage(){const[list,setList]=useState([]);const[s,setS]=useState('');const[ld,setLd]=useState(true)
+const[visCols,setVisCols]=useState(()=>getVis()||COLS.map(c=>c.id));const[showPicker,setShowPicker]=useState(false)
 useEffect(()=>{api.get('/api/suppliers').then(r=>{const d=r.data?.items||r.data||[];setList(d);setLd(false)}).catch(()=>setLd(false))},[])
 if(ld)return<div className='card'><div className='section-title'><span>供应商管理</span></div><Skeleton/></div>
 const fl=s?list.filter(x=>(x.supplier_name||x.code||'').includes(s)||(x.contact_person||'').includes(s)):list
-return<div className='card'><div className='section-title'><span>供应商管理</span><span className='small muted'>共 {list.length} 个</span></div>
+return<div className='card'><div className='section-title' style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
+  <span>供应商管理 <span className='small muted'>共 {list.length} 个</span></span>
+  <span style={{marginLeft:'auto',position:'relative',display:'inline-block'}}>
+    <span onClick={()=>setShowPicker(!showPicker)} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',cursor:'pointer'}}>列 {visCols.length}/{COLS.length}</span>
+    {showPicker && <div style={{position:'absolute',top:'100%',right:0,zIndex:10,background:'var(--card)',border:'1px solid var(--border)',borderRadius:16,padding:8,minWidth:140,boxShadow:'0 4px 12px rgba(0,0,0,0.15)'}}>
+      {COLS.map(col=><label key={col.id} style={{display:'flex',alignItems:'center',gap:6,padding:'3px 4',fontSize:12,cursor:'pointer',whiteSpace:'nowrap'}}>
+        <input type="checkbox" checked={visCols.includes(col.id)} onChange={e=>{const n=e.target.checked?[...visCols,col.id]:visCols.filter(c=>c!==col.id);setVisCols(n);localStorage.setItem(COL_KEY,JSON.stringify(n))}} style={{accentColor:'var(--primary)'}} />
+        {col.label}
+      </label>)}
+      <div style={{borderTop:'1px solid var(--border)',marginTop:4,paddingTop:4}}>
+        <span onClick={()=>{const d=COLS.map(c=>c.id);setVisCols(d);localStorage.setItem(COL_KEY,JSON.stringify(d));setShowPicker(false)}} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>全部</span>
+      </div>
+    </div>}
+  </span>
+</div>
 <input value={s} onChange={e=>setS(e.target.value)} placeholder='搜索供应商...' style={{width:'100%',padding:'8px 12px',fontSize:16,border:'1px solid var(--border)',borderRadius:32,marginBottom:12,outline:'none',boxSizing:'border-box'}}/>
 {fl.length===0?<EmptyState icon='factory' title={s?'无匹配供应商':'暂无供应商'}/>:<div style={{overflowX:"auto"}}>
-<div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 5 列 · 左右滑动查看</div>
-<table><thead><tr>{['编号','名称','联系人','手机','评分'].map(h=><th key={h}>{h}</th>)}</tr></thead>
-<tbody>{fl.map(x=><tr key={x.id}><td className='mono col-sku'>{x.supplier_code||x.code}</td><td className='col-name'>{x.supplier_name}</td><td className='col-store'>{x.contact_person}</td><td className='col-store'>{x.contact_phone||x.phone}</td><td className='col-price'><span className={'pill '+(x.score>3?'success':'warning')}>{x.score}/5</span></td></tr>)}</tbody></table></div>}</div>}
+<div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {visCols.length}/{COLS.length} 列</div>
+<table><colgroup>{COLS.map(col=><col key={col.id} style={visCols.includes(col.id)?{}:{display:'none'}} />)}</colgroup>
+<thead><tr>{COLS.filter(c=>visCols.includes(c.id)).map(h=><th key={h.id}>{h.label}</th>)}</tr></thead>
+<tbody>{fl.map(x=><tr key={x.id}>{COLS.filter(c=>visCols.includes(c.id)).map(c=>{
+  if(c.id==='code')return <td key={c.id} className='mono col-sku'>{x.supplier_code||x.code}</td>
+  if(c.id==='name')return <td key={c.id} className='col-name'>{x.supplier_name}</td>
+  if(c.id==='contact')return <td key={c.id} className='col-store'>{x.contact_person}</td>
+  if(c.id==='phone')return <td key={c.id} className='col-store'>{x.contact_phone||x.phone}</td>
+  if(c.id==='score')return <td key={c.id} className='col-price'><span className={'pill '+(x.score>3?'success':'warning')}>{x.score}/5</span></td>
+  return null
+})}</tr>)}</tbody></table></div>}</div>}

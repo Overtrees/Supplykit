@@ -41,7 +41,7 @@ return<div className='card' style={{containerType:'inline-size'}}>
 <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {visCols.length}/{COLS.length} 列</div>
 <table><colgroup>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>
 <thead><tr>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<th key={col.id}>{col.label}</th>:null})}</tr></thead>
-<tbody>{fl.map(x=><tr key={x.id}>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return null;const c=col;
+<tbody>{fl.map(x=><tr key={x.id}>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return null;
   if(c.id==='sku')return <td key={c.id} className='mono col-sku'>{x.sku}</td>
   if(c.id==='name')return <td key={c.id} className='col-name'>{x.product_name}</td>
   if(c.id==='store')return <td key={c.id} className='col-store'>{x.store}</td>

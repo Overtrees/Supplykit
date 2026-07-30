@@ -93,25 +93,25 @@ export default function InventoryPage({ highlightSku }) {
         <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {visCols.length}/{COLS.length} 列</div>
       <table><colgroup>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>
         <thead>
-          <tr>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return null;const h=col;
-            if (h.id === 'month_in') return <th key={h.id}>{h.label}<br/><span className="small" style={{fontWeight:400}}>{monthRange}</span></th>
-            if (h.id === 'month_out') return <th key={h.id}>{h.label}<br/><span className="small" style={{fontWeight:400}}>{monthRange}</span></th>
-            return <th key={h.id}>{h.label}</th>
+          <tr>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return null;
+            if (col.id === 'month_in') return <th key={col.id}>{col.label}<br/><span className="small" style={{fontWeight:400}}>{monthRange}</span></th>
+            if (col.id === 'month_out') return <th key={col.id}>{col.label}<br/><span className="small" style={{fontWeight:400}}>{monthRange}</span></th>
+            return <th key={col.id}>{col.label}</th>
           })}</tr>
       </thead>
       <tbody>{fl.map(x => {
         const isHL = highlightSku && x.sku === highlightSku
         return <tr key={x.id} id={'hl-'+x.sku} style={isHL ? {background:'rgba(245,158,11,0.15)',outline:'2px solid #f59e0b'} : {}}>
-        {visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return null;const c=col;
-          if(c.id==='warehouse')return <td key={c.id} className="col-store">{x.warehouse||'-'}</td>
-          if(c.id==='sku')return <td key={c.id} className="mono col-sku">{x.sku}</td>
-          if(c.id==='name')return <td key={c.id} className="col-name">{x.product_name}</td>
-          if(c.id==='begin')return <td key={c.id} className="col-qty" style={{fontWeight:600}}>{x.beginning_stock ?? '-'}</td>
-          if(c.id==='transit')return <td key={c.id} className="col-qty">{x.in_transit_qty}</td>
-          if(c.id==='month_in')return <td key={c.id} className="col-qty">{x.month_inbound ?? 0}</td>
-          if(c.id==='month_out')return <td key={c.id} className="col-qty" style={{fontWeight:600}}>{x.month_outbound ?? 0}</td>
-          if(c.id==='avail')return <td key={c.id} className="col-qty" style={{fontWeight:600}}>{x.available_qty}</td>
-          if(c.id==='turnover')return <td key={c.id} className="col-qty" style={{fontWeight:600,color:x.turnover_days != null && x.turnover_days > 30 ? '#ef4444' : x.turnover_days != null && x.turnover_days > 15 ? 'var(--warning)' : 'var(--text)'}}>{x.turnover_days != null ? x.turnover_days+'天' : '∞'}</td>
+        {visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return null;
+          if(col.id==='warehouse')return <td key={col.id} className="col-store">{x.warehouse||'-'}</td>
+          if(col.id==='sku')return <td key={col.id} className="mono col-sku">{x.sku}</td>
+          if(col.id==='name')return <td key={col.id} className="col-name">{x.product_name}</td>
+          if(col.id==='begin')return <td key={col.id} className="col-qty" style={{fontWeight:600}}>{x.beginning_stock ?? '-'}</td>
+          if(col.id==='transit')return <td key={col.id} className="col-qty">{x.in_transit_qty}</td>
+          if(col.id==='month_in')return <td key={col.id} className="col-qty">{x.month_inbound ?? 0}</td>
+          if(col.id==='month_out')return <td key={col.id} className="col-qty" style={{fontWeight:600}}>{x.month_outbound ?? 0}</td>
+          if(col.id==='avail')return <td key={col.id} className="col-qty" style={{fontWeight:600}}>{x.available_qty}</td>
+          if(col.id==='turnover')return <td key={col.id} className="col-qty" style={{fontWeight:600,color:x.turnover_days != null && x.turnover_days > 30 ? '#ef4444' : x.turnover_days != null && x.turnover_days > 15 ? 'var(--warning)' : 'var(--text)'}}>{x.turnover_days != null ? x.turnover_days+'天' : '∞'}</td>
           return null
         })}</tr>
       </tbody>

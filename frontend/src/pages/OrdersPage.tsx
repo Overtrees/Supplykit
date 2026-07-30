@@ -106,7 +106,7 @@ export default function OrdersPage() {
       <tbody>
         {orders.map(x => {
           const pi = platformInv[x.sku + '|' + x.warehouse] || {}
-          return <tr key={x.id}>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return null;const c=col;
+          return <tr key={x.id}>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return null;
             if(c.id==='order_no')return <td key={c.id} className="mono col-sku">{x.order_no}</td>
             if(c.id==='store')return <td key={c.id} className="col-store">{x.store||'-'}</td>
             if(c.id==='warehouse')return <td key={c.id} className="col-store">{x.warehouse||'-'}</td>

@@ -29,7 +29,8 @@ const TRAD_COLS = [
 ]
 const colKey = m => 'c_cols_' + m
 function getVis(m) {try{return JSON.parse(localStorage.getItem(colKey(m))||'null')}catch{return null}}
-function defVis(cols){return cols.map(c=>c.id).filter((_,i)=>[0,1,2,3,4,8,11,12,15].includes(i))} // 默认9列
+function defVis(cols){return cols.map(c=>c.id).filter((_,i)=>[0,1,2,3,4,8,11,12,15].includes(i))} // 默认9列(BBCC)
+function defVisTrad(cols){return cols.map(c=>c.id).filter((_,i)=>[0,1,2,3,4,5,6,10,11].includes(i))} // 默认9列(TRAD)
 
 function renderNote(text) {
   if (!text) return '-'
@@ -83,11 +84,11 @@ export default function InsightsPage() {
 
   const [replenMode, setReplenMode] = useState(() => localStorage.getItem('c_replen_mode') || 'bbcc')
   const currentCols = replenMode === 'bbcc' ? BBCC_COLS : TRAD_COLS
-  const [visCols, setVisCols] = useState(() => getVis(replenMode) || defVis(currentCols))
+  const [visCols, setVisCols] = useState(() => getVis(replenMode) || (replenMode==='bbcc'?defVis(BBCC_COLS):defVisTrad(TRAD_COLS)))
   const [showColPicker, setShowColPicker] = useState(false)
   const reqSeq = useRef(0)
 
-  const switchMode = (m) => { setReplenMode(m); localStorage.setItem('c_replen_mode', m); const cols = m === 'bbcc' ? BBCC_COLS : TRAD_COLS; setVisCols(getVis(m) || defVis(cols)); loadReplen(m) }
+  const switchMode = (m) => { setReplenMode(m); localStorage.setItem('c_replen_mode', m); const cols = m === 'bbcc' ? BBCC_COLS : TRAD_COLS; setVisCols(getVis(m) || (m==='bbcc'?defVis(BBCC_COLS):defVisTrad(TRAD_COLS))); loadReplen(m) }
   const loadReplen = async (mode) => {
     const seq = ++reqSeq.current
     setReplenLoading(true)
@@ -226,7 +227,7 @@ export default function InsightsPage() {
                       </div>
                     })}
                     <div style={{borderTop:'1px solid var(--border)',marginTop:4,paddingTop:4,display:'flex',gap:6}}>
-                      <span onClick={()=>{const d=defVis(currentCols);setVisCols(d);localStorage.setItem(colKey(replenMode),JSON.stringify(d));setShowColPicker(false)}} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>默认</span>
+                      <span onClick={()=>{const d=replenMode==='bbcc'?defVis(BBCC_COLS):defVisTrad(TRAD_COLS);setVisCols(d);localStorage.setItem(colKey(replenMode),JSON.stringify(d));setShowColPicker(false)}} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>默认</span>
                       <span onClick={()=>{const a=currentCols.map(c=>c.id);setVisCols(a);localStorage.setItem(colKey(replenMode),JSON.stringify(a));setShowColPicker(false)}} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>全部</span>
                     </div>
                   </div>}

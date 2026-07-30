@@ -550,6 +550,10 @@ def init_db(path=None):
     except: pass
     try: conn.execute("ALTER TABLE products ADD COLUMN barcode TEXT DEFAULT ''")
     except: pass
+    try: conn.execute("ALTER TABLE products ADD COLUMN weight REAL DEFAULT 0")
+    except: pass
+    try: conn.execute("ALTER TABLE products ADD COLUMN volume REAL DEFAULT 0")
+    except: pass
     try: conn.execute("ALTER TABLE inventory ADD COLUMN warehouse_type TEXT DEFAULT 'platform'")
     except: pass
     try: conn.execute("ALTER TABLE purchase_orders ADD COLUMN actual_qty INTEGER DEFAULT 0")

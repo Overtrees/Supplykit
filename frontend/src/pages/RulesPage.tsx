@@ -62,7 +62,7 @@ export default function RulesPage() {
   const loadCfg = async (mode, ch) => { try { const m=mode||cfg.replenishment_mode||'bbcc'; const c=ch||globalChannel; const r=await api.get('/api/replenishment-config?mode='+m+'&channel='+c); setCfg({...r.data, replenishment_mode:m}); return r.data||{} } catch(e) { return {} } }
   const loadSeasons = async (mode, ch) => { try { const m=mode||cfg.replenishment_mode||'bbcc'; const c=ch||globalChannel; const r=await api.get('/api/replenishment-config/seasons?mode='+m+'&channel='+c); setSeasons(r.data||[]) } catch(e) {} }
   const loadAll = (ch) => { const c=ch||globalChannel; load(c); loadCfg(cfg.replenishment_mode||'bbcc',c); loadSeasons(cfg.replenishment_mode||'bbcc',c) }
-  useEffect(() => { loadAll(); Promise.all([]).finally(() => setLoading(false)) }, [])
+  useEffect(() => { loadAll(); Promise.all([]).finally(() => setLoading(false)) }, [globalChannel])
 
   const resetForm = () => { setEditing({}); setF(defaultF); setCond({left:'inv.available_qty', op:'<', right:'inv.safety_qty', rightType:'field', pctValue:100}) }
   const cancelEdit = () => { setEditing(null); setF(defaultF); setCond({left:'inv.available_qty', op:'<', right:'inv.safety_qty', rightType:'field', pctValue:100}) }
@@ -205,10 +205,6 @@ export default function RulesPage() {
     {/* ── 补货参数 ── */}
     {tab==='params' && <div>
       <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap',alignItems:'center'}}>
-        <select value={globalChannel} onChange={e=>{const v=e.target.value;setGlobalChannel(v);;const m=v!=='jd'?'traditional':(cfg.replenishment_mode||'bbcc');setCfg(p=>({...p,replenishment_mode:m}));loadAll(v)}} style={{fontSize:14,padding:'5px 10px',border:'1px solid var(--border)',borderRadius:32,outline:'none',background:'var(--card)'}}>
-          <option value='jd'>京东</option>
-          <option value='other'>其他渠道</option>
-        </select>
         {globalChannel==='jd' && <span onClick={()=>{loadCfg('bbcc');loadSeasons('bbcc')}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 14px',display:'inline-flex',alignItems:'center',gap:4,background:(cfg.replenishment_mode||'bbcc')==='bbcc'?'var(--primary)':'transparent',color:(cfg.replenishment_mode||'bbcc')==='bbcc'?'#fff':''}}><IconPackage size={14} /> BBCC 送仓</span>}
         <span onClick={()=>{loadCfg('traditional');loadSeasons('traditional')}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 14px',display:'inline-flex',alignItems:'center',gap:4,background:cfg.replenishment_mode==='traditional'?'var(--primary)':'transparent',color:cfg.replenishment_mode==='traditional'?'#fff':''}}><IconFactory size={14} /> 传统多仓</span>
       </div>

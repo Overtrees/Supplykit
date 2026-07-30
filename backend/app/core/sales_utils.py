@@ -6,8 +6,11 @@ from datetime import datetime, timedelta
 import os
 
 
-def calc_sales(orders, cutoff_days, source='', wh_name=None):
-    """计算指定窗口的日均销量（含 3σ 异常剔除 + 近3天1.5倍加权）"""
+def calc_sales(orders, cutoff_days, source='', wh_name=None, sku_barcode_map=None):
+    """计算指定窗口的日均销量（含 3σ 异常剔除 + 近3天1.5倍加权）
+    
+    sku_barcode_map: {sku: barcode} 用于生成 sku|barcode 复合 key，提高匹配精度
+    """
     cutoff = (datetime.utcnow() - timedelta(days=cutoff_days)).strftime('%Y-%m-%d')
     daily_by_sku = {}
     for o in orders:
@@ -18,20 +21,25 @@ def calc_sales(orders, cutoff_days, source='', wh_name=None):
         sku = o.get('sku', '')
         if not sku:
             continue
+        # 生成 key：有 barcode 时用 sku|barcode，否则降级为 sku
+        if sku_barcode_map and sku_barcode_map.get(sku):
+            key = f"{sku}|{sku_barcode_map[sku]}"
+        else:
+            key = sku
         dt = str(o.get('ordered_at', ''))[:10]
         qty = int(o.get('quantity', 0) or 0)
         if dt >= cutoff:
-            if sku not in daily_by_sku:
-                daily_by_sku[sku] = {}
-            daily_by_sku[sku][dt] = daily_by_sku[sku].get(dt, 0) + qty
+            if key not in daily_by_sku:
+                daily_by_sku[key] = {}
+            daily_by_sku[key][dt] = daily_by_sku[key].get(dt, 0) + qty
 
     result = {}
-    for sku, daily in daily_by_sku.items():
+    for key, daily in daily_by_sku.items():
         n = len(daily)
         total = sum(daily.values())
         base_avg = total / cutoff_days
         if n < 3 or cutoff_days < 7:
-            result[sku] = base_avg
+            result[key] = base_avg
             continue
         all_days = []
         for i in range(cutoff_days):
@@ -49,12 +57,18 @@ def calc_sales(orders, cutoff_days, source='', wh_name=None):
                 w = 1.5 if idx >= nd - 3 else 1.0
                 weighted_sum += v * w
                 weight_total += w
-        result[sku] = weighted_sum / weight_total if weight_total > 0 else 0
+        result[key] = weighted_sum / weight_total if weight_total > 0 else 0
 
-    # 补0日销的SKU
-    for sku in set(o.get('sku', '') for o in orders):
-        if sku not in result:
-            result[sku] = 0
+    # 补0日销的SKU（用原始 sku 或 key）
+    for o in orders:
+        sku = o.get('sku', '')
+        if not sku: continue
+        if sku_barcode_map and sku_barcode_map.get(sku):
+            key = f"{sku}|{sku_barcode_map[sku]}"
+        else:
+            key = sku
+        if key not in result:
+            result[key] = 0
 
     if os.getenv('SALES_LOG') and any(v > 0 for v in result.values()):
         import logging

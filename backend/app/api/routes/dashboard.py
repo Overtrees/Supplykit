@@ -39,15 +39,25 @@ def stock_risk():
     orders = db.table("orders").select("*").execute().data or []
     inv = db.table("inventory").select("*").execute().data or []
     products = {p["sku"]: p for p in (db.table("products").select("*").execute().data or [])}
+    sku_barcode_map = {sku: p.get('barcode', '') or '' for sku, p in products.items()}
 
     # 三窗口日销 + 融合值（复用补货建议算法）
-    s7 = calc_sales(orders, 7)
-    s14 = calc_sales(orders, 14)
-    s28 = calc_sales(orders, 28)
+    s7 = calc_sales(orders, 7, sku_barcode_map=sku_barcode_map)
+    s14 = calc_sales(orders, 14, sku_barcode_map=sku_barcode_map)
+    s28 = calc_sales(orders, 28, sku_barcode_map=sku_barcode_map)
     all_skus = set(o.get('sku', '') for o in orders)
     fused = {}
     for sku in all_skus:
-        fused[sku] = rolling_predict(s7.get(sku, 0), s14.get(sku, 0), s28.get(sku, 0))
+        barcode = sku_barcode_map.get(sku, '')
+        if barcode:
+            s7v = s7.get(f"{sku}|{barcode}") or s7.get(sku, 0)
+            s14v = s14.get(f"{sku}|{barcode}") or s14.get(sku, 0)
+            s28v = s28.get(f"{sku}|{barcode}") or s28.get(sku, 0)
+        else:
+            s7v = s7.get(sku, 0)
+            s14v = s14.get(sku, 0)
+            s28v = s28.get(sku, 0)
+        fused[sku] = rolling_predict(s7v, s14v, s28v)
 
     # 分类型汇总库存
     c_stock = {}   # C 仓：按 (sku, warehouse) 分

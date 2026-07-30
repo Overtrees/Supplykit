@@ -54,10 +54,22 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     products = {p["sku"]: p for p in db.table("products").select("*").execute().data}
     orders = db.table("orders").select("*").execute().data
 
+    # 构建 barcode 映射，用于日销复合 key（sku|barcode），提高匹配精度
+    sku_barcode_map = {sku: p.get('barcode', '') or '' for sku, p in products.items()}
+
     # 三周期日销
-    sales_7 = calc_sales(orders, 7, source=source)
-    sales_14 = calc_sales(orders, 14, source=source)
-    sales_28 = calc_sales(orders, 28, source=source)
+    sales_7 = calc_sales(orders, 7, source=source, sku_barcode_map=sku_barcode_map)
+    sales_14 = calc_sales(orders, 14, source=source, sku_barcode_map=sku_barcode_map)
+    sales_28 = calc_sales(orders, 28, source=source, sku_barcode_map=sku_barcode_map)
+
+    def get_sales(sales_dict, sku):
+        """按 sku 查询日销，优先用复合 key sku|barcode，降级为 sku"""
+        barcode = sku_barcode_map.get(sku, '')
+        if barcode:
+            val = sales_dict.get(f"{sku}|{barcode}")
+            if val is not None:
+                return val
+        return sales_dict.get(sku, 0)
 
     def fused_ds(ds7, ds14, ds28):
         return rolling_predict(ds7, ds14, ds28)
@@ -97,9 +109,9 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
 
         for sku, st in agg.items():
             avail = st['available']; transit = st['transit']; safety = st['safety']
-            ds7 = round(sales_7.get(sku, 0), 1)
-            ds14 = round(sales_14.get(sku, 0), 1)
-            ds28 = round(sales_28.get(sku, 0), 1)
+            ds7 = round(get_sales(sales_7, sku), 1)
+            ds14 = round(get_sales(sales_14, sku), 1)
+            ds28 = round(get_sales(sales_28, sku), 1)
             sel_ds = round(fused_ds(ds7, ds14, ds28) * active_factor, 1)
             sku_safety_days = st['safety_days']
             safety_days = sku_safety_days if sku_safety_days > 0 else float(cfg.get('safety_multiplier', '0'))
@@ -185,9 +197,9 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             avail = int(inv.get("available_qty") or 0)
             transit = int(inv.get("in_transit_qty") or 0)
             safety = int(inv.get("safety_qty") or 0)
-            ds7 = round(sales_7.get(sku, 0), 1)
-            ds14 = round(sales_14.get(sku, 0), 1)
-            ds28 = round(sales_28.get(sku, 0), 1)
+            ds7 = round(get_sales(sales_7, sku), 1)
+            ds14 = round(get_sales(sales_14, sku), 1)
+            ds28 = round(get_sales(sales_28, sku), 1)
             sel_ds = round(fused_ds(ds7, ds14, ds28) * active_factor, 1)
             suggested = max(round(sel_ds * lead_time - avail - transit), 0) if sel_ds > 0 else 0
             prod = products.get(sku, {})

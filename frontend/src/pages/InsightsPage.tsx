@@ -147,10 +147,13 @@ export default function InsightsPage() {
 
   useEffect(() => {
     loadOrdered()
-    // 补货建议独立加载
-    loadReplen(replenMode, globalChannel)
-    // 其余数据同时加载
-    api.get('/api/insights/purchase?days=28&mode=' + replenMode).then(r => {
+    setReplenLoading(true)
+    setPurchaseLoading(true)
+    setSlowLoading(true)
+    const mode = globalChannel === 'jd' ? replenMode : 'traditional'
+    if (globalChannel !== 'jd' && replenMode === 'bbcc') setReplenMode('traditional')
+    loadReplen(mode, globalChannel)
+    api.get('/api/insights/purchase?days=28&mode=' + mode).then(r => {
       setPurchase(r.data?.suggestions || r.data || [])
       setPurchaseLoading(false)
     }).catch(() => setPurchaseLoading(false))

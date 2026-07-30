@@ -110,15 +110,15 @@ export default function InventoryPage({ highlightSku }) {
       </span>
     </div>
     <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap',alignItems:'center'}}>
+      <div className='search-bar' style={{maxWidth:200,flex:'none'}}>
+        <IconSearch size={16} style={{color:'var(--muted2)',flexShrink:0}} />
+        <input value={s} onChange={e=>setS(e.target.value)} placeholder='搜索SKU/商品名' enterKeyHint='search' autoCorrect='off' />
+      </div>
       <select value={whType} onChange={e=>{const v=e.target.value;setWhType(v);const d=WH_COLS[v].map(c=>c.id);setVisCols(getVis(v)||d);localStorage.setItem(COL_KEY+'_'+v,JSON.stringify(d))}} style={{fontSize:16,padding:'8px 12px',border:'1px solid var(--border)',borderRadius:32,outline:'none',background:'var(--card)'}}>
         <option value='own'>自有仓</option>
         <option value='platform'>平台仓</option>
         <option value='platform_b'>B仓</option>
       </select>
-    </div>
-    <div className='search-bar' style={{maxWidth:200,marginBottom:12}}>
-      <IconSearch size={16} style={{color:'var(--muted2)',flexShrink:0}} />
-      <input value={s} onChange={e=>setS(e.target.value)} placeholder='搜索SKU/商品名' enterKeyHint='search' autoCorrect='off' />
     </div>
     {loading ? <div>{[1,2,3,4].map(i=><div key={i} className='skeleton' style={{height:36,marginBottom:4}}/>)}</div>
     : fl.length === 0

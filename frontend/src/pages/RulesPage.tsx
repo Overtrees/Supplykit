@@ -61,7 +61,7 @@ export default function RulesPage() {
   const load = async (ch) => { try { const c=ch||globalChannel; const r = await api.get('/api/rules?channel='+c); setRules(r.data||[]) } catch(e) {} }
   const loadCfg = async (mode, ch) => { try { const m=mode||cfg.replenishment_mode||'bbcc'; const c=ch||globalChannel; const r=await api.get('/api/replenishment-config?mode='+m+'&channel='+c); setCfg({...r.data, replenishment_mode:m}); return r.data||{} } catch(e) { return {} } }
   const loadSeasons = async (mode, ch) => { try { const m=mode||cfg.replenishment_mode||'bbcc'; const c=ch||globalChannel; const r=await api.get('/api/replenishment-config/seasons?mode='+m+'&channel='+c); setSeasons(r.data||[]) } catch(e) {} }
-  const loadAll = (ch) => { const c=ch||globalChannel; load(c); loadCfg(cfg.replenishment_mode||'bbcc',c); loadSeasons(cfg.replenishment_mode||'bbcc',c) }
+  const loadAll = (ch) => { const c=ch||globalChannel; load(c); loadCfg(cfg.replenishment_mode||'bbcc',c); loadSeasons(cfg.replenishment_mode||'bbcc',c); api.get('/api/replenishment-config?channel='+c).then(r=>{if(r.data)setCfg(p=>({...p,...r.data}))}).catch(()=>{}) }
   useEffect(() => { loadAll(); Promise.all([]).finally(() => setLoading(false)) }, [globalChannel])
 
   const resetForm = () => { setEditing({}); setF(defaultF); setCond({left:'inv.available_qty', op:'<', right:'inv.safety_qty', rightType:'field', pctValue:100}) }

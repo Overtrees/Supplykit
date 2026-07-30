@@ -250,6 +250,7 @@ def inventory_with_sales(wh_type: str = 'own', db = get_db()):
             'store': i.get('store',''),
             'warehouse': i.get('warehouse',''),
             'warehouse_type': i.get('warehouse_type','platform'),
+            'channel': i.get('channel', 'jd'),
             'available_qty': avail,
             'in_transit_qty': int(i.get('in_transit_qty',0) or 0),
             'c_transit': c_transit.get(sku, 0) if wh_type == 'platform_b' else 0,

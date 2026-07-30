@@ -114,7 +114,7 @@ export default function App() {
             <button className="menu-btn" onClick={sidebarOpen ? closeSidebar : openSidebar}>
               <svg width="26" height="26" viewBox="0 0 20 20" fill="none"><rect x="2" y="4" width="16" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="9.25" width="16" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="14.5" width="16" height="1.5" rx=".75" fill="currentColor"/></svg>
             </button>
-            <select value={channel} onChange={e=>{const v=e.target.value;localStorage.setItem('c_channel', v);useAppStore.setState({channel:v, channelVersion:Date.now()})}} style={{marginLeft:8,fontSize:13,padding:'3px 8px',border:'1px solid var(--border)',borderRadius:32,outline:'none',background:'var(--sidebar)',color:'var(--text)',cursor:'pointer'}}>
+            <select value={channel} onChange={e=>{localStorage.setItem('c_channel', e.target.value); window.location.reload()}} style={{marginLeft:8,fontSize:13,padding:'3px 8px',border:'1px solid var(--border)',borderRadius:32,outline:'none',background:'var(--sidebar)',color:'var(--text)',cursor:'pointer'}}>
               <option value='jd'>京东</option>
               <option value='other'>其他渠道</option>
             </select>

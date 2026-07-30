@@ -73,6 +73,8 @@ SYSTEM_FIELDS = {
         {'key': 'platform', 'label': '平台', 'type': 'string'},
         {'key': 'supplier', 'label': '供应商', 'type': 'string'},
         {'key': 'remark', 'label': '备注', 'type': 'string'},
+        {'key': 'weight', 'label': '箱重/KG', 'type': 'number'},
+        {'key': 'volume', 'label': '体积/方', 'type': 'number'},
     ],
     'inventory': [
         {'key': 'sku', 'label': 'SKU', 'type': 'string', 'required': True},
@@ -82,6 +84,8 @@ SYSTEM_FIELDS = {
         {'key': 'available_qty', 'label': '可用库存', 'type': 'number'},
         {'key': 'in_transit_qty', 'label': '在途库存', 'type': 'number'},
         {'key': 'safety_qty', 'label': '安全库存', 'type': 'number'},
+        {'key': 'weight', 'label': '箱重/KG', 'type': 'number'},
+        {'key': 'volume', 'label': '体积/方', 'type': 'number'},
         {'key': 'warehouse_type', 'label': '仓库类型', 'type': 'string', 'desc': 'platform=京东C仓, platform_b=京东B仓, own=自有仓'},
     ],
     'inbound': [

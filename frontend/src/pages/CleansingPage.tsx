@@ -9,6 +9,7 @@ const INV_FIELDS = [
   {t:'store',l:'店铺',tp:'string'},{t:'warehouse',l:'仓库',tp:'string'},
   {t:'available_qty',l:'可用库存',tp:'number'},{t:'locked_qty',l:'锁定库存',tp:'number'},
   {t:'in_transit_qty',l:'在途',tp:'number'},{t:'safety_qty',l:'安全线',tp:'number'},
+  {t:'weight',l:'箱重/KG',tp:'number'},{t:'volume',l:'体积/方',tp:'number'},
 ]
 const SYS_FIELDS = [
   {t:'order_no',l:'订单号',tp:'string'},{t:'source_order_id',l:'原始单号',tp:'string'},
@@ -23,6 +24,7 @@ const SYS_FIELDS = [
   {t:'currency',l:'币种',tp:'string'},{t:'discount',l:'折扣',tp:'number'},
   {t:'freight',l:'运费',tp:'number'},{t:'category',l:'分类',tp:'string'},
   {t:'brand',l:'品牌',tp:'string'},{t:'spec',l:'规格',tp:'string'},
+  {t:'weight',l:'箱重/KG',tp:'number'},{t:'volume',l:'体积/方',tp:'number'},
 ]
 const ALIAS = {
   "订单号":"order_no","订单编号":"order_no","采购单号":"order_no",

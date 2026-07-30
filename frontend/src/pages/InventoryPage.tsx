@@ -66,15 +66,15 @@ export default function InventoryPage({ highlightSku }) {
   return <div className='card'>
     <div className='section-title' style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
       <span>进销存 <span className='small muted'>共 {inventory.length} 条</span></span>
-      <div style={{display:'flex',gap:8,alignItems:'center'}}>
+      <span style={{display:'flex',gap:8,alignItems:'center'}}>
         <span onClick={()=>setShowPicker(!showPicker)} className='btn btn-ghost' style={{fontSize:11,padding:'2px 10px',cursor:'pointer'}}>列 {visCols.length}/{COLS.length}</span>
-        <div className='search-bar' style={{maxWidth:200,flex:'none'}}>
-          <IconSearch size={16} style={{color:'var(--muted2)',flexShrink:0}} />
-          <input value={s} onChange={e=>setS(e.target.value)} placeholder='搜索SKU/商品名' enterKeyHint='search' autoCorrect='off' />
-        </div>
         <button onClick={async()=>{try{const r=await fetch(API+'/api/insights/export-inventory');const b=await r.blob();const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='inventory_'+new Date().toISOString().slice(0,10)+'.csv';document.body.appendChild(a);a.click();a.remove()}catch(e){toast.error('导出失败')}}}
           className='btn btn-ghost' style={{fontSize:12,padding:'4px 12px',display:'flex',alignItems:'center',gap:4}}><IconExport size={14} /> 导出</button>
-      </div>
+      </span>
+    </div>
+    <div className='search-bar' style={{maxWidth:200,marginBottom:12}}>
+      <IconSearch size={16} style={{color:'var(--muted2)',flexShrink:0}} />
+      <input value={s} onChange={e=>setS(e.target.value)} placeholder='搜索SKU/商品名' enterKeyHint='search' autoCorrect='off' />
     </div>
     {showPicker && <div style={{position:'absolute',top:'100%',right:0,zIndex:10,background:'var(--card)',border:'1px solid var(--border)',borderRadius:16,padding:6,minWidth:180,boxShadow:'0 4px 12px rgba(0,0,0,0.15)'}}>
       <div style={{fontSize:10,color:'var(--muted2)',marginBottom:4,padding:'0 4px'}}>拖拽 ⠿ 调整列顺序</div>

@@ -28,19 +28,26 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
         if isinstance(s, dict) and s.get('enabled') and float(s.get('factor', 1.0)) > active_factor:
             active_factor = float(s['factor'])
 
+    # 获取 barcode 映射，用于日销复合 key
+    products_map = {p["sku"]: p for p in db.table("products").select("*").execute().data}
+    sku_barcode_map = {sku: p.get('barcode', '') or '' for sku, p in products_map.items()}
+
     # 日销：14+28 双窗口融合
     def purchase_calc(win):
         cutoff = (now - timedelta(days=win)).strftime('%Y-%m-%d')
         daily_raw = {}
         for o in db.table("orders").select("*").execute().data:
-            s = o.get("sku", ""); dt = str(o.get("ordered_at", ""))[:10]; q = int(o.get('quantity',0) or 0)
-            if dt >= cutoff and s:
-                if s not in daily_raw: daily_raw[s] = {}
-                daily_raw[s][dt] = daily_raw[s].get(dt, 0) + q
+            sku = o.get("sku", ""); dt = str(o.get("ordered_at", ""))[:10]; q = int(o.get('quantity',0) or 0)
+            if not dt >= cutoff or not sku: continue
+            key = sku
+            bc = sku_barcode_map.get(sku, '')
+            if bc: key = f"{sku}|{bc}"
+            if key not in daily_raw: daily_raw[key] = {}
+            daily_raw[key][dt] = daily_raw[key].get(dt, 0) + q
         result = {}
-        for sku, daily in daily_raw.items():
+        for key, daily in daily_raw.items():
             n = len(daily); total = sum(daily.values()); base_avg = total / win
-            if n < 3: result[sku] = round(base_avg, 1); continue
+            if n < 3: result[key] = round(base_avg, 1); continue
             all_d = [(now - timedelta(days=i)).strftime('%Y-%m-%d') for i in range(win)]
             vals = [daily.get(d, 0) for d in all_d]
             mean = sum(vals) / win
@@ -50,14 +57,22 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
                 if abs(v-mean) <= th:
                     w = 1.5 if idx >= win-3 else 1.0
                     w_sum += v * w; w_total += w
-            result[sku] = round(w_sum/w_total, 1) if w_total > 0 else round(base_avg, 1)
+            result[key] = round(w_sum/w_total, 1) if w_total > 0 else round(base_avg, 1)
         return result
+
+    def get_purchase_sales(sales_dict, sku):
+        """按 sku 查询采购日销，优先用复合 key，降级为 sku"""
+        bc = sku_barcode_map.get(sku, '')
+        if bc:
+            val = sales_dict.get(f"{sku}|{bc}")
+            if val is not None: return val
+        return sales_dict.get(sku, 0)
 
     sales_14 = purchase_calc(14)
     sales_28 = purchase_calc(28)
     fused_sales = {}
-    for sku in set(sales_14) | set(sales_28):
-        s14 = sales_14.get(sku, 0); s28 = sales_28.get(sku, 0)
+    for sku in set(sku_barcode_map.keys()):
+        s14 = get_purchase_sales(sales_14, sku); s28 = get_purchase_sales(sales_28, sku)
         if s14 > s28 * 1.15: w14, w28 = 0.55, 0.45
         elif s14 < s28 * 0.85: w14, w28 = 0.35, 0.65
         else: w14, w28 = 0.20, 0.80
@@ -119,7 +134,7 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
             'plat_available': st['plat_avail'], 'plat_transit': st['plat_transit'],
             'b_available': b_avail.get(sku, 0),
             'safety_qty': st['safety'], 'daily_sales': ds,
-            'daily_sales_14': sales_14.get(sku, 0), 'daily_sales_28': sales_28.get(sku, 0),
+            'daily_sales_14': get_purchase_sales(sales_14, sku), 'daily_sales_28': get_purchase_sales(sales_28, sku),
             'purchase_qty': purchase_qty, 'box_qty': box_qty, 'actual_purchase': actual_purchase,
             'after_stock': st['own_avail'] + purchase_qty, 'after_turnover': after_turnover,
             'target_turnover': target_turn,

@@ -23,11 +23,12 @@ export default function InventoryPage({ highlightSku }) {
   const [s, setS] = useState('')
   const [confirmDel, setConfirmDel] = useState(null)
   const [monthRange, setMonthRange] = useState('')
+  const [whType, setWhType] = useState('own')
 
   const loadInv = async () => {
     setLoading(true)
     try {
-      const r = await api.get('/api/insights/with-sales')
+      const r = await api.get('/api/insights/with-sales?wh_type=' + whType)
       const data = r.data || []
       setInventory(data)
       if (data.length > 0) {
@@ -38,7 +39,7 @@ export default function InventoryPage({ highlightSku }) {
     } catch(e) { setInventory([]) }
     setLoading(false)
   }
-  useEffect(() => { loadInv() }, [])
+  useEffect(() => { loadInv() }, [whType])
 
   const fl = useMemo(() => {
     if (!s) return inventory
@@ -65,7 +66,14 @@ export default function InventoryPage({ highlightSku }) {
 
   return <div className='card'>
     <div className='section-title' style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
-      <span>进销存 <span className='small muted'>共 {inventory.length} 条</span></span>
+      <span style={{display:'flex',alignItems:'center',gap:8}}>
+          <span>进销存 <span className='small muted'>共 {inventory.length} 条</span></span>
+          <select value={whType} onChange={e=>setWhType(e.target.value)} style={{fontSize:12,padding:'3px 8px',border:'1px solid var(--border)',borderRadius:32,outline:'none',background:'var(--card)',color:'var(--text)'}}>
+            <option value='own'>自有仓</option>
+            <option value='platform'>平台仓</option>
+            <option value='platform_b'>B仓</option>
+          </select>
+        </span>
       <span style={{display:'flex',gap:8,alignItems:'center'}}>
         <span style={{position:'relative',display:'inline-block'}}>
           <span onClick={()=>setShowPicker(!showPicker)} className='btn btn-ghost' style={{fontSize:11,padding:'2px 10px',cursor:'pointer'}}>列 {visCols.length}/{COLS.length}</span>

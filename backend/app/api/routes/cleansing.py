@@ -127,10 +127,11 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
     errors = []
     success = 0
     failed = 0
-    is_inv = (target == 'inventory')
+    is_inv = (target == 'inventory' || target == 'platform_inv')
     is_inbound = (target == 'inbound')
     is_outbound = (target == 'outbound')
     is_product = (target == 'product')
+    platform_inv = (target == 'platform_inv')
     orders_to_insert = [] if not is_inv else None
     inv_to_insert = [] if is_inv else None
     inbound_to_insert = [] if is_inbound else None
@@ -234,6 +235,7 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                 "product_name": str(data.get('product_name', ''))[:200],
                 "store": str(data.get('store', '未知'))[:100],
                 "warehouse": str(data.get('warehouse', ''))[:100],
+                "warehouse_type": 'platform' if platform_inv else 'own',
                 "available_qty": int(float(data.get('available_qty', 0))),
                 "locked_qty": int(float(data.get('locked_qty', 0))),
                 "in_transit_qty": int(float(data.get('in_transit_qty', 0))),

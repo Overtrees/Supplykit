@@ -181,9 +181,11 @@ def auto_adjust_inventory(order_data: dict, order_type: str, db):
             "safety_qty": 10,
         }).execute()
 @router.get('/with-sales')
-def inventory_with_sales(db = get_db()):
-    """库存列表 + 日销 + 在库周转 + 当月出入库"""
-    inv = db.table("inventory").select("*").eq("warehouse_type", "own").execute().data or []
+def inventory_with_sales(wh_type: str = 'own', db = get_db()):
+    """库存列表 + 日销 + 在库周转 + 当月出入库
+    wh_type: own=自有仓, platform=平台仓(C仓), platform_b=B仓
+    """
+    inv = db.table("inventory").select("*").eq("warehouse_type", wh_type).execute().data or []
     orders = db.table("orders").select("*").execute().data or []
     from datetime import datetime, timedelta
     now = datetime.utcnow()

@@ -8,8 +8,8 @@ from collections import defaultdict
 router = APIRouter(prefix="/api/replenishment-config", tags=["replenishment"])
 
 @router.get("")
-def get_config(mode: str = None, db=get_db()):
-    rows = db.table("replenishment_config").select("*").execute().data
+def get_config(mode: str = None, channel: str = 'jd', db=get_db()):
+    rows = db.table("replenishment_config").select("*").eq("channel", channel).execute().data
     all_config = {r['key']: r['value'] for r in rows}
     if mode:
         prefix = f'mode_{mode}_'
@@ -17,15 +17,15 @@ def get_config(mode: str = None, db=get_db()):
     return ok(all_config)
 
 @router.put("")
-def update_config(data: dict, mode: str = '', db=get_db()):
+def update_config(data: dict, mode: str = '', channel: str = 'jd', db=get_db()):
     if mode:
         prefix = f'mode_{mode}_'
         for k, v in data.items():
-            db.table("replenishment_config").upsert({"key": prefix + k, "value": str(v), "updated_at": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}, conflict_col='key')
+            db.table("replenishment_config").upsert({"key": prefix + k, "value": str(v), "channel": channel, "updated_at": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}, conflict_col='key')
     else:
         for k, v in data.items():
-            db.table("replenishment_config").upsert({"key": k, "value": str(v), "updated_at": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}, conflict_col='key')
-    return {'ok': True, 'mode': mode}
+            db.table("replenishment_config").upsert({"key": k, "value": str(v), "channel": channel, "updated_at": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}, conflict_col='key')
+    return {'ok': True, 'mode': mode, 'channel': channel}
 
 
 @router.get('/seasons')

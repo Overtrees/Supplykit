@@ -55,9 +55,10 @@ export default function RulesPage() {
   const defaultF = {name:'', event:'inventory.changed', alert_type:'low_stock', alert_title:'', alert_desc:'', severity:'warning', condition_json:'{}'}
   const [f, setF] = useState(defaultF)
   const [cond, setCond] = useState({left:'inv.available_qty', op:'<', right:'inv.safety_qty', rightType:'field', pctValue:100})
+  const [replenChannel, setReplenChannel] = useState(() => localStorage.getItem('c_replen_channel') || 'jd')
 
   const load = async () => { try { const r = await api.get('/api/rules'); setRules(r.data||[]) } catch(e) {} }
-  const loadCfg = async (mode) => { try { const m=mode||cfg.replenishment_mode||'bbcc'; const r=await api.get('/api/replenishment-config?mode='+m); setCfg({...r.data, replenishment_mode:m}); return r.data||{} } catch(e) { return {} } }
+  const loadCfg = async (mode, ch) => { try { const m=mode||cfg.replenishment_mode||'bbcc'; const c=ch||replenChannel; const r=await api.get('/api/replenishment-config?mode='+m+'&channel='+c); setCfg({...r.data, replenishment_mode:m}); return r.data||{} } catch(e) { return {} } }
   const loadSeasons = async (mode) => { try { const m=mode||cfg.replenishment_mode||'bbcc'; const r=await api.get('/api/replenishment-config/seasons?mode='+m); setSeasons(r.data||[]) } catch(e) {} }
   useEffect(() => { Promise.all([load(), loadCfg(), loadSeasons()]).finally(() => setLoading(false)) }, [])
 
@@ -201,7 +202,11 @@ export default function RulesPage() {
 
     {/* ── 补货参数 ── */}
     {tab==='params' && <div>
-      <div style={{display:'flex',gap:8,marginBottom:12}}>
+      <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap',alignItems:'center'}}>
+        <select value={replenChannel} onChange={e=>{const v=e.target.value;setReplenChannel(v);localStorage.setItem('c_replen_channel',v);loadCfg(cfg.replenishment_mode||'bbcc',v)}} style={{fontSize:14,padding:'5px 10px',border:'1px solid var(--border)',borderRadius:32,outline:'none',background:'var(--card)'}}>
+          <option value='jd'>京东</option>
+          <option value='other'>其他渠道</option>
+        </select>
         <span onClick={()=>{loadCfg('bbcc');loadSeasons('bbcc')}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 14px',display:'inline-flex',alignItems:'center',gap:4,background:(cfg.replenishment_mode||'bbcc')==='bbcc'?'var(--primary)':'transparent',color:(cfg.replenishment_mode||'bbcc')==='bbcc'?'#fff':''}}><IconPackage size={14} /> BBCC 送仓</span>
         <span onClick={()=>{loadCfg('traditional');loadSeasons('traditional')}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 14px',display:'inline-flex',alignItems:'center',gap:4,background:cfg.replenishment_mode==='traditional'?'var(--primary)':'transparent',color:cfg.replenishment_mode==='traditional'?'#fff':''}}><IconFactory size={14} /> 传统多仓</span>
       </div>
@@ -216,7 +221,7 @@ export default function RulesPage() {
     {/* ── 采购参数 ── */}
     {tab === 'purchase' && <div className='card' style={{padding:16,display:'flex',flexDirection:'column',gap:12}}>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>{purchaseFields.map(({k,l})=><label key={k} style={{fontSize:12}}>{l}<input value={cfg[k]||''} onChange={e=>setCfg(p=>({...p,[k]:e.target.value}))} style={IS}/></label>)}</div>
-      <button disabled={saving} onClick={async()=>{setSaving(true);try{const toSave={};purchaseFields.forEach(f=>{if(cfg[f.k]!==undefined)toSave[f.k]=cfg[f.k]});await api.put('/api/replenishment-config',toSave);const r=await api.get('/api/replenishment-config');setCfg({...r.data,replenishment_mode:cfg.replenishment_mode});toast.success('已保存')}catch(e){toast.error('保存失败: '+e.message)}setSaving(false)}} className='btn btn-primary' style={{display:'inline-flex',alignItems:'center',gap:4}}>{saving?<><IconLoading size={14} /> 保存中...</>:<><IconSave size={14} /> 保存</>}</button>
+      <button disabled={saving} onClick={async()=>{setSaving(true);const m=cfg.replenishment_mode||'bbcc';const ch=replenChannel;try{const toSave={};[...cParams,...bParams,...paramFields].forEach(f=>{if(cfg[f.k]!==undefined)toSave[f.k]=cfg[f.k]});await api.put('/api/replenishment-config?mode='+m+'&channel='+ch,toSave);await loadCfg(m,ch);toast.success('已保存')}catch(e){toast.error('保存失败: '+e.message)}setSaving(false)}} className="btn btn-primary" style={{display:'inline-flex',alignItems:'center',gap:4}}>{saving?<><IconLoading size={14} /> 保存中...</>:<><IconSave size={14} /> 保存</>}</button>
     </div>}
 
     {/* ── 活动系数 ── */}

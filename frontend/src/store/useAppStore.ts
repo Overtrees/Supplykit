@@ -5,6 +5,7 @@ const POLL_MS = Number(import.meta.env.VITE_POLL_INTERVAL_MS || 30000)
 const WS_URL = import.meta.env.VITE_WS_URL || 'wss://overtrees.pythonanywhere.com/ws/events'
 
 export const useAppStore = create((set, get) => ({
+  channel: localStorage.getItem('c_channel') || 'jd',
   dashboard: null,
   orders: [],
   orderTotal: 0,
@@ -25,6 +26,7 @@ export const useAppStore = create((set, get) => ({
   dataLoaded: false,
   sidebarOpen: false,
   setSidebarOpen: (v) => set({ sidebarOpen: v }),
+  setChannel: (ch) => { localStorage.setItem('c_channel', ch); set({ channel: ch }) },
 
   async loadAll(page) {
     set({ loading: true })

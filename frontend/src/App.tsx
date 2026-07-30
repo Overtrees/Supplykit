@@ -26,7 +26,7 @@ export const NAV = [
 export default function App() {
   const [page, setPage] = useState('dash')
   const [highlightSku, setHighlightSku] = useState('')
-  const { inventory, qualityLogs, startPolling, stopAll, sidebarOpen, setSidebarOpen, wsStatus } = useAppStore()
+  const { inventory, qualityLogs, startPolling, stopAll, sidebarOpen, setSidebarOpen, wsStatus, channel, setChannel } = useAppStore()
   const [apiStatus, setApiStatus] = useState('checking')
   const checkApi = useCallback(async() => {
     try {
@@ -114,6 +114,10 @@ export default function App() {
             <button className="menu-btn" onClick={sidebarOpen ? closeSidebar : openSidebar}>
               <svg width="26" height="26" viewBox="0 0 20 20" fill="none"><rect x="2" y="4" width="16" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="9.25" width="16" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="14.5" width="16" height="1.5" rx=".75" fill="currentColor"/></svg>
             </button>
+            <select value={channel} onChange={e=>setChannel(e.target.value)} style={{marginLeft:8,fontSize:13,padding:'3px 8px',border:'1px solid var(--border)',borderRadius:32,outline:'none',background:'var(--sidebar)',color:'var(--text)',cursor:'pointer'}}>
+              <option value='jd'>京东</option>
+              <option value='other'>其他渠道</option>
+            </select>
           </div>
           <span className="header-status">
             {wsStatus === 'connected' ? <><IconStatusOnline size={14} /> 实时</> : wsStatus === 'polling' ? <><IconStatusWarning size={14} /> 轮询</> : <><IconStatusOffline size={14} /> 断开</>}

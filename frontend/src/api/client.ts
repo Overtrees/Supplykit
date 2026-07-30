@@ -16,6 +16,19 @@ const instance = axios.create({
   timeout: 20000,
 })
 
+// 请求拦截器：自动注入全局 channel 参数
+instance.interceptors.request.use(config => {
+  if (!config.params || !config.params.channel) {
+    const ch = localStorage.getItem('c_channel') || 'jd'
+    if (config.params) {
+      config.params.channel = ch
+    } else {
+      config.params = { channel: ch }
+    }
+  }
+  return config
+})
+
 // 在途请求去重 Map
 const inflight = new Map()
 

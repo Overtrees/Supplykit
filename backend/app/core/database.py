@@ -566,6 +566,26 @@ def init_db(path=None):
     except: pass
     try: conn.execute("ALTER TABLE replenishment_config ADD COLUMN channel TEXT DEFAULT 'jd'")
     except: pass
+    # 修复表约束：UNIQUE(key) → UNIQUE(key, channel)
+    try:
+        conn.execute("SELECT 1 FROM replenishment_config WHERE 1=0")  # 表存在则继续
+        info = conn.execute("PRAGMA index_list('replenishment_config')").fetchall()
+        has_composite = any('key_channel' in (r[1] or '') for r in info)
+        if not has_composite:
+            conn.execute("""
+                CREATE TABLE replenishment_config_new (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    key TEXT NOT NULL,
+                    value TEXT DEFAULT '',
+                    channel TEXT DEFAULT 'jd',
+                    updated_at TEXT DEFAULT (datetime('now')),
+                    UNIQUE(key, channel)
+                )
+            """)
+            conn.execute("INSERT OR IGNORE INTO replenishment_config_new (id,key,value,channel,updated_at) SELECT id,key,value,COALESCE(channel,'jd'),updated_at FROM replenishment_config")
+            conn.execute("DROP TABLE replenishment_config")
+            conn.execute("ALTER TABLE replenishment_config_new RENAME TO replenishment_config")
+    except: pass
     try: conn.execute("ALTER TABLE rules ADD COLUMN channel TEXT DEFAULT 'jd'")
     except: pass
     try: conn.execute("ALTER TABLE purchase_orders ADD COLUMN actual_qty INTEGER DEFAULT 0")

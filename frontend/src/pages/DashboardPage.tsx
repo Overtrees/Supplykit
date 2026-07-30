@@ -13,9 +13,12 @@ export default function DashboardPage({ onAlert }) {
   const [chLoading, setChLoading] = useState(false)
   useEffect(() => {
     setChLoading(true)
-    api.get('/api/dashboard/summary').then(r => {
-      const d = r.data
-      if (d && d.summary) useAppStore.setState({ dashboard: d, loading: false, dataLoaded: true })
+    Promise.all([
+      api.get('/api/dashboard/summary'),
+      api.get('/api/alerts'),
+      api.get('/api/dashboard/stock-risk'),
+    ]).then(([s, a, r]) => {
+      useAppStore.setState({ dashboard: s.data, alerts: a.data || [], stockRisk: r.data || [], loading: false, dataLoaded: true })
       setChLoading(false)
     }).catch(() => setChLoading(false))
   }, [channel])

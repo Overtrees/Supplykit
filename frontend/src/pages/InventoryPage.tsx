@@ -63,39 +63,39 @@ export default function InventoryPage({ highlightSku }) {
     setConfirmDel(null)
   }
 
-  return <div className="card">
-    <div className="section-title" style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
-      <span>进销存 <span className="small muted">共 {inventory.length} 条</span></span>
+  return <div className='card'>
+    <div className='section-title' style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
+      <span>进销存 <span className='small muted'>共 {inventory.length} 条</span></span>
       <div style={{display:'flex',gap:8,alignItems:'center'}}>
-        <span onClick={()=>setShowPicker(!showPicker)} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',cursor:'pointer'}}>列 {visCols.length}/{COLS.length}</span>
-        <div className="search-bar" style={{maxWidth:200,flex:'none'}}>
+        <span onClick={()=>setShowPicker(!showPicker)} className='btn btn-ghost' style={{fontSize:11,padding:'2px 10px',cursor:'pointer'}}>列 {visCols.length}/{COLS.length}</span>
+        <div className='search-bar' style={{maxWidth:200,flex:'none'}}>
           <IconSearch size={16} style={{color:'var(--muted2)',flexShrink:0}} />
-          <input value={s} onChange={e=>setS(e.target.value)} placeholder="搜索SKU/商品名" enterKeyHint="search" autoCorrect="off" />
+          <input value={s} onChange={e=>setS(e.target.value)} placeholder='搜索SKU/商品名' enterKeyHint='search' autoCorrect='off' />
         </div>
         <button onClick={async()=>{try{const r=await fetch(API+'/api/insights/export-inventory');const b=await r.blob();const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='inventory_'+new Date().toISOString().slice(0,10)+'.csv';document.body.appendChild(a);a.click();a.remove()}catch(e){toast.error('导出失败')}}}
-          className="btn btn-ghost" style={{fontSize:12,padding:'4px 12px',display:'flex',alignItems:'center',gap:4}}><IconExport size={14} /> 导出</button>
+          className='btn btn-ghost' style={{fontSize:12,padding:'4px 12px',display:'flex',alignItems:'center',gap:4}}><IconExport size={14} /> 导出</button>
       </div>
     </div>
     {showPicker && <div style={{position:'absolute',zIndex:10,background:'var(--card)',border:'1px solid var(--border)',borderRadius:16,padding:8,minWidth:140,boxShadow:'0 4px 12px rgba(0,0,0,0.15)',right:0}}>
       {COLS.map(col=><label key={col.id} style={{display:'flex',alignItems:'center',gap:6,padding:'3px 4',fontSize:12,cursor:'pointer',whiteSpace:'nowrap'}}>
-        <input type="checkbox" checked={visCols.includes(col.id)} onChange={e=>{const n=e.target.checked?[...visCols,col.id]:visCols.filter(c=>c!==col.id);setVisCols(n);localStorage.setItem(COL_KEY,JSON.stringify(n))}} style={{accentColor:'var(--primary)'}} />
+        <input type='checkbox' checked={visCols.includes(col.id)} onChange={e=>{const n=e.target.checked?[...visCols,col.id]:visCols.filter(c=>c!==col.id);setVisCols(n);localStorage.setItem(COL_KEY,JSON.stringify(n))}} style={{accentColor:'var(--primary)'}} />
         {col.label}
       </label>)}
       <div style={{borderTop:'1px solid var(--border)',marginTop:4,paddingTop:4}}>
-        <span onClick={()=>{const d=COLS.map(c=>c.id);setVisCols(d);localStorage.setItem(COL_KEY,JSON.stringify(d));setShowPicker(false)}} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>全部</span>
+        <span onClick={()=>{const d=COLS.map(c=>c.id);setVisCols(d);localStorage.setItem(COL_KEY,JSON.stringify(d));setShowPicker(false)}} className='btn btn-ghost' style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>全部</span>
       </div>
     </div>}
 
-    {loading ? <div>{[1,2,3,4].map(i=><div key={i} className="skeleton" style={{height:36,marginBottom:4}}/>)}</div>
+    {loading ? <div>{[1,2,3,4].map(i=><div key={i} className='skeleton' style={{height:36,marginBottom:4}}/>)}</div>
     : fl.length === 0
       ? <EmptyState icon='package' title={s?'无匹配':'暂无数据'} desc={s?'换个关键词试试':'通过清洗导入数据'} />
-      : <div style={{overflowX:"auto"}}>
+      : <div style={{overflowX:'auto'}}>
         <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {visCols.length}/{COLS.length} 列</div>
       <table><colgroup>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>
-        <thead><tr>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return null;let el;if(col.id==='month_in')el=<th key={col.id}>{col.label}<br/><span className=\"small\" style={{fontWeight:400}}>{monthRange}</span></th>;else if(col.id==='month_out')el=<th key={col.id}>{col.label}<br/><span className=\"small\" style={{fontWeight:400}}>{monthRange}</span></th>;else el=<th key={col.id}>{col.label}</th>;return el})}</tr></thead>
+        <thead><tr>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return null;let el;if(col.id==='month_in')el=<th key={col.id}>{col.label}<br/><span className=\'small\' style={{fontWeight:400}}>{monthRange}</span></th>;else if(col.id==='month_out')el=<th key={col.id}>{col.label}<br/><span className=\'small\' style={{fontWeight:400}}>{monthRange}</span></th>;else el=<th key={col.id}>{col.label}</th>;return el})}</tr></thead>
       <tbody>{fl.map(x => {
         const isHL = highlightSku && x.sku === highlightSku
-        const visCells = visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return null;let el;if(col.id==='warehouse')el=<td key={col.id} className=\"col-store\">{x.warehouse||'-'}</td>;else if(col.id==='sku')el=<td key={col.id} className=\"mono col-sku\">{x.sku}</td>;else if(col.id==='name')el=<td key={col.id} className=\"col-name\">{x.product_name}</td>;else if(col.id==='begin')el=<td key={col.id} className=\"col-qty\" style={{fontWeight:600}}>{x.beginning_stock ?? '-'}</td>;else if(col.id==='transit')el=<td key={col.id} className=\"col-qty\">{x.in_transit_qty}</td>;else if(col.id==='month_in')el=<td key={col.id} className=\"col-qty\">{x.month_inbound ?? 0}</td>;else if(col.id==='month_out')el=<td key={col.id} className=\"col-qty\" style={{fontWeight:600}}>{x.month_outbound ?? 0}</td>;else if(col.id==='avail')el=<td key={col.id} className=\"col-qty\" style={{fontWeight:600}}>{x.available_qty}</td>;else if(col.id==='turnover'){const tc=x.turnover_days;el=<td key={col.id} className=\"col-qty\" style={{fontWeight:600,color:tc!=null&&tc>30?'#ef4444':tc!=null&&tc>15?'var(--warning)':'var(--text)'}}>{tc!=null?tc+'天':'∞'}</td>}return el})
+        const visCells = visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return null;let el;if(col.id==='warehouse')el=<td key={col.id} className=\'col-store\'>{x.warehouse||'-'}</td>;else if(col.id==='sku')el=<td key={col.id} className=\'mono col-sku\'>{x.sku}</td>;else if(col.id==='name')el=<td key={col.id} className=\'col-name\'>{x.product_name}</td>;else if(col.id==='begin')el=<td key={col.id} className=\'col-qty\' style={{fontWeight:600}}>{x.beginning_stock ?? '-'}</td>;else if(col.id==='transit')el=<td key={col.id} className=\'col-qty\'>{x.in_transit_qty}</td>;else if(col.id==='month_in')el=<td key={col.id} className=\'col-qty\'>{x.month_inbound ?? 0}</td>;else if(col.id==='month_out')el=<td key={col.id} className=\'col-qty\' style={{fontWeight:600}}>{x.month_outbound ?? 0}</td>;else if(col.id==='avail')el=<td key={col.id} className=\'col-qty\' style={{fontWeight:600}}>{x.available_qty}</td>;else if(col.id==='turnover'){const tc=x.turnover_days;el=<td key={col.id} className=\'col-qty\' style={{fontWeight:600,color:tc!=null&&tc>30?'#ef4444':tc!=null&&tc>15?'var(--warning)':'var(--text)'}}>{tc!=null?tc+'天':'∞'}</td>}return el})
         return <tr key={x.id} id={'hl-'+x.sku} style={isHL ? {background:'rgba(245,158,11,0.15)',outline:'2px solid #f59e0b'} : {}}>{visCells}</tr>
       </tbody>
       {totalTurnover != null && <tfoot>

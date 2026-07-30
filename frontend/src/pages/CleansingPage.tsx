@@ -205,7 +205,6 @@ export default function CleansingPage() {
           <option value='product'>导入商品</option>
         </select>
       </div>
-      </div>
       <label className="btn btn-primary">
         {bs?'识别中...':'选择文件'}
         <input type="file" accept=".csv,.xlsx" style={{display:'none'}} onChange={e=>{const fi=e.target.files[0];if(fi)detect(fi)}} />

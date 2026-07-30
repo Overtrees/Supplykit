@@ -57,10 +57,11 @@ export default function RulesPage() {
   const [cond, setCond] = useState({left:'inv.available_qty', op:'<', right:'inv.safety_qty', rightType:'field', pctValue:100})
   const [replenChannel, setReplenChannel] = useState(() => localStorage.getItem('c_replen_channel') || 'jd')
 
-  const load = async () => { try { const r = await api.get('/api/rules'); setRules(r.data||[]) } catch(e) {} }
+  const load = async (ch) => { try { const c=ch||replenChannel; const r = await api.get('/api/rules?channel='+c); setRules(r.data||[]) } catch(e) {} }
   const loadCfg = async (mode, ch) => { try { const m=mode||cfg.replenishment_mode||'bbcc'; const c=ch||replenChannel; const r=await api.get('/api/replenishment-config?mode='+m+'&channel='+c); setCfg({...r.data, replenishment_mode:m}); return r.data||{} } catch(e) { return {} } }
   const loadSeasons = async (mode, ch) => { try { const m=mode||cfg.replenishment_mode||'bbcc'; const c=ch||replenChannel; const r=await api.get('/api/replenishment-config/seasons?mode='+m+'&channel='+c); setSeasons(r.data||[]) } catch(e) {} }
-  useEffect(() => { Promise.all([load(), loadCfg(), loadSeasons()]).finally(() => setLoading(false)) }, [])
+  const loadAll = (ch) => { const c=ch||replenChannel; load(c); loadCfg(cfg.replenishment_mode||'bbcc',c); loadSeasons(cfg.replenishment_mode||'bbcc',c) }
+  useEffect(() => { loadAll(); Promise.all([]).finally(() => setLoading(false)) }, [])
 
   const resetForm = () => { setEditing({}); setF(defaultF); setCond({left:'inv.available_qty', op:'<', right:'inv.safety_qty', rightType:'field', pctValue:100}) }
   const cancelEdit = () => { setEditing(null); setF(defaultF); setCond({left:'inv.available_qty', op:'<', right:'inv.safety_qty', rightType:'field', pctValue:100}) }
@@ -73,10 +74,10 @@ export default function RulesPage() {
     const cj = JSON.stringify({left:cond.left, op:cond.op, right:rv, rightType:cond.rightType})
     const isNew = !editing || !editing.id
     const url = isNew ? API+'/api/rules' : API+'/api/rules/'+editing.id
-    await fetch(url, {method: isNew?'POST':'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({...f, condition_json:cj})})
-    cancelEdit(); load()
+    await fetch(url, {method: isNew?'POST':'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({...f, channel:replenChannel, condition_json:cj})})
+    cancelEdit(); load(replenChannel)
   }
-  const del = async id => { await fetch(API+'/api/rules/'+id, {method:'DELETE'}); load() }
+  const del = async id => { await fetch(API+'/api/rules/'+id, {method:'DELETE'}); load(replenChannel) }
 
   const isBBCC = (cfg.replenishment_mode||'bbcc')==='bbcc'
   const cParams = isBBCC ? [{k:'b_to_c_days',l:'B→C调拨(天)',h:'京东B仓→C仓调拨时效'},{k:'c_safety_days',l:'C仓缓冲(天)',h:'C仓安全储备'}] : []
@@ -203,7 +204,7 @@ export default function RulesPage() {
     {/* ── 补货参数 ── */}
     {tab==='params' && <div>
       <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap',alignItems:'center'}}>
-        <select value={replenChannel} onChange={e=>{const v=e.target.value;setReplenChannel(v);localStorage.setItem('c_replen_channel',v);const m=v!=='jd'?'traditional':(cfg.replenishment_mode||'bbcc');setCfg(p=>({...p,replenishment_mode:m}));loadCfg(m,v)}} style={{fontSize:14,padding:'5px 10px',border:'1px solid var(--border)',borderRadius:32,outline:'none',background:'var(--card)'}}>
+        <select value={replenChannel} onChange={e=>{const v=e.target.value;setReplenChannel(v);localStorage.setItem('c_replen_channel',v);const m=v!=='jd'?'traditional':(cfg.replenishment_mode||'bbcc');setCfg(p=>({...p,replenishment_mode:m}));loadAll(v)}} style={{fontSize:14,padding:'5px 10px',border:'1px solid var(--border)',borderRadius:32,outline:'none',background:'var(--card)'}}>
           <option value='jd'>京东</option>
           <option value='other'>其他渠道</option>
         </select>

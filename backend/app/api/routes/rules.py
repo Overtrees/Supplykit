@@ -7,8 +7,8 @@ import json
 router = APIRouter(prefix="/api/rules", tags=["rules"])
 
 @router.get("")
-def list_rules(db = get_db()):
-    return db.table("rules").select("*").order("id").execute().data
+def list_rules(channel: str = 'jd', db = get_db()):
+    return db.table("rules").select("*").eq("channel", channel).order("id").execute().data
 
 @router.post("")
 def create_rule(data: dict, db = get_db()):
@@ -19,6 +19,7 @@ def create_rule(data: dict, db = get_db()):
         "alert_title": data.get("alert_title",""),
         "alert_desc": data.get("alert_desc",""),
         "severity": data.get("severity","warning"),
+        "channel": data.get("channel", "jd"),
         "is_active": 1 if data.get("is_active",True) else 0,
     }
     db.table("rules").insert(payload).execute()

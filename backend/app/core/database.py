@@ -560,6 +560,8 @@ def init_db(path=None):
     except: pass
     try: conn.execute("ALTER TABLE replenishment_config ADD COLUMN channel TEXT DEFAULT 'jd'")
     except: pass
+    try: conn.execute("ALTER TABLE rules ADD COLUMN channel TEXT DEFAULT 'jd'")
+    except: pass
     try: conn.execute("ALTER TABLE purchase_orders ADD COLUMN actual_qty INTEGER DEFAULT 0")
     except: pass
     try: conn.execute("ALTER TABLE purchase_orders ADD COLUMN arrival_date TEXT DEFAULT ''")

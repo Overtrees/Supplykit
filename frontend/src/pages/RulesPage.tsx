@@ -203,11 +203,11 @@ export default function RulesPage() {
     {/* ── 补货参数 ── */}
     {tab==='params' && <div>
       <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap',alignItems:'center'}}>
-        <select value={replenChannel} onChange={e=>{const v=e.target.value;setReplenChannel(v);localStorage.setItem('c_replen_channel',v);loadCfg(cfg.replenishment_mode||'bbcc',v)}} style={{fontSize:14,padding:'5px 10px',border:'1px solid var(--border)',borderRadius:32,outline:'none',background:'var(--card)'}}>
+        <select value={replenChannel} onChange={e=>{const v=e.target.value;setReplenChannel(v);localStorage.setItem('c_replen_channel',v);const m=v!=='jd'?'traditional':(cfg.replenishment_mode||'bbcc');setCfg(p=>({...p,replenishment_mode:m}));loadCfg(m,v)}} style={{fontSize:14,padding:'5px 10px',border:'1px solid var(--border)',borderRadius:32,outline:'none',background:'var(--card)'}}>
           <option value='jd'>京东</option>
           <option value='other'>其他渠道</option>
         </select>
-        <span onClick={()=>{loadCfg('bbcc');loadSeasons('bbcc')}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 14px',display:'inline-flex',alignItems:'center',gap:4,background:(cfg.replenishment_mode||'bbcc')==='bbcc'?'var(--primary)':'transparent',color:(cfg.replenishment_mode||'bbcc')==='bbcc'?'#fff':''}}><IconPackage size={14} /> BBCC 送仓</span>
+        {replenChannel==='jd' && <span onClick={()=>{loadCfg('bbcc');loadSeasons('bbcc')}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 14px',display:'inline-flex',alignItems:'center',gap:4,background:(cfg.replenishment_mode||'bbcc')==='bbcc'?'var(--primary)':'transparent',color:(cfg.replenishment_mode||'bbcc')==='bbcc'?'#fff':''}}><IconPackage size={14} /> BBCC 送仓</span>}
         <span onClick={()=>{loadCfg('traditional');loadSeasons('traditional')}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 14px',display:'inline-flex',alignItems:'center',gap:4,background:cfg.replenishment_mode==='traditional'?'var(--primary)':'transparent',color:cfg.replenishment_mode==='traditional'?'#fff':''}}><IconFactory size={14} /> 传统多仓</span>
       </div>
       {isBBCC ? <>

@@ -10,8 +10,14 @@ export default function DashboardPage({ onAlert }) {
   const [healthTab, setHealthTab] = useState(() => localStorage.getItem('health_tab') || 'platform')
   const { dashboard, inventory, qualityLogs, alerts, stockRisk, channel, loading } = useAppStore()
   const [chLoading, setChLoading] = useState(false)
-  useEffect(() => { setChLoading(true); useAppStore.getState().loadAll() }, [channel])
-  useEffect(() => { if (!loading) setChLoading(false) }, [loading])
+  useEffect(() => {
+    setChLoading(true)
+    api.get('/api/dashboard/summary').then(r => {
+      const d = r.data
+      if (d && d.summary) useAppStore.setState({ dashboard: d, loading: false, dataLoaded: true })
+      setChLoading(false)
+    }).catch(() => setChLoading(false))
+  }, [channel])
   const periodTrend = dashboard?.periods?.[periodTab + '_trend'] || dashboard?.trend || []
   const periodMeta = dashboard?.periods?.[periodTab] || {}
 

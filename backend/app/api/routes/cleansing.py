@@ -275,7 +275,7 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                 "volume": float(data.get('volume', 0)),
             })
             success += 1
-        else:
+        elif not is_inv and not is_inbound and not is_outbound:
             orders_to_insert.append({
                 "order_no": order_no, "store": str(data.get('store', '未知'))[:100],
                 "sku": sku[:100],

@@ -6,19 +6,29 @@ import ConfirmDialog from '../components/ConfirmDialog'
 import { IconSearch, IconTrash, IconExport } from '../components/Icons'
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
-const COLS = [
-  {id:'warehouse',label:'仓库'},{id:'sku',label:'SKU'},{id:'barcode',label:'69码'},{id:'name',label:'商品'},
-  {id:'begin',label:'期初库存'},{id:'transit',label:'在途'},{id:'month_in',label:'当月采购入库'},
-  {id:'month_out',label:'当月出库'},{id:'avail',label:'可用'},{id:'turnover',label:'在库周转'},
-]
+const WH_COLS = {
+  own: [
+    {id:'warehouse',label:'仓库'},{id:'sku',label:'SKU'},{id:'barcode',label:'69码'},{id:'name',label:'商品'},
+    {id:'begin',label:'期初库存'},{id:'transit',label:'在途'},{id:'month_in',label:'当月采购入库'},
+    {id:'month_out',label:'当月出库'},{id:'avail',label:'可用'},{id:'turnover',label:'在库周转'},
+  ],
+  platform: [
+    {id:'warehouse',label:'仓库'},{id:'sku',label:'SKU'},{id:'barcode',label:'69码'},{id:'name',label:'商品'},
+    {id:'transit',label:'在途'},{id:'avail',label:'可用'},
+  ],
+  platform_b: [
+    {id:'warehouse',label:'仓库'},{id:'sku',label:'SKU'},{id:'barcode',label:'69码'},{id:'name',label:'商品'},
+    {id:'transit',label:'B-C仓调拨在途'},{id:'avail',label:'可用'},
+  ],
+}
 const COL_KEY='c_cols_inventory'
-const getVis=()=>{try{return JSON.parse(localStorage.getItem(COL_KEY)||'null')}catch{return null}}
+const getVis=(wt)=>{try{return JSON.parse(localStorage.getItem(COL_KEY+'_'+wt)||'null')}catch{return null}}
 
 export default function InventoryPage({ highlightSku }) {
   const toast = useToast()
   const [inventory, setInventory] = useState([])
   const [loading, setLoading] = useState(true)
-  const [visCols, setVisCols] = useState(() => getVis() || COLS.map(c => c.id))
+  const [visCols, setVisCols] = useState(() => {const wt='own';return getVis(wt)||WH_COLS[wt].map(c=>c.id)})
   const [showPicker, setShowPicker] = useState(false)
   const [s, setS] = useState('')
   const [confirmDel, setConfirmDel] = useState(null)
@@ -66,20 +76,13 @@ export default function InventoryPage({ highlightSku }) {
 
   return <div className='card'>
     <div className='section-title' style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
-      <span style={{display:'flex',alignItems:'center',gap:8}}>
-          <span>进销存 <span className='small muted'>共 {inventory.length} 条</span></span>
-          <select value={whType} onChange={e=>setWhType(e.target.value)} style={{fontSize:12,padding:'3px 8px',border:'1px solid var(--border)',borderRadius:32,outline:'none',background:'var(--card)',color:'var(--text)'}}>
-            <option value='own'>自有仓</option>
-            <option value='platform'>平台仓</option>
-            <option value='platform_b'>B仓</option>
-          </select>
-        </span>
+      <span>进销存 <span className='small muted'>共 {inventory.length} 条</span></span>
       <span style={{display:'flex',gap:8,alignItems:'center'}}>
         <span style={{position:'relative',display:'inline-block'}}>
-          <span onClick={()=>setShowPicker(!showPicker)} className='btn btn-ghost' style={{fontSize:11,padding:'2px 10px',cursor:'pointer'}}>列 {visCols.length}/{COLS.length}</span>
+          <span onClick={()=>setShowPicker(!showPicker)} className='btn btn-ghost' style={{fontSize:11,padding:'2px 10px',cursor:'pointer'}}>列 {visCols.length}/{WH_COLS[whType].length}</span>
           {showPicker && <div style={{position:'absolute',top:'100%',right:0,zIndex:10,background:'var(--card)',border:'1px solid var(--border)',borderRadius:16,padding:6,minWidth:180,boxShadow:'0 4px 12px rgba(0,0,0,0.15)'}}>
       <div style={{fontSize:10,color:'var(--muted2)',marginBottom:4,padding:'0 4px'}}>拖拽 ⠿ 调整列顺序</div>
-      {(visCols.map(id=>COLS.find(c=>c.id===id)).filter(Boolean).concat(COLS.filter(c=>!visCols.includes(c.id)))).map((col,idx)=>{
+      {(visCols.map(id=>WH_COLS[whType].find(c=>c.id===id)).filter(Boolean).concat(WH_COLS[whType].filter(c=>!visCols.includes(c.id)))).map((col,idx)=>{
         const isVis=visCols.includes(col.id)
         return <div key={col.id} draggable={isVis?true:undefined}
           onDragStart={isVis?e=>{e.dataTransfer.setData('text/plain',col.id);e.target.style.opacity='0.4';e.currentTarget.parentNode._dragId=col.id}:undefined}
@@ -98,13 +101,18 @@ export default function InventoryPage({ highlightSku }) {
         </div>
       })}
       <div style={{borderTop:'1px solid var(--border)',marginTop:4,paddingTop:4}}>
-        <span onClick={()=>{const d=COLS.map(c=>c.id);setVisCols(d);localStorage.setItem(COL_KEY,JSON.stringify(d));setShowPicker(false)}} className='btn btn-ghost' style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>全部</span>
+        <span onClick={()=>{const d=WH_COLS[whType].map(c=>c.id);setVisCols(d);localStorage.setItem(COL_KEY,JSON.stringify(d));setShowPicker(false)}} className='btn btn-ghost' style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>全部</span>
       </div>
     </div>}
         </span>
         <button onClick={async()=>{try{const r=await fetch(API+'/api/insights/export-inventory');const b=await r.blob();const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='inventory_'+new Date().toISOString().slice(0,10)+'.csv';document.body.appendChild(a);a.click();a.remove()}catch(e){toast.error('导出失败')}}}
           className='btn btn-ghost' style={{fontSize:12,padding:'4px 12px',display:'flex',alignItems:'center',gap:4}}><IconExport size={14} /> 导出</button>
       </span>
+    </div>
+    <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap',alignItems:'center'}}>
+      <span onClick={()=>{setWhType('own');const d=WH_COLS['own'].map(c=>c.id);setVisCols(getVis('own')||d);localStorage.setItem(COL_KEY+'_own',JSON.stringify(d))}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 12px',cursor:'pointer',background:whType==='own'?'var(--primary)':'transparent',color:whType==='own'?'#fff':''}}>自有仓</span>
+      <span onClick={()=>{setWhType('platform');const d=WH_COLS['platform'].map(c=>c.id);setVisCols(getVis('platform')||d);localStorage.setItem(COL_KEY+'_platform',JSON.stringify(d))}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 12px',cursor:'pointer',background:whType==='platform'?'var(--primary)':'transparent',color:whType==='platform'?'#fff':''}}>平台仓</span>
+      <span onClick={()=>{setWhType('platform_b');const d=WH_COLS['platform_b'].map(c=>c.id);setVisCols(getVis('platform_b')||d);localStorage.setItem(COL_KEY+'_platform_b',JSON.stringify(d))}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 12px',cursor:'pointer',background:whType==='platform_b'?'var(--primary)':'transparent',color:whType==='platform_b'?'#fff':''}}>B仓</span>
     </div>
     <div className='search-bar' style={{maxWidth:200,marginBottom:12}}>
       <IconSearch size={16} style={{color:'var(--muted2)',flexShrink:0}} />
@@ -114,12 +122,12 @@ export default function InventoryPage({ highlightSku }) {
     : fl.length === 0
       ? <EmptyState icon='package' title={s?'无匹配':'暂无数据'} desc={s?'换个关键词试试':'通过清洗导入数据'} />
       : <div style={{overflowX:'auto'}}>
-        <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {visCols.length}/{COLS.length} 列</div>
-      <table><colgroup>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>
-        <thead><tr>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return null;let el;if(col.id==='month_in')el=<th key={col.id}>{col.label}<br/><span className='small' style={{fontWeight:400}}>{monthRange}</span></th>;else if(col.id==='month_out')el=<th key={col.id}>{col.label}<br/><span className='small' style={{fontWeight:400}}>{monthRange}</span></th>;else el=<th key={col.id}>{col.label}</th>;return el})}</tr></thead>
+        <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {visCols.length}/{WH_COLS[whType].length} 列</div>
+      <table><colgroup>{visCols.map(id=>{const col=WH_COLS[whType].find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>
+        <thead><tr>{visCols.map(id=>{const col=WH_COLS[whType].find(c=>c.id===id);if(!col)return null;let el;if(col.id==='month_in')el=<th key={col.id}>{col.label}<br/><span className='small' style={{fontWeight:400}}>{monthRange}</span></th>;else if(col.id==='month_out')el=<th key={col.id}>{col.label}<br/><span className='small' style={{fontWeight:400}}>{monthRange}</span></th>;else el=<th key={col.id}>{col.label}</th>;return el})}</tr></thead>
       <tbody>{fl.map(x => {
         const isHL = highlightSku && x.sku === highlightSku
-        const visCells = visCols.map(function(id){const col=COLS.find(function(c){return c.id===id});if(!col)return null;var el;if(col.id==='warehouse')el=React.createElement('td',{key:col.id,className:'col-store'},x.warehouse||'-');else if(col.id==='sku')el=React.createElement('td',{key:col.id,className:'mono col-sku'},x.sku);else if(col.id==='barcode')el=React.createElement('td',{key:col.id,className:'mono',style:{fontSize:11}},x.barcode||'-');else if(col.id==='name')el=React.createElement('td',{key:col.id,className:'col-name'},x.product_name);else if(col.id==='begin')el=React.createElement('td',{key:col.id,className:'col-qty',style:{fontWeight:600}},x.beginning_stock??'-');else if(col.id==='transit')el=React.createElement('td',{key:col.id,className:'col-qty'},x.in_transit_qty);else if(col.id==='month_in')el=React.createElement('td',{key:col.id,className:'col-qty'},x.month_inbound??0);else if(col.id==='month_out')el=React.createElement('td',{key:col.id,className:'col-qty',style:{fontWeight:600}},x.month_outbound??0);else if(col.id==='avail')el=React.createElement('td',{key:col.id,className:'col-qty',style:{fontWeight:600}},x.available_qty);else if(col.id==='turnover'){var tc=x.turnover_days;el=React.createElement('td',{key:col.id,className:'col-qty',style:{fontWeight:600,color:tc!=null&&tc>30?'#ef4444':tc!=null&&tc>15?'var(--warning)':'var(--text)'}},tc!=null?tc+'天':'∞')}return el})
+        const visCells = visCols.map(function(id){const col=WH_COLS[whType].find(function(c){return c.id===id});if(!col)return null;var el;if(col.id==='warehouse')el=React.createElement('td',{key:col.id,className:'col-store'},x.warehouse||'-');else if(col.id==='sku')el=React.createElement('td',{key:col.id,className:'mono col-sku'},x.sku);else if(col.id==='barcode')el=React.createElement('td',{key:col.id,className:'mono',style:{fontSize:11}},x.barcode||'-');else if(col.id==='name')el=React.createElement('td',{key:col.id,className:'col-name'},x.product_name);else if(col.id==='begin')el=React.createElement('td',{key:col.id,className:'col-qty',style:{fontWeight:600}},x.beginning_stock??'-');else if(col.id==='transit')el=React.createElement('td',{key:col.id,className:'col-qty'},x.in_transit_qty);else if(col.id==='month_in')el=React.createElement('td',{key:col.id,className:'col-qty'},x.month_inbound??0);else if(col.id==='month_out')el=React.createElement('td',{key:col.id,className:'col-qty',style:{fontWeight:600}},x.month_outbound??0);else if(col.id==='avail')el=React.createElement('td',{key:col.id,className:'col-qty',style:{fontWeight:600}},x.available_qty);else if(col.id==='turnover'){var tc=x.turnover_days;el=React.createElement('td',{key:col.id,className:'col-qty',style:{fontWeight:600,color:tc!=null&&tc>30?'#ef4444':tc!=null&&tc>15?'var(--warning)':'var(--text)'}},tc!=null?tc+'天':'∞')}return el})
         return React.createElement('tr',{key:x.id,id:'hl-'+x.sku,style:isHL?{background:'rgba(245,158,11,0.15)',outline:'2px solid #f59e0b'}:{}},visCells)
       })}
       </tbody>

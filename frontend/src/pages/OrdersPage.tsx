@@ -119,8 +119,6 @@ export default function OrdersPage() {
             if(col.id==='date')return <td key={col.id} className="col-date">{x.ordered_at}</td>
             return <td key={col.id} className="small muted" style={{fontSize:11}}>-</td>
           })}</tr>
-          })}</tr>
-        })}
       </tbody></table>
     </div>}
     <ConfirmDialog open={!!confirmDel} title='删除订单' desc='删除后不可恢复' confirmLabel='删除' onConfirm={delOrder} onCancel={()=>setConfirmDel(null)} />

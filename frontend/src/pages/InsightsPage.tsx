@@ -259,15 +259,17 @@ export default function InsightsPage() {
                     <tr key={i} style={rowStyle}>
                       {visCols.map(id => {
                         const col = currentCols.find(c => c.id === id)
-                        if (!col) return null
+                        if (!col) return <td key={id}></td>
                         // 序号列
                         if (col.id === 'seq') return <td key={col.id} style={{fontSize:11,color:'var(--muted2)'}}>{i+1}</td>
                         // SKU
                         if (col.id === 'sku') return <td key={col.id} className="mono" style={{fontSize:12,textDecoration:isOrdered?'line-through':'none'}}>{x.sku}</td>
                         // 商品名
                         if (col.id === 'name') return <td key={col.id} style={{textDecoration:isOrdered?'line-through':'none'}}>{x.product_name}</td>
-                        // 仓库
-                        if (col.id === 'warehouse') return <td key={col.id} className="col-store">{replenMode==='bbcc' ? 'B仓' : (x.warehouse || x.store || '-')}</td>
+                        // 仓库(BBCC) / 店铺(TRAD)
+                        if (col.id === 'warehouse' || col.id === 'store') return <td key={col.id} className="col-store">{replenMode==='bbcc' ? 'B仓' : (x.warehouse || x.store || '-')}</td>
+                        // 现有(TRAD)
+                        if (col.id === 'avail') return <td key={col.id} style={{fontWeight:600}}>{x.available_qty}</td>
                         // B仓可用库存
                         if (col.id === 'b_stock') return <td key={col.id} style={{color:'var(--primary)',fontWeight:600}}>{x.b_stock ?? '-'}</td>
                         // B仓周转
@@ -285,14 +287,18 @@ export default function InsightsPage() {
                         if (col.id === 'c_turn') return <td key={col.id} style={{fontSize:11,fontWeight:600}}>{x.c_turnover != null ? x.c_turnover+'天' : '∞'}</td>
                         // 在途周转
                         if (col.id === 'transit_turn') return <td key={col.id} style={{fontSize:11}}>{x.transit_turnover != null ? x.transit_turnover+'天' : '∞'}</td>
+                        // 安全线(TRAD)
+                        if (col.id === 'safety') return <td key={col.id}>{x.safety_qty}</td>
+                        // 在库周转(TRAD)
+                        if (col.id === 'turn') return <td key={col.id} style={{color: x.days_to_empty < 5 ? '#ef4444' : x.days_to_empty < 10 ? 'var(--warning)' : 'var(--text)'}}>{x.days_to_empty > 999 ? '∞' : x.days_to_empty}</td>
                         // C仓建议补
                         if (col.id === 'suggest') return <td key={col.id} style={{color:'var(--primary)',fontWeight:600}}>{x.suggested_qty > 0 ? x.suggested_qty : '-'}</td>
                         // B仓需补
                         if (col.id === 'b_suggest') return <td key={col.id} style={{color:'var(--success)',fontWeight:700}}>{x.b_suggested > 0 ? x.b_suggested : '-'}</td>
                         // 当前综转
                         if (col.id === 'cur_turn') return <td key={col.id} style={{fontSize:11}}>{x.combined_turnover_current != null ? x.combined_turnover_current+'天' : '∞'}</td>
-                        // 补后综转
-                        if (col.id === 'after_turn') return <td key={col.id} style={{fontSize:11,fontWeight:700,color:x.combined_turnover != null && x.combined_turnover > 90 ? '#ef4444' : x.combined_turnover != null && x.combined_turnover > 15 ? 'var(--warning)' : 'var(--text)'}}>{(x.suggested_qty > 0 || x.b_suggested > 0) && x.combined_turnover != null ? x.combined_turnover+'天' : '-'}</td>
+                        // 补后综转(BBCC) / 补后周转(TRAD)
+                        if (col.id === 'after_turn') return <td key={col.id} style={{fontSize:11,fontWeight:700,color:replenMode==='bbcc'?(x.combined_turnover!=null&&x.combined_turnover>90?'#ef4444':x.combined_turnover!=null&&x.combined_turnover>15?'var(--warning)':'var(--text)'):(x.after_turnover!=null&&x.after_turnover>90?'#ef4444':x.after_turnover!=null&&x.after_turnover>15?'var(--warning)':'var(--text)')}}>{replenMode==='bbcc'?(x.suggested_qty>0||x.b_suggested>0)&&x.combined_turnover!=null?x.combined_turnover+'天':'-':x.suggested_qty>0&&x.after_turnover!=null?x.after_turnover+'天':'-'}</td>
                         // 备注
                         if (col.id === 'note') return <td key={col.id} className="col-name" style={{color:'var(--muted2)',fontSize:12}}>{renderNote(x.note)}</td>
                         // 标记操作
@@ -302,7 +308,7 @@ export default function InsightsPage() {
                             if ((x.suggested_qty > 0 || x.b_suggested > 0) && x.combined_turnover > 90 && !window.confirm(`补后综合周转${x.combined_turnover}天，已超90天考核红线，仍标记操作？`)) return
                             toggleOrdered(x.sku, x.store, x.product_name, x.suggested_qty || x.b_suggested)
                           }} style={{cursor:'pointer',fontSize:18,opacity:0.5}}>☐</span>}</td>
-                        return null
+                        return <td key={col.id} className="small muted" style={{fontSize:11}}>-</td>
                       })}
                     </tr>
                   )})}

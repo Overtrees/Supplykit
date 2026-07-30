@@ -7,7 +7,7 @@ const COLS = [
   {id:'cat',label:'分类'},{id:'price',label:'单价'},{id:'box',label:'箱规'},{id:'weight',label:'箱重/KG'},{id:'volume',label:'体积/方'},{id:'status',label:'状态'},
 ]
 const COL_KEY = 'c_cols_products'
-const getVis = () => { try { return JSON.parse(localStorage.getItem(COL_KEY)||'null') } catch { return null } }
+const getVis = () => { try { return JSON.parse(localStorage.getItem(COL_KEY)||'null') } catch { return <td key={col.id} className="small muted" style={{fontSize:11}}>-</td> } }
 
 function Skeleton(){return <div>{[1,2,3,4].map(i=><div key={i} style={{display:'flex',gap:8,padding:'8px 0',borderBottom:'1px solid var(--border)'}}>
   <div className="skeleton" style={{width:70,height:14}}/><div className="skeleton" style={{flex:1,height:14}}/>
@@ -58,7 +58,7 @@ return<div className='card' style={{containerType:'inline-size'}}>
 <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {visCols.length}/{COLS.length} 列</div>
 <table><colgroup>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>
 <thead><tr>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<th key={col.id}>{col.label}</th>:null})}</tr></thead>
-<tbody>{fl.map(x=><tr key={x.id}>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return null;
+<tbody>{fl.map(x=><tr key={x.id}>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return <td key={col.id} className="small muted" style={{fontSize:11}}>-</td>;
   if(col.id==='barcode')return <td key={col.id} className='mono' style={{fontSize:11}}>{x.barcode||'-'}</td>
   if(col.id==='sku')return <td key={col.id} className='mono col-sku'>{x.sku}</td>
   if(col.id==='name')return <td key={col.id} className='col-name'>{x.product_name}</td>
@@ -69,5 +69,5 @@ return<div className='card' style={{containerType:'inline-size'}}>
   if(col.id==='weight')return <td key={col.id} className='col-qty' style={{fontSize:12}}>{x.weight||'-'}</td>
   if(col.id==='volume')return <td key={col.id} className='col-qty' style={{fontSize:12}}>{x.volume||'-'}</td>
   if(col.id==='status')return <td key={col.id}><span className={'pill '+(x.status==='active'?'success':'warning')}>{x.status==='active'?'在售':x.status}</span></td>
-  return null
+  return <td key={col.id} className="small muted" style={{fontSize:11}}>-</td>
 })}</tr>)}</tbody></table></div>}</div>}

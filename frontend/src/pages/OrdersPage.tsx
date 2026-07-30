@@ -117,7 +117,7 @@ export default function OrdersPage() {
             if(col.id==='status')return <td key={col.id}><span className={`pill ${x.order_status==='已完成'?'success':x.order_status==='待发货'?'warning':x.order_status==='已发货'?'info':x.order_status==='申请退款'?'danger':''}`}>{x.order_status}</span></td>
             if(col.id==='date')return <td key={col.id} className="col-date">{x.ordered_at}</td>
 
-            return null
+            return <td key={col.id} className="small muted" style={{fontSize:11}}>-</td>
           })}</tr>
         })}
       </tbody></table>

@@ -59,7 +59,7 @@ export default function RulesPage() {
 
   const load = async () => { try { const r = await api.get('/api/rules'); setRules(r.data||[]) } catch(e) {} }
   const loadCfg = async (mode, ch) => { try { const m=mode||cfg.replenishment_mode||'bbcc'; const c=ch||replenChannel; const r=await api.get('/api/replenishment-config?mode='+m+'&channel='+c); setCfg({...r.data, replenishment_mode:m}); return r.data||{} } catch(e) { return {} } }
-  const loadSeasons = async (mode) => { try { const m=mode||cfg.replenishment_mode||'bbcc'; const r=await api.get('/api/replenishment-config/seasons?mode='+m); setSeasons(r.data||[]) } catch(e) {} }
+  const loadSeasons = async (mode, ch) => { try { const m=mode||cfg.replenishment_mode||'bbcc'; const c=ch||replenChannel; const r=await api.get('/api/replenishment-config/seasons?mode='+m+'&channel='+c); setSeasons(r.data||[]) } catch(e) {} }
   useEffect(() => { Promise.all([load(), loadCfg(), loadSeasons()]).finally(() => setLoading(false)) }, [])
 
   const resetForm = () => { setEditing({}); setF(defaultF); setCond({left:'inv.available_qty', op:'<', right:'inv.safety_qty', rightType:'field', pctValue:100}) }
@@ -91,7 +91,7 @@ export default function RulesPage() {
       <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
         <button onClick={()=>setTab('rules')} className="btn btn-ghost" style={{fontSize:13,display:'inline-flex',alignItems:'center',gap:4,background:tab==='rules'?'var(--primary)':'transparent',color:tab==='rules'?'#fff':''}}><IconGear size={14} /> 规则</button>
         <button onClick={()=>{setTab('params');loadCfg(cfg.replenishment_mode||'bbcc')}} className="btn btn-ghost" style={{fontSize:13,display:'inline-flex',alignItems:'center',gap:4,background:tab==='params'?'var(--success)':'transparent',color:tab==='params'?'#fff':''}}><IconChart size={14} /> 补货参数</button>
-        <button onClick={()=>{setTab('purchase');api.get('/api/replenishment-config').then(r=>{if(r.data)setCfg(p=>({...r.data,replenishment_mode:p.replenishment_mode||'bbcc'}))}).catch(()=>{})}} className="btn btn-ghost" style={{fontSize:13,display:'inline-flex',alignItems:'center',gap:4,background:tab==='purchase'?'var(--primary)':'transparent',color:tab==='purchase'?'#fff':''}}><IconCart size={14} /> 采购参数</button>
+        <button onClick={()=>{setTab('purchase');api.get('/api/replenishment-config?channel='+replenChannel).then(r=>{if(r.data)setCfg(p=>({...r.data,replenishment_mode:p.replenishment_mode||'bbcc'}))}).catch(()=>{})}} className="btn btn-ghost" style={{fontSize:13,display:'inline-flex',alignItems:'center',gap:4,background:tab==='purchase'?'var(--primary)':'transparent',color:tab==='purchase'?'#fff':''}}><IconCart size={14} /> 采购参数</button>
       </div>
       {tab==='rules' && <button onClick={resetForm} className="btn btn-primary">+ 新建</button>}
     </div>
@@ -235,7 +235,7 @@ export default function RulesPage() {
         <button onClick={()=>setSeasons(p=>p.filter((_,j)=>j!==i))} className="btn btn-danger" style={{fontSize:12,padding:'4px 10px',minHeight:0}}>删除</button>
       </div>)}
       <button onClick={()=>setSeasons(p=>[...p,{key:'new',name:'新活动',factor:1.2,enabled:true}])} className="btn btn-ghost" style={{fontSize:12,padding:'4px 12px',width:'100%'}}>+ 添加活动</button>
-      <button disabled={saving} onClick={async()=>{setSaving(true);const m=cfg.replenishment_mode||'bbcc';try{await api.put('/api/replenishment-config/seasons?mode='+m,{items:seasons});await loadCfg(m);toast.success('已保存')}catch(e){toast.error('保存失败: '+e.message)}setSaving(false)}} className="btn btn-primary" style={{opacity:saving?0.6:1,display:'inline-flex',alignItems:'center',gap:4}}>{saving?<><IconLoading size={14} /> 保存中...</>:<><IconSave size={14} /> 保存</>}</button>
+      <button disabled={saving} onClick={async()=>{setSaving(true);const m=cfg.replenishment_mode||'bbcc';const ch=replenChannel;try{await api.put('/api/replenishment-config/seasons?mode='+m+'&channel='+ch,{items:seasons});await loadCfg(m,ch);toast.success('已保存')}catch(e){toast.error('保存失败: '+e.message)}setSaving(false)}} className="btn btn-primary" style={{opacity:saving?0.6:1,display:'inline-flex',alignItems:'center',gap:4}}>{saving?<><IconLoading size={14} /> 保存中...</>:<><IconSave size={14} /> 保存</>}</button>
     </>}
   </div>
 }

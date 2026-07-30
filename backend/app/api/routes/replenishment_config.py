@@ -29,10 +29,10 @@ def update_config(data: dict, mode: str = '', channel: str = 'jd', db=get_db()):
 
 
 @router.get('/seasons')
-def get_seasons(mode: str = 'bbcc', db=get_db()):
+def get_seasons(mode: str = 'bbcc', channel: str = 'jd', db=get_db()):
     import json
     key = f'season_config_{mode}'
-    val = db.table('replenishment_config').select('*').eq('key', key).execute().data
+    val = db.table('replenishment_config').select('*').eq('key', key).eq('channel', channel).execute().data
     if val and val[0].get('value'):
         return json.loads(val[0]['value'])
     return [
@@ -42,12 +42,12 @@ def get_seasons(mode: str = 'bbcc', db=get_db()):
     ]
 
 @router.put('/seasons')
-def update_seasons(data: dict, mode: str = 'bbcc', db=get_db()):
+def update_seasons(data: dict, mode: str = 'bbcc', channel: str = 'jd', db=get_db()):
     import json
     items = data.get('items', data.get('seasons', []))
     val = json.dumps(list(items), ensure_ascii=False)
     key = f'season_config_{mode}'
-    db.table("replenishment_config").upsert({"key": key, "value": val, "updated_at": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}, conflict_col='key')
+    db.table("replenishment_config").upsert({"key": key, "value": val, "channel": channel, "updated_at": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}, conflict_col='key')
     return ok(items)
 @router.get('/calculate')
 def calculate(mode: str = 'bbcc', db=get_db()):

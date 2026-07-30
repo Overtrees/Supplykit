@@ -26,7 +26,7 @@ export const NAV = [
 export default function App() {
   const [page, setPage] = useState('dash')
   const [highlightSku, setHighlightSku] = useState('')
-  const { inventory, qualityLogs, startPolling, stopAll, sidebarOpen, setSidebarOpen, wsStatus, channel, setChannel } = useAppStore()
+  const { inventory, qualityLogs, startPolling, stopAll, sidebarOpen, setSidebarOpen, wsStatus, channel, setChannel, channelVersion } = useAppStore()
   const [apiStatus, setApiStatus] = useState('checking')
   const checkApi = useCallback(async() => {
     try {
@@ -92,15 +92,15 @@ export default function App() {
   const renderPage = (pageId) => {
     const wrap = (el) => <ErrorBoundary key={pageId}>{el}</ErrorBoundary>
     switch (pageId) {
-      case 'dash': return wrap(<DashboardPage key={channel} onAlert={(s)=>{navigate('inv',s)}} />)
-      case 'products': return wrap(<ProductPage key={channel} />)
-      case 'suppliers': return wrap(<SupplierPage key={channel} />)
-      case 'orders': return wrap(<OrdersPage key={channel} />)
-      case 'inv': return wrap(<InventoryPage key={channel} highlightSku={highlightSku || ''} />)
-      case 'insights': return wrap(<InsightsPage key={channel} />)
-      case 'cleansing': return wrap(<CleansingPage key={channel} />)
-      case 'rules': return wrap(<RulesPage key={channel} />)
-      case 'quality': return wrap(<QualityPage key={channel} />)
+      case 'dash': return wrap(<DashboardPage key={channelVersion} onAlert={(s)=>{navigate('inv',s)}} />)
+      case 'products': return wrap(<ProductPage key={channelVersion} />)
+      case 'suppliers': return wrap(<SupplierPage key={channelVersion} />)
+      case 'orders': return wrap(<OrdersPage key={channelVersion} />)
+      case 'inv': return wrap(<InventoryPage key={channelVersion} highlightSku={highlightSku || ''} />)
+      case 'insights': return wrap(<InsightsPage key={channelVersion} />)
+      case 'cleansing': return wrap(<CleansingPage key={channelVersion} />)
+      case 'rules': return wrap(<RulesPage key={channelVersion} />)
+      case 'quality': return wrap(<QualityPage key={channelVersion} />)
       default: return null
     }
   }

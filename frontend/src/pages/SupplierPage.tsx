@@ -11,9 +11,11 @@ function Skeleton(){return <div>{[1,2,3].map(i=><div key={i} style={{display:'fl
   <div className="skeleton" style={{width:50,height:14}}/><div className="skeleton" style={{width:40,height:14}}/>
 </div>)}</div>}
 
+import { useAppStore } from '../store/useAppStore'
 export default function SupplierPage(){const[list,setList]=useState([]);const[s,setS]=useState('');const[ld,setLd]=useState(true)
 const[visCols,setVisCols]=useState(()=>getVis()||COLS.map(c=>c.id));const[showPicker,setShowPicker]=useState(false)
-useEffect(()=>{api.get('/api/suppliers').then(r=>{const d=r.data?.items||r.data||[];setList(d);setLd(false)}).catch(()=>setLd(false))},[])
+const { channelVersion } = useAppStore()
+useEffect(()=>{api.get('/api/suppliers').then(r=>{const d=r.data?.items||r.data||[];setList(d);setLd(false)}).catch(()=>setLd(false))},[channelVersion])
 if(ld)return<div className='card'><div className='section-title'><span>供应商管理</span></div><Skeleton/></div>
 const fl=s?list.filter(x=>(x.supplier_name||x.code||'').includes(s)||(x.contact_person||'').includes(s)):list
 return<div className='card'><div className='section-title' style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>

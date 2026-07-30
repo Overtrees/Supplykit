@@ -4,6 +4,7 @@ import EmptyState from '../components/EmptyState'
 import { useToast } from '../components/Toast'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { IconSearch, IconTrash, IconExport } from '../components/Icons'
+import { useAppStore } from '../store/useAppStore'
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
 const WH_COLS = {
@@ -38,7 +39,7 @@ export default function InventoryPage({ highlightSku }) {
   const loadInv = async () => {
     setLoading(true)
     try {
-      const r = await api.get('/api/insights/with-sales?wh_type=' + whType)
+      const r = await api.get('/api/insights/with-sales?wh_type=' + whType + '&channel=' + globalChannel)
       const data = r.data || []
       setInventory(data)
       if (data.length > 0) {
@@ -49,7 +50,8 @@ export default function InventoryPage({ highlightSku }) {
     } catch(e) { setInventory([]) }
     setLoading(false)
   }
-  useEffect(() => { loadInv() }, [whType])
+  const { channel: globalChannel } = useAppStore()
+  useEffect(() => { loadInv() }, [whType, globalChannel])
 
   const fl = useMemo(() => {
     if (!s) return inventory

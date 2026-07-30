@@ -18,7 +18,8 @@ function Skeleton(){return <div>{[1,2,3,4].map(i=><div key={i} style={{display:'
 
 export default function ProductPage(){const[list,setList]=useState([]);const[s,setS]=useState('');const[ld,setLd]=useState(true)
 const[visCols,setVisCols]=useState(()=>getVis()||COLS.map(c=>c.id));const[showPicker,setShowPicker]=useState(false)
-useEffect(()=>{api.get('/api/products').then(r=>{setList(r.data?.items||r.data||[]);setLd(false)}).catch(()=>setLd(false))},[])
+const { channel: globalChannel } = useAppStore()
+useEffect(()=>{api.get('/api/products').then(r=>{setList(r.data?.items||r.data||[]);setLd(false)}).catch(()=>setLd(false))}, [globalChannel])
 if(ld)return<div className='card'><div className='section-title'><span>商品管理</span></div><Skeleton/></div>
 const fl=s?list.filter(x=>(x.sku||'').includes(s)||(x.product_name||'').includes(s)||(x.store||'').includes(s)):list
 return<div className='card' style={{containerType:'inline-size'}}>

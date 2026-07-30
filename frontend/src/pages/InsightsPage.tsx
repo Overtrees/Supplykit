@@ -158,7 +158,7 @@ export default function InsightsPage() {
       setSlowMoving(r.data || [])
       setSlowLoading(false)
     }).catch(() => setSlowLoading(false))
-  }, [])
+  }, [globalChannel])
 
   const tabs = [
     { id: 'replen', label: '补货建议', count: replen.length },

@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { api, clearCache } from '../api/client'
+import { api, clearCache, clearInflight } from '../api/client'
 
 const POLL_MS = Number(import.meta.env.VITE_POLL_INTERVAL_MS || 30000)
 const WS_URL = import.meta.env.VITE_WS_URL || 'wss://overtrees.pythonanywhere.com/ws/events'
@@ -27,7 +27,7 @@ export const useAppStore = create((set, get) => ({
   dataLoaded: false,
   sidebarOpen: false,
   setSidebarOpen: (v) => set({ sidebarOpen: v }),
-  setChannel: (ch) => { localStorage.setItem('c_channel', ch); clearCache(); set({ channel: ch, dataLoaded: false, loading: true }) },
+  setChannel: (ch) => { localStorage.setItem('c_channel', ch); clearCache(); clearInflight(); set({ channel: ch, dataLoaded: false, loading: true }) },
 
   async loadAll(page) {
     set({ loading: true })

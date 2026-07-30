@@ -128,6 +128,8 @@ export function clearCache(pattern) {
   }
 }
 
+export function clearInflight() { inflight.clear() }
+
 // 缓存统计
 export function getCacheStats() {
   return { size: cache.size, inflight: inflight.size }

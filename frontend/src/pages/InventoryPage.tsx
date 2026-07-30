@@ -110,9 +110,11 @@ export default function InventoryPage({ highlightSku }) {
       </span>
     </div>
     <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap',alignItems:'center'}}>
-      <span onClick={()=>{setWhType('own');const d=WH_COLS['own'].map(c=>c.id);setVisCols(getVis('own')||d);localStorage.setItem(COL_KEY+'_own',JSON.stringify(d))}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 12px',cursor:'pointer',background:whType==='own'?'var(--primary)':'transparent',color:whType==='own'?'#fff':''}}>自有仓</span>
-      <span onClick={()=>{setWhType('platform');const d=WH_COLS['platform'].map(c=>c.id);setVisCols(getVis('platform')||d);localStorage.setItem(COL_KEY+'_platform',JSON.stringify(d))}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 12px',cursor:'pointer',background:whType==='platform'?'var(--primary)':'transparent',color:whType==='platform'?'#fff':''}}>平台仓</span>
-      <span onClick={()=>{setWhType('platform_b');const d=WH_COLS['platform_b'].map(c=>c.id);setVisCols(getVis('platform_b')||d);localStorage.setItem(COL_KEY+'_platform_b',JSON.stringify(d))}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 12px',cursor:'pointer',background:whType==='platform_b'?'var(--primary)':'transparent',color:whType==='platform_b'?'#fff':''}}>B仓</span>
+      <select value={whType} onChange={e=>{const v=e.target.value;setWhType(v);const d=WH_COLS[v].map(c=>c.id);setVisCols(getVis(v)||d);localStorage.setItem(COL_KEY+'_'+v,JSON.stringify(d))}} style={{fontSize:16,padding:'8px 12px',border:'1px solid var(--border)',borderRadius:32,outline:'none',background:'var(--card)'}}>
+        <option value='own'>自有仓</option>
+        <option value='platform'>平台仓</option>
+        <option value='platform_b'>B仓</option>
+      </select>
     </div>
     <div className='search-bar' style={{maxWidth:200,marginBottom:12}}>
       <IconSearch size={16} style={{color:'var(--muted2)',flexShrink:0}} />

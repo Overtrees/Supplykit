@@ -111,7 +111,7 @@ def _compute_health(inv):
             "score": _score(inv)["score"], "level": _score(inv)["level"]}
 
 
-def _rebuild():
+def _rebuild(channel='jd'):
     """Full rebuild of dashboard data from database."""
     db = get_db()
     orders = db.table("orders").select("*").execute().data or []
@@ -127,7 +127,7 @@ def _rebuild():
         except Exception as e:
             print(f"[auto-seed] {e}")
     
-    inv = db.table("inventory").select("*").execute().data or []
+    inv = db.table("inventory").select("*").eq("channel", channel).execute().data or []
     products = db.table("products").select("*").execute().data or []
     suppliers = db.table("suppliers").select("*").execute().data or []
     alerts = db.table("alerts").select("*").eq("status", "active").execute().data or []
@@ -204,12 +204,12 @@ def _rebuild():
     except: pass
 
 
-def get_dashboard():
+def get_dashboard(channel='jd'):
     """Return cached dashboard data, rebuilding if dirty or expired."""
     global _cache, _cache_ts, _cache_dirty
     now = time.time()
     if _cache is None or _cache_dirty or (now - _cache_ts) > _CACHE_TTL:
-        _cache = _rebuild()
+        _cache = _rebuild(channel)
         _cache_ts = now
         _cache_dirty = False
     return _cache

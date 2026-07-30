@@ -8,12 +8,12 @@ from datetime import datetime, timedelta
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
 @router.get("/summary")
-def dashboard_summary():
-    data = get_dashboard()
+def dashboard_summary(channel: str = 'jd'):
+    data = get_dashboard(channel=channel)
     return ok(data)
 
 @router.get("/stock-risk")
-def stock_risk():
+def stock_risk(channel: str = 'jd'):
     """
     濒临断货 TOP 10 — 日销复用三窗口融合值，参考补货建议计算逻辑
 
@@ -30,14 +30,14 @@ def stock_risk():
     now = datetime.utcnow()
 
     # 读取补货参数
-    cfg_rows = db.table("replenishment_config").select("*").execute().data or []
+    cfg_rows = db.table("replenishment_config").select("*").eq("channel", channel).execute().data or []
     cfg = {r['key']: r['value'] for r in cfg_rows}
     b_to_c = int(cfg.get('b_to_c_days', '3'))
     c_safety = int(cfg.get('c_safety_days', '0'))
     bbcc_lead = b_to_c + c_safety
 
     orders = db.table("orders").select("*").execute().data or []
-    inv = db.table("inventory").select("*").execute().data or []
+    inv = db.table("inventory").select("*").eq("channel", channel).execute().data or []
     products = {p["sku"]: p for p in (db.table("products").select("*").execute().data or [])}
     sku_barcode_map = {sku: p.get('barcode', '') or '' for sku, p in products.items()}
 

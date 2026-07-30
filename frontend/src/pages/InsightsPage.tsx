@@ -15,14 +15,14 @@ const EMOJI_MAP = {
 }
 // ── 列配置 ──────────────────────────────────────────────────────────────
 const BBCC_COLS = [
-  {id:'seq',label:''},{id:'sku',label:'SKU'},{id:'name',label:'商品'},{id:'warehouse',label:'仓库'},
+  {id:'seq',label:''},{id:'sku',label:'SKU'},{id:'barcode',label:'69码'},{id:'name',label:'商品'},{id:'warehouse',label:'仓库'},
   {id:'b_stock',label:'B仓可用库存'},{id:'b_turn',label:'B仓周转'},{id:'c_stock',label:'C仓总和可用'},
   {id:'transit',label:'B-C调拨在途'},{id:'sales',label:'C仓日销'},{id:'c_turn',label:'C仓周转'},
   {id:'transit_turn',label:'B→C调拨周转'},{id:'suggest',label:'C仓建议补'},{id:'b_suggest',label:'B仓需补'},
   {id:'cur_turn',label:'当前综转'},{id:'after_turn',label:'补后综转'},{id:'note',label:'备注'},{id:'action',label:'标记操作（用于B仓统计入库批次）'},
 ]
 const TRAD_COLS = [
-  {id:'seq',label:''},{id:'sku',label:'SKU'},{id:'name',label:'商品'},{id:'store',label:'仓库'},
+  {id:'seq',label:''},{id:'sku',label:'SKU'},{id:'barcode',label:'69码'},{id:'name',label:'商品'},{id:'store',label:'仓库'},
   {id:'avail',label:'现有'},{id:'transit',label:'在途'},{id:'sales',label:'日销'},
   {id:'safety',label:'安全线'},{id:'turn',label:'在库周转'},{id:'after_turn',label:'补后周转'},
   {id:'suggest',label:'建议补'},{id:'note',label:'备注'},
@@ -264,6 +264,7 @@ export default function InsightsPage() {
                         if (col.id === 'seq') return <td key={col.id} style={{fontSize:11,color:'var(--muted2)'}}>{i+1}</td>
                         // SKU
                         if (col.id === 'sku') return <td key={col.id} className="mono" style={{fontSize:12,textDecoration:isOrdered?'line-through':'none'}}>{x.sku}</td>
+                        if (col.id === 'barcode') return <td key={col.id} className='mono' style={{fontSize:11}}>{x.barcode||'-'}</td>
                         // 商品名
                         if (col.id === 'name') return <td key={col.id} style={{textDecoration:isOrdered?'line-through':'none'}}>{x.product_name}</td>
                         // 仓库(BBCC) / 店铺(TRAD)

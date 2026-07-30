@@ -5,7 +5,7 @@ import { IconBroom, IconClipboard, IconPackage, IconImport, IconExport, IconTren
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
 const INV_FIELDS = [
-  {t:'sku',l:'SKU',tp:'string'},{t:'product_name',l:'商品名称',tp:'string'},
+  {t:'barcode',l:'69码',tp:'string'},{t:'sku',l:'SKU',tp:'string'},{t:'product_name',l:'商品名称',tp:'string'},
   {t:'store',l:'店铺',tp:'string'},{t:'warehouse',l:'仓库',tp:'string'},
   {t:'available_qty',l:'可用库存',tp:'number'},{t:'locked_qty',l:'锁定库存',tp:'number'},
   {t:'in_transit_qty',l:'在途',tp:'number'},{t:'safety_qty',l:'安全线',tp:'number'},
@@ -13,7 +13,7 @@ const INV_FIELDS = [
 const SYS_FIELDS = [
   {t:'order_no',l:'订单号',tp:'string'},{t:'source_order_id',l:'原始单号',tp:'string'},
   {t:'store',l:'店铺',tp:'string'},{t:'warehouse',l:'仓库',tp:'string'},
-  {t:'sku',l:'SKU',tp:'string'},{t:'product_name',l:'商品名称',tp:'string'},
+  {t:'barcode',l:'69码',tp:'string'},{t:'sku',l:'SKU',tp:'string'},{t:'product_name',l:'商品名称',tp:'string'},
   {t:'quantity',l:'数量',tp:'number'},{t:'unit_price',l:'单价',tp:'number'},{t:'total_amount',l:'金额',tp:'number'},
   {t:'order_status',l:'状态',tp:'string'},{t:'ordered_at',l:'下单日期',tp:'date'},
   {t:'supplier',l:'供应商',tp:'string'},{t:'supplier_code',l:'供应商编码',tp:'string'},

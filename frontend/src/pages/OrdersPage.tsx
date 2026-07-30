@@ -9,7 +9,7 @@ import { IconSearch, IconTrash, IconExport } from '../components/Icons'
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
 const STATUSES = ['','已完成','待发货','已发货','待确认','申请退款']
 const COLS = [
-  {id:'order_no',label:'订单号'},{id:'store',label:'店铺'},{id:'warehouse',label:'仓库'},
+  {id:'order_no',label:'订单号'},{id:'barcode',label:'69码'},{id:'store',label:'店铺'},{id:'warehouse',label:'仓库'},
   {id:'product',label:'商品'},{id:'amount',label:'金额'},{id:'status',label:'状态'},
   {id:'date',label:'日期'},{id:'plat_avail',label:'平台可用'},{id:'plat_transit',label:'平台在途'},
 ]

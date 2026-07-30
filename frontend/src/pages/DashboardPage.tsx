@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useEffect } from "react"
 import { useAppStore } from '../store/useAppStore'
 import Card from '../components/Card'
 import Chart from '../components/Chart'
@@ -8,7 +8,10 @@ const periodLabel = { today:'今日', week:'本周', month:'本月' }
 export default function DashboardPage({ onAlert }) {
   const [periodTab, setPeriodTab] = useState('month')
   const [healthTab, setHealthTab] = useState(() => localStorage.getItem('health_tab') || 'platform')
-  const { dashboard, inventory, qualityLogs, alerts, stockRisk } = useAppStore()
+  const { dashboard, inventory, qualityLogs, alerts, stockRisk, channelVersion } = useAppStore()
+  const [chKey, setChKey] = useState(channelVersion)
+  useEffect(() => { if (chKey !== channelVersion) { setChKey(channelVersion); setChLoading(true); setTimeout(() => setChLoading(false), 300) } }, [channelVersion])
+  const [chLoading, setChLoading] = useState(false)
   const periodTrend = dashboard?.periods?.[periodTab + '_trend'] || dashboard?.trend || []
   const periodMeta = dashboard?.periods?.[periodTab] || {}
 
@@ -59,6 +62,7 @@ export default function DashboardPage({ onAlert }) {
   const errCount = (qualityLogs||[]).length
   const alertsList = Array.isArray(alerts) ? alerts.filter(x => x.status === 'active') : []
 
+  if (chLoading) return <div className="card" style={{padding:16}}>{[1,2,3,4,5,6].map(i=><div key={i} className="skeleton" style={{height:80,marginBottom:8,borderRadius:24}}/>)}</div>
   return <div>
     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
       <div style={{display:'flex',gap:6,background:'var(--glass-bg)',borderRadius:99,padding:6,alignItems:'center',backdropFilter:'blur(var(--glass-blur))',WebkitBackdropFilter:'blur(var(--glass-blur))',border:'1px solid var(--glass-border)'}}>

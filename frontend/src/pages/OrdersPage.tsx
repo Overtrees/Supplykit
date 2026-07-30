@@ -29,7 +29,9 @@ function OrderSkeleton() {
 
 export default function OrdersPage() {
   const toast = useToast()
-  const { orders, orderTotal, orderPage, orderLoading, setOrderPage, setOrderFilter, orderSearch, orderStatus, dataLoaded } = useAppStore()
+  const { orders, orderTotal, orderPage, orderLoading, setOrderPage, setOrderFilter, orderSearch, orderStatus, dataLoaded, channelVersion } = useAppStore()
+  const [chKey, setChKey] = useState(channelVersion)
+  useEffect(() => { if (chKey !== channelVersion) { setChKey(channelVersion); setOrderPage(1) } }, [channelVersion])
   const [sq, setSq] = useState(orderSearch)
   const [ss, setSs] = useState(orderStatus)
   const [confirmDel, setConfirmDel] = useState(null)

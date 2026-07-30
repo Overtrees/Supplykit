@@ -208,7 +208,7 @@ export default function InsightsPage() {
                   <span onClick={()=>setShowColPicker(!showColPicker)} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',cursor:'pointer'}}>列 {visCols.length}/{currentCols.length}</span>
                   {showColPicker && <div style={{position:'absolute',top:'100%',right:0,zIndex:10,background:'var(--card)',border:'1px solid var(--border)',borderRadius:16,padding:6,minWidth:180,boxShadow:'0 4px 12px rgba(0,0,0,0.15)'}}>
                     <div style={{fontSize:10,color:'var(--muted2)',marginBottom:4,padding:'0 4px'}}>拖拽 ⋮ 调整列顺序</div>
-                    {currentCols.map((col, idx) => {
+                    {(visCols.map(id=>currentCols.find(c=>c.id===id)).filter(Boolean).concat(currentCols.filter(c=>!visCols.includes(c.id)))).map((col, idx) => {
                       const isVis = visCols.includes(col.id)
                       return <div key={col.id} draggable={isVis?true:undefined}
                         onDragStart={isVis?e=>{e.dataTransfer.setData('text/plain',col.id);e.target.style.opacity='0.4';e.currentTarget.parentNode._dragId=col.id}:undefined}

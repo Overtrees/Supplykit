@@ -92,7 +92,7 @@ export default function RulesPage() {
   return <div className='card'>
     <div className='section-title' style={{display:'flex',flexWrap:'wrap',gap:6}}>
       <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-        <button onClick={()=>setTab('rules')} className="btn btn-ghost" style={{fontSize:13,display:'inline-flex',alignItems:'center',gap:4,background:tab==='rules'?'var(--primary)':'transparent',color:tab==='rules'?'#fff':''}}><IconGear size={14} /> 规则</button>
+        <button onClick={()=>setTab('rules')} className="btn btn-ghost" style={{fontSize:13,display:'inline-flex',alignItems:'center',gap:4,background:tab==='rules'?'var(--primary)':'var(--gray)',color:tab==='rules'?'#fff':''}}><IconGear size={14} /> 规则</button>
         <button onClick={()=>{setTab('params');loadCfg(cfg.replenishment_mode||'bbcc')}} className="btn btn-ghost" style={{fontSize:13,display:'inline-flex',alignItems:'center',gap:4,background:tab==='params'?'var(--success)':'var(--gray)',color:tab==='params'?'#fff':''}}><IconChart size={14} /> 补货参数</button>
         <button onClick={()=>setTab('purchase')} className="btn btn-ghost" style={{fontSize:13,display:'inline-flex',alignItems:'center',gap:4,background:tab==='purchase'?'var(--primary)':'var(--gray)',color:tab==='purchase'?'#fff':''}}><IconCart size={14} /> 采购参数</button>
       </div>
@@ -171,7 +171,7 @@ export default function RulesPage() {
 
         <div style={{marginTop:12,display:'flex',gap:8}}>
           <button onClick={save} className="btn btn-primary" style={{display:'inline-flex',alignItems:'center',gap:4}}><IconSave size={14} /> 保存</button>
-          <button onClick={cancelEdit} className="btn btn-ghost">取消</button>
+          <button onClick={cancelEdit} className="btn btn-ghost" style={{background:'var(--warning)',color:'#fff'}}>取消</button>
         </div>
       </div>}
 
@@ -195,7 +195,7 @@ export default function RulesPage() {
           </div>
         </div>
         <div style={{display:'flex',gap:6,flexShrink:0}}>
-          <button onClick={()=>{const c=pc(rule.condition_json||'{}');setEditing(rule);setF({name:rule.name,event:rule.event,alert_type:rule.alert_type||'low_stock',alert_title:rule.alert_title||'',alert_desc:rule.alert_desc||'',severity:rule.severity||'warning',condition_json:rule.condition_json||'{}'});setCond(c)}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 10px',minHeight:0}}>编辑</button>
+          <button onClick={()=>{const c=pc(rule.condition_json||'{}');setEditing(rule);setF({name:rule.name,event:rule.event,alert_type:rule.alert_type||'low_stock',alert_title:rule.alert_title||'',alert_desc:rule.alert_desc||'',severity:rule.severity||'warning',condition_json:rule.condition_json||'{}'});setCond(c)}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 10px',minHeight:0,background:'var(--primary)',color:'#fff'}}>编辑</button>
           <button onClick={()=>del(rule.id)} className="btn btn-danger" style={{fontSize:12,padding:'4px 10px',minHeight:0}}>删除</button>
         </div>
         </div>

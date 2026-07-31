@@ -28,9 +28,9 @@ def create_supplier(body: dict, db = get_db()):
 @router.put("/{sid}")
 def update_supplier(sid: int, body: dict, db = get_db()):
     db.table("suppliers").update(body).eq("id", sid).execute()
-    return {"ok": True}
+    return ok({})
 
 @router.delete("/{sid}")
 def delete_supplier(sid: int, db = get_db()):
     db.table("suppliers").delete().eq("id", sid).execute()
-    return {"ok": True}
+    return ok({})

@@ -17,7 +17,7 @@ def list_inbound(db = get_db(), sku: str = '', days: int = 0):
 @router.delete('/inbound/{iid}')
 def delete_inbound(iid: int, db = get_db()):
     db.table("inbound_records").delete().eq("id", iid).execute()
-    return {"ok": True}
+    return ok({})
 
 
 @router.delete('/inbound')
@@ -36,7 +36,7 @@ def create_inbound(body: dict, db = get_db()):
         "supplier": body.get("supplier", ""),
         "inbound_date": body.get("inbound_date", ""),
     }).execute()
-    return {"ok": True}
+    return ok({})
 
 
 @router.get('/outbound')
@@ -49,7 +49,7 @@ def list_outbound(db = get_db(), sku: str = '', days: int = 0):
 @router.delete('/outbound/{iid}')
 def delete_outbound(iid: int, db = get_db()):
     db.table("outbound_records").delete().eq("id", iid).execute()
-    return {"ok": True}
+    return ok({})
 
 
 @router.delete('/outbound')
@@ -68,4 +68,4 @@ def create_outbound(body: dict, db = get_db()):
         "target_warehouse": body.get("target_warehouse", ""),
         "outbound_date": body.get("outbound_date", ""),
     }).execute()
-    return {"ok": True}
+    return ok({})

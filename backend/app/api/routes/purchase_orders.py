@@ -29,13 +29,13 @@ def create_purchase_order(sku: str, store: str = '', product_name: str = '',
         })
         return ok({"sku": sku, "store": store})
     except Exception as e:
-        return {"ok": False, "error": str(e)}
+        return fail(str(e))
 
 
 @router.put("/{iid}")
 def update_purchase_order(iid: int, body: dict, db = get_db()):
     db.table("purchase_orders").update(body).eq("id", iid).execute()
-    return {"ok": True}
+    return ok({})
 
 
 @router.delete("")
@@ -44,4 +44,4 @@ def delete_purchase_order(sku: str, store: str = '', db = get_db()):
         db.table("purchase_orders").delete().eq("sku", sku).eq("store", store).execute()
         return ok({"sku": sku, "store": store})
     except Exception as e:
-        return {"ok": False, "error": str(e)}
+        return fail(str(e))

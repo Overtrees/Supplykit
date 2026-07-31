@@ -26,17 +26,17 @@ def create_product(body: dict, db = get_db()):
         "status": body.get("status", "active"),
         "raw_data": json.dumps(body, ensure_ascii=False),
     }).execute().data
-    return data[0] if data else {"ok": True}
+    return ok(data[0]) if data else ok({})
 
 @router.put("/{pid}")
 def update_product(pid: int, body: dict, db = get_db()):
     db.table("products").update(body).eq("id", pid).execute()
-    return {"ok": True}
+    return ok({})
 
 @router.delete("/{pid}")
 def delete_product(pid: int, db = get_db()):
     db.table("products").delete().eq("id", pid).execute()
-    return {"ok": True}
+    return ok({})
 
 @router.delete("")
 def batch_delete_products(ids: str, db = get_db()):

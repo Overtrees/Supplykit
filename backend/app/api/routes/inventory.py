@@ -90,13 +90,13 @@ def update_inventory(iid: int, body: dict, db = get_db()):
             evaluate('inventory.changed', {'inv': inv, 'db': db, 'sku': inv.get('sku','')})
         except Exception:
             pass
-    return {"ok": True}
+    return ok({})
 
 
 @router.delete("/{iid}")
 def delete_inventory(iid: int, db = get_db()):
     db.table("inventory").delete().eq("id", iid).execute()
-    return {"ok": True}
+    return ok({})
 
 
 @router.post('/batch-type')
@@ -137,4 +137,4 @@ def adjust_inventory(body: dict, db = get_db()):
         new_avail = qty
         db.table("inventory").update({"available_qty": new_avail}).eq("id", iid).execute()
     inv["available_qty"] = new_avail
-    return {"ok": True}
+    return ok({})

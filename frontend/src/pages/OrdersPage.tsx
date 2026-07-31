@@ -51,9 +51,9 @@ export default function OrdersPage() {
     setConfirmDel(null)
   }
 
-  return <div className="card">
-    <div className="section-title" style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:6}}>
-      <span>订单 <span className="small muted">共 {orderTotal} 条</span></span>
+  return <div>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:6,marginBottom:12}}>
+      <span style={{fontSize:18,fontWeight:700}}>订单 <span className="small muted" style={{fontWeight:400}}>共 {orderTotal} 条</span></span>
       <span style={{display:'flex',gap:6,alignItems:'center'}}>
         <span style={{position:'relative',display:'inline-block'}}>
           <span onClick={()=>setShowPicker(!showPicker)} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',cursor:'pointer'}}>列 {visCols.length}/{COLS.length}</span>
@@ -100,6 +100,7 @@ export default function OrdersPage() {
     </div>
     {orderSearch && <div className="small muted" style={{marginBottom:8}}>搜索 "{orderSearch}" 共 {orderTotal} 条结果</div>}
 
+    <div className="card">
     {orderLoading || !dataLoaded ? <OrderSkeleton />
     : orders.length === 0
       ? <EmptyState icon='clipboard' title={orderSearch?'无匹配订单':'暂无订单'} desc={orderSearch?'换个关键词试试':''} />
@@ -123,6 +124,7 @@ export default function OrdersPage() {
         })}
       </tbody></table>
     </div>}
+    </div>  {/* end card */}
     <ConfirmDialog open={!!confirmDel} title='删除订单' desc='删除后不可恢复' confirmLabel='删除' onConfirm={delOrder} onCancel={()=>setConfirmDel(null)} />
 
     {orderTotal > 8 && <div style={{display:'flex',justifyContent:'center',alignItems:'center',gap:8,marginTop:12,flexWrap:'wrap'}}>

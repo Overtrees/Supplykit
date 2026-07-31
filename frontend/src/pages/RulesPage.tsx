@@ -214,12 +214,13 @@ export default function RulesPage() {
         <div className='section-title' style={{fontSize:13,marginBottom:8,display:'flex',alignItems:'center',gap:4}}><IconFactory size={14} /> B 仓</div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:16}}>{bParams.map(({k,l})=><label key={k} style={{fontSize:12}}>{l}<input value={cfg[k]||''} onChange={e=>setCfg(p=>({...p,[k]:e.target.value}))} style={IS}/></label>)}</div>
       </> : <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:16}}>{paramFields.map(({k,l})=><label key={k} style={{fontSize:12}}>{l}<input value={cfg[k]||''} onChange={e=>setCfg(p=>({...p,[k]:e.target.value}))} style={IS}/></label>)}</div>}
+      <button disabled={saving} onClick={async()=>{setSaving(true);const m=cfg.replenishment_mode||'bbcc';const ch=globalChannel;try{const toSave={};[...cParams,...bParams,...paramFields].forEach(f=>{if(cfg[f.k]!==undefined)toSave[f.k]=cfg[f.k]});await api.put('/api/replenishment-config?mode='+m+'&channel='+ch,toSave);setCfg(p=>({...p,...toSave}));toast.success('已保存')}catch(e){toast.error('保存失败: '+e.message)}setSaving(false)}} className="btn btn-primary" style={{display:'inline-flex',alignItems:'center',gap:4}}>{saving?<><IconLoading size={14} /> 保存中...</>:<><IconSave size={14} /> 保存</>}</button>
     </div>}
 
     {/* ── 采购参数 ── */}
     {tab === 'purchase' && <div className='card' style={{padding:16,display:'flex',flexDirection:'column',gap:12}}>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>{purchaseFields.map(({k,l})=><label key={k} style={{fontSize:12}}>{l}<input value={cfg[k]||''} onChange={e=>setCfg(p=>({...p,[k]:e.target.value}))} style={IS}/></label>)}</div>
-      <button disabled={saving} onClick={async()=>{setSaving(true);const ch=globalChannel;try{const toSave={};purchaseFields.forEach(f=>{if(cfg[f.k]!==undefined)toSave[f.k]=cfg[f.k]});await api.put('/api/replenishment-config?channel='+ch,toSave);const r=await api.get('/api/replenishment-config?channel='+ch);setCfg({...r.data,replenishment_mode:cfg.replenishment_mode});toast.success('已保存')}catch(e){toast.error('保存失败: '+e.message)}setSaving(false)}} className="btn btn-primary" style={{display:'inline-flex',alignItems:'center',gap:4}}>{saving?<><IconLoading size={14} /> 保存中...</>:<><IconSave size={14} /> 保存</>}</button>
+      <button disabled={saving} onClick={async()=>{setSaving(true);const ch=globalChannel;try{const toSave={};purchaseFields.forEach(f=>{if(cfg[f.k]!==undefined)toSave[f.k]=cfg[f.k]});await api.put('/api/replenishment-config?channel='+ch,toSave);setCfg(p=>({...p,...toSave}));toast.success('已保存')}catch(e){toast.error('保存失败: '+e.message)}setSaving(false)}} className="btn btn-primary" style={{display:'inline-flex',alignItems:'center',gap:4}}>{saving?<><IconLoading size={14} /> 保存中...</>:<><IconSave size={14} /> 保存</>}</button>
     </div>}
 
     {/* ── 活动系数 ── */}

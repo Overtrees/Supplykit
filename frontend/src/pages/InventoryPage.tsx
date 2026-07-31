@@ -119,7 +119,7 @@ export default function InventoryPage({ highlightSku }) {
       <select value={whType} onChange={e=>{const v=e.target.value;setWhType(v);const d=WH_COLS[v].map(c=>c.id);setVisCols(getVis(v)||d);localStorage.setItem(COL_KEY+'_'+v,JSON.stringify(d))}} style={{fontSize:16,padding:'8px 12px',border:'1px solid var(--border)',borderRadius:32,outline:'none',background:'var(--card)',marginLeft:'auto'}}>
         <option value='own'>自有仓</option>
         <option value='platform'>平台仓</option>
-        <option value='platform_b'>B仓</option>
+        {globalChannel==='jd' && <option value='platform_b'>B仓</option>}
       </select>
     </div>
     {loading ? <div>{[1,2,3,4].map(i=><div key={i} className='skeleton' style={{height:36,marginBottom:4}}/>)}</div>

@@ -141,13 +141,12 @@ export default function App() {
             <button className="menu-btn" onClick={toggleEditorMenu}>
               <svg width="26" height="26" viewBox="0 0 20 20" fill="none"><rect x="2" y="4" width="16" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="9.25" width="16" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="14.5" width="16" height="1.5" rx=".75" fill="currentColor"/></svg>
             </button>
-            <select value={channel} onChange={e=>setChannel(e.target.value)} style={{marginLeft:8,fontSize:13,padding:'3px 8px',border:'1px solid var(--border)',borderRadius:32,outline:'none',background:'var(--sidebar)',color:'var(--text)',cursor:'pointer'}}>
+          </div>
+          <span className="header-status">
+            <select value={channel} onChange={e=>setChannel(e.target.value)} style={{background:'transparent',border:'none',outline:'none',color:'inherit',fontSize:'inherit',fontWeight:'inherit',cursor:'pointer',padding:0,margin:0,appearance:'none',WebkitAppearance:'none',MozAppearance:'none'}}>
               <option value='jd'>京东</option>
               <option value='other'>其他渠道</option>
             </select>
-          </div>
-          <span className="header-status">
-            {wsStatus === 'connected' ? <><IconStatusOnline size={14} /> 实时</> : wsStatus === 'polling' ? <><IconStatusWarning size={14} /> 轮询</> : <><IconStatusOffline size={14} /> 断开</>}
           </span>
         </div>
       </header>

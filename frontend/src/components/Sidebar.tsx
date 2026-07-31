@@ -53,13 +53,6 @@ export default function Sidebar({ page, onClose, onNavigate, lowStock, errCount,
         }}
       >
         <div style={{ padding: 7 }}>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 10px 12px', borderBottom:'0.5px solid var(--glass-border)', marginBottom:4 }}>
-            <span style={{ fontWeight:700, fontSize:15, color:'var(--text)' }}>菜单</span>
-            <span style={{ fontSize:11, color:'var(--muted2)' }}>
-              <span style={{ width:8, height:8, borderRadius:'50%', display:'inline-block', background: apiStatus==='ok' ? '#22c55e' : apiStatus==='slow' ? '#f59e0b' : '#ef4444', marginRight:4 }} />
-              {apiStatus==='ok' ? 'API正常' : apiStatus==='slow' ? '响应慢' : 'API异常'}
-            </span>
-          </div>
           {NAV.map(item => {
             const active = page === item.id
             const IconComp = NAV_ICONS[item.id]

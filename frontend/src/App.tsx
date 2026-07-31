@@ -137,17 +137,37 @@ export default function App() {
       {/* 主内容 — 侧边栏打开时显示菜单，关闭时显示页面 */}
       <header>
         <div className="header-inner">
-          <div className="header-left">
-            <span className="header-status">
-              <select value={channel} onChange={e=>setChannel(e.target.value)} style={{background:'transparent',border:'none',outline:'none',color:'inherit',fontSize:'inherit',fontWeight:'inherit',cursor:'pointer',padding:0,margin:0,appearance:'none',WebkitAppearance:'none',MozAppearance:'none'}}>
-                <option value='jd'>京东渠道</option>
-                <option value='other'>其他渠道</option>
-              </select>
-            </span>
-          </div>
-          <button className="menu-btn" onClick={toggleEditorMenu}>
-            <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><rect x="2" y="4" width="16" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="9.25" width="16" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="14.5" width="16" height="1.5" rx=".75" fill="currentColor"/></svg>
-          </button>
+          {page === 'dash' ? (
+            /* 看板页：左侧渠道筛选，右侧菜单按钮 */
+            <>
+              <div className="header-left">
+                <span className="header-status">
+                  <select value={channel} onChange={e=>setChannel(e.target.value)} style={{background:'transparent',border:'none',outline:'none',color:'inherit',fontSize:'inherit',fontWeight:'inherit',cursor:'pointer',padding:0,margin:0,appearance:'none',WebkitAppearance:'none',MozAppearance:'none'}}>
+                    <option value='jd'>京东渠道</option>
+                    <option value='other'>其他渠道</option>
+                  </select>
+                </span>
+              </div>
+              <button className="menu-btn" onClick={toggleEditorMenu}>
+                <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><rect x="2" y="4" width="16" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="9.25" width="16" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="14.5" width="16" height="1.5" rx=".75" fill="currentColor"/></svg>
+              </button>
+            </>
+          ) : (
+            /* 其他页：左侧返回按钮，右侧渠道筛选 */
+            <>
+              <div className="header-left">
+                <button className="back-btn" onClick={() => setPage('dash')}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="19 12 5 12"/><polyline points="11 18 5 12 11 6"/></svg>
+                </button>
+              </div>
+              <span className="header-status">
+                <select value={channel} onChange={e=>setChannel(e.target.value)} style={{background:'transparent',border:'none',outline:'none',color:'inherit',fontSize:'inherit',fontWeight:'inherit',cursor:'pointer',padding:0,margin:0,appearance:'none',WebkitAppearance:'none',MozAppearance:'none'}}>
+                  <option value='jd'>京东渠道</option>
+                  <option value='other'>其他渠道</option>
+                </select>
+              </span>
+            </>
+          )}
         </div>
       </header>
       <Sidebar page={page} onClose={closeEditorMenu} onNavigate={navAndClose} lowStock={lowStock} errCount={errCount} apiStatus={apiStatus} open={showMenu} menuClosing={menuClosing} onBackdrop={closeEditorMenu} />

@@ -76,5 +76,4 @@ return<div>
 })}
 </tr>)}
 </tbody></table>
-</div>
 </div>}

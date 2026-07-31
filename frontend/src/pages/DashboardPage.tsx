@@ -77,7 +77,7 @@ export default function DashboardPage({ onAlert }) {
     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
       <div style={{display:'flex',gap:6,background:'var(--glass-bg)',borderRadius:99,padding:6,alignItems:'center',backdropFilter:'blur(var(--glass-blur))',WebkitBackdropFilter:'blur(var(--glass-blur))',border:'1px solid var(--glass-border)'}}>
         {['today','week','month'].map(k => (
-          <span key={k} onClick={() => setPeriodTab(k)} style={{fontSize:12,padding:'3px 10px',borderRadius:99,cursor:'pointer',background:periodTab===k?'rgba(128,128,128,0.2)':'transparent',color:periodTab===k?'#007AFF':'var(--text)',fontWeight:periodTab===k?600:400,whiteSpace:'nowrap'}}>{periodLabel[k]}</span>
+          <span key={k} onClick={() => setPeriodTab(k)} style={{fontSize:12,padding:'3px 10px',borderRadius:99,cursor:'pointer',background:periodTab===k?'rgba(128,128,128,0.2)':'var(--glass-bg)',border:periodTab===k?'none':'0.5px solid var(--glass-border)',color:periodTab===k?'#007AFF':'var(--text)',fontWeight:periodTab===k?600:400,whiteSpace:'nowrap',backdropFilter:periodTab===k?'none':'blur(var(--glass-blur)) saturate(var(--glass-saturate)) brightness(var(--glass-brightness))'}}>{periodLabel[k]}</span>
         ))}
         <span className="small muted" style={{padding:'3px 10px'}}>{periodMeta.date || ''}</span>
       </div>

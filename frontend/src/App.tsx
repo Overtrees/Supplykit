@@ -33,7 +33,7 @@ const prodColKey = (ch) => 'c_cols_products_' + ch
 const getProdVis = (ch) => { try { return JSON.parse(localStorage.getItem(prodColKey(ch)) || 'null') } catch{return null} }
 
 function HammerProducts({ channel }) {
-  const { hammerPanel, setHammerPanel, hammerSearch, setHammerSearch, bumpHammerColVersion } = useAppStore()
+  const { hammerPanel, setHammerPanel, hammerSearch, setHammerSearch, setHammerCols } = useAppStore()
   const [visCols, setVisCols] = useState(() => getProdVis(channel) || PRODUCT_COLS.map(c => c.id))
 
   useEffect(() => {
@@ -43,7 +43,7 @@ function HammerProducts({ channel }) {
   const saveCols = (cols) => {
     setVisCols(cols)
     localStorage.setItem(prodColKey(channel), JSON.stringify(cols))
-    bumpHammerColVersion()
+    setHammerCols('products', cols)
   }
 
   return (

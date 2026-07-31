@@ -28,9 +28,10 @@ export const useAppStore = create((set, get) => ({
   sidebarOpen: false,
   setSidebarOpen: (v) => set({ sidebarOpen: v }),
   hammerData: JSON.parse(localStorage.getItem('c_hammer_data') || '{}'),
-  setHammerData: (data) => {
+  setHammerData: (page, data) => {
     const ch = get().channel
-    const hd = { ...get().hammerData, [ch]: data }
+    const channelData = get().hammerData[ch] || {}
+    const hd = { ...get().hammerData, [ch]: { ...channelData, [page]: data } }
     localStorage.setItem('c_hammer_data', JSON.stringify(hd))
     set({ hammerData: hd })
   },

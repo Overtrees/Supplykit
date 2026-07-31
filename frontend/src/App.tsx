@@ -255,11 +255,11 @@ export default function App() {
             }}
           >
             <div style={{color:'var(--muted)',fontSize:13,textAlign:'center'}}>
-              <div style={{fontSize:11,color:'var(--muted2)',marginBottom:8}}>
-                {channel === 'jd' ? '京东渠道' : '其他渠道'} · 数据独立持久化
+              <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>
+                {channel === 'jd' ? '京东' : '其他'} · {page}
               </div>
               <div style={{fontSize:13,color:'var(--text)',marginBottom:4}}>
-                {hammerData[channel]?.length ?? 0} 条记录
+                {hammerData[channel]?.[page] ? `${(hammerData[channel]?.[page]?.length ?? 0)} 条记录` : '暂无数据'}
               </div>
               <div style={{fontSize:11,color:'var(--muted2)',marginTop:8}}>
                 功能待添加

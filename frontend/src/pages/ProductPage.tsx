@@ -20,12 +20,10 @@ export default function ProductPage(){const[list,setList]=useState([]);const[s,s
 const[visCols,setVisCols]=useState(()=>getVis(COL_KEY())||COLS.map(c=>c.id));const[showPicker,setShowPicker]=useState(false)
 const { channel: globalChannel } = useAppStore()
 useEffect(()=>{setLd(true);api.get('/api/products').then(r=>{setList(r.data?.items||r.data||[]);setLd(false)}).catch(()=>setLd(false))}, [globalChannel])
-if(ld)return<div><div style={{fontSize:18,fontWeight:700,marginBottom:12}}>商品管理</div><div className='card'><Skeleton/></div></div>
+if(ld)return<div className='card'><div className='section-title'><span>商品管理</span></div><Skeleton/></div>
 const fl=s?list.filter(x=>(x.sku||'').includes(s)||(x.product_name||'').includes(s)||(x.store||'').includes(s)):list
-return<div>
-<div style={{fontSize:18,fontWeight:700,marginBottom:12}}>商品管理</div>
-<div className='card' style={{containerType:'inline-size'}}>
-<div style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center',marginBottom:12}}>
+return<div className='card' style={{containerType:'inline-size'}}>
+<div className='section-title' style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
   <span>商品管理 <span className='small muted'>共 {list.length} 个</span></span>
   <span style={{marginLeft:'auto',position:'relative',display:'inline-block'}}>
     <span onClick={()=>setShowPicker(!showPicker)} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',cursor:'pointer'}}>列 {visCols.length}/{COLS.length}</span>

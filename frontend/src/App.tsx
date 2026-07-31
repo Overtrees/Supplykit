@@ -57,7 +57,7 @@ function HammerProducts({ channel }) {
           className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
           列选择 ({visCols.length}/{PRODUCT_COLS.length})
         </button>
-        <button onClick={() => { setHammerPanel(hammerPanel === 'search' ? null : 'search'); if (hammerPanel !== 'search') setTimeout(() => document.getElementById('hm-search')?.focus(), 100) }}
+        <button onClick={() => { setHammerPanel(hammerPanel === 'search' ? null : 'search'); if (hammerPanel !== 'search') setTimeout(() => document.getElementById('hm-search-prod')?.focus(), 100) }}
           className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
           搜索
         </button>
@@ -89,9 +89,9 @@ function HammerProducts({ channel }) {
       {/* 搜索面板 */}
       {hammerPanel === 'search' && (
         <div style={{borderTop:'1px solid var(--border)',paddingTop:8}}>
-          <input id="hm-search" value={hammerSearch} onChange={e=>setHammerSearch(e.target.value)}
+          <input id="hm-search-prod" value={hammerSearch} onChange={e=>setHammerSearch(e.target.value)}
             placeholder="搜索SKU/名称/店铺..."
-            style={{width:'100%',padding:'6px 10px',fontSize:13,border:'1px solid var(--border)',borderRadius:32,outline:'none',boxSizing:'border-box',background:'var(--card)',color:'var(--text)'}} />
+            style={{width:'100%',padding:'6px 10px',fontSize:16,border:'1px solid var(--border)',borderRadius:32,outline:'none',boxSizing:'border-box',background:'var(--card)',color:'var(--text)'}} />
           {hammerSearch && (
             <div style={{fontSize:11,color:'var(--muted2)',marginTop:4,textAlign:'center'}}>
               按 Enter 搜索
@@ -132,7 +132,7 @@ function HammerSuppliers({ channel }) {
           className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
           列选择 ({visCols.length}/{SUPPLIER_COLS.length})
         </button>
-        <button onClick={() => { setHammerPanel(hammerPanel === 'search' ? null : 'search'); if (hammerPanel !== 'search') setTimeout(() => document.getElementById('hm-search')?.focus(), 100) }}
+        <button onClick={() => { setHammerPanel(hammerPanel === 'search' ? null : 'search'); if (hammerPanel !== 'search') setTimeout(() => document.getElementById('hm-search-supp')?.focus(), 100) }}
           className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
           搜索
         </button>
@@ -162,9 +162,9 @@ function HammerSuppliers({ channel }) {
       )}
       {hammerPanel === 'search' && (
         <div style={{borderTop:'1px solid var(--border)',paddingTop:8}}>
-          <input id="hm-search" value={hammerSearch} onChange={e=>setHammerSearch(e.target.value)}
+          <input id="hm-search-supp" value={hammerSearch} onChange={e=>setHammerSearch(e.target.value)}
             placeholder="搜索供应商..."
-            style={{width:'100%',padding:'6px 10px',fontSize:13,border:'1px solid var(--border)',borderRadius:32,outline:'none',boxSizing:'border-box',background:'var(--card)',color:'var(--text)'}} />
+            style={{width:'100%',padding:'6px 10px',fontSize:16,border:'1px solid var(--border)',borderRadius:32,outline:'none',boxSizing:'border-box',background:'var(--card)',color:'var(--text)'}} />
         </div>
       )}
     </div>

@@ -1,17 +1,15 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useCallback } from 'react'
 import { NAV } from '../App'
 import { NAV_ICONS } from './Icons'
 
-export default function Sidebar({ page, onClose, onNavigate, lowStock, errCount, apiStatus, open }) {
+export default function Sidebar({ page, onClose, onNavigate, lowStock, errCount, apiStatus, open, menuClosing, onBackdrop }) {
   const ref = useRef(null)
-  const closing = useRef(false)
 
   useEffect(() => {
     if (!open) return
-    closing.current = false
     const handler = (e) => {
       if (ref.current && !ref.current.contains(e.target) && !e.target.closest('.menu-btn')) {
-        onClose()
+        onBackdrop()
       }
     }
     setTimeout(() => document.addEventListener('pointerdown', handler), 0)
@@ -23,24 +21,37 @@ export default function Sidebar({ page, onClose, onNavigate, lowStock, errCount,
   return (
     <>
       {/* 遮罩 */}
-      <div style={{ position: 'fixed', inset: 0, zIndex: 3001 }} />
+      <div
+        onPointerDown={onBackdrop}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 3001,
+          background: 'transparent',
+          transition: 'background 220ms ease'
+        }}
+      />
       {/* 菜单面板 */}
-      <div ref={ref} style={{
-        position: 'fixed', zIndex: 3002,
-        right: 16,
-        top: 'calc(env(safe-area-inset-top) + 7px + 46px + 6px)',
-        width: 246,
-        background: 'var(--glass-bg)',
-        backdropFilter: 'blur(40px) saturate(2.5) brightness(1.15)',
-        WebkitBackdropFilter: 'blur(40px) saturate(2.5) brightness(1.15)',
-        border: '0.5px solid var(--glass-border)',
-        boxShadow: '0 2px 20px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.25)',
-        borderRadius: 22,
-        overflow: 'hidden',
-        transformOrigin: '85% -18px',
-        transition: 'opacity 180ms ease, transform 220ms cubic-bezier(0.34,1.56,0.64,1)',
-        willChange: 'opacity, transform'
-      }}>
+      <div
+        ref={ref}
+        onPointerDown={e => e.stopPropagation()}
+        style={{
+          position: 'fixed', zIndex: 3002,
+          right: 16,
+          top: 'calc(env(safe-area-inset-top) + 7px + 46px + 6px)',
+          width: 246,
+          background: 'var(--glass-bg)',
+          backdropFilter: 'blur(40px) saturate(2.5) brightness(1.15)',
+          WebkitBackdropFilter: 'blur(40px) saturate(2.5) brightness(1.15)',
+          border: '0.5px solid var(--glass-border)',
+          boxShadow: '0 2px 20px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.25)',
+          borderRadius: 22,
+          overflow: 'hidden',
+          opacity: menuClosing ? 0 : 1,
+          transform: menuClosing ? 'translateY(-10px) scale(0.92)' : 'translateY(0) scale(1)',
+          transformOrigin: '85% -18px',
+          transition: 'opacity 180ms ease, transform 220ms cubic-bezier(0.34,1.56,0.64,1)',
+          willChange: 'opacity, transform'
+        }}
+      >
         <div style={{ padding: 7 }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 10px 12px', borderBottom:'0.5px solid var(--glass-border)', marginBottom:4 }}>
             <span style={{ fontWeight:700, fontSize:15, color:'var(--text)' }}>菜单</span>

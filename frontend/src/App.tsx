@@ -26,7 +26,7 @@ export const NAV = [
 export default function App() {
   const [page, setPage] = useState('dash')
   const [highlightSku, setHighlightSku] = useState('')
-  const { inventory, qualityLogs, startPolling, stopAll, sidebarOpen, setSidebarOpen, wsStatus, channel, setChannel, channelVersion } = useAppStore()
+  const { inventory, qualityLogs, startPolling, stopAll, wsStatus, channel, setChannel } = useAppStore()
   const [apiStatus, setApiStatus] = useState('checking')
   const checkApi = useCallback(async() => {
     try {
@@ -38,34 +38,60 @@ export default function App() {
   }, [])
   useEffect(() => { checkApi(); const t = setInterval(checkApi, 15000); return () => clearInterval(t) }, [checkApi])
 
-  // 状态变更直接执行，不使用 View Transition（避免过渡色块问题）
-  const withTransition = useCallback((fn) => {
-    return (...args) => fn(...args)
+  const [showMenu, setShowMenu] = useState(false)
+  const [menuClosing, setMenuClosing] = useState(false)
+  const menuCloseTimerRef = useRef(null)
+
+  const openEditorMenu = useCallback(() => {
+    clearTimeout(menuCloseTimerRef.current)
+    setMenuClosing(true)
+    setShowMenu(true)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => setMenuClosing(false))
+    })
   }, [])
 
-  const openSidebar = withTransition(() => setSidebarOpen(true))
-  const closeSidebar = withTransition(() => setSidebarOpen(false))
-  const navAndClose = withTransition((id, sku) => {
-    setSidebarOpen(false)
+  const closeEditorMenu = useCallback(() => {
+    clearTimeout(menuCloseTimerRef.current)
+    setMenuClosing(true)
+    menuCloseTimerRef.current = setTimeout(() => {
+      setShowMenu(false)
+      setMenuClosing(false)
+    }, 220)
+  }, [])
+
+  const toggleEditorMenu = useCallback(() => {
+    if (showMenu && !menuClosing) closeEditorMenu()
+    else openEditorMenu()
+  }, [showMenu, menuClosing, closeEditorMenu, openEditorMenu])
+
+  useEffect(() => {
+    if (!showMenu) return
+    const close = () => closeEditorMenu()
+    window.addEventListener('scroll', close, { passive: true })
+    return () => window.removeEventListener('scroll', close)
+  }, [showMenu, closeEditorMenu])
+
+  const navAndClose = useCallback((id, sku) => {
+    closeEditorMenu()
     if (sku) setHighlightSku(sku)
     setPage(id)
-  })
+  }, [closeEditorMenu])
 
   useKeyboard({
-    'meta+b': () => { const s = useAppStore.getState(); s.setSidebarOpen(!s.sidebarOpen) },
-    'esc': () => setSidebarOpen(false)
+    'meta+b': () => toggleEditorMenu(),
+    'esc': () => { if (showMenu) closeEditorMenu() },
   })
   useEffect(() => { startPolling(); return () => stopAll() }, [])
 
   // 同步 html/body 背景色 + browser chrome 色
   useEffect(() => {
-    // sidebar 改为弹出菜单，不再需要 class 切换
     const themeMeta = document.querySelector('meta[name="theme-color"]')
     if (themeMeta) {
-      const resolved = getComputedStyle(document.documentElement).getPropertyValue(sidebarOpen ? '--sidebar' : '--bg').trim()
+      const resolved = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()
       themeMeta.setAttribute('content', resolved)
     }
-  }, [sidebarOpen])
+  }, [])
   // 监听系统主题变化，更新 theme-color
   useEffect(() => {
     const syncMeta = () => {
@@ -110,7 +136,7 @@ export default function App() {
       <header>
         <div className="header-inner">
           <div className="header-left">
-            <button className="menu-btn" onClick={sidebarOpen ? closeSidebar : openSidebar}>
+            <button className="menu-btn" onClick={toggleEditorMenu}>
               <svg width="26" height="26" viewBox="0 0 20 20" fill="none"><rect x="2" y="4" width="16" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="9.25" width="16" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="14.5" width="16" height="1.5" rx=".75" fill="currentColor"/></svg>
             </button>
             <select value={channel} onChange={e=>setChannel(e.target.value)} style={{marginLeft:8,fontSize:13,padding:'3px 8px',border:'1px solid var(--border)',borderRadius:32,outline:'none',background:'var(--sidebar)',color:'var(--text)',cursor:'pointer'}}>
@@ -123,7 +149,7 @@ export default function App() {
           </span>
         </div>
       </header>
-      <Sidebar page={page} onClose={closeSidebar} onNavigate={navAndClose} lowStock={lowStock} errCount={errCount} apiStatus={apiStatus} open={sidebarOpen} />
+      <Sidebar page={page} onClose={closeEditorMenu} onNavigate={navAndClose} lowStock={lowStock} errCount={errCount} apiStatus={apiStatus} open={showMenu} menuClosing={menuClosing} onBackdrop={closeEditorMenu} />
       <main className="container">
         {renderPage(page)}
       </main>

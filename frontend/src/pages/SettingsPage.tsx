@@ -6,7 +6,7 @@ const VERSION = '1.0.0'
 const BUILD = import.meta.env.VITE_BUILD_TIME || '2026-07-31'
 
 export default function SettingsPage() {
-  const { channel } = useAppStore()
+  const { channel, wsStatus } = useAppStore()
   const [status, setStatus] = useState('检查中...')
   const [ping, setPing] = useState(0)
   const [lastCheck, setLastCheck] = useState('')
@@ -65,6 +65,7 @@ export default function SettingsPage() {
       title: '连接状态',
       items: [
         { label: '后端服务', value: status },
+        { label: '实时连接', value: wsStatus === 'connected' ? '🟢 实时' : wsStatus === 'polling' ? '🟡 轮询' : '🔴 断开' },
         { label: '响应延迟', value: ping > 0 ? `${ping}ms` : '-' },
         { label: '最后检测', value: lastCheck || '-' },
         { label: '当前渠道', value: channel === 'jd' ? '京东' : '其他渠道' },

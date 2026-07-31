@@ -64,6 +64,8 @@ return<div>
   if(col.id==='phone')return <td key={col.id} className='col-store'>{x.contact_phone||x.phone}</td>
   if(col.id==='score')return <td key={col.id} className='col-price'><span className={'pill '+(x.score>3?'success':'warning')}>{x.score}/5</span></td>
   return <td key={col.id} className="small muted" style={{fontSize:11}}>-</td>
-})}</tr>)}</tbody></table>
+})}
+</tr>)}
+</tbody></table>
 </div>
 </div>}

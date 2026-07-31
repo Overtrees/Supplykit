@@ -97,14 +97,14 @@ export default function App() {
     const syncMeta = () => {
       const themeMeta = document.querySelector('meta[name="theme-color"]')
       if (themeMeta) {
-        const resolved = getComputedStyle(document.documentElement).getPropertyValue(sidebarOpen ? '--sidebar' : '--bg').trim()
+        const resolved = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()
         themeMeta.setAttribute('content', resolved)
       }
     }
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
     mq.addEventListener('change', syncMeta)
     return () => mq.removeEventListener('change', syncMeta)
-  }, [sidebarOpen])
+  }, [])
 
   const navigate = useCallback((newPage, sku) => {
     if (sku) setHighlightSku(sku)

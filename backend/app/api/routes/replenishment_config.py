@@ -13,7 +13,7 @@ def get_config(mode: str = None, channel: str = 'jd', db=get_db()):
     all_config = {r['key']: r['value'] for r in rows}
     if mode:
         prefix = f'mode_{mode}_'
-        return {k[len(prefix):]: v for k, v in all_config.items() if k.startswith(prefix)}
+        return ok({k[len(prefix):]: v for k, v in all_config.items() if k.startswith(prefix)})
     return ok(all_config)
 
 @router.put("")
@@ -25,7 +25,7 @@ def update_config(data: dict, mode: str = '', channel: str = 'jd', db=get_db()):
     else:
         for k, v in data.items():
             db.table("replenishment_config").upsert({"key": k, "value": str(v), "channel": channel, "updated_at": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}, conflict_col='key')
-    return {'ok': True, 'mode': mode, 'channel': channel}
+    return ok({'mode': mode, 'channel': channel})
 
 
 @router.get('/seasons')
@@ -82,4 +82,4 @@ def calculate(mode: str = 'bbcc', db=get_db()):
         tot = v['a']+v['t']+sug
         td = round(tot/d,1) if d>0 else 999
         res.append({'sku':s,'daily':d,'stock':v['a'],'transit':v['t'],'safety':sf,'suggested':sug,'after':tot,'turnover':td})
-    return {'config':cfg,'items':sorted(res,key=lambda x:x['turnover'])}
+    return ok({'config': cfg, 'items': sorted(res, key=lambda x: x['turnover'])})

@@ -70,7 +70,7 @@ def get_insight_summary(db = get_db()):
     slow_count = len([x for x in slow_list if x.get("level") == "滞销"])
     cold_count = len([x for x in slow_list if x.get("level") == "冷淡"])
 
-    return {
+    return ok({
         "total_products": total,
         "low_stock": low_stock,
         "out_of_stock": out_of_stock,

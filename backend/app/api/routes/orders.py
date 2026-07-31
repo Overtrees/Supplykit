@@ -51,13 +51,13 @@ def list_orders(db = get_db(), page: int = 1, page_size: int = 50,
 
     items = q.execute().data or []
 
-    return {
+    return ok({
         'total': total,
         'page': page,
         'page_size': page_size,
         'total_pages': max(1, (total + page_size - 1) // page_size),
         'items': items,
-    }
+    })
 
 
 @router.post('/batch-delete')

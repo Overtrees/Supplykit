@@ -25,13 +25,13 @@ def list_inventory(db = get_db(), store: str = '', warehouse_type: str = '',
         total = cr.count if hasattr(cr, 'count') else len(cr.data or [])
         q = q.order("id", desc=True).limit(page_size).offset((page - 1) * page_size)
         data = q.execute().data or []
-        return {
+        return ok({
             'items': data,
             'total': total,
             'page': page,
             'page_size': page_size,
             'total_pages': max(1, (total + page_size - 1) // page_size),
-        }
+        })
 
     return q.order("id", desc=True).execute().data
 

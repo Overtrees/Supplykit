@@ -27,6 +27,10 @@ export const useAppStore = create((set, get) => ({
   dataLoaded: false,
   sidebarOpen: false,
   setSidebarOpen: (v) => set({ sidebarOpen: v }),
+  hammerPanel: null,
+  setHammerPanel: (panel) => set({ hammerPanel: panel }),
+  hammerSearch: '',
+  setHammerSearch: (text) => set({ hammerSearch: text }),
   hammerData: JSON.parse(localStorage.getItem('c_hammer_data') || '{}'),
   setHammerData: (page, data) => {
     const ch = get().channel

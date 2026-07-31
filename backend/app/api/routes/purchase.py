@@ -9,12 +9,12 @@ router = APIRouter(prefix="/api/insights", tags=["insights"])
 
 
 @router.get('/purchase')
-def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
+def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', channel: str = 'jd', db = get_db()):
     """采购建议：系统总库存视角，含目标周转控制"""
     from datetime import timedelta
     now = datetime.utcnow()
 
-    raw = {r['key']: r['value'] for r in db.table("replenishment_config").select("*").execute().data}
+    raw = {r['key']: r['value'] for r in db.table("replenishment_config").select("*").eq("channel", channel).execute().data}
     purchase_lead_time = int(raw.get('purchase_lead_days', '0'))
     moq_default = int(raw.get('moq', '0'))
     purchase_safety_days = float(raw.get('purchase_safety_days', '0'))
@@ -79,7 +79,7 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', db = get_db()):
         fused_sales[sku] = round(s14 * w14 + s28 * w28, 1)
 
     # 系统总库存
-    inv_data = db.table("inventory").select("*").execute().data
+    inv_data = db.table("inventory").select("*").eq("channel", channel).execute().data
     stock_by_sku = {}; b_avail = {}
     for i in inv_data:
         s = i['sku']

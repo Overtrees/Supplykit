@@ -54,7 +54,7 @@ function HammerProducts({ channel }) {
       <div style={{display:'flex',gap:6,marginBottom:hammerPanel?8:0}}>
         <button onClick={() => setHammerPanel(hammerPanel === 'columns' ? null : 'columns')}
           className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
-          列 {visCols.length}/{PRODUCT_COLS.length}
+          列选择 ({visCols.length}/{PRODUCT_COLS.length})
         </button>
         <button onClick={() => { setHammerPanel(hammerPanel === 'search' ? null : 'search'); if (hammerPanel !== 'search') setTimeout(() => document.getElementById('hm-search')?.focus(), 100) }}
           className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>

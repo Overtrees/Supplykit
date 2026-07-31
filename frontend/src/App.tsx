@@ -59,8 +59,7 @@ export default function App() {
 
   // 同步 html/body 背景色 + browser chrome 色
   useEffect(() => {
-    document.documentElement.classList.toggle('sidebar-open', sidebarOpen)
-    document.body.classList.toggle('sidebar-open', sidebarOpen)
+    // sidebar 改为弹出菜单，不再需要 class 切换
     const themeMeta = document.querySelector('meta[name="theme-color"]')
     if (themeMeta) {
       const resolved = getComputedStyle(document.documentElement).getPropertyValue(sidebarOpen ? '--sidebar' : '--bg').trim()
@@ -124,12 +123,9 @@ export default function App() {
           </span>
         </div>
       </header>
+      <Sidebar page={page} onClose={closeSidebar} onNavigate={navAndClose} lowStock={lowStock} errCount={errCount} apiStatus={apiStatus} open={sidebarOpen} />
       <main className="container">
-        {sidebarOpen ? (
-          <Sidebar page={page} onClose={closeSidebar} onNavigate={navAndClose} lowStock={lowStock} errCount={errCount} apiStatus={apiStatus} />
-        ) : (
-          renderPage(page)
-        )}
+        {renderPage(page)}
       </main>
     </ToastProvider>
   )

@@ -76,8 +76,10 @@ export default function InventoryPage({ highlightSku }) {
     setConfirmDel(null)
   }
 
-  return <div className='card'>
-    <div className='section-title' style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
+  return <div>
+    <div style={{fontSize:18,fontWeight:700,marginBottom:12}}>进销存台账</div>
+    <div className='card'>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8,marginBottom:12}}>
       <span>进销存 <span className='small muted'>共 {inventory.length} 条</span></span>
       <span style={{display:'flex',gap:8,alignItems:'center'}}>
         <span style={{position:'relative',display:'inline-block'}}>

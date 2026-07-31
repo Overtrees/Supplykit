@@ -16,9 +16,12 @@ export default function SupplierPage(){const[list,setList]=useState([]);const[s,
 const[visCols,setVisCols]=useState(()=>getVis(COL_KEY())||COLS.map(c=>c.id));const[showPicker,setShowPicker]=useState(false)
 const { channelVersion } = useAppStore()
 useEffect(()=>{api.get('/api/suppliers').then(r=>{const d=r.data?.items||r.data||[];setList(d);setLd(false)}).catch(()=>setLd(false))},[channelVersion])
-if(ld)return<div className='card'><div className='section-title'><span>供应商管理</span></div><Skeleton/></div>
+if(ld)return<div><div style={{fontSize:18,fontWeight:700,marginBottom:12}}>供应商管理</div><div className='card'><Skeleton/></div></div>
 const fl=s?list.filter(x=>(x.supplier_name||x.code||'').includes(s)||(x.contact_person||'').includes(s)):list
-return<div className='card'><div className='section-title' style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
+return<div>
+<div style={{fontSize:18,fontWeight:700,marginBottom:12}}>供应商管理</div>
+<div className='card'>
+<div style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center',marginBottom:12}}>
   <span>供应商管理 <span className='small muted'>共 {list.length} 个</span></span>
   <span style={{marginLeft:'auto',position:'relative',display:'inline-block'}}>
     <span onClick={()=>setShowPicker(!showPicker)} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',cursor:'pointer'}}>列 {visCols.length}/{COLS.length}</span>

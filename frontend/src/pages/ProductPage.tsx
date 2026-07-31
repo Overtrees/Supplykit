@@ -20,13 +20,12 @@ export default function ProductPage(){const[list,setList]=useState([]);const[s,s
 const[visCols,setVisCols]=useState(()=>getVis(COL_KEY())||COLS.map(c=>c.id));const[showPicker,setShowPicker]=useState(false)
 const { channel: globalChannel } = useAppStore()
 useEffect(()=>{setLd(true);api.get('/api/products').then(r=>{setList(r.data?.items||r.data||[]);setLd(false)}).catch(()=>setLd(false))}, [globalChannel])
-if(ld)return<div className='card'><div className='section-title'><span>商品管理</span></div><Skeleton/></div>
+if(ld)return<div><div style={{fontSize:18,fontWeight:700,marginBottom:12}}>商品管理</div><div className='card'><Skeleton/></div></div>
 const fl=s?list.filter(x=>(x.sku||'').includes(s)||(x.product_name||'').includes(s)||(x.store||'').includes(s)):list
 return<div>
 <div style={{fontSize:18,fontWeight:700,marginBottom:12}}>商品管理 <span className="small muted" style={{fontWeight:400}}>共 {list.length} 个</span></div>
 <div className='card' style={{containerType:'inline-size'}}>
 <div style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center',marginBottom:12}}>
-  <span style={{marginLeft:'auto',position:'relative',display:'inline-block'}}>
     <span onClick={()=>setShowPicker(!showPicker)} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',cursor:'pointer'}}>列 {visCols.length}/{COLS.length}</span>
     
     {showPicker && <div style={{position:'absolute',top:'100%',right:0,zIndex:10,background:'var(--card)',border:'1px solid var(--border)',borderRadius:16,padding:6,minWidth:180,boxShadow:'0 4px 12px rgba(0,0,0,0.15)'}}>
@@ -77,5 +76,5 @@ return<div>
 })}
 </tr>)}
 </tbody></table>
-      </div>
-    </div>}
+</div>
+</div>}

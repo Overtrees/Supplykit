@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { api } from '../api/client'
+import { api, clearCache } from '../api/client'
 import { useToast } from '../components/Toast'
 import { useAppStore } from '../store/useAppStore'
 import { IconGear, IconChart, IconCart, IconPackage, IconTag, IconFactory, IconClipboard, IconScale, IconSave, IconLoading, IconClose, IconAlert } from '../components/Icons'
@@ -59,8 +59,8 @@ export default function RulesPage() {
   const { channel: globalChannel, setChannel: setGlobalChannel } = useAppStore()
 
   const load = async (ch) => { try { const c=ch||globalChannel; const r = await api.get('/api/rules?channel='+c); setRules(r.data||[]) } catch(e) {} }
-  const loadCfg = async (mode, ch) => { try { const m=mode||cfg.replenishment_mode||'bbcc'; const c=ch||globalChannel; const r=await api.get('/api/replenishment-config?mode='+m+'&channel='+c); setCfg(p=>({...p, ...r.data, replenishment_mode:m})); return r.data||{} } catch(e) { return {} } }
-  const loadSeasons = async (mode, ch) => { try { const m=mode||cfg.replenishment_mode||'bbcc'; const c=ch||globalChannel; const r=await api.get('/api/replenishment-config/seasons?mode='+m+'&channel='+c); setSeasons(r.data||[]) } catch(e) {} }
+  const loadCfg = async (mode, ch) => { try { clearCache(); const m=mode||cfg.replenishment_mode||'bbcc'; const c=ch||globalChannel; const r=await api.get('/api/replenishment-config?mode='+m+'&channel='+c); setCfg(p=>({...p, ...r.data, replenishment_mode:m})); return r.data||{} } catch(e) { return {} } }
+  const loadSeasons = async (mode, ch) => { try { clearCache(); const m=mode||cfg.replenishment_mode||'bbcc'; const c=ch||globalChannel; const r=await api.get('/api/replenishment-config/seasons?mode='+m+'&channel='+c); setSeasons(r.data||[]) } catch(e) {} }
   const loadAll = async (ch) => { setLoading(true); const c=ch||globalChannel; const m=c!=='jd'?'traditional':(cfg.replenishment_mode||'bbcc'); load(c); try{const flat=await api.get('/api/replenishment-config?channel='+c);if(flat.data)setCfg(p=>({...p,...flat.data,replenishment_mode:m}))}catch(e){} loadCfg(m,c); loadSeasons(m,c); setLoading(false) }
   useEffect(() => { loadAll() }, [globalChannel])
 

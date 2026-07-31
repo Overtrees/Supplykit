@@ -94,7 +94,7 @@ export default function RulesPage() {
       <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
         <button onClick={()=>setTab('rules')} className="btn btn-ghost" style={{fontSize:13,display:'inline-flex',alignItems:'center',gap:4,background:tab==='rules'?'var(--primary)':'transparent',color:tab==='rules'?'#fff':''}}><IconGear size={14} /> 规则</button>
         <button onClick={()=>{setTab('params');loadCfg(cfg.replenishment_mode||'bbcc')}} className="btn btn-ghost" style={{fontSize:13,display:'inline-flex',alignItems:'center',gap:4,background:tab==='params'?'var(--success)':'transparent',color:tab==='params'?'#fff':''}}><IconChart size={14} /> 补货参数</button>
-        <button onClick={()=>{setTab('purchase');api.get('/api/replenishment-config?channel='+globalChannel).then(r=>{if(r.data)setCfg(p=>({...r.data,replenishment_mode:p.replenishment_mode||'bbcc'}))}).catch(()=>{})}} className="btn btn-ghost" style={{fontSize:13,display:'inline-flex',alignItems:'center',gap:4,background:tab==='purchase'?'var(--primary)':'transparent',color:tab==='purchase'?'#fff':''}}><IconCart size={14} /> 采购参数</button>
+        <button onClick={()=>{setTab('purchase');api.get('/api/replenishment-config?channel='+globalChannel).then(r=>{if(r.data)setCfg(p=>({...p,...r.data}))}).catch(()=>{})}} className="btn btn-ghost" style={{fontSize:13,display:'inline-flex',alignItems:'center',gap:4,background:tab==='purchase'?'var(--primary)':'transparent',color:tab==='purchase'?'#fff':''}}><IconCart size={14} /> 采购参数</button>
       </div>
       {tab==='rules' && <button onClick={resetForm} className="btn btn-primary">+ 新建</button>}
     </div>

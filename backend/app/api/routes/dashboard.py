@@ -1,11 +1,15 @@
 from fastapi import APIRouter
-from app.core.dashboard_cache import get_dashboard
+from app.core.dashboard_cache import get_dashboard, invalidate
 from app.core.database import get_db
 from app.core.sales_utils import calc_sales, rolling_predict
 from app.core.response import ok, fail
 from datetime import datetime, timedelta
+import time
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
+
+_stock_risk_cache = {}
+_STOCK_CACHE_TTL = 300  # 5 分钟
 
 @router.get("/summary")
 def dashboard_summary(channel: str = 'jd'):
@@ -14,6 +18,10 @@ def dashboard_summary(channel: str = 'jd'):
 
 @router.get("/stock-risk")
 def stock_risk(channel: str = 'jd'):
+    now = time.time()
+    cached = _stock_risk_cache.get(channel)
+    if cached and now - cached['ts'] < _STOCK_CACHE_TTL:
+        return ok(cached['data'])
     """
     濒临断货 TOP 10 — 日销复用三窗口融合值，参考补货建议计算逻辑
 
@@ -133,4 +141,5 @@ def stock_risk(channel: str = 'jd'):
         })
 
     result.sort(key=lambda x: x["days_to_empty"])
+    _stock_risk_cache[channel] = {'data': result[:10], 'ts': time.time()}
     return ok(result[:10])

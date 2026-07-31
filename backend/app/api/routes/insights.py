@@ -78,7 +78,7 @@ def get_insight_summary(db = get_db()):
         "suggestions_count": len(replen) if isinstance(replen, list) else 0,
         "slow_moving": slow_count,
         "cold_count": cold_count,
-    }
+    })
 
 
 @router.get('/trend-analysis')

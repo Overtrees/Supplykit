@@ -90,6 +90,7 @@ export default function Sidebar({ page, onClose, onNavigate, lowStock, errCount,
                     {item.id === 'cleansing' && '数据清洗导入'}
                     {item.id === 'rules' && '规则与参数配置'}
                     {item.id === 'quality' && '数据异常记录'}
+                    {item.id === 'settings' && '系统设置与连接状态'}
                   </span>
                 </span>
                 {item.id === 'quality' && errCount > 0 &&

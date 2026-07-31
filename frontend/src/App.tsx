@@ -11,6 +11,7 @@ import ErrorBoundary from './components/ErrorBoundary'
 import OrdersPage from './pages/OrdersPage'
 import InventoryPage from './pages/InventoryPage'
 import QualityPage from './pages/QualityPage'
+import SettingsPage from './pages/SettingsPage'
 import Sidebar from './components/Sidebar'
 import useKeyboard from './hooks/useKeyboard'
 import { IconStatusOnline, IconStatusWarning, IconStatusOffline } from './components/Icons'
@@ -20,7 +21,7 @@ export const NAV = [
   { id:'dash',label:'多维数据看板'},{id:'products',label:'货品信息'},{id:'suppliers',label:'供应商管理'},
   { id:'orders',label:'订单明细'},{id:'inv',label:'进销存台账'},{id:'insights',label:'货品供应建议'},
   { id:'cleansing',label:'数据清洗及导入'},{id:'rules',label:'模块联动规则引擎'},
-  { id:'quality',label:'操作异常记录'},
+  { id:'quality',label:'操作异常记录'},{id:'settings',label:'设置'},
 ]
 
 export default function App() {
@@ -126,6 +127,7 @@ export default function App() {
       case 'cleansing': return wrap(<CleansingPage key={pageId} />)
       case 'rules': return wrap(<RulesPage key={pageId} />)
       case 'quality': return wrap(<QualityPage key={pageId} />)
+      case 'settings': return wrap(<SettingsPage key={pageId} />)
       default: return null
     }
   }

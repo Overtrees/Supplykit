@@ -230,6 +230,7 @@ export const NAV_ICONS: Record<string, React.FC<IconProps>> = {
   cleansing: IconBroom,
   rules: IconGear,
   quality: IconAlert,
+  settings: IconGear,
 }
 
 // 根据 key 选择趋势图标

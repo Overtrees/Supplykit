@@ -27,6 +27,13 @@ export const useAppStore = create((set, get) => ({
   dataLoaded: false,
   sidebarOpen: false,
   setSidebarOpen: (v) => set({ sidebarOpen: v }),
+  hammerData: JSON.parse(localStorage.getItem('c_hammer_data') || '{}'),
+  setHammerData: (data) => {
+    const ch = get().channel
+    const hd = { ...get().hammerData, [ch]: data }
+    localStorage.setItem('c_hammer_data', JSON.stringify(hd))
+    set({ hammerData: hd })
+  },
   setChannel: (ch) => { localStorage.setItem('c_channel', ch); clearCache(); clearInflight(); set({ channel: ch, dataLoaded: false, loading: true }) },
 
   async loadAll(page) {

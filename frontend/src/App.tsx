@@ -27,7 +27,7 @@ export const NAV = [
 export default function App() {
   const [page, setPage] = useState('dash')
   const [highlightSku, setHighlightSku] = useState('')
-  const { inventory, qualityLogs, startPolling, stopAll, wsStatus, channel, setChannel } = useAppStore()
+  const { inventory, qualityLogs, startPolling, stopAll, wsStatus, channel, setChannel, hammerData } = useAppStore()
   const [apiStatus, setApiStatus] = useState('checking')
   const checkApi = useCallback(async() => {
     try {
@@ -255,7 +255,15 @@ export default function App() {
             }}
           >
             <div style={{color:'var(--muted)',fontSize:13,textAlign:'center'}}>
-              功能待添加
+              <div style={{fontSize:11,color:'var(--muted2)',marginBottom:8}}>
+                {channel === 'jd' ? '京东渠道' : '其他渠道'} · 数据独立持久化
+              </div>
+              <div style={{fontSize:13,color:'var(--text)',marginBottom:4}}>
+                {hammerData[channel]?.length ?? 0} 条记录
+              </div>
+              <div style={{fontSize:11,color:'var(--muted2)',marginTop:8}}>
+                功能待添加
+              </div>
             </div>
           </div>
         </>

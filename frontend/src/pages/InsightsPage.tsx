@@ -182,7 +182,7 @@ export default function InsightsPage() {
       {/* Tab bar */}
       <div style={{ display: 'flex', gap: 6, flexWrap:'wrap' }}>
         {tabs.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} className={`btn btn-ghost`} style={{fontSize:12,background:tab===t.id?'var(--primary)':'transparent',color:tab===t.id?'#fff':''}}>
+          <button key={t.id} onClick={() => setTab(t.id)} className={`btn btn-ghost`} style={{fontSize:12,background:tab===t.id?'var(--primary)':'var(--card)',color:tab===t.id?'#fff':''}}>
             {t.label}{t.count > 0 ? ` (${t.count})` : ''}
           </button>
         ))}
@@ -195,8 +195,8 @@ export default function InsightsPage() {
             <span>
               补货建议{replen.length > 0 && <span className="small muted" style={{ marginLeft: 8 }}></span>}
               <span style={{marginLeft:12,display:'inline-flex',flexWrap:'wrap',gap:4}}>
-                {globalChannel==='jd' && <span onClick={()=>switchMode('bbcc')} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',background:replenMode==='bbcc'?'var(--primary)':'transparent',color:replenMode==='bbcc'?'#fff':''}}>BBCC</span>}
-                <span onClick={()=>switchMode('traditional')} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',background:replenMode==='traditional'?'var(--primary)':'transparent',color:replenMode==='traditional'?'#fff':''}}>传统多仓</span>
+                {globalChannel==='jd' && <span onClick={()=>switchMode('bbcc')} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',background:replenMode==='bbcc'?'var(--primary)':'var(--gray)',color:replenMode==='bbcc'?'#fff':''}}>BBCC</span>}
+                <span onClick={()=>switchMode('traditional')} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',background:replenMode==='traditional'?'var(--primary)':'var(--gray)',color:replenMode==='traditional'?'#fff':''}}>传统多仓</span>
                 <button onClick={async()=>{
                   try {
                     const r = await fetch(API+'/api/insights/export-purchase?days=28&mode='+replenMode)

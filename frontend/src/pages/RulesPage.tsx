@@ -93,8 +93,8 @@ export default function RulesPage() {
     <div className='section-title' style={{display:'flex',flexWrap:'wrap',gap:6}}>
       <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
         <button onClick={()=>setTab('rules')} className="btn btn-ghost" style={{fontSize:13,display:'inline-flex',alignItems:'center',gap:4,background:tab==='rules'?'var(--primary)':'transparent',color:tab==='rules'?'#fff':''}}><IconGear size={14} /> 规则</button>
-        <button onClick={()=>{setTab('params');loadCfg(cfg.replenishment_mode||'bbcc')}} className="btn btn-ghost" style={{fontSize:13,display:'inline-flex',alignItems:'center',gap:4,background:tab==='params'?'var(--success)':'transparent',color:tab==='params'?'#fff':''}}><IconChart size={14} /> 补货参数</button>
-        <button onClick={()=>setTab('purchase')} className="btn btn-ghost" style={{fontSize:13,display:'inline-flex',alignItems:'center',gap:4,background:tab==='purchase'?'var(--primary)':'transparent',color:tab==='purchase'?'#fff':''}}><IconCart size={14} /> 采购参数</button>
+        <button onClick={()=>{setTab('params');loadCfg(cfg.replenishment_mode||'bbcc')}} className="btn btn-ghost" style={{fontSize:13,display:'inline-flex',alignItems:'center',gap:4,background:tab==='params'?'var(--success)':'var(--gray)',color:tab==='params'?'#fff':''}}><IconChart size={14} /> 补货参数</button>
+        <button onClick={()=>setTab('purchase')} className="btn btn-ghost" style={{fontSize:13,display:'inline-flex',alignItems:'center',gap:4,background:tab==='purchase'?'var(--primary)':'var(--gray)',color:tab==='purchase'?'#fff':''}}><IconCart size={14} /> 采购参数</button>
       </div>
       {tab==='rules' && <button onClick={resetForm} className="btn btn-primary">+ 新建</button>}
     </div>
@@ -206,8 +206,8 @@ export default function RulesPage() {
     {/* ── 补货参数 ── */}
     {tab==='params' && <div>
       <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap',alignItems:'center'}}>
-        {globalChannel==='jd' && <span onClick={()=>{loadCfg('bbcc');loadSeasons('bbcc')}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 14px',display:'inline-flex',alignItems:'center',gap:4,background:(cfg.replenishment_mode||'bbcc')==='bbcc'?'var(--primary)':'transparent',color:(cfg.replenishment_mode||'bbcc')==='bbcc'?'#fff':''}}><IconPackage size={14} /> BBCC 送仓</span>}
-        <span onClick={()=>{loadCfg('traditional');loadSeasons('traditional')}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 14px',display:'inline-flex',alignItems:'center',gap:4,background:cfg.replenishment_mode==='traditional'?'var(--primary)':'transparent',color:cfg.replenishment_mode==='traditional'?'#fff':''}}><IconFactory size={14} /> 传统多仓</span>
+        {globalChannel==='jd' && <span onClick={()=>{loadCfg('bbcc');loadSeasons('bbcc')}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 14px',display:'inline-flex',alignItems:'center',gap:4,background:(cfg.replenishment_mode||'bbcc')==='bbcc'?'var(--primary)':'var(--gray)',color:(cfg.replenishment_mode||'bbcc')==='bbcc'?'#fff':''}}><IconPackage size={14} /> BBCC 送仓</span>}
+        <span onClick={()=>{loadCfg('traditional');loadSeasons('traditional')}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 14px',display:'inline-flex',alignItems:'center',gap:4,background:cfg.replenishment_mode==='traditional'?'var(--primary)':'var(--gray)',color:cfg.replenishment_mode==='traditional'?'#fff':''}}><IconFactory size={14} /> 传统多仓</span>
       </div>
       {isBBCC ? <>
         <div className='section-title' style={{fontSize:13,marginBottom:8,display:'flex',alignItems:'center',gap:4}}><IconPackage size={14} /> C 仓</div>

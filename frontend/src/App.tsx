@@ -42,6 +42,9 @@ export default function App() {
   const [showMenu, setShowMenu] = useState(false)
   const [menuClosing, setMenuClosing] = useState(false)
   const menuCloseTimerRef = useRef(null)
+  const [showHammerMenu, setShowHammerMenu] = useState(false)
+  const [hammerMenuClosing, setHammerMenuClosing] = useState(false)
+  const hammerMenuTimerRef = useRef(null)
 
   const openEditorMenu = useCallback(() => {
     clearTimeout(menuCloseTimerRef.current)
@@ -65,6 +68,42 @@ export default function App() {
     if (showMenu && !menuClosing) closeEditorMenu()
     else openEditorMenu()
   }, [showMenu, menuClosing, closeEditorMenu, openEditorMenu])
+
+  const openHammerMenu = useCallback(() => {
+    clearTimeout(hammerMenuTimerRef.current)
+    setHammerMenuClosing(true)
+    setShowHammerMenu(true)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => setHammerMenuClosing(false))
+    })
+  }, [])
+
+  const closeHammerMenu = useCallback(() => {
+    clearTimeout(hammerMenuTimerRef.current)
+    setHammerMenuClosing(true)
+    hammerMenuTimerRef.current = setTimeout(() => {
+      setShowHammerMenu(false)
+      setHammerMenuClosing(false)
+    }, 220)
+  }, [])
+
+  const toggleHammerMenu = useCallback(() => {
+    if (showHammerMenu && !hammerMenuClosing) closeHammerMenu()
+    else openHammerMenu()
+  }, [showHammerMenu, hammerMenuClosing, closeHammerMenu, openHammerMenu])
+
+  const hammerMenuRef = useRef(null)
+
+  useEffect(() => {
+    if (!showHammerMenu) return
+    const handler = (e) => {
+      if (hammerMenuRef.current && !hammerMenuRef.current.contains(e.target) && !e.target.closest('.hammer-btn')) {
+        closeHammerMenu()
+      }
+    }
+    setTimeout(() => document.addEventListener('pointerdown', handler), 0)
+    return () => document.removeEventListener('pointerdown', handler)
+  }, [showHammerMenu, closeHammerMenu])
 
   useEffect(() => {
     if (!showMenu) return
@@ -153,23 +192,74 @@ export default function App() {
               </button>
             </>
           ) : (
-            /* 其他页：左侧返回按钮，右侧渠道筛选 */
+            /* 其他页：左侧返回按钮，右侧锤子按钮 + 渠道筛选 */
             <>
               <div className="header-left">
                 <button className="back-btn" onClick={() => setPage('dash')}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="19 12 5 12"/><polyline points="11 18 5 12 11 6"/></svg>
                 </button>
               </div>
-              <span className="header-status">
-                <select value={channel} onChange={e=>setChannel(e.target.value)} style={{background:'transparent',border:'none',outline:'none',color:'inherit',fontSize:'inherit',fontWeight:'inherit',cursor:'pointer',padding:0,margin:0,appearance:'none',WebkitAppearance:'none',MozAppearance:'none'}}>
-                  <option value='jd'>京东渠道</option>
-                  <option value='other'>其他渠道</option>
-                </select>
-              </span>
+              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                <button className="hammer-btn" onClick={toggleHammerMenu}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M15 12a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v4a4 4 0 0 0 4 4h5a4 4 0 0 0 4-4v-4Z"/>
+                    <path d="M12 12h9"/>
+                    <path d="m22 3-3 3"/>
+                    <path d="m19 3-3 3"/>
+                    <path d="M12 3v3"/>
+                    <path d="M12 18v3"/>
+                  </svg>
+                </button>
+                <span className="header-status">
+                  <select value={channel} onChange={e=>setChannel(e.target.value)} style={{background:'transparent',border:'none',outline:'none',color:'inherit',fontSize:'inherit',fontWeight:'inherit',cursor:'pointer',padding:0,margin:0,appearance:'none',WebkitAppearance:'none',MozAppearance:'none'}}>
+                    <option value='jd'>京东渠道</option>
+                    <option value='other'>其他渠道</option>
+                  </select>
+                </span>
+              </div>
             </>
           )}
         </div>
       </header>
+      {showHammerMenu && (
+        <>
+          <div
+            onPointerDown={closeHammerMenu}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 3001,
+              background: 'transparent',
+              transition: 'background 220ms ease'
+            }}
+          />
+          <div
+            ref={hammerMenuRef}
+            onPointerDown={e => e.stopPropagation()}
+            style={{
+              position: 'fixed', zIndex: 3002,
+              right: 16,
+              top: 'calc(env(safe-area-inset-top, 0px) + 7px + 46px + 6px)',
+              width: 220,
+              background: 'var(--glass-bg)',
+              backdropFilter: 'blur(var(--glass-blur)) saturate(var(--glass-saturate)) brightness(var(--glass-brightness))',
+              WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(var(--glass-saturate)) brightness(var(--glass-brightness))',
+              border: '0.5px solid var(--glass-border)',
+              boxShadow: '0 2px 20px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.25)',
+              borderRadius: 22,
+              overflow: 'hidden',
+              opacity: hammerMenuClosing ? 0 : 1,
+              transform: hammerMenuClosing ? 'translateY(-10px) scale(0.92)' : 'translateY(0) scale(1)',
+              transformOrigin: '85% -18px',
+              transition: 'opacity 180ms ease, transform 220ms cubic-bezier(0.34,1.56,0.64,1)',
+              willChange: 'opacity, transform',
+              padding: 16
+            }}
+          >
+            <div style={{color:'var(--muted)',fontSize:13,textAlign:'center'}}>
+              功能待添加
+            </div>
+          </div>
+        </>
+      )}
       <Sidebar page={page} onClose={closeEditorMenu} onNavigate={navAndClose} lowStock={lowStock} errCount={errCount} apiStatus={apiStatus} open={showMenu} menuClosing={menuClosing} onBackdrop={closeEditorMenu} />
       <main className="container">
         {renderPage(page)}

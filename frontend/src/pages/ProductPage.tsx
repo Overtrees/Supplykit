@@ -18,8 +18,12 @@ function Skeleton(){return <div>{[1,2,3,4].map(i=><div key={i} style={{display:'
 
 export default function ProductPage(){const[list,setList]=useState([]);const[ld,setLd]=useState(true)
 const[visCols,setVisCols]=useState(()=>getVis(COL_KEY())||COLS.map(c=>c.id))
-const { channel: globalChannel, hammerSearch } = useAppStore()
+const { channel: globalChannel, hammerSearch, hammerColVersion } = useAppStore()
 useEffect(()=>{setLd(true);api.get('/api/products').then(r=>{setList(r.data?.items||r.data||[]);setLd(false)}).catch(()=>setLd(false))}, [globalChannel])
+useEffect(() => {
+  const saved = getVis(COL_KEY())
+  if (saved) setVisCols(saved)
+}, [hammerColVersion])
 if(ld)return<div className='card'><div className='section-title'><span>商品管理</span></div><Skeleton/></div>
 const s = hammerSearch || ''
 const fl=s?list.filter(x=>(x.sku||'').includes(s)||(x.product_name||'').includes(s)||(x.store||'').includes(s)):list

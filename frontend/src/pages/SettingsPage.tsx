@@ -29,7 +29,11 @@ export default function SettingsPage() {
     }
   }
 
-  useEffect(() => { checkConnection() }, [])
+  useEffect(() => {
+    checkConnection()
+    const timer = setInterval(checkConnection, 30000)
+    return () => clearInterval(timer)
+  }, [])
 
   useEffect(() => {
     try {

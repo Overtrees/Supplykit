@@ -75,4 +75,8 @@ return<div>
   if(col.id==='volume')return <td key={col.id} className='col-qty' style={{fontSize:12}}>{x.volume||'-'}</td>
   if(col.id==='status')return <td key={col.id}><span className={'pill '+(x.status==='active'?'success':'warning')}>{x.status==='active'?'在售':x.status}</span></td>
   return <td key={col.id} className="small muted" style={{fontSize:11}}>-</td>
-})}</tr>)}</tbody></table></div>}</div>}
+})}
+</tr>)}
+</tbody></table>
+</div>}
+</div>}

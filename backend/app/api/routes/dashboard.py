@@ -1,7 +1,8 @@
 from fastapi import APIRouter
 from app.core.dashboard_cache import get_dashboard, invalidate
-from app.core.database import get_db
+from app.core.database import get_db, DB_PATH
 from app.core.sales_utils import calc_sales, rolling_predict
+import sqlite3
 from app.core.response import ok, fail
 from datetime import datetime, timedelta
 import time
@@ -19,8 +20,17 @@ def dashboard_summary(channel: str = 'jd'):
 @router.get("/stock-risk")
 def stock_risk(channel: str = 'jd'):
     now = time.time()
+    # 读取数据库版本号（跨进程缓存失效）
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.execute("SELECT value FROM replenishment_config WHERE key='_cache_version' AND channel='jd'")
+        row = cur.fetchone()
+        db_ver = int(row[0]) if row else 0
+        conn.close()
+    except:
+        db_ver = 0
     cached = _stock_risk_cache.get(channel)
-    if cached and now - cached['ts'] < _STOCK_CACHE_TTL:
+    if cached and cached.get('ver') == db_ver and now - cached['ts'] < _STOCK_CACHE_TTL:
         return ok(cached['data'])
     """
     濒临断货 TOP 10 — 日销复用三窗口融合值，参考补货建议计算逻辑
@@ -141,5 +151,5 @@ def stock_risk(channel: str = 'jd'):
         })
 
     result.sort(key=lambda x: x["days_to_empty"])
-    _stock_risk_cache[channel] = {'data': result[:10], 'ts': time.time()}
+    _stock_risk_cache[channel] = {'data': result[:10], 'ts': time.time(), 'ver': db_ver}
     return ok(result[:10])

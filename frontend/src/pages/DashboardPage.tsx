@@ -80,9 +80,8 @@ export default function DashboardPage({ onAlert }) {
         {(()=>{
           const h = dashboard?.health_index?.[healthTab]||{}
           return <>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:4}}>
-              <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>库存健康度</div>
-              <select value={healthTab} onChange={e=>{const v=e.target.value;localStorage.setItem('health_tab',v);setHealthTab(v)}} style={{fontSize:12,padding:'2px 6px',border:'1px solid var(--border)',borderRadius:32,outline:'none',background:'var(--card)',color:'var(--text)',minWidth:0,width:60}}>
+            <div className="small muted" style={{fontSize:12,lineHeight:1.2,marginBottom:4}}>库存健康度</div>
+            <select value={healthTab} onChange={e=>{const v=e.target.value;localStorage.setItem('health_tab',v);setHealthTab(v)}} style={{fontSize:12,padding:'2px 6px',border:'1px solid var(--border)',borderRadius:32,outline:'none',background:'var(--card)',color:'var(--text)',minWidth:0,width:60,marginBottom:4}}>
                 <option value="own">自有</option>
                 <option value="platform">平台</option>
               </select>
@@ -97,8 +96,8 @@ export default function DashboardPage({ onAlert }) {
       <div className="card" style={{position:'relative',borderRadius:32,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16,overflow:'hidden'}}>
         <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>濒临断货 TOP 10</div>
         {(!stockRisk || stockRisk.length === 0)
-          ? <div style={{flex:1,display:'flex',alignItems:'flex-end',justifyContent:'center',marginBottom:2}}>
-              <div style={{fontSize:20,fontWeight:700,color:'var(--muted2)'}}>库存充足</div>
+          ? <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:2}}>
+              <div style={{fontSize:14,fontWeight:400,color:'var(--muted2)'}}>库存充足</div>
             </div>
           : <>
               <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:2}}>

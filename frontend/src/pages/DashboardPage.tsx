@@ -71,7 +71,7 @@ export default function DashboardPage({ onAlert }) {
   const errCount = (qualityLogs||[]).length
   const alertsList = Array.isArray(alerts) ? alerts.filter(x => x.status === 'active') : []
 
-  if (chLoading) return <div className="card-grid">{Array.from({length:4}).map((_,i)=><div key={i} className="card" style={{aspectRatio:'1',padding:12,borderRadius:20}}><div className="skeleton" style={{width:'60%',height:11,marginBottom:6}}/><div style={{flex:1,display:'flex',alignItems:'flex-end'}}><div className="skeleton" style={{width:'80%',height:18}}/></div></div>)}</div>
+  if (chLoading) return <div className="card" style={{padding:16}}>{[1,2,3,4,5,6].map(i=><div key={i} className="skeleton" style={{height:80,marginBottom:8,borderRadius:24}}/>)}</div>
   return <div>
     <div className="card-grid" style={{marginBottom:16}}>
       <Card title={periodLabel[periodTab]+' GMV'} value={'¥'+Number(periodMeta.gmv||0).toLocaleString()} sub={periodMeta.orders+' 单'} borderRadius={26} />

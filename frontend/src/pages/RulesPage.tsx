@@ -56,7 +56,7 @@ export default function RulesPage() {
   const defaultF = {name:'', event:'inventory.changed', alert_type:'low_stock', alert_title:'', alert_desc:'', severity:'warning', condition_json:'{}'}
   const [f, setF] = useState(defaultF)
   const [cond, setCond] = useState({left:'inv.available_qty', op:'<', right:'inv.safety_qty', rightType:'field', pctValue:100})
-  const { channel: globalChannel, setChannel: setGlobalChannel, hammerRulesTab: tab } = useAppStore()
+  const { channel: globalChannel, setChannel: setGlobalChannel, hammerRulesTab: tab, hammerRuleNewVersion, hammerRulesMode } = useAppStore()
 
   const load = async (ch) => { try { const c=ch||globalChannel; const r = await api.get('/api/rules?channel='+c); setRules(r.data||[]) } catch(e) {} }
   const loadCfg = async (mode, ch) => { try { clearCache(); clearInflight(); const m=mode||cfg.replenishment_mode||'bbcc'; const c=ch||globalChannel; const r=await api.get('/api/replenishment-config?mode='+m+'&channel='+c);if(r.data&&Object.keys(r.data).length>0)setCfg(p=>({...p, ...r.data, replenishment_mode:m}));else if(c!=='jd'){const fallback=await api.get('/api/replenishment-config?mode='+m+'&channel=jd');if(fallback.data)setCfg(p=>({...p,...fallback.data,replenishment_mode:m}))}return r.data||{} } catch(e) { return {} } }
@@ -72,6 +72,17 @@ export default function RulesPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab])
+  // 锤子菜单"新建规则"触发
+  useEffect(() => {
+    if (hammerRuleNewVersion > 0) resetForm()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hammerRuleNewVersion])
+  // 锤子菜单补货模式切换
+  useEffect(() => {
+    loadCfg(hammerRulesMode)
+    loadSeasons(hammerRulesMode)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hammerRulesMode])
 
   const resetForm = () => { setEditing({}); setF(defaultF); setCond({left:'inv.available_qty', op:'<', right:'inv.safety_qty', rightType:'field', pctValue:100}) }
   const cancelEdit = () => { setEditing(null); setF(defaultF); setCond({left:'inv.available_qty', op:'<', right:'inv.safety_qty', rightType:'field', pctValue:100}) }
@@ -99,7 +110,6 @@ export default function RulesPage() {
 
   return <div className='card'>
     <div className='section-title' style={{display:'flex',flexWrap:'wrap',gap:6}}>
-      {tab==='rules' && <button onClick={resetForm} className="btn btn-primary">+ 新建</button>}
     </div>
 
     {/* ── 规则列表 ── */}
@@ -208,10 +218,6 @@ export default function RulesPage() {
 
     {/* ── 补货参数 ── */}
     {tab==='params' && <div>
-      <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap',alignItems:'center'}}>
-        {globalChannel==='jd' && <span onClick={()=>{loadCfg('bbcc');loadSeasons('bbcc')}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 14px',display:'inline-flex',alignItems:'center',gap:4,background:(cfg.replenishment_mode||'bbcc')==='bbcc'?'var(--primary)':'var(--gray)',color:(cfg.replenishment_mode||'bbcc')==='bbcc'?'#fff':''}}><IconPackage size={14} /> BBCC 送仓</span>}
-        <span onClick={()=>{loadCfg('traditional');loadSeasons('traditional')}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 14px',display:'inline-flex',alignItems:'center',gap:4,background:cfg.replenishment_mode==='traditional'?'var(--primary)':'var(--gray)',color:cfg.replenishment_mode==='traditional'?'#fff':''}}><IconFactory size={14} /> 传统多仓</span>
-      </div>
       {isBBCC ? <>
         <div className='section-title' style={{fontSize:13,marginBottom:8,display:'flex',alignItems:'center',gap:4}}><IconPackage size={14} /> C 仓</div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>{cParams.map(({k,l,h})=><label key={k} style={{fontSize:12}}>{l}<input value={cfg[k]||''} onChange={e=>setCfg(p=>({...p,[k]:e.target.value}))} style={IS}/>{h && <div className='small muted' style={{fontSize:11}}>{h}</div>}</label>)}</div>

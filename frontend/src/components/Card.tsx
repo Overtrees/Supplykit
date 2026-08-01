@@ -3,7 +3,7 @@ export default function Card({ title, value, sub, badge, borderRadius, valueColo
   return (
     <div className="card" style={{
       containerType:'inline-size', aspectRatio:'1', display:'flex', flexDirection:'column',
-      padding:12, borderRadius: borderRadius || 20
+      padding:16, borderRadius: borderRadius || 26
     }}>
       <div style={{fontSize:12,color:'var(--muted2)',lineHeight:1.2,display:'flex',justifyContent:'space-between',gap:4,flexShrink:0}}>
         <span>{title}</span>

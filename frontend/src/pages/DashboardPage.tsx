@@ -76,7 +76,7 @@ export default function DashboardPage({ onAlert }) {
     <div className="card-grid" style={{marginBottom:16}}>
       <Card title={periodLabel[periodTab]+' GMV'} value={'¥'+Number(periodMeta.gmv||0).toLocaleString()} sub={periodMeta.orders+' 单'} borderRadius={26} />
       <Card title="待处理" value={errCount+(dashboard?.summary?.active_alerts||0)} sub={errCount+' 异常 · '+(dashboard?.summary?.active_alerts||0)+' 告警'} borderRadius={26} valueColor={errCount+(dashboard?.summary?.active_alerts||0) > 10 ? '#ef4444' : (errCount+(dashboard?.summary?.active_alerts||0) > 5 ? '#f59e0b' : 'var(--text)')} />
-      <div className="card" style={{position:'relative',borderRadius:20,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:12}}>
+      <div className="card" style={{position:'relative',borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16}}>
         {(()=>{
           const h = dashboard?.health_index?.[healthTab]||{}
           return <>
@@ -92,7 +92,7 @@ export default function DashboardPage({ onAlert }) {
           </>
         })()}
       </div>
-      <div className="card" style={{position:'relative',borderRadius:20,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:12,overflow:'hidden'}}>
+      <div className="card" style={{position:'relative',borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16,overflow:'hidden'}}>
         <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>濒临断货 TOP 10</div>
         {(!stockRisk || stockRisk.length === 0)
           ? <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:2}}>

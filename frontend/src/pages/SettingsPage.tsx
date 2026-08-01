@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { api } from '../api/client'
 import { useAppStore } from '../store/useAppStore'
+import { clearCache, clearInflight } from '../api/client'
 
 const VERSION = '1.0.0'
 const BUILD = import.meta.env.VITE_BUILD_TIME || '2026-07-31'
@@ -79,7 +80,9 @@ export default function SettingsPage() {
     setResetting(true)
     try {
       await fetch('https://overtrees.pythonanywhere.com/api/seed/reset', {method:'POST'})
-      toast('数据已重置')
+      clearCache(); clearInflight()
+      toast('数据已重置，页面将自动刷新')
+      setTimeout(() => window.location.reload(), 1500)
     } catch { toast('重置失败') }
     setResetting(false)
   }

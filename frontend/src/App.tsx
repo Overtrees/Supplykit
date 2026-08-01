@@ -22,7 +22,7 @@ import './version'
 export const NAV = [
   { id:'dash',label:'多维数据看板'},{id:'products',label:'货品信息'},{id:'suppliers',label:'供应商管理'},
   { id:'orders',label:'订单明细'},{id:'inv',label:'进销存台账'},{id:'insights',label:'货品供应建议'},
-  { id:'cleansing',label:'数据清洗及导入'},{id:'rules',label:'模块联动规则引擎'},
+  { id:'cleansing',label:'数据清洗及导入'},{id:'rules',label:'规则搭建'},
   { id:'quality',label:'操作异常记录'},{id:'settings',label:'设置'},
 ]
 

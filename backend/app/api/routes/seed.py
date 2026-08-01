@@ -47,7 +47,7 @@ def seed_fill(db=get_db()):
         {"sku":"SKU-005","product_name":"矿泉水 550ml×24","warehouse":"北京仓","warehouse_type":"platform","available_qty":400,"in_transit_qty":100,"safety_qty":80,"channel":ch},
     ]
     for i in inv_data:
-        db.table("inventory").insert(i)
+        db.table("inventory").insert(i).execute()
 
     # 订单（28天窗口内均匀分布，按测试脚本复刻）
     orders_data = [
@@ -77,7 +77,7 @@ def seed_fill(db=get_db()):
             "product_name": next(p["product_name"] for p in products if p["sku"]==sku),
             "total_amount": round(qty * next(p["price"] for p in products if p["sku"]==sku), 2),
             "channel": ch,
-        })
+        }).execute()
 
     return ok({"products": len(products), "suppliers": len(suppliers), "inventory": len(inv_data), "orders": len(orders_data)})
 

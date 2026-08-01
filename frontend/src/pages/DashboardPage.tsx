@@ -71,12 +71,12 @@ export default function DashboardPage({ onAlert }) {
   const errCount = (qualityLogs||[]).length
   const alertsList = Array.isArray(alerts) ? alerts.filter(x => x.status === 'active') : []
 
-  if (chLoading) return <div className="card" style={{padding:16}}>{[1,2,3,4,5,6].map(i=><div key={i} className="skeleton" style={{height:80,marginBottom:8,borderRadius:24}}/>)}</div>
+  if (chLoading) return <div className="card-grid">{Array.from({length:4}).map((_,i)=><div key={i} className="card" style={{aspectRatio:'1',padding:12,borderRadius:20}}><div className="skeleton" style={{width:'60%',height:11,marginBottom:6}}/><div style={{flex:1,display:'flex',alignItems:'flex-end'}}><div className="skeleton" style={{width:'80%',height:18}}/></div></div>)}</div>
   return <div>
     <div className="card-grid" style={{marginBottom:16}}>
       <Card title={periodLabel[periodTab]+' GMV'} value={'¥'+Number(periodMeta.gmv||0).toLocaleString()} sub={periodMeta.orders+' 单'} borderRadius={26} />
       <Card title="待处理" value={errCount+(dashboard?.summary?.active_alerts||0)} sub={errCount+' 异常 · '+(dashboard?.summary?.active_alerts||0)+' 告警'} borderRadius={26} valueColor={errCount+(dashboard?.summary?.active_alerts||0) > 10 ? '#ef4444' : (errCount+(dashboard?.summary?.active_alerts||0) > 5 ? '#f59e0b' : 'var(--text)')} />
-      <div className="card" style={{position:'relative',borderRadius:32,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16}}>
+      <div className="card" style={{position:'relative',borderRadius:20,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:12}}>
         {(()=>{
           const h = dashboard?.health_index?.[healthTab]||{}
           return <>
@@ -93,7 +93,7 @@ export default function DashboardPage({ onAlert }) {
           </>
         })()}
       </div>
-      <div className="card" style={{position:'relative',borderRadius:32,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16,overflow:'hidden'}}>
+      <div className="card" style={{position:'relative',borderRadius:20,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:12,overflow:'hidden'}}>
         <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>濒临断货 TOP 10</div>
         {(!stockRisk || stockRisk.length === 0)
           ? <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:2}}>

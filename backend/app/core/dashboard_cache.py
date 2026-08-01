@@ -1,9 +1,9 @@
 """In-memory dashboard cache, rebuilt on demand or invalidated by events."""
 
-import time, os
+import time, os, sqlite3
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
-from app.core.database import get_db
+from app.core.database import get_db, DB_PATH
 
 _cache = None
 _cache_ts = 0
@@ -210,13 +210,31 @@ def _rebuild(channel='jd'):
 
 
 _cache_by_channel = {}
+_cache_version = 0
+
+def _check_db_version():
+    """检查数据库持久化版本号，不一致则强制失效"""
+    global _cache_version
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.execute("SELECT value FROM replenishment_config WHERE key='_cache_version' AND channel='jd'")
+        row = cur.fetchone()
+        db_ver = int(row[0]) if row else 0
+        conn.close()
+        if db_ver != _cache_version:
+            _cache_version = db_ver
+            return True
+    except:
+        pass
+    return False
 
 def get_dashboard(channel='jd'):
     """Return cached dashboard data, rebuilding if dirty or expired."""
     global _cache, _cache_ts, _cache_dirty, _cache_by_channel
     now = time.time()
+    stale = _check_db_version()
     cached = _cache_by_channel.get(channel)
-    if cached is None or _cache_dirty or (now - cached['ts']) > _CACHE_TTL:
+    if cached is None or _cache_dirty or stale or (now - cached['ts']) > _CACHE_TTL:
         data = _rebuild(channel)
         _cache_by_channel[channel] = {'data': data, 'ts': now}
         _cache_ts = now
@@ -227,5 +245,15 @@ def get_dashboard(channel='jd'):
 
 def invalidate():
     """Mark cache as dirty. Called by event handlers."""
-    global _cache_dirty
+    global _cache_dirty, _cache_by_channel, _cache_version
     _cache_dirty = True
+    _cache_by_channel = {}
+    _cache_version += 1
+    # 写入数据库持久化版本号（跨进程共享）
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute("INSERT OR REPLACE INTO replenishment_config (key,value,channel) VALUES ('_cache_version',?,'jd')", (str(_cache_version),))
+        conn.commit()
+        conn.close()
+    except:
+        pass

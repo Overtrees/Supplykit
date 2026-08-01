@@ -687,7 +687,6 @@ function HammerRules({ channel }) {
             maxHeight:'70vh',overflowY:'auto',boxShadow:'0 -4px 30px rgba(0,0,0,0.15)',
             animation:'slideUp 0.3s ease'
           }}>
-            <div style={{width:40,height:4,background:'var(--border)',borderRadius:99,margin:'0 auto 16px'}} />
             <div style={{fontSize:16,fontWeight:700,marginBottom:12}}>配置变更历史</div>
             {histLoading ? (
               <div style={{padding:20,textAlign:'center',color:'var(--muted2)'}}>加载中...</div>

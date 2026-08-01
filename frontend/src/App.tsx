@@ -527,7 +527,7 @@ function HammerInsights({ channel }) {
           <span onClick={() => setHammerReplenMode('traditional')}
             style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px',borderRadius:99,cursor:'pointer',textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
               background: mode==='traditional'?'var(--primary)':'var(--gray)',color: mode==='traditional'?'#fff':'var(--text)',fontWeight: mode==='traditional'?600:400}}>
-            传统
+            传统多仓
           </span>
         </div>
       )}
@@ -585,6 +585,31 @@ function HammerInsights({ channel }) {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+/* 清洗页: 锤子菜单渠道标注 */
+function HammerCleansing({ channel }) {
+  const { hammerPanel, setHammerPanel, hammerCleansingChannel, setHammerCleansingChannel } = useAppStore()
+  return (
+    <div>
+      <div style={{fontSize:11,color:'var(--muted2)',marginBottom:8,textAlign:'center'}}>
+        {channel === 'jd' ? '京东' : '其他'} · 清洗导入
+      </div>
+      <div style={{display:'flex',gap:4}}>
+        {[['jd','京东'],['other','其他渠道']].map(([id,label]) => (
+          <span key={id} onClick={() => setHammerCleansingChannel(id)}
+            style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px',borderRadius:99,cursor:'pointer',textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
+              background: hammerCleansingChannel === id ? 'var(--primary)' : 'var(--gray)',
+              color: hammerCleansingChannel === id ? '#fff' : 'var(--text)',fontWeight: hammerCleansingChannel === id ? 600 : 400}}>
+            {label}
+          </span>
+        ))}
+      </div>
+      <div style={{marginTop:8,borderTop:'1px solid var(--border)',paddingTop:8}}>
+        <div style={{fontSize:10,color:'var(--muted2)',textAlign:'center'}}>导入时按此渠道标注数据</div>
+      </div>
     </div>
   )
 }
@@ -824,7 +849,8 @@ export default function App() {
              page === 'suppliers' ? <HammerSuppliers channel={channel} /> :
              page === 'orders' ? <HammerOrders channel={channel} /> :
              page === 'inv' ? <HammerInventory channel={channel} /> :
-             page === 'insights' ? <HammerInsights channel={channel} /> : (
+             page === 'insights' ? <HammerInsights channel={channel} /> :
+             page === 'cleansing' ? <HammerCleansing channel={channel} /> : (
             <div style={{color:'var(--muted)',fontSize:13,textAlign:'center'}}>
               <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>
                 {channel === 'jd' ? '京东' : '其他'} · {page}

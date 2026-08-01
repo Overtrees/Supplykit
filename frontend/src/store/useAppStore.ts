@@ -36,6 +36,8 @@ export const useAppStore = create((set, get) => ({
   setHammerWhType: (v) => { localStorage.setItem('c_wh_type_' + get().channel, v); set({ hammerWhType: v }) },
   hammerInsightsTab: 'replen',
   setHammerInsightsTab: (t) => set({ hammerInsightsTab: t }),
+  hammerCleansingChannel: 'jd',
+  setHammerCleansingChannel: (c) => set({ hammerCleansingChannel: c }),
   hammerReplenMode: localStorage.getItem('c_replen_mode') || 'bbcc',
   setHammerReplenMode: (m) => { localStorage.setItem('c_replen_mode', m); set({ hammerReplenMode: m }) },
   hammerCols: {},

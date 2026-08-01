@@ -73,6 +73,7 @@ export default function OrdersPage() {
         {pageData.map(x => {
           return <tr key={x.id}>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return null;
             if(col.id==='order_no')return <td key={col.id} className="mono col-sku">{x.order_no}</td>
+            if(col.id==='barcode')return <td key={col.id} className="mono" style={{fontSize:11}}>{x.barcode||'-'}</td>
             if(col.id==='store')return <td key={col.id} className="col-store">{x.store||'-'}</td>
             if(col.id==='warehouse')return <td key={col.id} className="col-store">{x.warehouse||'-'}</td>
             if(col.id==='product')return <td key={col.id} className="col-name">{x.product_name}</td>

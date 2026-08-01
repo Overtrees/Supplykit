@@ -45,13 +45,10 @@ export const useAppStore = create((set, get) => ({
 
   async loadAll(page) {
     set({ loading: true })
-    const p = page ?? get().orderPage
-    const s = get().orderSearch
-    const st = get().orderStatus
     try {
       const results = await Promise.allSettled([
         api.get('/api/dashboard/summary'),
-        api.get(`/api/orders?page=${p}&page_size=8&search=${encodeURIComponent(s)}&status=${encodeURIComponent(st)}`),
+        api.get('/api/orders?page=1&page_size=1000'),
         api.get('/api/inventory'),
         api.get('/api/quality-logs'),
         api.get('/api/alerts'),
@@ -112,27 +109,11 @@ export const useAppStore = create((set, get) => ({
   setOrderPage(p, search, status) {
     const s = search ?? get().orderSearch
     const st = status ?? get().orderStatus
-    set({ orderPage: p, orderSearch: s, orderStatus: st, orderLoading: true })
-    api.get(`/api/orders?page=${p}&page_size=8&search=${encodeURIComponent(s)}&status=${encodeURIComponent(st)}`).then(r => {
-      set({
-        orders: r.data?.items || r.data || [],
-        orderTotal: r.data?.total || (r.data || []).length || 0,
-        orderPage: r.data?.page || p,
-        orderLoading: false,
-      })
-    }).catch(() => set({ orderLoading: false }))
+    set({ orderPage: p, orderSearch: s, orderStatus: st })
   },
 
-  setOrderFilter(search, status) {
-    set({ orderSearch: search, orderStatus: status, orderPage: 1, orderLoading: true })
-    api.get(`/api/orders?page=1&page_size=8&search=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}`).then(r => {
-      set({
-        orders: r.data?.items || r.data || [],
-        orderTotal: r.data?.total || (r.data || []).length || 0,
-        orderPage: 1,
-        orderLoading: false,
-      })
-    }).catch(() => set({ orderLoading: false }))
+  setOrderFilterLocal(search, status) {
+    set({ orderSearch: search, orderStatus: status, orderPage: 1 })
   },
 
   startPolling() {

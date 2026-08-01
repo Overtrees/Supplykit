@@ -25,12 +25,22 @@ function OrderSkeleton() {
 
 export default function OrdersPage() {
   const toast = useToast()
-  const { orders, orderTotal, orderPage, orderLoading, setOrderPage, setOrderFilter, orderSearch, orderStatus, dataLoaded, channel, hammerCols } = useAppStore()
+  const { orders, orderPage, orderLoading, setOrderPage, orderStatus, dataLoaded, channel, hammerCols, hammerSearch } = useAppStore()
   useEffect(() => { useAppStore.getState().loadAll() }, [channel])
   const [confirmDel, setConfirmDel] = useState(null)
   const [visCols, setVisCols] = useState(() => getVis(COL_KEY()) || COLS.map(c => c.id))
   useEffect(() => { if (hammerCols?.orders) setVisCols(hammerCols.orders) }, [hammerCols])
-  const totalPages = Math.max(1, Math.ceil(orderTotal / 8))
+  // 搜索/筛选变化时重置到第1页
+  useEffect(() => { setOrderPage(1) }, [hammerSearch, orderStatus, setOrderPage])
+  const PAGE_SIZE = 8
+  const s = hammerSearch || ''
+  const st = orderStatus || ''
+  const filtered = orders.filter(x =>
+    (!s || (x.order_no||'').includes(s) || (x.product_name||'').includes(s) || (x.sku||'').includes(s)) &&
+    (!st || x.order_status === st)
+  )
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const pageData = filtered.slice((orderPage-1)*PAGE_SIZE, orderPage*PAGE_SIZE)
 
   // 加载平台仓库存（按 SKU+仓库 维度）
   const delOrder = async () => {
@@ -38,7 +48,7 @@ export default function OrdersPage() {
     try {
       const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
       const r = await fetch(`${API}/api/orders/${confirmDel}`, {method:'DELETE'})
-      if (r.ok) { toast.success('已删除'); setConfirmDel(null); setOrderPage(orderPage, orderSearch, orderStatus) }
+      if (r.ok) { toast.success('已删除'); setConfirmDel(null); useAppStore.getState().loadAll() }
       else toast.error('删除失败')
     } catch(e) { toast.error('删除失败: '+e.message) }
     setConfirmDel(null)
@@ -46,23 +56,23 @@ export default function OrdersPage() {
 
   return <div>
     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:6,marginBottom:12}}>
-      <span style={{fontSize:18,fontWeight:700}}>订单 <span className="small muted" style={{fontWeight:400}}>共 {orderTotal} 条</span></span>
+      <span style={{fontSize:18,fontWeight:700}}>订单 <span className="small muted" style={{fontWeight:400}}>共 {filtered.length} 条</span></span>
     </div>
-    {orderSearch !== '' && <div style={{display:'flex',gap:6,alignItems:'center',marginBottom:8,flexWrap:'wrap'}}>
-      <span className="small muted">搜索 "{orderSearch}"</span>
-      {orderStatus && <span className="pill info">{orderStatus}</span>}
+    {s !== '' && <div style={{display:'flex',gap:6,alignItems:'center',marginBottom:8,flexWrap:'wrap'}}>
+      <span className="small muted">搜索 "{s}"</span>
+      {st && <span className="pill info">{st}</span>}
     </div>}
 
     <div className="card">
     {orderLoading || !dataLoaded ? <OrderSkeleton />
-    : orders.length === 0
-      ? <EmptyState icon='clipboard' title={orderSearch?'无匹配订单':'暂无订单'} desc={orderSearch?'换个关键词试试':''} />
+    : filtered.length === 0
+      ? <EmptyState icon='clipboard' title={s?'无匹配订单':'暂无订单'} desc={s?'换个关键词试试':''} />
       : <div style={{overflowX:"auto"}}>
         <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {visCols.length}/{COLS.length} 列</div>
       <table><colgroup>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>
       <thead><tr>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<th key={col.id}>{col.label}</th>:null})}</tr></thead>
       <tbody>
-        {orders.map(x => {
+        {pageData.map(x => {
           return <tr key={x.id}>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return null;
             if(col.id==='order_no')return <td key={col.id} className="mono col-sku">{x.order_no}</td>
             if(col.id==='store')return <td key={col.id} className="col-store">{x.store||'-'}</td>
@@ -80,7 +90,7 @@ export default function OrdersPage() {
     </div>  {/* end card */}
     <ConfirmDialog open={!!confirmDel} title='删除订单' desc='删除后不可恢复' confirmLabel='删除' onConfirm={delOrder} onCancel={()=>setConfirmDel(null)} />
 
-    {orderTotal > 8 && <div style={{display:'flex',justifyContent:'center',alignItems:'center',gap:8,marginTop:12,flexWrap:'wrap'}}>
+    {filtered.length > PAGE_SIZE && <div style={{display:'flex',justifyContent:'center',alignItems:'center',gap:8,marginTop:12,flexWrap:'wrap'}}>
       <button onClick={()=>setOrderPage(1)} disabled={orderPage<=1} className="btn btn-ghost" style={{fontSize:11,padding:'4px 8px'}}>‹‹</button>
       <button onClick={()=>setOrderPage(orderPage-1)} disabled={orderPage<=1} className="btn btn-ghost" style={{fontSize:11,padding:'4px 8px'}}>‹</button>
       <span className="small muted" style={{fontSize:12}}>第 {orderPage}/{totalPages} 页</span>

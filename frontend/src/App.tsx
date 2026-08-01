@@ -184,24 +184,12 @@ const getOrderVis = (ch) => { try { return JSON.parse(localStorage.getItem(order
 
 function HammerOrders({ channel }) {
   const toast = useToast()
-  const { hammerPanel, setHammerPanel, setHammerCols, setOrderFilter, orderSearch, orderStatus } = useAppStore()
+  const { hammerPanel, setHammerPanel, hammerSearch, setHammerSearch, setHammerCols, setOrderFilterLocal, orderStatus } = useAppStore()
   const [visCols, setVisCols] = useState(() => getOrderVis(channel) || ORDER_COLS.map(c => c.id))
-  const [localSq, setLocalSq] = useState(orderSearch)
-  const [localSs, setLocalSs] = useState(orderStatus)
 
   useEffect(() => {
     setVisCols(getOrderVis(channel) || ORDER_COLS.map(c => c.id))
   }, [channel])
-
-  // 防抖搜索: 输入变化后 300ms 自动提交
-  const debounceRef = useRef(null)
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => {
-      setOrderFilter(localSq, localSs)
-    }, 300)
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
-  }, [localSq, localSs])
 
   const saveCols = (cols) => {
     setVisCols(cols)
@@ -275,11 +263,11 @@ function HammerOrders({ channel }) {
       {/* 搜索面板 */}
       {hammerPanel === 'search' && (
         <div style={{borderTop:'1px solid var(--border)',paddingTop:8}}>
-          <input id="hm-search-orders" value={localSq} onChange={e=>setLocalSq(e.target.value)}
+          <input id="hm-search-orders" value={hammerSearch} onChange={e=>setHammerSearch(e.target.value)}
             placeholder="搜索单号/商品/SKU..."
             style={{width:'100%',padding:'6px 10px',fontSize:16,border:'1px solid var(--border)',borderRadius:32,outline:'none',boxSizing:'border-box',background:'var(--card)',color:'var(--text)'}} />
-          {localSq && <div style={{marginTop:4,textAlign:'right'}}>
-            <span onClick={()=>setLocalSq('')} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>清除</span>
+          {hammerSearch && <div style={{marginTop:4,textAlign:'right'}}>
+            <span onClick={()=>setHammerSearch('')} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>清除</span>
           </div>}
         </div>
       )}
@@ -289,7 +277,7 @@ function HammerOrders({ channel }) {
           <div style={{fontSize:10,color:'var(--muted2)',marginBottom:4}}>订单状态</div>
           <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
             {ORDER_STATUSES.map(s => (
-              <span key={s} onClick={() => { setLocalSs(s) }}
+              <span key={s} onClick={() => setOrderFilterLocal('', s)}
                 style={{fontSize:12,padding:'4px 10px',borderRadius:99,cursor:'pointer',
                   background: (orderStatus === s || (!orderStatus && !s)) ? 'var(--primary)' : 'var(--gray)',
                   color: (orderStatus === s || (!orderStatus && !s)) ? '#fff' : 'var(--text)',
@@ -300,7 +288,7 @@ function HammerOrders({ channel }) {
             ))}
           </div>
           {orderStatus && <div style={{marginTop:4,textAlign:'right'}}>
-            <span onClick={()=>setLocalSs('')} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>清除筛选</span>
+            <span onClick={()=>setOrderFilterLocal('','')} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>清除筛选</span>
           </div>}
         </div>
       )}

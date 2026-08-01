@@ -89,11 +89,11 @@ export default function OrdersPage() {
     <ConfirmDialog open={!!confirmDel} title='删除订单' desc='删除后不可恢复' confirmLabel='删除' onConfirm={delOrder} onCancel={()=>setConfirmDel(null)} />
 
     {filtered.length > PAGE_SIZE && <div style={{display:'flex',justifyContent:'center',alignItems:'center',gap:8,marginTop:12,flexWrap:'wrap'}}>
-      <button onClick={()=>setOrderPage(1)} disabled={orderPage<=1} style={{width:32,height:32,borderRadius:'50%',border:'none',cursor:'pointer',background:'var(--card)',color:'var(--text)',fontSize:12,display:'flex',alignItems:'center',justifyContent:'center',opacity:orderPage<=1?0.35:1,boxSizing:'border-box'}}>‹‹</button>
-      <button onClick={()=>setOrderPage(orderPage-1)} disabled={orderPage<=1} style={{width:32,height:32,borderRadius:'50%',border:'none',cursor:'pointer',background:'var(--card)',color:'var(--text)',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',opacity:orderPage<=1?0.35:1,boxSizing:'border-box'}}>‹</button>
+      <button onClick={()=>setOrderPage(1)} disabled={orderPage<=1} className="page-btn" style={{fontSize:12}}>‹‹</button>
+      <button onClick={()=>setOrderPage(orderPage-1)} disabled={orderPage<=1} className="page-btn" style={{fontSize:14}}>‹</button>
       <span className="small muted" style={{fontSize:12}}>第 {orderPage}/{totalPages} 页</span>
-      <button onClick={()=>setOrderPage(orderPage+1)} disabled={orderPage>=totalPages} style={{width:32,height:32,borderRadius:'50%',border:'none',cursor:'pointer',background:'var(--card)',color:'var(--text)',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',opacity:orderPage>=totalPages?0.35:1,boxSizing:'border-box'}}>›</button>
-      <button onClick={()=>setOrderPage(totalPages)} disabled={orderPage>=totalPages} style={{width:32,height:32,borderRadius:'50%',border:'none',cursor:'pointer',background:'var(--card)',color:'var(--text)',fontSize:12,display:'flex',alignItems:'center',justifyContent:'center',opacity:orderPage>=totalPages?0.35:1,boxSizing:'border-box'}}>››</button>
+      <button onClick={()=>setOrderPage(orderPage+1)} disabled={orderPage>=totalPages} className="page-btn" style={{fontSize:14}}>›</button>
+      <button onClick={()=>setOrderPage(totalPages)} disabled={orderPage>=totalPages} className="page-btn" style={{fontSize:12}}>››</button>
       <span style={{display:'flex',alignItems:'center',gap:4}}>
         <span className="small muted">跳至</span>
         <input type="number" min={1} max={totalPages} defaultValue={orderPage}

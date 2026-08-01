@@ -237,7 +237,19 @@ export default function RulesPage() {
         <span className='small muted'>×</span>
         <input type='number' value={s.factor} onChange={e=>setSeasons(p=>p.map((x,j)=>j===i?{...x,factor:parseFloat(e.target.value)||1}:x))} step='0.1' min='1' max='3' style={{width:70,fontSize:16,padding:'5px 8px',border:'1px solid var(--border)',borderRadius:32,outline:'none'}}/>
         <span className='small muted'>倍</span>
-        <label style={{fontSize:12,display:'flex',alignItems:'center',gap:4}}><input type='checkbox' checked={s.enabled!==false} onChange={e=>setSeasons(p=>p.map((x,j)=>j===i?{...x,enabled:e.target.checked}:x))} style={{accentColor:'var(--primary)'}}/>启用</label>
+        <label style={{fontSize:12,display:'flex',alignItems:'center',gap:4,cursor:'pointer'}} onClick={()=>setSeasons(p=>p.map((x,j)=>j===i?{...x,enabled:!(x.enabled!==false)}:x))}>
+          <svg width="18" height="18" viewBox="0 0 18 18" style={{flexShrink:0}}>
+            {s.enabled!==false ? (
+              <>
+                <circle cx="9" cy="9" r="8" fill="var(--primary)" />
+                <path d="M5.5 9.5l2 2 3.5-3.5" stroke="#fff" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              </>
+            ) : (
+              <circle cx="9" cy="9" r="8" fill="none" stroke="var(--border)" strokeWidth="1.5" />
+            )}
+          </svg>
+          启用
+        </label>
         <button onClick={()=>setSeasons(p=>p.filter((_,j)=>j!==i))} className="btn btn-danger" style={{fontSize:12,padding:'4px 10px',minHeight:0}}>删除</button>
       </div>)}
       <button onClick={()=>setSeasons(p=>[...p,{key:'new',name:'新活动',factor:1.2,enabled:true}])} className="btn btn-ghost" style={{fontSize:12,padding:'4px 12px',width:'100%'}}>+ 添加活动</button>

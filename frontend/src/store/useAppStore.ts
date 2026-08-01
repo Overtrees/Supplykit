@@ -38,6 +38,8 @@ export const useAppStore = create((set, get) => ({
   setHammerInsightsTab: (t) => set({ hammerInsightsTab: t }),
   hammerCleansingChannel: 'jd',
   setHammerCleansingChannel: (c) => set({ hammerCleansingChannel: c }),
+  hammerRulesTab: 'rules',
+  setHammerRulesTab: (t) => set({ hammerRulesTab: t }),
   hammerReplenMode: localStorage.getItem('c_replen_mode') || 'bbcc',
   setHammerReplenMode: (m) => { localStorage.setItem('c_replen_mode', m); set({ hammerReplenMode: m }) },
   hammerCols: {},

@@ -614,6 +614,28 @@ function HammerCleansing({ channel }) {
   )
 }
 
+/* 规则页: 锤子菜单 tab入口(规则/补货参数/采购参数) */
+function HammerRules({ channel }) {
+  const { hammerRulesTab, setHammerRulesTab } = useAppStore()
+  return (
+    <div>
+      <div style={{fontSize:11,color:'var(--muted2)',marginBottom:8,textAlign:'center'}}>
+        {channel === 'jd' ? '京东' : '其他'} · 规则参数
+      </div>
+      <div style={{display:'flex',gap:4}}>
+        {[['rules','规则'],['params','补货参数'],['purchase','采购参数']].map(([id,label]) => (
+          <span key={id} onClick={() => setHammerRulesTab(id)}
+            style={{flex:1,fontSize:12,minHeight:32,padding:'4px 6px',borderRadius:99,cursor:'pointer',textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
+              background: hammerRulesTab === id ? 'var(--primary)' : 'var(--gray)',
+              color: hammerRulesTab === id ? '#fff' : 'var(--text)',fontWeight: hammerRulesTab === id ? 600 : 400}}>
+            {label}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function App() {
   const [page, setPage] = useState('dash')
   const [highlightSku, setHighlightSku] = useState('')
@@ -850,7 +872,8 @@ export default function App() {
              page === 'orders' ? <HammerOrders channel={channel} /> :
              page === 'inv' ? <HammerInventory channel={channel} /> :
              page === 'insights' ? <HammerInsights channel={channel} /> :
-             page === 'cleansing' ? <HammerCleansing channel={channel} /> : (
+             page === 'cleansing' ? <HammerCleansing channel={channel} /> :
+             page === 'rules' ? <HammerRules channel={channel} /> : (
             <div style={{color:'var(--muted)',fontSize:13,textAlign:'center'}}>
               <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>
                 {channel === 'jd' ? '京东' : '其他'} · {page}

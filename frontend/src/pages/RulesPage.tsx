@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { api, clearCache, clearInflight } from '../api/client'
 import { useToast } from '../components/Toast'
 import { useAppStore } from '../store/useAppStore'
-import { IconGear, IconChart, IconCart, IconPackage, IconTag, IconFactory, IconClipboard, IconScale, IconSave, IconLoading, IconClose, IconAlert } from '../components/Icons'
+import { IconPackage, IconTag, IconFactory, IconClipboard, IconScale, IconSave, IconLoading, IconAlert } from '../components/Icons'
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
 const EVENTS = [
@@ -48,7 +48,6 @@ export default function RulesPage() {
   const [saving, setSaving] = useState(false)
   const [seasonsSaving, setSeasonsSaving] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState('rules')
   const [rules, setRules] = useState([])
   const [editing, setEditing] = useState(null)
   const [cfg, setCfg] = useState({})
@@ -57,13 +56,22 @@ export default function RulesPage() {
   const defaultF = {name:'', event:'inventory.changed', alert_type:'low_stock', alert_title:'', alert_desc:'', severity:'warning', condition_json:'{}'}
   const [f, setF] = useState(defaultF)
   const [cond, setCond] = useState({left:'inv.available_qty', op:'<', right:'inv.safety_qty', rightType:'field', pctValue:100})
-  const { channel: globalChannel, setChannel: setGlobalChannel } = useAppStore()
+  const { channel: globalChannel, setChannel: setGlobalChannel, hammerRulesTab: tab } = useAppStore()
 
   const load = async (ch) => { try { const c=ch||globalChannel; const r = await api.get('/api/rules?channel='+c); setRules(r.data||[]) } catch(e) {} }
   const loadCfg = async (mode, ch) => { try { clearCache(); clearInflight(); const m=mode||cfg.replenishment_mode||'bbcc'; const c=ch||globalChannel; const r=await api.get('/api/replenishment-config?mode='+m+'&channel='+c);if(r.data&&Object.keys(r.data).length>0)setCfg(p=>({...p, ...r.data, replenishment_mode:m}));else if(c!=='jd'){const fallback=await api.get('/api/replenishment-config?mode='+m+'&channel=jd');if(fallback.data)setCfg(p=>({...p,...fallback.data,replenishment_mode:m}))}return r.data||{} } catch(e) { return {} } }
   const loadSeasons = async (mode, ch) => { try { clearCache(); clearInflight(); const m=mode||cfg.replenishment_mode||'bbcc'; const c=ch||globalChannel; const r=await api.get('/api/replenishment-config/seasons?mode='+m+'&channel='+c); setSeasons(r.data||[]) } catch(e) {} }
   const loadAll = async (ch) => { setLoading(true); const c=ch||globalChannel; const savedMode=localStorage.getItem('c_replen_mode'); const m=c!=='jd'?'traditional':(savedMode||'bbcc'); await load(c); try{const flat=await api.get('/api/replenishment-config?channel='+c);if(flat.data)setCfg(p=>({...p,...flat.data,replenishment_mode:m}))}catch(e){} await loadCfg(m,c); await loadSeasons(m,c); setLoading(false) }
   useEffect(() => { loadAll() }, [globalChannel])
+  // tab 切换时刷新对应配置（原页面按钮行为保留）
+  useEffect(() => {
+    if (tab === 'params' || tab === 'purchase') {
+      const m = localStorage.getItem('c_replen_mode') || 'bbcc'
+      loadCfg(m)
+      if (tab === 'params') loadSeasons(m)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab])
 
   const resetForm = () => { setEditing({}); setF(defaultF); setCond({left:'inv.available_qty', op:'<', right:'inv.safety_qty', rightType:'field', pctValue:100}) }
   const cancelEdit = () => { setEditing(null); setF(defaultF); setCond({left:'inv.available_qty', op:'<', right:'inv.safety_qty', rightType:'field', pctValue:100}) }
@@ -91,11 +99,6 @@ export default function RulesPage() {
 
   return <div className='card'>
     <div className='section-title' style={{display:'flex',flexWrap:'wrap',gap:6}}>
-      <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-        <button onClick={()=>setTab('rules')} className="btn btn-ghost" style={{fontSize:13,display:'inline-flex',alignItems:'center',gap:4,background:tab==='rules'?'var(--primary)':'var(--gray)',color:tab==='rules'?'#fff':''}}><IconGear size={14} /> 规则</button>
-        <button onClick={()=>{setTab('params');loadCfg(cfg.replenishment_mode||'bbcc')}} className="btn btn-ghost" style={{fontSize:13,display:'inline-flex',alignItems:'center',gap:4,background:tab==='params'?'var(--success)':'var(--gray)',color:tab==='params'?'#fff':''}}><IconChart size={14} /> 补货参数</button>
-        <button onClick={()=>setTab('purchase')} className="btn btn-ghost" style={{fontSize:13,display:'inline-flex',alignItems:'center',gap:4,background:tab==='purchase'?'var(--primary)':'var(--gray)',color:tab==='purchase'?'#fff':''}}><IconCart size={14} /> 采购参数</button>
-      </div>
       {tab==='rules' && <button onClick={resetForm} className="btn btn-primary">+ 新建</button>}
     </div>
 

@@ -56,11 +56,11 @@ function HammerProducts({ channel }) {
       {/* 功能按钮 */}
       <div style={{display:'flex',gap:6,marginBottom:hammerPanel?8:0}}>
         <button onClick={() => setHammerPanel(hammerPanel === 'columns' ? null : 'columns')}
-          className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
+          className="btn btn-ghost" style={{flex:1,minWidth:0,fontSize:12,minHeight:32,padding:'4px 8px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',boxSizing:'border-box'}}>
           列选择 ({visCols.length}/{PRODUCT_COLS.length})
         </button>
         <button onClick={() => { setHammerPanel(hammerPanel === 'search' ? null : 'search'); if (hammerPanel !== 'search') setTimeout(() => document.getElementById('hm-search-prod')?.focus(), 100) }}
-          className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
+          className="btn btn-ghost" style={{flex:1,minWidth:0,fontSize:12,minHeight:32,padding:'4px 8px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',boxSizing:'border-box'}}>
           搜索
         </button>
       </div>
@@ -131,11 +131,11 @@ function HammerSuppliers({ channel }) {
       </div>
       <div style={{display:'flex',gap:6,marginBottom:hammerPanel?8:0}}>
         <button onClick={() => setHammerPanel(hammerPanel === 'columns' ? null : 'columns')}
-          className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
+          className="btn btn-ghost" style={{flex:1,minWidth:0,fontSize:12,minHeight:32,padding:'4px 8px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',boxSizing:'border-box'}}>
           列选择 ({visCols.length}/{SUPPLIER_COLS.length})
         </button>
         <button onClick={() => { setHammerPanel(hammerPanel === 'search' ? null : 'search'); if (hammerPanel !== 'search') setTimeout(() => document.getElementById('hm-search-supp')?.focus(), 100) }}
-          className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
+          className="btn btn-ghost" style={{flex:1,minWidth:0,fontSize:12,minHeight:32,padding:'4px 8px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',boxSizing:'border-box'}}>
           搜索
         </button>
       </div>
@@ -220,19 +220,19 @@ function HammerOrders({ channel }) {
       {/* 功能按钮行 */}
       <div style={{display:'flex',gap:6,marginBottom:hammerPanel?8:0,flexWrap:'wrap'}}>
         <button onClick={() => setHammerPanel(hammerPanel === 'columns' ? null : 'columns')}
-          className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
+          className="btn btn-ghost" style={{flex:1,minWidth:0,fontSize:12,minHeight:32,padding:'4px 8px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',boxSizing:'border-box'}}>
           列选择 ({visCols.length}/{ORDER_COLS.length})
         </button>
         <button onClick={() => setHammerPanel(hammerPanel === 'search' ? null : 'search')}
-          className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
+          className="btn btn-ghost" style={{flex:1,minWidth:0,fontSize:12,minHeight:32,padding:'4px 8px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',boxSizing:'border-box'}}>
           搜索
         </button>
         <button onClick={() => setHammerPanel(hammerPanel === 'filter' ? null : 'filter')}
-          className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
+          className="btn btn-ghost" style={{flex:1,minWidth:0,fontSize:12,minHeight:32,padding:'4px 8px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',boxSizing:'border-box'}}>
           筛选{orderStatus ? ' ✓' : ''}
         </button>
         <button onClick={doExport}
-          className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px',display:'flex',alignItems:'center',gap:4,justifyContent:'center'}}>
+          className="btn btn-ghost" style={{flex:1,minWidth:0,fontSize:12,minHeight:32,padding:'4px 8px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',boxSizing:'border-box',display:'flex',alignItems:'center',gap:4,justifyContent:'center'}}>
           <IconExport size={13} /> 导出
         </button>
       </div>
@@ -363,19 +363,19 @@ function HammerInventory({ channel }) {
       {/* 功能按钮行 */}
       <div style={{display:'flex',gap:6,marginBottom:hammerPanel?8:0,flexWrap:'wrap'}}>
         <button onClick={() => setHammerPanel(hammerPanel === 'columns' ? null : 'columns')}
-          className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
+          className="btn btn-ghost" style={{flex:1,minWidth:0,fontSize:12,minHeight:32,padding:'4px 8px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',boxSizing:'border-box'}}>
           列选择 ({visCols.length}/{INV_COLS[hammerWhType].length})
         </button>
         <button onClick={() => setHammerPanel(hammerPanel === 'search' ? null : 'search')}
-          className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
+          className="btn btn-ghost" style={{flex:1,minWidth:0,fontSize:12,minHeight:32,padding:'4px 8px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',boxSizing:'border-box'}}>
           搜索
         </button>
         <button onClick={() => setHammerPanel(hammerPanel === 'wh' ? null : 'wh')}
-          className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
+          className="btn btn-ghost" style={{flex:1,minWidth:0,fontSize:12,minHeight:32,padding:'4px 8px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',boxSizing:'border-box'}}>
           仓库 {INV_WH_LABEL[hammerWhType]}
         </button>
         <button onClick={doExport}
-          className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px',display:'flex',alignItems:'center',gap:4,justifyContent:'center'}}>
+          className="btn btn-ghost" style={{flex:1,minWidth:0,fontSize:12,minHeight:32,padding:'4px 8px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',boxSizing:'border-box',display:'flex',alignItems:'center',gap:4,justifyContent:'center'}}>
           <IconExport size={13} /> 导出
         </button>
       </div>
@@ -507,7 +507,8 @@ function HammerInsights({ channel }) {
       <div style={{display:'flex',gap:4,marginBottom:8,flexWrap:'wrap'}}>
         {[['replen','补货建议'],['purchase','采购建议'],['slow','滞销预警']].map(([id,label]) => (
           <span key={id} onClick={() => setHammerInsightsTab(id)}
-            style={{flex:1,fontSize:12,minHeight:30,padding:'4px 6px',borderRadius:99,cursor:'pointer',textAlign:'center',
+            style={{flex:1,minWidth:0,fontSize:12,minHeight:30,padding:'4px 4px',borderRadius:99,cursor:'pointer',textAlign:'center',
+              whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',boxSizing:'border-box',
               background: hammerInsightsTab === id ? 'var(--primary)' : 'var(--gray)',
               color: hammerInsightsTab === id ? '#fff' : 'var(--text)',fontWeight: hammerInsightsTab === id ? 600 : 400}}>
             {label}
@@ -517,17 +518,17 @@ function HammerInsights({ channel }) {
       {/* 功能按钮行 */}
       <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
         {hammerInsightsTab === 'replen' && <>
-          <button onClick={() => setHammerPanel(hammerPanel === 'columns' ? null : 'columns')}
-            className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
-            列选择 ({visCols.length}/{cols.length})
-          </button>
           <button onClick={() => setHammerPanel(hammerPanel === 'mode' ? null : 'mode')}
-            className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
+            className="btn btn-ghost" style={{flex:1,minWidth:0,fontSize:12,minHeight:32,padding:'4px 8px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',boxSizing:'border-box'}}>
             {mode === 'bbcc' ? 'BBCC' : '传统'}
+          </button>
+          <button onClick={() => setHammerPanel(hammerPanel === 'columns' ? null : 'columns')}
+            className="btn btn-ghost" style={{flex:1,minWidth:0,fontSize:12,minHeight:32,padding:'4px 8px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',boxSizing:'border-box'}}>
+            列选择 ({visCols.length}/{cols.length})
           </button>
         </>}
         <button onClick={() => setHammerPanel(hammerPanel === 'export' ? null : 'export')}
-          className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px',display:'flex',alignItems:'center',gap:4,justifyContent:'center'}}>
+          className="btn btn-ghost" style={{flex:1,minWidth:0,fontSize:12,minHeight:32,padding:'4px 8px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',boxSizing:'border-box',display:'flex',alignItems:'center',gap:4,justifyContent:'center'}}>
           <IconExport size={13} /> 导出
         </button>
       </div>
@@ -537,11 +538,11 @@ function HammerInsights({ channel }) {
           <div style={{fontSize:10,color:'var(--muted2)',marginBottom:4}}>选择导出类型 · {channel === 'jd' ? '京东' : '其他'}渠道</div>
           <div style={{display:'flex',gap:4}}>
             <span onClick={() => doExport('replen')}
-              style={{flex:1,fontSize:12,padding:'6px 8px',borderRadius:99,cursor:'pointer',textAlign:'center',background:'var(--gray)',color:'var(--text)'}}>
+              style={{flex:1,minWidth:0,fontSize:12,padding:'6px 8px',borderRadius:99,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',boxSizing:'border-box',cursor:'pointer',textAlign:'center',background:'var(--gray)',color:'var(--text)'}}>
               补货建议{mode === 'bbcc' ? ' (BBCC)' : ''}
             </span>
             <span onClick={() => doExport('purchase')}
-              style={{flex:1,fontSize:12,padding:'6px 8px',borderRadius:99,cursor:'pointer',textAlign:'center',background:'var(--gray)',color:'var(--text)'}}>
+              style={{flex:1,minWidth:0,fontSize:12,padding:'6px 8px',borderRadius:99,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',boxSizing:'border-box',cursor:'pointer',textAlign:'center',background:'var(--gray)',color:'var(--text)'}}>
               采购建议
             </span>
           </div>
@@ -579,13 +580,13 @@ function HammerInsights({ channel }) {
           <div style={{display:'flex',gap:4}}>
             {channel === 'jd' && (
               <span onClick={() => setHammerReplenMode('bbcc')}
-                style={{flex:1,fontSize:12,padding:'4px 8px',borderRadius:99,cursor:'pointer',textAlign:'center',
+                style={{flex:1,minWidth:0,fontSize:12,padding:'4px 8px',borderRadius:99,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',boxSizing:'border-box',cursor:'pointer',textAlign:'center',
                   background: mode==='bbcc'?'var(--primary)':'var(--gray)',color: mode==='bbcc'?'#fff':'var(--text)',fontWeight: mode==='bbcc'?600:400}}>
                 BBCC
               </span>
             )}
             <span onClick={() => setHammerReplenMode('traditional')}
-              style={{flex:1,fontSize:12,padding:'4px 8px',borderRadius:99,cursor:'pointer',textAlign:'center',
+              style={{flex:1,minWidth:0,fontSize:12,padding:'4px 8px',borderRadius:99,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',boxSizing:'border-box',cursor:'pointer',textAlign:'center',
                 background: mode==='traditional'?'var(--primary)':'var(--gray)',color: mode==='traditional'?'#fff':'var(--text)',fontWeight: mode==='traditional'?600:400}}>
               传统多仓
             </span>
@@ -811,7 +812,7 @@ export default function App() {
               position: 'fixed', zIndex: 3002,
               right: 16,
               top: 'calc(env(safe-area-inset-top, 0px) + 7px + 46px + 6px)',
-              width: 220,
+              width: 240,
               background: 'var(--glass-bg)',
               backdropFilter: 'blur(var(--glass-blur)) saturate(var(--glass-saturate)) brightness(var(--glass-brightness))',
               WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(var(--glass-saturate)) brightness(var(--glass-brightness))',

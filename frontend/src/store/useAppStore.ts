@@ -42,11 +42,11 @@ export const useAppStore = create((set, get) => ({
   setHammerRulesTab: (t) => set({ hammerRulesTab: t }),
   hammerRuleNewVersion: 0,
   bumpHammerRuleNew: () => set((s) => ({ hammerRuleNewVersion: s.hammerRuleNewVersion + 1 })),
-  hammerRulesMode: localStorage.getItem('c_replen_mode_' + (localStorage.getItem('c_channel') || 'jd')) || 'bbcc',
+  hammerRulesMode: localStorage.getItem('c_replen_mode_' + (localStorage.getItem('c_channel') || 'jd')) || ((localStorage.getItem('c_channel') || 'jd') === 'jd' ? 'bbcc' : 'traditional'),
   setHammerRulesMode: (m) => { localStorage.setItem('c_replen_mode_' + get().channel, m); set({ hammerRulesMode: m }) },
   hammerDashPeriod: localStorage.getItem('c_dash_period_' + (localStorage.getItem('c_channel') || 'jd')) || 'month',
   setHammerDashPeriod: (p) => { localStorage.setItem('c_dash_period_' + get().channel, p); set({ hammerDashPeriod: p }) },
-  hammerReplenMode: localStorage.getItem('c_replen_mode_' + (localStorage.getItem('c_channel') || 'jd')) || 'bbcc',
+  hammerReplenMode: localStorage.getItem('c_replen_mode_' + (localStorage.getItem('c_channel') || 'jd')) || ((localStorage.getItem('c_channel') || 'jd') === 'jd' ? 'bbcc' : 'traditional'),
   setHammerReplenMode: (m) => { localStorage.setItem('c_replen_mode_' + get().channel, m); set({ hammerReplenMode: m }) },
   hammerCols: {},
   setHammerCols: (pageKey, cols) => set((s) => ({ hammerCols: { ...s.hammerCols, [pageKey]: cols } })),
@@ -57,7 +57,7 @@ export const useAppStore = create((set, get) => ({
     localStorage.setItem('c_hammer_data', JSON.stringify(hd))
     set({ hammerData: hd })
   },
-  setChannel: (ch) => { localStorage.setItem('c_channel', ch); clearCache(); clearInflight(); set({ channel: ch, dataLoaded: false, loading: true, hammerWhType: localStorage.getItem('c_wh_type_' + ch) || 'own', hammerDashPeriod: localStorage.getItem('c_dash_period_' + ch) || 'month', hammerReplenMode: localStorage.getItem('c_replen_mode_' + ch) || 'bbcc', hammerRulesMode: localStorage.getItem('c_replen_mode_' + ch) || 'bbcc' }) },
+  setChannel: (ch) => { localStorage.setItem('c_channel', ch); clearCache(); clearInflight(); set({ channel: ch, dataLoaded: false, loading: true, hammerWhType: localStorage.getItem('c_wh_type_' + ch) || 'own', hammerDashPeriod: localStorage.getItem('c_dash_period_' + ch) || 'month', hammerReplenMode: localStorage.getItem('c_replen_mode_' + ch) || (ch === 'jd' ? 'bbcc' : 'traditional'), hammerRulesMode: localStorage.getItem('c_replen_mode_' + ch) || (ch === 'jd' ? 'bbcc' : 'traditional') }) },
 
   async loadAll(page) {
     set({ loading: true })

@@ -73,8 +73,6 @@ export default function DashboardPage({ onAlert }) {
 
   if (chLoading) return <div className="card" style={{padding:16}}>{[1,2,3,4,5,6].map(i=><div key={i} className="skeleton" style={{height:80,marginBottom:8,borderRadius:24}}/>)}</div>
   return <div>
-    {periodMeta.date && <div className="small muted" style={{marginBottom:8,textAlign:'right'}}>{periodMeta.date}</div>}
-
     <div className="card-grid" style={{marginBottom:16}}>
       <Card title={periodLabel[periodTab]+' GMV'} value={'¥'+Number(periodMeta.gmv||0).toLocaleString()} sub={periodMeta.orders+' 单'} borderRadius={26} />
       <Card title="待处理" value={errCount+(dashboard?.summary?.active_alerts||0)} sub={errCount+' 异常 · '+(dashboard?.summary?.active_alerts||0)+' 告警'} borderRadius={26} valueColor={errCount+(dashboard?.summary?.active_alerts||0) > 10 ? '#ef4444' : (errCount+(dashboard?.summary?.active_alerts||0) > 5 ? '#f59e0b' : 'var(--text)')} />

@@ -663,14 +663,18 @@ function HammerRules({ channel }) {
 
 /* 看板页: 锤子菜单 时间维度(今日/本周/本月) */
 function HammerDashboard({ channel }) {
-  const { hammerDashPeriod, setHammerDashPeriod } = useAppStore()
+  const { hammerDashPeriod, setHammerDashPeriod, dashboard } = useAppStore()
   const periodLabel = { today:'今日', week:'本周', month:'本月' }
+  const periodMeta = dashboard?.periods?.[hammerDashPeriod] || {}
   return (
     <div>
       <div style={{fontSize:11,color:'var(--muted2)',marginBottom:8,textAlign:'center'}}>
         {channel === 'jd' ? '京东' : '其他'} · 看板
       </div>
-      <div style={{fontSize:10,color:'var(--muted2)',marginBottom:4}}>聚合时间维度</div>
+      <div style={{fontSize:10,color:'var(--muted2)',marginBottom:4,display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+        聚合时间维度
+        {periodMeta.date && <span style={{marginLeft:'auto'}}>{periodMeta.date}</span>}
+      </div>
       <div style={{display:'flex',gap:4}}>
         {['today','week','month'].map(k => (
           <span key={k} onClick={() => setHammerDashPeriod(k)}

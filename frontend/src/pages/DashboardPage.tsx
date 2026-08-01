@@ -85,7 +85,6 @@ export default function DashboardPage({ onAlert }) {
                 <option value="own">自有</option>
                 <option value="platform">平台</option>
               </select>
-            </div>
             <div style={{flex:1,display:'flex',alignItems:'flex-end',marginBottom:2}}>
               <div className="card-value" style={{color:h.level==='danger'?'#ef4444':h.level==='warning'?'#f59e0b':'var(--success)'}}>{h.score||0}分</div>
             </div>

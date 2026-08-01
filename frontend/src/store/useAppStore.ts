@@ -32,6 +32,8 @@ export const useAppStore = create((set, get) => ({
   hammerSearch: '',
   setHammerSearch: (text) => set({ hammerSearch: text }),
   hammerData: JSON.parse(localStorage.getItem('c_hammer_data') || '{}'),
+  hammerWhType: 'own',
+  setHammerWhType: (v) => set({ hammerWhType: v }),
   hammerCols: {},
   setHammerCols: (pageKey, cols) => set((s) => ({ hammerCols: { ...s.hammerCols, [pageKey]: cols } })),
   setHammerData: (page, data) => {

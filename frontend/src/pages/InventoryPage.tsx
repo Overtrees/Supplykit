@@ -3,7 +3,6 @@ import { api } from '../api/client'
 import EmptyState from '../components/EmptyState'
 import { useToast } from '../components/Toast'
 import ConfirmDialog from '../components/ConfirmDialog'
-import { IconSearch, IconTrash, IconExport } from '../components/Icons'
 import { useAppStore } from '../store/useAppStore'
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
@@ -30,11 +29,12 @@ export default function InventoryPage({ highlightSku }) {
   const [inventory, setInventory] = useState([])
   const [loading, setLoading] = useState(true)
   const [visCols, setVisCols] = useState(() => {const wt='own';return getVis(wt)||WH_COLS[wt].map(c=>c.id)})
-  const [showPicker, setShowPicker] = useState(false)
-  const [s, setS] = useState('')
   const [confirmDel, setConfirmDel] = useState(null)
   const [monthRange, setMonthRange] = useState('')
-  const [whType, setWhType] = useState('own')
+  const { channel: globalChannel, hammerWhType, hammerCols, hammerSearch } = useAppStore()
+  const whType = hammerWhType
+
+  useEffect(() => { if (hammerCols?.['inventory_'+whType]) setVisCols(hammerCols['inventory_'+whType]) }, [hammerCols, whType])
 
   const loadInv = async () => {
     setLoading(true)
@@ -50,9 +50,9 @@ export default function InventoryPage({ highlightSku }) {
     } catch(e) { setInventory([]) }
     setLoading(false)
   }
-  const { channel: globalChannel } = useAppStore()
   useEffect(() => { loadInv() }, [whType, globalChannel])
 
+  const s = hammerSearch || ''
   const fl = useMemo(() => {
     if (!s) return inventory
     const q = s.toLowerCase()
@@ -79,48 +79,6 @@ export default function InventoryPage({ highlightSku }) {
   return <div className='card'>
     <div className='section-title' style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
       <span>进销存 <span className='small muted'>共 {inventory.length} 条</span></span>
-      <span style={{display:'flex',gap:8,alignItems:'center'}}>
-        <span style={{position:'relative',display:'inline-block'}}>
-          <span onClick={()=>setShowPicker(!showPicker)} className='btn btn-ghost' style={{fontSize:11,padding:'2px 10px',cursor:'pointer'}}>列 {visCols.length}/{WH_COLS[whType].length}</span>
-          {showPicker && <div style={{position:'absolute',top:'100%',right:0,zIndex:10,background:'var(--card)',border:'1px solid var(--border)',borderRadius:16,padding:6,minWidth:180,boxShadow:'0 4px 12px rgba(0,0,0,0.15)'}}>
-      <div style={{fontSize:10,color:'var(--muted2)',marginBottom:4,padding:'0 4px'}}>拖拽 ⠿ 调整列顺序</div>
-      {(visCols.map(id=>WH_COLS[whType].find(c=>c.id===id)).filter(Boolean).concat(WH_COLS[whType].filter(c=>!visCols.includes(c.id)))).map((col,idx)=>{
-        const isVis=visCols.includes(col.id)
-        return <div key={col.id} draggable={isVis?true:undefined}
-          onDragStart={isVis?e=>{e.dataTransfer.setData('text/plain',col.id);e.target.style.opacity='0.4';e.currentTarget.parentNode._dragId=col.id}:undefined}
-          onDragEnd={isVis?e=>e.target.style.opacity='1':undefined}
-          onDragOver={isVis?e=>{e.preventDefault();e.currentTarget.style.borderTop='2px solid var(--primary)';const from=e.currentTarget.parentNode._dragId;if(from&&from!==col.id){const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(col.id);nxt.splice(toIdx,0,from);setVisCols(nxt);localStorage.setItem(COL_KEY+'_'+whType,JSON.stringify(nxt))}}:undefined}
-          onDragLeave={isVis?e=>e.currentTarget.style.borderTop='1px solid transparent':undefined}
-          onDrop={isVis?e=>{e.preventDefault();e.currentTarget.style.borderTop='1px solid transparent';const from=e.dataTransfer.getData('text/plain');if(from===col.id)return;const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(col.id);nxt.splice(toIdx,0,from);setVisCols(nxt);localStorage.setItem(COL_KEY+'_'+whType,JSON.stringify(nxt));e.currentTarget.parentNode._dragId=null}:undefined}
-          onTouchStart={isVis?e=>{const t=e.touches[0];e.currentTarget._dragStart={x:t.clientX,y:t.clientY,id:col.id}}:undefined}
-          onTouchMove={isVis?e=>{e.preventDefault();const t=e.touches[0];const el=document.elementFromPoint(t.clientX,t.clientY);if(el&&el!==e.currentTarget&&el._dragStart)el.style.borderTop='2px solid var(--primary)'}:undefined}
-          onTouchEnd={isVis?e=>{const start=e.currentTarget._dragStart;if(!start)return;const t=e.changedTouches[0];const dropEl=document.elementFromPoint(t.clientX,t.clientY);if(dropEl&&dropEl._dragStart&&dropEl._dragStart.id!==start.id){const from=start.id;const to=dropEl._dragStart.id;const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(to);nxt.splice(toIdx,0,from);setVisCols(nxt);localStorage.setItem(COL_KEY+'_'+whType,JSON.stringify(nxt))}}:undefined}
-          style={{display:'flex',alignItems:'center',gap:4,padding:'4px 6px',borderRadius:6,cursor:isVis?'grab':'default',fontSize:12,whiteSpace:'nowrap',borderTop:'1px solid transparent',background:isVis?'var(--card)':'transparent',opacity:isVis?1:0.4,userSelect:'none',WebkitUserSelect:'none'}}>
-          <span style={{color:'var(--muted2)',fontSize:12,width:16,flexShrink:0,textAlign:'center',cursor:isVis?'grab':'default'}}>{isVis?'⠿':'○'}</span>
-          <input type='checkbox' checked={isVis} onChange={e=>{const n=e.target.checked?[...visCols,col.id]:visCols.filter(c=>c!==col.id);setVisCols(n);localStorage.setItem(COL_KEY+'_'+whType,JSON.stringify(n))}} style={{accentColor:'var(--primary)'}} />
-          <span style={{flex:1}}>{col.label}</span>
-          <span style={{fontSize:9,color:'var(--muted2)'}}>{isVis?'#'+(visCols.indexOf(col.id)+1):''}</span>
-        </div>
-      })}
-      <div style={{borderTop:'1px solid var(--border)',marginTop:4,paddingTop:4}}>
-        <span onClick={()=>{const d=WH_COLS[whType].map(c=>c.id);setVisCols(d);localStorage.setItem(COL_KEY+'_'+whType,JSON.stringify(d));setShowPicker(false)}} className='btn btn-ghost' style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>全部</span>
-      </div>
-    </div>}
-        </span>
-        <button onClick={async()=>{try{const r=await fetch(API+'/api/insights/export-inventory');const b=await r.blob();const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='inventory_'+new Date().toISOString().slice(0,10)+'.csv';document.body.appendChild(a);a.click();a.remove()}catch(e){toast.error('导出失败')}}}
-          className='btn btn-ghost' style={{fontSize:12,padding:'4px 12px',display:'flex',alignItems:'center',gap:4}}><IconExport size={14} /> 导出</button>
-      </span>
-    </div>
-    <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap',alignItems:'center'}}>
-      <div className='search-bar' style={{maxWidth:200,flex:'none'}}>
-        <IconSearch size={16} style={{color:'var(--muted2)',flexShrink:0}} />
-        <input value={s} onChange={e=>setS(e.target.value)} placeholder='搜索SKU/商品名' enterKeyHint='search' autoCorrect='off' />
-      </div>
-      <select value={whType} onChange={e=>{const v=e.target.value;setWhType(v);const d=WH_COLS[v].map(c=>c.id);setVisCols(getVis(v)||d);localStorage.setItem(COL_KEY+'_'+v,JSON.stringify(d))}} style={{fontSize:16,padding:'8px 12px',border:'1px solid var(--border)',borderRadius:32,outline:'none',background:'var(--gray)',marginLeft:'auto'}}>
-        <option value='own'>自有仓</option>
-        <option value='platform'>平台仓</option>
-        {globalChannel==='jd' && <option value='platform_b'>B仓</option>}
-      </select>
     </div>
     {loading ? <div>{[1,2,3,4].map(i=><div key={i} className='skeleton' style={{height:36,marginBottom:4}}/>)}</div>
     : fl.length === 0

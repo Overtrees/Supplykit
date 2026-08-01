@@ -63,26 +63,23 @@ export default function RulesPage() {
   const loadSeasons = async (mode, ch) => { try { clearCache(); clearInflight(); const m=mode||cfg.replenishment_mode||'bbcc'; const c=ch||globalChannel; const r=await api.get('/api/replenishment-config/seasons?mode='+m+'&channel='+c); setSeasons(r.data||[]) } catch(e) {} }
   const loadAll = async (ch) => { setLoading(true); const c=ch||globalChannel; const savedMode=localStorage.getItem('c_replen_mode'); const m=c!=='jd'?'traditional':(savedMode||'bbcc'); await load(c); try{const flat=await api.get('/api/replenishment-config?channel='+c);if(flat.data)setCfg(p=>({...p,...flat.data,replenishment_mode:m}))}catch(e){} await loadCfg(m,c); await loadSeasons(m,c); setLoading(false) }
   useEffect(() => { loadAll() }, [globalChannel])
-  // tab 切换时刷新对应配置（原页面按钮行为保留）
+  // tab/模式切换时加载配置，补货参数页加骨架过渡
   useEffect(() => {
-    if (tab === 'params' || tab === 'purchase') {
-      const m = localStorage.getItem('c_replen_mode') || 'bbcc'
-      loadCfg(m)
-      if (tab === 'params') loadSeasons(m)
+    if (tab === 'params') {
+      setLoading(true)
+      Promise.all([loadCfg(hammerRulesMode), loadSeasons(hammerRulesMode)])
+        .catch(() => {})
+        .finally(() => setLoading(false))
+    } else if (tab === 'purchase') {
+      loadCfg(hammerRulesMode)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab])
+  }, [tab, hammerRulesMode])
   // 锤子菜单"新建规则"触发
   useEffect(() => {
     if (hammerRuleNewVersion > 0) resetForm()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hammerRuleNewVersion])
-  // 锤子菜单补货模式切换
-  useEffect(() => {
-    loadCfg(hammerRulesMode)
-    loadSeasons(hammerRulesMode)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hammerRulesMode])
 
   const resetForm = () => { setEditing({}); setF(defaultF); setCond({left:'inv.available_qty', op:'<', right:'inv.safety_qty', rightType:'field', pctValue:100}) }
   const cancelEdit = () => { setEditing(null); setF(defaultF); setCond({left:'inv.available_qty', op:'<', right:'inv.safety_qty', rightType:'field', pctValue:100}) }
@@ -106,7 +103,7 @@ export default function RulesPage() {
   const paramFields = isBBCC ? [] : [{k:'lead_time_days',l:'前置期(天)'},{k:'safety_multiplier',l:'安全库存天数'},{k:'turnover_warning_90',l:'周转考核红线(天)'}]
   const purchaseFields = [{k:'purchase_lead_days',l:'采购前置(天)'},{k:'purchase_safety_days',l:'采购安全库存(天)'},{k:'moq',l:'MOQ最小起订(件)'},{k:'max_turnover_days',l:'目标周转(天)'}]
 
-  if (loading) return <div className='card'><div className='section-title'><div className="skeleton" style={{width:200,height:20}}/></div>{[1,2,3].map(i=><div key={i} className="skeleton" style={{width:'100%',height:36,marginBottom:8}}/>)}</div>
+  if (loading) return <div className='card'><div className='section-title'><div className="skeleton" style={{width:120,height:20}}/></div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>{[1,2,3,4,5,6].map(i=><div key={i}><div className="skeleton" style={{width:64,height:12,marginBottom:6}}/><div className="skeleton" style={{width:'100%',height:36}}/></div>)}</div><div style={{marginTop:16}}><div className="skeleton" style={{width:80,height:36,borderRadius:99}}/></div></div>
 
   return <div className='card'>
     <div className='section-title' style={{display:'flex',flexWrap:'wrap',gap:6}}>

@@ -518,10 +518,20 @@ function HammerInsights({ channel }) {
       {/* 功能按钮行 */}
       <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
         {hammerInsightsTab === 'replen' && <>
-          <button onClick={() => setHammerPanel(hammerPanel === 'mode' ? null : 'mode')}
-            className="btn btn-ghost" style={{flex:1,minWidth:0,fontSize:12,minHeight:32,padding:'4px 8px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',boxSizing:'border-box'}}>
-            {mode === 'bbcc' ? 'BBCC' : '传统'}
-          </button>
+          <div style={{display:'flex',gap:4,flex:1,minWidth:0}}>
+            {channel === 'jd' && (
+              <span onClick={() => setHammerReplenMode('bbcc')}
+                style={{flex:1,minWidth:0,fontSize:12,minHeight:32,padding:'4px 8px',borderRadius:99,cursor:'pointer',textAlign:'center',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',boxSizing:'border-box',
+                  background: mode==='bbcc'?'var(--primary)':'var(--gray)',color: mode==='bbcc'?'#fff':'var(--text)',fontWeight: mode==='bbcc'?600:400}}>
+                BBCC
+              </span>
+            )}
+            <span onClick={() => setHammerReplenMode('traditional')}
+              style={{flex:1,minWidth:0,fontSize:12,minHeight:32,padding:'4px 8px',borderRadius:99,cursor:'pointer',textAlign:'center',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',boxSizing:'border-box',
+                background: mode==='traditional'?'var(--primary)':'var(--gray)',color: mode==='traditional'?'#fff':'var(--text)',fontWeight: mode==='traditional'?600:400}}>
+              传统
+            </span>
+          </div>
           <button onClick={() => setHammerPanel(hammerPanel === 'columns' ? null : 'columns')}
             className="btn btn-ghost" style={{flex:1,minWidth:0,fontSize:12,minHeight:32,padding:'4px 8px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',boxSizing:'border-box'}}>
             列选择 ({visCols.length}/{cols.length})
@@ -570,26 +580,6 @@ function HammerInsights({ channel }) {
           <div style={{borderTop:'1px solid var(--border)',marginTop:4,paddingTop:4,display:'flex',gap:6}}>
             <span onClick={()=>saveCols(mode==='bbcc'?insDefVis(INS_BBCC_COLS):insDefVisTrad(INS_TRAD_COLS))} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>默认</span>
             <span onClick={()=>saveCols(cols.map(c=>c.id))} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>全部</span>
-          </div>
-        </div>
-      )}
-      {/* 模式面板 */}
-      {hammerPanel === 'mode' && hammerInsightsTab === 'replen' && (
-        <div style={{borderTop:'1px solid var(--border)',paddingTop:8,marginTop:8}}>
-          <div style={{fontSize:10,color:'var(--muted2)',marginBottom:4}}>补货模式</div>
-          <div style={{display:'flex',gap:4}}>
-            {channel === 'jd' && (
-              <span onClick={() => setHammerReplenMode('bbcc')}
-                style={{flex:1,minWidth:0,fontSize:12,padding:'4px 8px',borderRadius:99,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',boxSizing:'border-box',cursor:'pointer',textAlign:'center',
-                  background: mode==='bbcc'?'var(--primary)':'var(--gray)',color: mode==='bbcc'?'#fff':'var(--text)',fontWeight: mode==='bbcc'?600:400}}>
-                BBCC
-              </span>
-            )}
-            <span onClick={() => setHammerReplenMode('traditional')}
-              style={{flex:1,minWidth:0,fontSize:12,padding:'4px 8px',borderRadius:99,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',boxSizing:'border-box',cursor:'pointer',textAlign:'center',
-                background: mode==='traditional'?'var(--primary)':'var(--gray)',color: mode==='traditional'?'#fff':'var(--text)',fontWeight: mode==='traditional'?600:400}}>
-              传统多仓
-            </span>
           </div>
         </div>
       )}

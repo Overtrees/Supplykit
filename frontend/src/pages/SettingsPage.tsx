@@ -60,6 +60,30 @@ export default function SettingsPage() {
     toast('缓存已清除')
   }
 
+  const [seeding, setSeeding] = useState(false)
+  const [resetting, setResetting] = useState(false)
+
+  const doSeed = async () => {
+    setSeeding(true)
+    try {
+      const r = await fetch('https://overtrees.pythonanywhere.com/api/seed/fill', {method:'POST'})
+      const d = await r.json()
+      if (d.ok) toast('种子数据已填充')
+      else toast('填充失败')
+    } catch { toast('填充失败') }
+    setSeeding(false)
+  }
+
+  const doReset = async () => {
+    if (!confirm('确认重置所有数据？此操作不可恢复！')) return
+    setResetting(true)
+    try {
+      await fetch('https://overtrees.pythonanywhere.com/api/seed/reset', {method:'POST'})
+      toast('数据已重置')
+    } catch { toast('重置失败') }
+    setResetting(false)
+  }
+
   const sections = [
     {
       title: '连接状态',
@@ -84,6 +108,12 @@ export default function SettingsPage() {
       title: '存储',
       items: [
         { label: '本地缓存', value: cacheSize > 0 ? `${cacheSize}KB` : '无' },
+      ]
+    },
+    {
+      title: '种子数据',
+      items: [
+        { label: '状态', value: '数据已清空，可一键填充' },
       ]
     },
   ]
@@ -115,6 +145,23 @@ export default function SettingsPage() {
         <button onClick={clearLocalCache} className="btn btn-ghost" style={{flex:1,fontSize:13}}>
           清除缓存
         </button>
+      </div>
+
+      <div style={{marginTop:20,borderTop:'0.5px solid var(--border)',paddingTop:16}}>
+        <div style={{fontSize:13,fontWeight:600,color:'var(--muted)',marginBottom:8,textTransform:'uppercase',letterSpacing:0.5}}>
+          种子数据
+        </div>
+        <div style={{fontSize:12,color:'var(--muted2)',marginBottom:12}}>
+          填充演示数据用于测试，重置将清空所有业务数据
+        </div>
+        <div style={{display:'flex',gap:8}}>
+          <button onClick={doSeed} disabled={seeding} className="btn btn-primary" style={{flex:1,fontSize:13}}>
+            {seeding ? '填充中...' : '一键填充'}
+          </button>
+          <button onClick={doReset} disabled={resetting} className="btn btn-danger" style={{flex:1,fontSize:13}}>
+            {resetting ? '重置中...' : '一键重置'}
+          </button>
+        </div>
       </div>
 
       <div style={{textAlign:'center',marginTop:24,fontSize:11,color:'var(--muted2)'}}>

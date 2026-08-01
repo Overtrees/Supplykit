@@ -176,7 +176,7 @@ function HammerSuppliers({ channel }) {
 /* 订单页: 锤子菜单列选择器 + 搜索 + 筛选 + 导出 */
 const ORDER_COLS = [
   {id:'order_no',label:'订单号'},{id:'barcode',label:'69码'},{id:'store',label:'店铺'},{id:'warehouse',label:'仓库'},
-  {id:'product',label:'商品'},{id:'amount',label:'金额'},{id:'status',label:'状态'},{id:'date',label:'日期'},
+  {id:'product',label:'商品'},{id:'amount',label:'金额'},{id:'status',label:'状态'},{id:'date',label:'下单日期'},{id:'paid_at',label:'库时间'},
 ]
 const ORDER_STATUSES = ['','已完成','待发货','已发货','待确认','申请退款']
 const orderColKey = (ch) => 'c_cols_orders_' + ch

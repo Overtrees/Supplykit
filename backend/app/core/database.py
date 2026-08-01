@@ -575,6 +575,8 @@ def init_db(path=None):
     except: pass
     try: conn.execute("ALTER TABLE products ADD COLUMN unit TEXT DEFAULT ''")
     except: pass
+    try: conn.execute("ALTER TABLE suppliers ADD COLUMN channel TEXT DEFAULT 'jd'")
+    except: pass
     try: conn.execute("ALTER TABLE alerts ADD COLUMN channel TEXT DEFAULT 'jd'")
     except: pass
     try: conn.execute("ALTER TABLE inventory ADD COLUMN warehouse_type TEXT DEFAULT 'platform'")

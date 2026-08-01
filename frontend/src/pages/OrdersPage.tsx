@@ -7,7 +7,7 @@ import ConfirmDialog from '../components/ConfirmDialog'
 const COLS = [
   {id:'order_no',label:'订单号'},{id:'barcode',label:'69码'},{id:'store',label:'店铺'},{id:'warehouse',label:'仓库'},
   {id:'product',label:'商品'},{id:'amount',label:'金额'},{id:'status',label:'状态'},
-  {id:'date',label:'日期'},
+  {id:'date',label:'下单日期'},{id:'paid_at',label:'库时间'},
 ]
 const COL_KEY = () => 'c_cols_orders_' + (useAppStore.getState().channel || 'jd')
 const getVis=()=>{try{return JSON.parse(localStorage.getItem(COL_KEY())||'null')}catch{return null}}
@@ -79,6 +79,7 @@ export default function OrdersPage() {
             if(col.id==='amount')return <td key={col.id} className="col-price">¥{Number(x.total_amount).toLocaleString()}</td>
             if(col.id==='status')return <td key={col.id}><span className={`pill ${x.order_status==='已完成'?'success':x.order_status==='待发货'?'warning':x.order_status==='已发货'?'info':x.order_status==='申请退款'?'danger':''}`}>{x.order_status}</span></td>
             if(col.id==='date')return <td key={col.id} className="col-date">{x.ordered_at}</td>
+            if(col.id==='paid_at')return <td key={col.id} className="col-date">{x.paid_at||'-'}</td>
 
             return <td key={col.id} className="small muted" style={{fontSize:11}}>-</td>
           })}</tr>

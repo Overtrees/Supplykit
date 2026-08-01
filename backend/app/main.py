@@ -52,6 +52,7 @@ from app.api.routes.products import router as products_router
 from app.api.routes.suppliers import router as suppliers_router
 from app.api.routes.insights import router as insights_router
 from app.api.routes.purchase_orders import router as purchase_orders_router
+from app.api.routes.seed import router as seed_router
 from app.api.routes.purchase import router as purchase_router
 from app.api.routes.replenishment import router as replenishment_router
 from app.api.routes.records import router as records_router
@@ -140,6 +141,7 @@ app.include_router(records_router)
 app.include_router(purchase_router)
 app.include_router(replenishment_router)
 app.include_router(insights_router)
+app.include_router(seed_router)
 app.include_router(purchase_orders_router)
 
 @app.get("/")

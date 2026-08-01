@@ -322,7 +322,9 @@ function HammerInventory({ channel }) {
   const [visCols, setVisCols] = useState(() => getInvVis(hammerWhType) || INV_COLS[hammerWhType].map(c => c.id))
 
   useEffect(() => {
-    setVisCols(getInvVis(hammerWhType) || INV_COLS[hammerWhType].map(c => c.id))
+    const saved = getInvVis(hammerWhType) || INV_COLS[hammerWhType].map(c => c.id)
+    setVisCols(saved)
+    setHammerCols('inventory_' + hammerWhType, saved)
   }, [hammerWhType])
 
   const saveCols = (cols) => {
@@ -463,7 +465,9 @@ function HammerInsights({ channel }) {
   const [visCols, setVisCols] = useState(() => getInsVis(mode) || (mode==='bbcc'?insDefVis(INS_BBCC_COLS):insDefVisTrad(INS_TRAD_COLS)))
 
   useEffect(() => {
-    setVisCols(getInsVis(mode) || (mode==='bbcc'?insDefVis(INS_BBCC_COLS):insDefVisTrad(INS_TRAD_COLS)))
+    const saved = getInsVis(mode) || (mode==='bbcc'?insDefVis(INS_BBCC_COLS):insDefVisTrad(INS_TRAD_COLS))
+    setVisCols(saved)
+    setHammerCols('insights_' + mode, saved)
   }, [mode])
 
   const saveCols = (c) => {

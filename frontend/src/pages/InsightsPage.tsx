@@ -86,7 +86,15 @@ export default function InsightsPage() {
   const [visCols, setVisCols] = useState(() => getVis(replenMode) || (replenMode==='bbcc'?defVis(BBCC_COLS):defVisTrad(TRAD_COLS)))
   const reqSeq = useRef(0)
 
-  useEffect(() => { if (hammerCols?.['insights_'+replenMode]) setVisCols(hammerCols['insights_'+replenMode]) }, [hammerCols, replenMode])
+  useEffect(() => {
+    const saved = hammerCols?.['insights_'+replenMode]
+    if (saved) setVisCols(saved)
+    else {
+      const ls = getVis(replenMode)
+      if (ls) setVisCols(ls)
+      else setVisCols(replenMode==='bbcc'?defVis(BBCC_COLS):defVisTrad(TRAD_COLS))
+    }
+  }, [hammerCols, replenMode])
   const loadReplen = async (mode, ch) => {
     const seq = ++reqSeq.current
     setReplenLoading(true)

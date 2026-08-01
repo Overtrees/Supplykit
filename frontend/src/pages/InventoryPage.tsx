@@ -34,7 +34,15 @@ export default function InventoryPage({ highlightSku }) {
   const { channel: globalChannel, hammerWhType, hammerCols, hammerSearch } = useAppStore()
   const whType = hammerWhType
 
-  useEffect(() => { if (hammerCols?.['inventory_'+whType]) setVisCols(hammerCols['inventory_'+whType]) }, [hammerCols, whType])
+  useEffect(() => {
+    const saved = hammerCols?.['inventory_'+whType]
+    if (saved) setVisCols(saved)
+    else {
+      const ls = getVis(whType)
+      if (ls) setVisCols(ls)
+      else setVisCols(WH_COLS[whType].map(c => c.id))
+    }
+  }, [hammerCols, whType])
 
   const loadInv = async () => {
     setLoading(true)

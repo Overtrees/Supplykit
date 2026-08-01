@@ -81,7 +81,7 @@ export default function Sidebar({ page, onClose, onNavigate, lowStock, errCount,
                     {item.id === 'products' && '商品管理'}
                     {item.id === 'suppliers' && '供应商管理'}
                     {item.id === 'cleansing' && '数据清洗导入'}
-                    {item.id === 'rules' && '规则搭建'}
+                    {item.id === 'rules' && '规则与参数的配置'}
                     {item.id === 'quality' && '数据异常记录'}
                     {item.id === 'settings' && '系统设置与连接状态'}
                   </span>

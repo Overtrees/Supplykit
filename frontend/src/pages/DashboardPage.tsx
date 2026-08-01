@@ -25,7 +25,7 @@ export default function DashboardPage({ onAlert }) {
   const periodMeta = dashboard?.periods?.[periodTab] || {}
 
   const periodTrendOption = useMemo(() => ({
-    tooltip: { trigger: 'axis', valueFormatter: (v) => '¥' + Number(v).toLocaleString('zh-CN', {minimumFractionDigits:2,maximumFractionDigits:2}) },
+    tooltip: { trigger: 'axis', valueFormatter: (v) => '¥' + Number(v).toLocaleString('zh-CN', {minimumFractionDigits:2,maximumFractionDigits:2}), extraCssText: 'z-index:1000', hideDelay: 100 },
     xAxis: { type: 'category', data: periodTrend.map(i => i['日期']) || [], axisLabel: { fontSize: 9 } },
     yAxis: [
       { type: 'value', axisLabel: { fontSize: 9, formatter: (v) => v >= 10000 ? (v/10000).toFixed(0) + 'W' : v }, max: (v) => Math.ceil(v.max * 1.2 / 1000) * 1000 },
@@ -40,7 +40,7 @@ export default function DashboardPage({ onAlert }) {
   }), [periodTrend])
 
   const storeOption = useMemo(() => ({
-    tooltip: { trigger: 'axis', valueFormatter: (v) => '¥' + Number(v).toLocaleString('zh-CN', {minimumFractionDigits:2,maximumFractionDigits:2}) },
+    tooltip: { trigger: 'axis', valueFormatter: (v) => '¥' + Number(v).toLocaleString('zh-CN', {minimumFractionDigits:2,maximumFractionDigits:2}), extraCssText: 'z-index:1000', hideDelay: 100 },
     xAxis: { type: 'category', data: dashboard?.stores?.map(i => i.name) || [], axisLabel: { fontSize: 9 } },
     yAxis: { type: 'value', axisLabel: { fontSize: 9, formatter: (v) => v >= 10000 ? (v/10000).toFixed(0) + 'W' : v }, max: (v) => Math.ceil(v.max * 1.2 / 1000) * 1000 },
     series: [{ type: 'bar', data: dashboard?.stores?.map((i, idx) => ({ value: Math.round(i.gmv * 100) / 100, itemStyle: { color: ['#f59e0b','#06b6d4','#8b5cf6','#ec4899','#10b981','#f97316'][idx % 6] } })) || [] }],
@@ -52,7 +52,7 @@ export default function DashboardPage({ onAlert }) {
     const names = f.map(x => x.name)
     const values = f.map(x => x.value)
     return {
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: (p) => {
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, extraCssText: 'z-index:1000', hideDelay: 100, formatter: (p) => {
         const idx = p[0]?.dataIndex ?? 0; const item = f[idx]
         return `${item.name}<br/>数量: ${item.value}单<br/>占比: ${item.percentage}%<br/>转化率: ${item.conversion}%`
       }},

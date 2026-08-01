@@ -70,6 +70,8 @@ export default function DashboardPage({ onAlert }) {
   const lowStock = (inventory||[]).filter(x => Number(x.available_qty) < Number(x.safety_qty)).length
   const errCount = (qualityLogs||[]).length
   const alertsList = Array.isArray(alerts) ? alerts.filter(x => x.status === 'active') : []
+  const lowStockAlerts = alertsList.filter(x => x.alert_type !== 'replenish')
+  const replenishAlerts = alertsList.filter(x => x.alert_type === 'replenish')
 
   if (chLoading) return <div className="card" style={{padding:16}}>{[1,2,3,4,5,6].map(i=><div key={i} className="skeleton" style={{height:80,marginBottom:8,borderRadius:24}}/>)}</div>
   return <div>
@@ -114,19 +116,35 @@ export default function DashboardPage({ onAlert }) {
 
     <div className="chart-row-3">
       <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title">店铺 GMV</div><Chart option={storeOption} height={170} /></div>
-      <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title">低库存 & 补货告警</div>
-        {alertsList.length === 0
-          ? <div className="small muted" style={{ padding: 12, textAlign: 'center' }}>暂无告警</div>
-          : alertsList.slice(0, 6).map(x => (
-              <div key={x.id} onClick={() => onAlert && onAlert(x.related_sku)} style={{ padding: '6px 0', borderBottom: '1px solid var(--border)', fontSize: 13, cursor: 'pointer' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                  <span style={{ fontWeight: 600, fontSize: 12 }}>{x.title}</span>
-                  <span className={'pill '+(x.alert_type==='replenish'||x.severity==='error'?'danger':x.severity==='warning'?'warning':'info')}>{x.alert_type==='replenish'?'补货':(x.severity==='warning'?'警告':x.severity==='error'?'超储':x.severity)}</span>
+      <div className="card" style={{height:'auto',overflow:'visible'}}>
+        <div className="section-title">低库存告警</div>
+        {lowStockAlerts.length === 0
+          ? <div className="small muted" style={{padding:12,textAlign:'center'}}>暂无告警</div>
+          : lowStockAlerts.slice(0,5).map(x => (
+              <div key={x.id} onClick={() => onAlert && onAlert(x.related_sku)} style={{padding:'6px 0',borderBottom:'1px solid var(--border)',fontSize:13,cursor:'pointer'}}>
+                <div style={{display:'flex',justifyContent:'space-between',gap:8}}>
+                  <span style={{fontWeight:600,fontSize:12}}>{x.title}</span>
+                  <span className={'pill '+(x.severity==='error'?'danger':'warning')}>{x.severity==='warning'?'警告':'超储'}</span>
                 </div>
-                <div className="small muted" style={{ fontSize: 11 }}>{x.description}</div>
+                <div className="small muted" style={{fontSize:11}}>{x.description}</div>
               </div>
             ))}
-        {alertsList.length > 6 && <div className="small muted" style={{ textAlign: 'center', padding: 6 }}>还有 {alertsList.length - 6} 条...</div>}
+        {lowStockAlerts.length > 5 && <div className="small muted" style={{textAlign:'center',padding:6}}>还有 {lowStockAlerts.length - 5} 条...</div>}
+      </div>
+      <div className="card" style={{height:'auto',overflow:'visible'}}>
+        <div className="section-title">补货告警</div>
+        {replenishAlerts.length === 0
+          ? <div className="small muted" style={{padding:12,textAlign:'center'}}>暂无告警</div>
+          : replenishAlerts.slice(0,5).map(x => (
+              <div key={x.id} onClick={() => onAlert && onAlert(x.related_sku)} style={{padding:'6px 0',borderBottom:'1px solid var(--border)',fontSize:13,cursor:'pointer'}}>
+                <div style={{display:'flex',justifyContent:'space-between',gap:8}}>
+                  <span style={{fontWeight:600,fontSize:12}}>{x.title}</span>
+                  <span className="pill danger">补货</span>
+                </div>
+                <div className="small muted" style={{fontSize:11}}>{x.description}</div>
+              </div>
+            ))}
+        {replenishAlerts.length > 5 && <div className="small muted" style={{textAlign:'center',padding:6}}>还有 {replenishAlerts.length - 5} 条...</div>}
       </div>
     </div>
   </div>

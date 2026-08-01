@@ -65,7 +65,6 @@ export default function SettingsPage() {
 
   const [seeding, setSeeding] = useState(false)
   const [resetting, setResetting] = useState(false)
-  const [seedStatus, setSeedStatus] = useState('数据已清空，可一键填充')
 
   const doSeed = async () => {
     setSeeding(true)
@@ -73,8 +72,9 @@ export default function SettingsPage() {
       const r = await fetch('https://overtrees.pythonanywhere.com/api/seed/fill', {method:'POST'})
       const d = await r.json()
       if (d.ok) {
-        toast.success('种子数据已填充')
-        setSeedStatus(`已填充: ${d.data.products} 商品 · ${d.data.suppliers} 供应商 · ${d.data.inventory} 库存 · ${d.data.orders} 订单`)
+        clearCache(); clearInflight()
+        toast.success('种子数据已填充，即将刷新')
+        setTimeout(() => window.location.reload(), 1500)
       } else toast.error('填充失败')
     } catch { toast.error('填充失败') }
     setSeeding(false)
@@ -88,7 +88,6 @@ export default function SettingsPage() {
       clearCache(); clearInflight()
       useAppStore.setState({ dashboard: null, alerts: [], stockRisk: [] })
       toast.success('数据已重置，即将刷新')
-      setSeedStatus('数据已清空，可一键填充')
       setTimeout(() => window.location.reload(), 1500)
     } catch { toast.error('重置失败') }
     setResetting(false)
@@ -120,13 +119,7 @@ export default function SettingsPage() {
         { label: '本地缓存', value: cacheSize > 0 ? `${cacheSize}KB` : '无' },
       ]
     },
-    {
-      title: '种子数据',
-      items: [
-        { label: '状态', value: seedStatus },
-      ]
-    },
-  ]
+    ]
 
   return (
     <div className="card" style={{maxWidth:500,margin:'0 auto'}}>
@@ -160,9 +153,6 @@ export default function SettingsPage() {
       <div style={{marginTop:20,borderTop:'0.5px solid var(--border)',paddingTop:16}}>
         <div style={{fontSize:13,fontWeight:600,color:'var(--muted)',marginBottom:8,textTransform:'uppercase',letterSpacing:0.5}}>
           种子数据
-        </div>
-        <div style={{fontSize:12,color:'var(--muted2)',marginBottom:12}}>
-          {seedStatus.startsWith('已填充') ? '点击重置可清空所有数据' : '填充演示数据用于测试，重置将清空所有业务数据'}
         </div>
         <div style={{display:'flex',gap:8}}>
           <button onClick={doSeed} disabled={seeding} className="btn btn-primary" style={{flex:1,fontSize:13}}>

@@ -48,21 +48,14 @@ input,select,button,textarea{font-family:inherit;font-size:16px}input[type="file
 /* 响应式卡片网格 */
 .card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
 
-/* 响应式图表区域 - 2列 */
-.chart-row{display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:16px}
-@media(min-width:640px){.chart-row{grid-template-columns:1.3fr 1fr}}
+/* 中卡（图表卡）— 始终2列并排 */
+.mid-chart-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:16px}
+@media(min-width:640px){.mid-chart-grid{grid-template-columns:1fr 1fr}}
 
-/* 响应式图表区域 - 3列 */
-.chart-row-3{display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:16px}
+/* 大卡（告警卡）— 自适应 */
+.chart-row-3{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:16px}
+@media(min-width:640px){.chart-row-3{grid-template-columns:1fr 1fr}}
 @media(min-width:1024px){.chart-row-3{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}}
-@media(orientation:landscape) and (max-height:500px){.chart-row-3{grid-template-columns:1fr 1fr;gap:8px}}
-
-/* 横屏手机微调 */
-@media(orientation:landscape) and (max-height:500px){
-  .mid-card-compact{padding:10px}
-  .mid-card-compact .section-title{font-size:13px;margin-bottom:6px}
-  .chart-row-3{gap:8px}
-}
 
 /* 流体排版 - 根据容器宽度自适应字号 */
 .card{container-type:inline-size}.card-value{font-size:clamp(16px,8cqi,28px);font-weight:700;overflow-wrap:break-word;line-height:1.2}.card-sub{font-size:clamp(11px,3cqi,13px);margin-top:4px}

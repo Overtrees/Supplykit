@@ -86,20 +86,27 @@ def seed_fill(db=get_db()):
 
 @router.post("/reset")
 def seed_reset(db=get_db()):
-    # 直接用 SQLite 原生连接清空（绕过 builder 层）
     conn = get_conn()
     conn.execute("PRAGMA busy_timeout=10000")
-    tables = ['orders','inventory','products','suppliers','alerts','quality_logs','events',
-              'purchase_orders','replenishment_config_history','cleansing_templates','custom_fields',
-              'replenishment_config','rules']
-    for t in tables:
-        try:
-            conn.execute(f'DELETE FROM "{t}"')
-        except Exception:
-            pass
+    conn.execute("PRAGMA foreign_keys=OFF")
+    conn.executescript("""
+        DELETE FROM orders;
+        DELETE FROM inventory;
+        DELETE FROM products;
+        DELETE FROM suppliers;
+        DELETE FROM alerts;
+        DELETE FROM quality_logs;
+        DELETE FROM events;
+        DELETE FROM purchase_orders;
+        DELETE FROM replenishment_config_history;
+        DELETE FROM cleansing_templates;
+        DELETE FROM custom_fields;
+        DELETE FROM replenishment_config;
+        DELETE FROM rules;
+    """)
+    conn.execute("PRAGMA foreign_keys=ON")
     conn.commit()
-    invalidate()  # 清除看板缓存
-    # 重新初始化种子规则
+    invalidate()
     from app.core.database import _seed_builtin_rules
     try:
         _seed_builtin_rules()

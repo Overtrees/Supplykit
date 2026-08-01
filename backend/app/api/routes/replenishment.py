@@ -299,13 +299,13 @@ def export_inventory_excel(channel: str = 'jd', wh_type: str = '', db = get_db()
 
 
 @router.get('/export-purchase')
-def export_purchase_excel(days: int = 28, mode: str = 'bbcc', db = get_db()):
+def export_purchase_excel(days: int = 28, mode: str = 'bbcc', channel: str = 'jd', db = get_db()):
     """导出补货建议为 Excel"""
     from openpyxl import Workbook
     from io import BytesIO; from fastapi.responses import Response; from urllib.parse import quote
     from datetime import timedelta
 
-    data = get_replenishment_suggestions(days=days, source='', mode=mode, db=db)
+    data = get_replenishment_suggestions(days=days, source='', mode=mode, channel=channel, db=db)
     replen = data.get("data") if isinstance(data, dict) and "data" in data else data
 
     wb = Workbook(); ws = wb.active; ws.title = "补货建议"

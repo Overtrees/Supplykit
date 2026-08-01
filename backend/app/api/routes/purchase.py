@@ -160,14 +160,14 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', channel: str = 
 
 
 @router.get('/export-purchase-suggestions')
-def export_purchase_suggestions_excel(days: int = 28, mode: str = 'bbcc', db = get_db()):
+def export_purchase_suggestions_excel(days: int = 28, mode: str = 'bbcc', channel: str = 'jd', db = get_db()):
     """导出采购建议为 Excel"""
     from openpyxl import Workbook
     from io import BytesIO
     from fastapi.responses import Response
     from urllib.parse import quote
 
-    data = get_purchase_suggestions(days=days, mode=mode, db=db)
+    data = get_purchase_suggestions(days=days, mode=mode, channel=channel, db=db)
     suggestions = data.get("data") if isinstance(data, dict) and "data" in data else data
 
     wb = Workbook()

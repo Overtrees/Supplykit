@@ -10,6 +10,14 @@ export default function DashboardPage({ onAlert }) {
   const [healthTab, setHealthTab] = useState(() => localStorage.getItem('health_tab') || 'platform')
   const { dashboard, inventory, qualityLogs, alerts, stockRisk, channel, loading, hammerDashPeriod: periodTab } = useAppStore()
   const [chLoading, setChLoading] = useState(false)
+  const [isLandscape, setIsLandscape] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(orientation:landscape) and (max-height:500px)')
+    setIsLandscape(mq.matches)
+    const handler = (e) => setIsLandscape(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
   useEffect(() => {
     setChLoading(true)
     Promise.all([
@@ -111,12 +119,12 @@ export default function DashboardPage({ onAlert }) {
     </div>
 
     <div className="chart-row">
-      <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title">订单阶段转化</div><Chart option={funnelOption} height={200} /></div>
+      <div className={'card'+(isLandscape?' mid-card-compact':'')} style={{height:'auto',overflow:'visible'}}><div className="section-title">订单阶段转化</div><Chart option={funnelOption} height={isLandscape ? 110 : 200} /></div>
     </div>
 
     <div className="chart-row-3">
-      <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title">店铺 GMV</div><Chart option={storeOption} height={170} /></div>
-      <div className="card" style={{height:'auto',overflow:'visible'}}>
+      <div className={'card'+(isLandscape?' mid-card-compact':'')} style={{height:'auto',overflow:'visible'}}><div className="section-title">店铺 GMV</div><Chart option={storeOption} height={isLandscape ? 100 : 170} /></div>
+      <div className={'card'+(isLandscape?' mid-card-compact':'')} style={{height:'auto',overflow:'visible'}}>
         <div className="section-title">低库存告警</div>
         {lowStockAlerts.length === 0
           ? <div className="small muted" style={{padding:12,textAlign:'center'}}>暂无告警</div>
@@ -131,7 +139,7 @@ export default function DashboardPage({ onAlert }) {
             ))}
         {lowStockAlerts.length > 5 && <div className="small muted" style={{textAlign:'center',padding:6}}>还有 {lowStockAlerts.length - 5} 条...</div>}
       </div>
-      <div className="card" style={{height:'auto',overflow:'visible'}}>
+      <div className={'card'+(isLandscape?' mid-card-compact':'')} style={{height:'auto',overflow:'visible'}}>
         <div className="section-title">补货告警</div>
         {replenishAlerts.length === 0
           ? <div className="small muted" style={{padding:12,textAlign:'center'}}>暂无告警</div>

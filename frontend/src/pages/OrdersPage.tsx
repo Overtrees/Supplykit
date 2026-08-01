@@ -5,9 +5,9 @@ import { useToast } from '../components/Toast'
 import ConfirmDialog from '../components/ConfirmDialog'
 
 const COLS = [
-  {id:'order_no',label:'订单号'},{id:'barcode',label:'69码'},{id:'store',label:'店铺'},{id:'warehouse',label:'仓库'},
+  {id:'date',label:'下单日期'},{id:'order_no',label:'订单号'},{id:'barcode',label:'69码'},{id:'store',label:'店铺'},{id:'warehouse',label:'仓库'},
   {id:'product',label:'商品'},{id:'amount',label:'金额'},{id:'status',label:'状态'},
-  {id:'date',label:'下单日期'},{id:'paid_at',label:'库时间'},
+  {id:'paid_at',label:'入库日期'},
 ]
 const COL_KEY = () => 'c_cols_orders_' + (useAppStore.getState().channel || 'jd')
 const getVis=()=>{try{return JSON.parse(localStorage.getItem(COL_KEY())||'null')}catch{return null}}

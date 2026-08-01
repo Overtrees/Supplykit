@@ -1,13 +1,18 @@
 import React from 'react'
 export default function Card({ title, value, sub, badge, borderRadius, valueColor }) {
   return (
-    <div className="card" style={{containerType:'inline-size', ...(borderRadius ? {borderRadius} : {})}}>
-      <div style={{ display:'flex', justifyContent:'space-between', gap:8 }}>
-        <div style={{ fontSize:12, color:'var(--muted2)', marginBottom:6 }}>{title}</div>
+    <div className="card" style={{
+      containerType:'inline-size', aspectRatio:'1', display:'flex', flexDirection:'column',
+      padding:16, borderRadius: borderRadius || 32
+    }}>
+      <div style={{fontSize:12,color:'var(--muted2)',lineHeight:1.2,display:'flex',justifyContent:'space-between',gap:4}}>
+        <span>{title}</span>
         {badge || null}
       </div>
-      <div className="card-value" style={{color:valueColor || 'var(--text)'}}>{value}</div>
-      {sub ? <div className="card-sub" style={{color:'var(--text)'}}>{sub}</div> : null}
+      <div style={{flex:1,display:'flex',alignItems:'flex-end',marginBottom:2}}>
+        <div className="card-value" style={{color:valueColor || 'var(--text)'}}>{value}</div>
+      </div>
+      {sub ? <div className="card-sub" style={{color:'var(--text)',marginTop:0}}>{sub}</div> : null}
     </div>
   )
 }

@@ -581,6 +581,24 @@ def init_db(path=None):
     except: pass
     try: conn.execute("ALTER TABLE orders ADD COLUMN paid_at TEXT DEFAULT ''")
     except: pass
+    try: conn.execute("ALTER TABLE orders ADD COLUMN barcode TEXT DEFAULT ''")
+    except: pass
+    try: conn.execute("ALTER TABLE inventory ADD COLUMN channel TEXT DEFAULT 'jd'")
+    except: pass
+    try: conn.execute("ALTER TABLE inventory ADD COLUMN beginning_stock INTEGER DEFAULT 0")
+    except: pass
+    try: conn.execute("ALTER TABLE inventory ADD COLUMN month_inbound INTEGER DEFAULT 0")
+    except: pass
+    try: conn.execute("ALTER TABLE inventory ADD COLUMN month_outbound INTEGER DEFAULT 0")
+    except: pass
+    try: conn.execute("ALTER TABLE inventory ADD COLUMN turnover_days REAL DEFAULT 0")
+    except: pass
+    try: conn.execute("ALTER TABLE inventory ADD COLUMN c_transit INTEGER DEFAULT 0")
+    except: pass
+    try: conn.execute("ALTER TABLE inventory ADD COLUMN weight REAL DEFAULT 0")
+    except: pass
+    try: conn.execute("ALTER TABLE inventory ADD COLUMN volume REAL DEFAULT 0")
+    except: pass
     try: conn.execute("ALTER TABLE alerts ADD COLUMN channel TEXT DEFAULT 'jd'")
     except: pass
     try: conn.execute("ALTER TABLE inventory ADD COLUMN warehouse_type TEXT DEFAULT 'platform'")

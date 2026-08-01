@@ -1,111 +1,86 @@
-"""种子数据 — 填充/重置（按测试脚本复刻）"""
 from fastapi import APIRouter
-from app.core.database import get_db, init_db, get_conn
+from app.core.database import get_db, get_conn, DB_PATH
+from app.core.response import ok
 from app.core.dashboard_cache import invalidate
-from app.core.response import ok, fail
 from datetime import datetime, timedelta
-import random, json
+import random, sqlite3
 
 router = APIRouter(prefix="/api/seed", tags=["seed"])
+
+cat_names = ['酱油','酱料','调味汁','食用油','醋','料酒','蚝油','芝麻油','辣椒酱','拌面酱']
+store_names = ['京东自营','京东旗舰店','广州调味食材专营店','华南食品旗舰店']
+WH = [('北京仓','platform'),('上海仓','platform'),('广州仓','own'),('成都仓','platform'),('武汉仓','platform'),('沈阳仓','platform'),('西安仓','platform'),('郑州仓','platform'),('天津仓','own')]
+SUP = [
+    {'code':'SUP-001','name':'广州海天调味品有限公司','contact':'张伟','phone':'13800138001','score':5},
+    {'code':'SUP-002','name':'上海太太乐食品有限公司','contact':'李娜','phone':'13800138002','score':4},
+    {'code':'SUP-003','name':'佛山海天味业有限公司','contact':'王强','phone':'13800138003','score':5},
+    {'code':'SUP-004','name':'成都红九九食品有限公司','contact':'赵敏','phone':'13800138004','score':3},
+    {'code':'SUP-005','name':'北京王致和食品有限公司','contact':'孙丽','phone':'13800138005','score':4},
+]
+
+def make_skus(sfx):
+    r = []
+    for i in range(1, 81):
+        c = cat_names[(i-1)%len(cat_names)]
+        s = store_names[(i-1)%len(store_names)]
+        p = round(random.uniform(5.8, 39.9), 1)
+        r.append({'sku':f'SKU-{i:03d}{sfx}','name':f'调味品{c}{i}','store':s,'cat':c,'price':p,'box':random.choice([6,12,24]),'unit':'瓶','barcode':f'690{i:010d}','weight':round(random.uniform(5,25),1),'volume':round(random.uniform(0.02,0.12),3),'status':'active'})
+    return r
 
 @router.post("/fill")
 def seed_fill(db=get_db()):
     today = datetime.utcnow()
-    ch = 'jd'
+    conn = get_conn()
+    for t in ['orders','inventory','products','suppliers','alerts','quality_logs','events','purchase_orders','replenishment_config_history','cleansing_templates','custom_fields']:
+        try: conn.execute(f'DELETE FROM "{t}"')
+        except: pass
+    conn.commit()
 
-    # 商品（按测试脚本复刻）
-    products = [
-        {"sku": "SKU-001", "product_name": "特级鲜酱油 500ml", "store": "京东自营", "box_qty": 12, "status": "active", "channel": ch, "category": "调味品", "price": 15.9},
-        {"sku": "SKU-002", "product_name": "金标生抽王 500ml", "store": "京东自营", "box_qty": 12, "status": "active", "channel": ch, "category": "调味品", "price": 18.9},
-        {"sku": "SKU-003", "product_name": "纯花生油 1L", "store": "京东旗舰店", "box_qty": 6, "status": "active", "channel": ch, "category": "粮油", "price": 69.9},
-        {"sku": "SKU-004", "product_name": "有机大米 5kg", "store": "京东自营", "box_qty": 4, "status": "active", "channel": ch, "category": "粮油", "price": 49.9},
-        {"sku": "SKU-005", "product_name": "矿泉水 550ml×24", "store": "京东自营", "box_qty": 24, "status": "active", "channel": ch, "category": "饮料", "price": 29.9},
-    ]
-    for p in products:
-        db.table("products").upsert(p, conflict_col='sku')
+    jd_s = make_skus('')
+    ot_s = make_skus('-O')
+    for skus,ch in [(jd_s,'jd'),(ot_s,'other')]:
+        for p in skus:
+            db.table("products").upsert({'sku':p['sku'],'product_name':p['name'],'store':p['store'],'category':p['cat'],'price':p['price'],'box_qty':p['box'],'unit':p['unit'],'barcode':p['barcode'],'weight':p['weight'],'volume':p['volume'],'status':p['status'],'channel':ch}, conflict_col='sku')
+    for s in SUP:
+        for ch in ['jd','other']:
+            db.table("suppliers").upsert({'supplier_code':s['code'],'supplier_name':s['name'],'contact_person':s['contact'],'contact_phone':s['phone'],'score':s['score'],'channel':ch}, conflict_col='supplier_code')
 
-    # 供应商
-    suppliers = [
-        {"supplier_code": "SUP-001", "supplier_name": "广州海天调味品有限公司", "contact_person": "张三", "contact_phone": "13800138001", "score": 5, "channel": ch},
-        {"supplier_code": "SUP-002", "supplier_name": "中粮集团粮油事业部", "contact_person": "李四", "contact_phone": "13800138002", "score": 4, "channel": ch},
-    ]
-    for s in suppliers:
-        db.table("suppliers").upsert(s, conflict_col='supplier_code')
+    orders = []
+    for ch,label,skus,base in [('jd','jd',jd_s,8),('other','other',ot_s,4)]:
+        promo = {'618':list(range(10,25)),'1111':list(range(95,115)),'cny':list(range(40,55))}
+        for d in range(180):
+            dt = today - timedelta(days=d)
+            is_promo = any(d in v for v in promo.values())
+            cnt = int(base * random.uniform(3,6)) if is_promo else (int(base * random.uniform(0.6,1.2)) if dt.weekday()>=5 else base)
+            for _ in range(cnt):
+                sk = random.choice(skus)
+                q = random.randint(1,20) if is_promo else random.randint(1,8)
+                st = random.choices(['已完成','已发货','待发货','待确认','申请退款'],[60,15,12,8,5])[0]
+                orders.append({'order_no':f'{label.upper()}-{ch}{d:03d}-{len(orders):03d}','store':sk['store'],'warehouse':random.choice(WH)[0],'sku':sk['sku'],'product_name':sk['name'],'quantity':q,'unit_price':sk['price'],'total_amount':round(q*sk['price'],2),'order_status':st,'ordered_at':dt.strftime('%Y-%m-%d'),'channel':ch,'platform':'京东' if label=='jd' else '天猫'})
+    db.table("orders").insert(orders).execute()
 
-    # 库存（按测试脚本：SKU-001 各仓有库存，SKU-002 低库存触发预警）
-    inv_data = [
-        # SKU-001: 充足库存
-        {"sku":"SKU-001","product_name":"特级鲜酱油 500ml","warehouse":"北京仓","warehouse_type":"platform","available_qty":500,"in_transit_qty":200,"safety_qty":100,"channel":ch},
-        {"sku":"SKU-001","product_name":"特级鲜酱油 500ml","warehouse":"上海仓","warehouse_type":"platform","available_qty":300,"in_transit_qty":100,"safety_qty":100,"channel":ch},
-        {"sku":"SKU-001","product_name":"特级鲜酱油 500ml","warehouse":"广州仓","warehouse_type":"own","available_qty":800,"in_transit_qty":0,"safety_qty":200,"channel":ch},
-        # SKU-002: 低库存
-        {"sku":"SKU-002","product_name":"金标生抽王 500ml","warehouse":"北京仓","warehouse_type":"platform","available_qty":30,"in_transit_qty":50,"safety_qty":100,"channel":ch},
-        {"sku":"SKU-002","product_name":"金标生抽王 500ml","warehouse":"上海仓","warehouse_type":"platform","available_qty":20,"in_transit_qty":0,"safety_qty":100,"channel":ch},
-        {"sku":"SKU-002","product_name":"金标生抽王 500ml","warehouse":"广州仓","warehouse_type":"own","available_qty":60,"in_transit_qty":0,"safety_qty":200,"channel":ch},
-        # SKU-003/SKU-004/SKU-005: 适量库存
-        {"sku":"SKU-003","product_name":"纯花生油 1L","warehouse":"北京仓","warehouse_type":"platform","available_qty":200,"in_transit_qty":80,"safety_qty":50,"channel":ch},
-        {"sku":"SKU-004","product_name":"有机大米 5kg","warehouse":"上海仓","warehouse_type":"platform","available_qty":150,"in_transit_qty":60,"safety_qty":40,"channel":ch},
-        {"sku":"SKU-005","product_name":"矿泉水 550ml×24","warehouse":"北京仓","warehouse_type":"platform","available_qty":400,"in_transit_qty":100,"safety_qty":80,"channel":ch},
-    ]
-    for i in inv_data:
-        db.table("inventory").insert(i).execute()
+    inv = []
+    for skus in [jd_s,ot_s]:
+        for sk in skus:
+            for wn,wt in WH:
+                q = random.randint(0,30) if random.random()<0.08 else random.randint(50,800)
+                inv.append({'sku':sk['sku'],'product_name':sk['name'],'warehouse':wn,'warehouse_type':wt,'available_qty':q,'in_transit_qty':random.randint(0,200),'safety_qty':100,'channel':'jd' if skus is jd_s else 'other'})
+    db.table("inventory").insert(inv).execute()
 
-    # 订单（28天窗口内均匀分布，按测试脚本复刻）
-    orders_data = [
-        ("ORD-001", "SKU-001", 100, 1, "已完成"),
-        ("ORD-002", "SKU-001", 80, 3, "已完成"),
-        ("ORD-003", "SKU-001", 120, 7, "已完成"),
-        ("ORD-004", "SKU-001", 90, 14, "已完成"),
-        ("ORD-005", "SKU-001", 60, 21, "已完成"),
-        ("ORD-006", "SKU-002", 50, 2, "已完成"),
-        ("ORD-007", "SKU-002", 40, 5, "已完成"),
-        ("ORD-008", "SKU-002", 30, 10, "已完成"),
-        ("ORD-009", "SKU-002", 20, 20, "已完成"),
-        ("ORD-010", "SKU-003", 15, 4, "待发货"),
-        ("ORD-011", "SKU-003", 25, 8, "已发货"),
-        ("ORD-012", "SKU-004", 10, 6, "已完成"),
-        ("ORD-013", "SKU-004", 8, 15, "已完成"),
-        ("ORD-014", "SKU-005", 50, 1, "待确认"),
-        ("ORD-015", "SKU-005", 30, 12, "已完成"),
-    ]
-    for no, sku, qty, days_ago, status in orders_data:
-        od = (today - timedelta(days=days_ago))
-        db.table("orders").insert({
-            "order_no": no, "sku": sku, "store": "京东自营",
-            "quantity": qty, "order_status": status,
-            "ordered_at": od.strftime("%Y-%m-%d"),
-            "paid_at": (od + timedelta(days=1)).strftime("%Y-%m-%d"),
-            "product_name": next(p["product_name"] for p in products if p["sku"]==sku),
-            "total_amount": round(qty * next(p["price"] for p in products if p["sku"]==sku), 2),
-            "channel": ch,
-        }).execute()
-
-    invalidate()  # 清除看板缓存
-    return ok({"products": len(products), "suppliers": len(suppliers), "inventory": len(inv_data), "orders": len(orders_data)})
-
+    invalidate()
+    return ok({'products':160,'suppliers':10,'inventory':len(inv),'orders':len(orders)})
 
 @router.post("/reset")
-def seed_reset(db=get_db()):
-    import sqlite3
-    from app.core.database import DB_PATH
+def seed_reset():
     conn = sqlite3.connect(DB_PATH)
-    conn.execute("PRAGMA busy_timeout=10000")
     conn.execute("PRAGMA foreign_keys=OFF")
-    tables = ['orders','inventory','products','suppliers','alerts','quality_logs','events',
-              'purchase_orders','replenishment_config_history','cleansing_templates','custom_fields',
-              'replenishment_config','rules']
-    for t in tables:
-        try:
-            conn.execute(f'DELETE FROM "{t}"')
-        except Exception:
-            pass
+    for t in ['orders','inventory','products','suppliers','alerts','quality_logs','events','purchase_orders','replenishment_config_history','cleansing_templates','custom_fields','replenishment_config','rules']:
+        try: conn.execute(f'DELETE FROM "{t}"')
+        except: pass
     conn.execute("PRAGMA foreign_keys=ON")
-    conn.commit()
-    conn.close()
+    conn.commit(); conn.close()
     invalidate()
     from app.core.database import _seed_builtin_rules
-    try:
-        _seed_builtin_rules()
-    except:
-        pass
+    try: _seed_builtin_rules()
+    except: pass
     return ok({"reset": True})

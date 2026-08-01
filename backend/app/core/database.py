@@ -560,6 +560,7 @@ def init_db(path=None):
     try: conn.execute("ALTER TABLE products ADD COLUMN volume REAL DEFAULT 0")
     except: pass
     try: conn.execute("ALTER TABLE products ADD COLUMN channel TEXT DEFAULT 'jd'")
+    except: pass
     try: conn.execute("ALTER TABLE products ADD COLUMN unit TEXT DEFAULT ''")
     except: pass
     try: conn.execute("ALTER TABLE alerts ADD COLUMN channel TEXT DEFAULT 'jd'")

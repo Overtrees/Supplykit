@@ -550,7 +550,7 @@ def init_db(path=None):
         CREATE INDEX IF NOT EXISTS idx_inventory_store ON inventory(store);
         CREATE INDEX IF NOT EXISTS idx_events_created_at ON events(created_at);
     """)
-    db.execute("""
+    conn.execute("""
         CREATE TABLE IF NOT EXISTS replenishment_config_history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             key TEXT NOT NULL,

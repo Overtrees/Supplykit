@@ -7,9 +7,8 @@ import Chart from '../components/Chart'
 const periodLabel = { today:'今日', week:'本周', month:'本月' }
 
 export default function DashboardPage({ onAlert }) {
-  const [periodTab, setPeriodTab] = useState('month')
   const [healthTab, setHealthTab] = useState(() => localStorage.getItem('health_tab') || 'platform')
-  const { dashboard, inventory, qualityLogs, alerts, stockRisk, channel, loading } = useAppStore()
+  const { dashboard, inventory, qualityLogs, alerts, stockRisk, channel, loading, hammerDashPeriod: periodTab } = useAppStore()
   const [chLoading, setChLoading] = useState(false)
   useEffect(() => {
     setChLoading(true)
@@ -74,14 +73,7 @@ export default function DashboardPage({ onAlert }) {
 
   if (chLoading) return <div className="card" style={{padding:16}}>{[1,2,3,4,5,6].map(i=><div key={i} className="skeleton" style={{height:80,marginBottom:8,borderRadius:24}}/>)}</div>
   return <div>
-    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
-      <div style={{display:'flex',gap:6,background:'var(--glass-bg)',borderRadius:99,padding:6,alignItems:'center',backdropFilter:'blur(var(--glass-blur))',WebkitBackdropFilter:'blur(var(--glass-blur))',border:'1px solid var(--glass-border)'}}>
-        {['today','week','month'].map(k => (
-          <span key={k} onClick={() => setPeriodTab(k)} style={{fontSize:12,padding:'3px 10px',borderRadius:99,cursor:'pointer',background:periodTab===k?'rgba(128,128,128,0.2)':'var(--glass-bg)',border:periodTab===k?'none':'0.5px solid var(--glass-border)',color:periodTab===k?'#007AFF':'var(--text)',fontWeight:periodTab===k?600:400,whiteSpace:'nowrap',backdropFilter:periodTab===k?'none':'blur(var(--glass-blur)) saturate(var(--glass-saturate)) brightness(var(--glass-brightness))'}}>{periodLabel[k]}</span>
-        ))}
-        <span className="small muted" style={{padding:'3px 10px'}}>{periodMeta.date || ''}</span>
-      </div>
-    </div>
+    {periodMeta.date && <div className="small muted" style={{marginBottom:8,textAlign:'right'}}>{periodMeta.date}</div>}
 
     <div className="card-grid" style={{marginBottom:16}}>
       <Card title={periodLabel[periodTab]+' GMV'} value={'¥'+Number(periodMeta.gmv||0).toLocaleString()} sub={periodMeta.orders+' 单'} borderRadius={26} />

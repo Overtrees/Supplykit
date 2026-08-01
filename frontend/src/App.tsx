@@ -661,6 +661,30 @@ function HammerRules({ channel }) {
   )
 }
 
+/* 看板页: 锤子菜单 时间维度(今日/本周/本月) */
+function HammerDashboard({ channel }) {
+  const { hammerDashPeriod, setHammerDashPeriod } = useAppStore()
+  const periodLabel = { today:'今日', week:'本周', month:'本月' }
+  return (
+    <div>
+      <div style={{fontSize:11,color:'var(--muted2)',marginBottom:8,textAlign:'center'}}>
+        {channel === 'jd' ? '京东' : '其他'} · 看板
+      </div>
+      <div style={{fontSize:10,color:'var(--muted2)',marginBottom:4}}>聚合时间维度</div>
+      <div style={{display:'flex',gap:4}}>
+        {['today','week','month'].map(k => (
+          <span key={k} onClick={() => setHammerDashPeriod(k)}
+            style={{flex:1,fontSize:12,minHeight:32,padding:'4px 6px',borderRadius:99,cursor:'pointer',textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
+              background: hammerDashPeriod === k ? 'var(--primary)' : 'var(--gray)',
+              color: hammerDashPeriod === k ? '#fff' : 'var(--text)',fontWeight: hammerDashPeriod === k ? 600 : 400}}>
+            {periodLabel[k]}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function App() {
   const [page, setPage] = useState('dash')
   const [highlightSku, setHighlightSku] = useState('')
@@ -815,7 +839,7 @@ export default function App() {
       <header>
         <div className="header-inner">
           {page === 'dash' ? (
-            /* 看板页：左侧渠道筛选，右侧菜单按钮 */
+            /* 看板页：左侧渠道筛选+锤子按钮，右侧菜单按钮 */
             <>
               <div className="header-left">
                 <span className="header-status">
@@ -824,6 +848,16 @@ export default function App() {
                     <option value='other'>其他渠道</option>
                   </select>
                 </span>
+                <button className="hammer-btn" onClick={toggleHammerMenu}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M15 12a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v4a4 4 0 0 0 4 4h5a4 4 0 0 0 4-4v-4Z"/>
+                    <path d="M12 12h9"/>
+                    <path d="m22 3-3 3"/>
+                    <path d="m19 3-3 3"/>
+                    <path d="M12 3v3"/>
+                    <path d="M12 18v3"/>
+                  </svg>
+                </button>
               </div>
               <button className="menu-btn" onClick={toggleEditorMenu}>
                 <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><rect x="2" y="4" width="16" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="9.25" width="16" height="1.5" rx=".75" fill="currentColor"/><rect x="2" y="14.5" width="16" height="1.5" rx=".75" fill="currentColor"/></svg>
@@ -892,7 +926,8 @@ export default function App() {
               padding: 16
             }}
           >
-            {page === 'products' ? <HammerProducts channel={channel} /> :
+            {page === 'dash' ? <HammerDashboard channel={channel} /> :
+            page === 'products' ? <HammerProducts channel={channel} /> :
              page === 'suppliers' ? <HammerSuppliers channel={channel} /> :
              page === 'orders' ? <HammerOrders channel={channel} /> :
              page === 'inv' ? <HammerInventory channel={channel} /> :

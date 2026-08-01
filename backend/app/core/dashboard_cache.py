@@ -121,17 +121,6 @@ def _rebuild(channel='jd'):
     else:
         orders = [o for o in orders if o.get('platform') not in ('京东', '', None)]
     
-    # 若数据库为空则自动 seed 演示数据
-    if not orders:
-        try:
-            import sys
-            sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
-            from seed_data import seed
-            seed()
-            orders = db.table("orders").select("*").execute().data or []
-        except Exception as e:
-            print(f"[auto-seed] {e}")
-    
     inv = db.table("inventory").select("*").eq("channel", channel).execute().data or []
     products = db.table("products").select("*").eq("channel", channel).execute().data or []
     suppliers = db.table("suppliers").select("*").execute().data or []

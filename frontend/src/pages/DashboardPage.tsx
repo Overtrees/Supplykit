@@ -131,7 +131,7 @@ export default function DashboardPage({ onAlert }) {
             ))}
         {lowStockAlerts.length > 5 && <div className="small muted" style={{textAlign:'center',padding:6}}>还有 {lowStockAlerts.length - 5} 条...</div>}
       </div>
-      <div className={'card'+(isLandscape?' mid-card-compact':'')} style={{height:'auto',overflow:'visible'}}>
+      <div className="card" style={{height:'auto',overflow:'visible'}}>
         <div className="section-title">补货告警</div>
         {replenishAlerts.length === 0
           ? <div className="small muted" style={{padding:12,textAlign:'center'}}>暂无告警</div>

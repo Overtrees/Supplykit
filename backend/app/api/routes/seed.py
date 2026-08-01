@@ -46,17 +46,17 @@ def seed_fill(db=get_db()):
             db.table("suppliers").upsert({'supplier_code':s['code'],'supplier_name':s['name'],'contact_person':s['contact'],'contact_phone':s['phone'],'score':s['score'],'channel':ch}, conflict_col='supplier_code')
 
     orders = []
-    for ch,label,skus,base in [('jd','jd',jd_s,8),('other','other',ot_s,4)]:
-        promo = {'618':list(range(10,25)),'1111':list(range(95,115)),'cny':list(range(40,55))}
-        for d in range(180):
+    for ch,label,skus,base in [('jd','jd',jd_s,4),('other','other',ot_s,2)]:
+        promo = {'618':list(range(5,20)),'月末':list(range(45,55))}
+        for d in range(60):
             dt = today - timedelta(days=d)
             is_promo = any(d in v for v in promo.values())
-            cnt = int(base * random.uniform(3,6)) if is_promo else (int(base * random.uniform(0.6,1.2)) if dt.weekday()>=5 else base)
+            cnt = int(base * random.uniform(2,4)) if is_promo else (int(base * random.uniform(0.6,1.2)) if dt.weekday()>=5 else base)
             for _ in range(cnt):
                 sk = random.choice(skus)
                 q = random.randint(1,20) if is_promo else random.randint(1,8)
                 st = random.choices(['已完成','已发货','待发货','待确认','申请退款'],[60,15,12,8,5])[0]
-                orders.append({'order_no':f'{label.upper()}-{ch}{d:03d}-{len(orders):03d}','store':sk['store'],'warehouse':random.choice(WH)[0],'sku':sk['sku'],'product_name':sk['name'],'quantity':q,'unit_price':sk['price'],'total_amount':round(q*sk['price'],2),'order_status':st,'ordered_at':dt.strftime('%Y-%m-%d'),'channel':ch,'platform':'京东' if label=='jd' else '天猫'})
+                orders.append({'order_no':f'{label.upper()}-{ch}{d:03d}-{len(orders):03d}','store':sk['store'],'warehouse':random.choice(WH)[0],'sku':sk['sku'],'product_name':sk['name'],'barcode':sk['barcode'],'quantity':q,'unit_price':sk['price'],'total_amount':round(q*sk['price'],2),'order_status':st,'ordered_at':dt.strftime('%Y-%m-%d'),'paid_at':(dt+timedelta(hours=random.randint(1,48))).strftime('%Y-%m-%d'),'channel':ch,'platform':'京东' if label=='jd' else '天猫'})
     db.table("orders").insert(orders).execute()
 
     inv = []
@@ -64,7 +64,7 @@ def seed_fill(db=get_db()):
         for sk in skus:
             for wn,wt in WH:
                 q = random.randint(0,30) if random.random()<0.08 else random.randint(50,800)
-                inv.append({'sku':sk['sku'],'product_name':sk['name'],'warehouse':wn,'warehouse_type':wt,'available_qty':q,'in_transit_qty':random.randint(0,200),'safety_qty':100,'channel':'jd' if skus is jd_s else 'other'})
+                inv.append({'sku':sk['sku'],'product_name':sk['name'],'barcode':sk['barcode'],'warehouse':wn,'warehouse_type':wt,'available_qty':q,'in_transit_qty':random.randint(0,200),'safety_qty':100,'beginning_stock':q+random.randint(50,200),'month_inbound':random.randint(100,500),'month_outbound':random.randint(80,450),'turnover_days':round(random.uniform(5,45),1),'weight':sk['weight'],'volume':sk['volume'],'channel':'jd' if skus is jd_s else 'other'})
     db.table("inventory").insert(inv).execute()
 
     invalidate()

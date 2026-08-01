@@ -6,24 +6,28 @@ import { IconBroom, IconClipboard, IconPackage, IconImport, IconExport, IconTren
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
 const INV_FIELDS = [
-  {t:'barcode',l:'69码',tp:'string'},{t:'sku',l:'SKU',tp:'string'},{t:'product_name',l:'商品名称',tp:'string'},
-  {t:'store',l:'店铺',tp:'string'},{t:'warehouse',l:'仓库',tp:'string'},
-  {t:'available_qty',l:'可用库存',tp:'number'},{t:'locked_qty',l:'锁定库存',tp:'number'},
-  {t:'in_transit_qty',l:'在途',tp:'number'},{t:'safety_qty',l:'安全线',tp:'number'},
+  {t:'warehouse',l:'仓库',tp:'string'},{t:'sku',l:'SKU',tp:'string'},{t:'barcode',l:'69码',tp:'string'},{t:'product_name',l:'商品',tp:'string'},
+  {t:'channel',l:'平台',tp:'string'},
+  {t:'beginning_stock',l:'期初库存',tp:'number'},{t:'in_transit_qty',l:'在途',tp:'number'},
+  {t:'month_inbound',l:'当月采购入库',tp:'number'},{t:'month_outbound',l:'当月出库',tp:'number'},
+  {t:'available_qty',l:'可用',tp:'number'},{t:'turnover_days',l:'在库周转',tp:'number'},
+  {t:'c_transit',l:'B-C调拨在途',tp:'number'},
+  {t:'locked_qty',l:'锁定库存',tp:'number'},{t:'safety_qty',l:'安全线',tp:'number'},
   {t:'weight',l:'箱重/KG',tp:'number'},{t:'volume',l:'体积/方',tp:'number'},
 ]
 const PROD_FIELDS = [
-  {t:'sku',l:'SKU',tp:'string'},{t:'product_name',l:'商品名称',tp:'string'},
-  {t:'store',l:'店铺',tp:'string'},{t:'category',l:'分类',tp:'string'},
-  {t:'price',l:'单价',tp:'number'},{t:'box_qty',l:'箱规',tp:'number'},
-  {t:'barcode',l:'69码',tp:'string'},{t:'weight',l:'箱重/KG',tp:'number'},{t:'volume',l:'体积/方',tp:'number'},
+  {t:'sku',l:'SKU',tp:'string'},{t:'barcode',l:'69码',tp:'string'},{t:'channel',l:'平台',tp:'string'},
+  {t:'product_name',l:'名称',tp:'string'},{t:'store',l:'店铺',tp:'string'},{t:'category',l:'分类',tp:'string'},
+  {t:'price',l:'单价',tp:'number'},{t:'box_qty',l:'箱规',tp:'number'},{t:'unit',l:'单位',tp:'string'},
+  {t:'weight',l:'箱重/KG',tp:'number'},{t:'volume',l:'体积/方',tp:'number'},{t:'status',l:'状态',tp:'string'},
 ]
 const SYS_FIELDS = [
-  {t:'order_no',l:'订单号',tp:'string'},{t:'source_order_id',l:'原始单号',tp:'string'},
+  {t:'order_no',l:'订单号',tp:'string'},{t:'barcode',l:'69码',tp:'string'},
   {t:'store',l:'店铺',tp:'string'},{t:'warehouse',l:'仓库',tp:'string'},
-  {t:'barcode',l:'69码',tp:'string'},{t:'sku',l:'SKU',tp:'string'},{t:'product_name',l:'商品名称',tp:'string'},
-  {t:'quantity',l:'数量',tp:'number'},{t:'unit_price',l:'单价',tp:'number'},{t:'total_amount',l:'金额',tp:'number'},
-  {t:'order_status',l:'状态',tp:'string'},{t:'ordered_at',l:'下单日期',tp:'date'},
+  {t:'product_name',l:'商品',tp:'string'},{t:'total_amount',l:'金额',tp:'number'},
+  {t:'order_status',l:'状态',tp:'string'},{t:'ordered_at',l:'日期',tp:'date'},
+  {t:'source_order_id',l:'原始单号',tp:'string'},{t:'sku',l:'SKU',tp:'string'},
+  {t:'quantity',l:'数量',tp:'number'},{t:'unit_price',l:'单价',tp:'number'},
   {t:'supplier',l:'供应商',tp:'string'},{t:'supplier_code',l:'供应商编码',tp:'string'},
   {t:'remark',l:'备注',tp:'string'},{t:'platform',l:'平台',tp:'string'},
   {t:'paid_at',l:'付款时间',tp:'date'},{t:'shipped_at',l:'发货时间',tp:'date'},

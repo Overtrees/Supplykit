@@ -241,7 +241,9 @@ export default function RulesPage() {
         <button onClick={()=>setSeasons(p=>p.filter((_,j)=>j!==i))} className="btn btn-danger" style={{fontSize:12,padding:'4px 10px',minHeight:0}}>删除</button>
       </div>)}
       <button onClick={()=>setSeasons(p=>[...p,{key:'new',name:'新活动',factor:1.2,enabled:true}])} className="btn btn-ghost" style={{fontSize:12,padding:'4px 12px',width:'100%'}}>+ 添加活动</button>
-      <button disabled={seasonsSaving} onClick={async()=>{setSeasonsSaving(true);const m=cfg.replenishment_mode||'bbcc';const ch=globalChannel;try{await api.put('/api/replenishment-config/seasons?mode='+m+'&channel='+ch,{items:seasons});await loadCfg(m,ch);toast.success('已保存')}catch(e){toast.error('保存失败: '+e.message)}setSeasonsSaving(false)}} className="btn btn-primary" style={{opacity:seasonsSaving?0.6:1,display:'inline-flex',alignItems:'center',gap:4}}>{seasonsSaving?<><IconLoading size={14} /> 保存中...</>:<><IconSave size={14} /> 保存</>}</button>
+      <div style={{display:'flex',justifyContent:'flex-end',marginTop:10}}>
+        <button disabled={seasonsSaving} onClick={async()=>{setSeasonsSaving(true);const m=cfg.replenishment_mode||'bbcc';const ch=globalChannel;try{await api.put('/api/replenishment-config/seasons?mode='+m+'&channel='+ch,{items:seasons});await loadCfg(m,ch);toast.success('已保存')}catch(e){toast.error('保存失败: '+e.message)}setSeasonsSaving(false)}} className="btn btn-primary" style={{opacity:seasonsSaving?0.6:1,display:'inline-flex',alignItems:'center',gap:4}}>{seasonsSaving?<><IconLoading size={14} /> 保存中...</>:<><IconSave size={14} /> 保存</>}</button>
+      </div>
     </>}
   </div>
 }

@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react'
 import { api } from '../api/client'
 import { useAppStore } from '../store/useAppStore'
 import { clearCache, clearInflight } from '../api/client'
+import { useToast } from '../components/Toast'
 
 const VERSION = '1.0.0'
 const BUILD = import.meta.env.VITE_BUILD_TIME || '2026-07-31'
 
 export default function SettingsPage() {
+  const toast = useToast()
   const { channel, wsStatus } = useAppStore()
   const [status, setStatus] = useState('检查中...')
   const [ping, setPing] = useState(0)
@@ -58,20 +60,23 @@ export default function SettingsPage() {
     }
     keys.forEach(k => localStorage.removeItem(k))
     setCacheSize(0)
-    toast('缓存已清除')
+    toast.success('缓存已清除')
   }
 
   const [seeding, setSeeding] = useState(false)
   const [resetting, setResetting] = useState(false)
+  const [seedStatus, setSeedStatus] = useState('数据已清空，可一键填充')
 
   const doSeed = async () => {
     setSeeding(true)
     try {
       const r = await fetch('https://overtrees.pythonanywhere.com/api/seed/fill', {method:'POST'})
       const d = await r.json()
-      if (d.ok) toast('种子数据已填充')
-      else toast('填充失败')
-    } catch { toast('填充失败') }
+      if (d.ok) {
+        toast.success('种子数据已填充')
+        setSeedStatus(`已填充: ${d.data.products} 商品 · ${d.data.suppliers} 供应商 · ${d.data.inventory} 库存 · ${d.data.orders} 订单`)
+      } else toast.error('填充失败')
+    } catch { toast.error('填充失败') }
     setSeeding(false)
   }
 
@@ -81,9 +86,10 @@ export default function SettingsPage() {
     try {
       await fetch('https://overtrees.pythonanywhere.com/api/seed/reset', {method:'POST'})
       clearCache(); clearInflight()
-      toast('数据已重置，页面将自动刷新')
+      toast.success('数据已重置，即将刷新页面')
+      setSeedStatus('数据已清空，可一键填充')
       setTimeout(() => window.location.reload(), 1500)
-    } catch { toast('重置失败') }
+    } catch { toast.error('重置失败') }
     setResetting(false)
   }
 
@@ -116,7 +122,7 @@ export default function SettingsPage() {
     {
       title: '种子数据',
       items: [
-        { label: '状态', value: '数据已清空，可一键填充' },
+        { label: '状态', value: seedStatus },
       ]
     },
   ]
@@ -155,7 +161,7 @@ export default function SettingsPage() {
           种子数据
         </div>
         <div style={{fontSize:12,color:'var(--muted2)',marginBottom:12}}>
-          填充演示数据用于测试，重置将清空所有业务数据
+          {seedStatus.startsWith('已填充') ? '点击重置可清空所有数据' : '填充演示数据用于测试，重置将清空所有业务数据'}
         </div>
         <div style={{display:'flex',gap:8}}>
           <button onClick={doSeed} disabled={seeding} className="btn btn-primary" style={{flex:1,fontSize:13}}>
@@ -174,15 +180,3 @@ export default function SettingsPage() {
   )
 }
 
-function toast(msg) {
-  const el = document.createElement('div')
-  el.textContent = msg
-  Object.assign(el.style, {
-    position:'fixed',bottom:100,left:'50%',transform:'translateX(-50%)',
-    background:'var(--text)',color:'var(--bg)',padding:'10px 24px',
-    borderRadius:99,fontSize:14,zIndex:9999,fontWeight:600,
-    boxShadow:'0 4px 12px rgba(0,0,0,0.2)'
-  })
-  document.body.appendChild(el)
-  setTimeout(() => el.remove(), 2000)
-}

@@ -476,8 +476,12 @@ function HammerInsights({ channel }) {
     try {
       const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
       const isPurchase = type === 'purchase'
+      // 补货导出跟随当前模式；采购建议只按全局主体(渠道)区分
+      const params = isPurchase
+        ? '?days=28&channel=' + channel
+        : '?days=28&mode=' + mode + '&channel=' + channel
       const ep = isPurchase ? '/api/insights/export-purchase-suggestions' : '/api/insights/export-purchase'
-      const r = await fetch(API + ep + '?days=28&mode=' + mode + '&channel=' + channel)
+      const r = await fetch(API + ep + params)
       if (!r.ok) throw new Error('HTTP ' + r.status)
       const blob = await r.blob()
       const url = URL.createObjectURL(blob)
@@ -526,11 +530,11 @@ function HammerInsights({ channel }) {
       {/* 导出面板 */}
       {hammerPanel === 'export' && (
         <div style={{borderTop:'1px solid var(--border)',paddingTop:8,marginTop:8}}>
-          <div style={{fontSize:10,color:'var(--muted2)',marginBottom:4}}>选择导出类型 · {channel === 'jd' ? '京东' : '其他'}渠道{mode === 'bbcc' ? ' · BBCC' : ''}</div>
+          <div style={{fontSize:10,color:'var(--muted2)',marginBottom:4}}>选择导出类型 · {channel === 'jd' ? '京东' : '其他'}渠道</div>
           <div style={{display:'flex',gap:4}}>
             <span onClick={() => doExport('replen')}
               style={{flex:1,fontSize:12,padding:'6px 8px',borderRadius:99,cursor:'pointer',textAlign:'center',background:'var(--gray)',color:'var(--text)'}}>
-              补货建议
+              补货建议{mode === 'bbcc' ? ' (BBCC)' : ''}
             </span>
             <span onClick={() => doExport('purchase')}
               style={{flex:1,fontSize:12,padding:'6px 8px',borderRadius:99,cursor:'pointer',textAlign:'center',background:'var(--gray)',color:'var(--text)'}}>

@@ -149,7 +149,7 @@ export default function InsightsPage() {
     const mode = globalChannel === 'jd' ? replenMode : 'traditional'
     if (globalChannel !== 'jd' && replenMode === 'bbcc') setHammerReplenMode('traditional')
     loadReplen(mode, globalChannel)
-    api.get('/api/insights/purchase?days=28&mode=' + mode).then(r => {
+    api.get('/api/insights/purchase?days=28&channel=' + globalChannel).then(r => {
       setPurchase(r.data?.suggestions || r.data || [])
       setPurchaseLoading(false)
     }).catch(() => setPurchaseLoading(false))

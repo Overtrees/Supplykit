@@ -48,9 +48,10 @@ input,select,button,textarea{font-family:inherit;font-size:16px}input[type="file
 /* 响应式卡片网格 */
 .card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
 
-/* 中卡（图表卡）— 始终2列并排 */
+/* 中卡（图表卡）— 手机横屏2列，宽屏自适应 */
 .mid-chart-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:16px}
-@media(min-width:640px){.mid-chart-grid{grid-template-columns:1fr 1fr}}
+@media(orientation:landscape) and (max-width:932px){.mid-chart-grid{grid-template-columns:1fr 1fr}}
+@media(min-width:1024px){.mid-chart-grid{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}}
 
 /* 大卡（告警卡）— 自适应 */
 .chart-row-3{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:16px}

@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { api } from '../api/client'
-import { useToast } from '../components/Toast'
 import { useAppStore } from '../store/useAppStore'
 import { IconTrendUp, IconTrendDown, IconTrendFlat, IconUndo } from '../components/Icons'
 
@@ -72,8 +71,6 @@ function Skeleton({ height = 16, width = '100%', style }) {
 }
 
 export default function InsightsPage() {
-  const toast = useToast()
-  const [tab, setTab] = useState('replen')
   const [replen, setReplen] = useState([])
   const [purchase, setPurchase] = useState([])
   const [slowMoving, setSlowMoving] = useState([])
@@ -83,14 +80,13 @@ export default function InsightsPage() {
   const [purchaseLoading, setPurchaseLoading] = useState(true)
   const [slowLoading, setSlowLoading] = useState(true)
 
-  const [replenMode, setReplenMode] = useState(() => localStorage.getItem('c_replen_mode') || 'bbcc')
-  const { channel: globalChannel } = useAppStore()
+  const { channel: globalChannel, hammerInsightsTab: tab, hammerReplenMode, setHammerReplenMode, hammerCols } = useAppStore()
+  const replenMode = (globalChannel !== 'jd' && hammerReplenMode === 'bbcc') ? 'traditional' : hammerReplenMode
   const currentCols = replenMode === 'bbcc' ? BBCC_COLS : TRAD_COLS
   const [visCols, setVisCols] = useState(() => getVis(replenMode) || (replenMode==='bbcc'?defVis(BBCC_COLS):defVisTrad(TRAD_COLS)))
-  const [showColPicker, setShowColPicker] = useState(false)
   const reqSeq = useRef(0)
 
-  const switchMode = (m) => { setReplenMode(m); localStorage.setItem('c_replen_mode', m); const cols = m === 'bbcc' ? BBCC_COLS : TRAD_COLS; setVisCols(getVis(m) || (m==='bbcc'?defVis(BBCC_COLS):defVisTrad(TRAD_COLS))); loadReplen(m, globalChannel) }
+  useEffect(() => { if (hammerCols?.['insights_'+replenMode]) setVisCols(hammerCols['insights_'+replenMode]) }, [hammerCols, replenMode])
   const loadReplen = async (mode, ch) => {
     const seq = ++reqSeq.current
     setReplenLoading(true)
@@ -151,7 +147,7 @@ export default function InsightsPage() {
     setPurchaseLoading(true)
     setSlowLoading(true)
     const mode = globalChannel === 'jd' ? replenMode : 'traditional'
-    if (globalChannel !== 'jd' && replenMode === 'bbcc') setReplenMode('traditional')
+    if (globalChannel !== 'jd' && replenMode === 'bbcc') setHammerReplenMode('traditional')
     loadReplen(mode, globalChannel)
     api.get('/api/insights/purchase?days=28&mode=' + mode).then(r => {
       setPurchase(r.data?.suggestions || r.data || [])
@@ -161,32 +157,10 @@ export default function InsightsPage() {
       setSlowMoving(r.data || [])
       setSlowLoading(false)
     }).catch(() => setSlowLoading(false))
-  }, [globalChannel])
-
-  const tabs = [
-    { id: 'replen', label: '补货建议', count: replen.length },
-    { id: 'purchase', label: '采购建议', count: purchase.length },
-    { id: 'slow', label: '滞销预警', count: slowMoving.filter(x => x.level !== '正常').length },
-  ]
-
-  const btnStyle = id => ({
-    flex: 1, padding: '10px 12px', fontSize: 13, fontWeight: 500,
-    border: 'none', borderRadius: 32,
-    background: tab === id ? 'var(--primary)' : 'transparent',
-    color: tab === id ? '#fff' : 'var(--muted)', cursor: 'pointer',
-  })
+  }, [globalChannel, replenMode])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-
-      {/* Tab bar */}
-      <div style={{ display: 'flex', gap: 6, flexWrap:'wrap' }}>
-        {tabs.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} className={`btn btn-ghost`} style={{fontSize:12,background:tab===t.id?'var(--primary)':'var(--card)',color:tab===t.id?'#fff':''}}>
-            {t.label}{t.count > 0 ? ` (${t.count})` : ''}
-          </button>
-        ))}
-      </div>
 
       {/* 补货建议 */}
       {tab === 'replen' && (
@@ -194,50 +168,6 @@ export default function InsightsPage() {
           <div className="section-title" style={{display:'flex',flexWrap:'wrap',gap:6}}>
             <span>
               补货建议{replen.length > 0 && <span className="small muted" style={{ marginLeft: 8 }}></span>}
-              <span style={{marginLeft:12,display:'inline-flex',flexWrap:'wrap',gap:4}}>
-                {globalChannel==='jd' && <span onClick={()=>switchMode('bbcc')} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',background:replenMode==='bbcc'?'var(--primary)':'var(--gray)',color:replenMode==='bbcc'?'#fff':''}}>BBCC</span>}
-                <span onClick={()=>switchMode('traditional')} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',background:replenMode==='traditional'?'var(--primary)':'var(--gray)',color:replenMode==='traditional'?'#fff':''}}>传统多仓</span>
-                <button onClick={async()=>{
-                  try {
-                    const r = await fetch(API+'/api/insights/export-purchase?days=28&mode='+replenMode+'&channel='+globalChannel)
-                    const blob = await r.blob()
-                    const url = URL.createObjectURL(blob)
-                    const a = document.createElement('a')
-                    a.href = url; a.download = '补货建议_'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'.xlsx'
-                    document.body.appendChild(a); a.click(); a.remove()
-                    URL.revokeObjectURL(url)
-                  } catch(e) { toast.error('导出失败: '+e.message) }
-                }}
-                  className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px'}}>导出</button>
-                <div style={{position:'relative',display:'inline-block'}}>
-                  <span onClick={()=>setShowColPicker(!showColPicker)} className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px',cursor:'pointer'}}>列 {visCols.length}/{currentCols.length}</span>
-                  {showColPicker && <div style={{position:'absolute',top:'100%',right:0,zIndex:10,background:'var(--card)',border:'1px solid var(--border)',borderRadius:16,padding:6,minWidth:180,boxShadow:'0 4px 12px rgba(0,0,0,0.15)'}}>
-                    <div style={{fontSize:10,color:'var(--muted2)',marginBottom:4,padding:'0 4px'}}>拖拽 ⋮ 调整列顺序</div>
-                    {(visCols.map(id=>currentCols.find(c=>c.id===id)).filter(Boolean).concat(currentCols.filter(c=>!visCols.includes(c.id)))).map((col, idx) => {
-                      const isVis = visCols.includes(col.id)
-                      return <div key={col.id} draggable={isVis?true:undefined}
-                        onDragStart={isVis?e=>{e.dataTransfer.setData('text/plain',col.id);e.target.style.opacity='0.4';e.currentTarget.parentNode._dragId=col.id}:undefined}
-                        onDragEnd={isVis?e=>e.target.style.opacity='1':undefined}
-                        onDragOver={isVis?e=>{e.preventDefault();e.currentTarget.style.borderTop='2px solid var(--primary)';const from=e.currentTarget.parentNode._dragId;if(from&&from!==col.id){const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(col.id);nxt.splice(toIdx,0,from);setVisCols(nxt);localStorage.setItem(colKey(replenMode),JSON.stringify(nxt))}}:undefined}
-                        onDragLeave={isVis?e=>e.currentTarget.style.borderTop='1px solid transparent':undefined}
-                        onDrop={isVis?e=>{e.preventDefault();e.currentTarget.style.borderTop='1px solid transparent';const from=e.dataTransfer.getData('text/plain');if(from===col.id)return;const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(col.id);nxt.splice(toIdx,0,from);setVisCols(nxt);localStorage.setItem(colKey(replenMode),JSON.stringify(nxt));e.currentTarget.parentNode._dragId=null}:undefined}
-                        onTouchStart={isVis?e=>{const t=e.touches[0];e.currentTarget._dragStart={x:t.clientX,y:t.clientY,id:col.id}}:undefined}
-                        onTouchMove={isVis?e=>{e.preventDefault();const t=e.touches[0];const el=document.elementFromPoint(t.clientX,t.clientY);if(el&&el!==e.currentTarget&&el._dragStart)el.style.borderTop='2px solid var(--primary)'}:undefined}
-                        onTouchEnd={isVis?e=>{const start=e.currentTarget._dragStart;if(!start)return;const t=e.changedTouches[0];const dropEl=document.elementFromPoint(t.clientX,t.clientY);if(dropEl&&dropEl._dragStart&&dropEl._dragStart.id!==start.id){const from=start.id;const to=dropEl._dragStart.id;const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(to);nxt.splice(toIdx,0,from);setVisCols(nxt);localStorage.setItem(colKey(replenMode),JSON.stringify(nxt))}}:undefined}
-                        style={{display:'flex',alignItems:'center',gap:4,padding:'4px 6px',borderRadius:6,cursor:isVis?'grab':'default',fontSize:12,whiteSpace:'nowrap',borderTop:'1px solid transparent',background:isVis?'var(--card)':'transparent',opacity:isVis?1:0.4,userSelect:'none',WebkitUserSelect:'none'}}>
-                        <span style={{color:'var(--muted2)',fontSize:12,width:16,flexShrink:0,textAlign:'center',cursor:isVis?'grab':'default'}}>{isVis?'⠿':'○'}</span>
-                        <input type="checkbox" checked={isVis} onChange={e=>{const n=e.target.checked?[...visCols,col.id]:visCols.filter(c=>c!==col.id);setVisCols(n);localStorage.setItem(colKey(replenMode),JSON.stringify(n))}} style={{accentColor:'var(--primary)'}} />
-                        <span style={{flex:1}}>{col.label || '(序号)'}</span>
-                        <span style={{fontSize:9,color:'var(--muted2)'}}>{isVis ? '#'+(visCols.indexOf(col.id)+1) : ''}</span>
-                      </div>
-                    })}
-                    <div style={{borderTop:'1px solid var(--border)',marginTop:4,paddingTop:4,display:'flex',gap:6}}>
-                      <span onClick={()=>{const d=replenMode==='bbcc'?defVis(BBCC_COLS):defVisTrad(TRAD_COLS);setVisCols(d);localStorage.setItem(colKey(replenMode),JSON.stringify(d));setShowColPicker(false)}} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>默认</span>
-                      <span onClick={()=>{const a=currentCols.map(c=>c.id);setVisCols(a);localStorage.setItem(colKey(replenMode),JSON.stringify(a));setShowColPicker(false)}} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>全部</span>
-                    </div>
-                  </div>}
-                </div>
-              </span>
             </span>
           </div>
           {replenLoading ? (
@@ -352,20 +282,6 @@ export default function InsightsPage() {
         <div className="card">
           <div className="section-title" style={{display:'flex',flexWrap:'wrap',gap:6}}>
             <span>采购建议</span>
-            <span style={{marginLeft:'auto',display:'inline-flex',gap:4}}>
-              <button onClick={async()=>{
-                try {
-                  const r = await fetch(API+'/api/insights/export-purchase-suggestions?days=28&mode='+replenMode+'&channel='+globalChannel)
-                  const blob = await r.blob()
-                  const url = URL.createObjectURL(blob)
-                  const a = document.createElement('a')
-                  a.href = url; a.download = '采购建议_'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'.xlsx'
-                  document.body.appendChild(a); a.click(); a.remove()
-                  URL.revokeObjectURL(url)
-                } catch(e) { toast.error('导出失败: '+e.message) }
-              }}
-                className="btn btn-ghost" style={{fontSize:11,padding:'2px 10px'}}>导出</button>
-            </span>
           </div>
           {purchaseLoading ? (
             <div>

@@ -34,6 +34,10 @@ export const useAppStore = create((set, get) => ({
   hammerData: JSON.parse(localStorage.getItem('c_hammer_data') || '{}'),
   hammerWhType: localStorage.getItem('c_wh_type_' + (localStorage.getItem('c_channel') || 'jd')) || 'own',
   setHammerWhType: (v) => { localStorage.setItem('c_wh_type_' + get().channel, v); set({ hammerWhType: v }) },
+  hammerInsightsTab: 'replen',
+  setHammerInsightsTab: (t) => set({ hammerInsightsTab: t }),
+  hammerReplenMode: localStorage.getItem('c_replen_mode') || 'bbcc',
+  setHammerReplenMode: (m) => { localStorage.setItem('c_replen_mode', m); set({ hammerReplenMode: m }) },
   hammerCols: {},
   setHammerCols: (pageKey, cols) => set((s) => ({ hammerCols: { ...s.hammerCols, [pageKey]: cols } })),
   setHammerData: (page, data) => {

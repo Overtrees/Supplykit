@@ -472,10 +472,10 @@ function HammerInsights({ channel }) {
     setHammerCols('insights_' + mode, c)
   }
 
-  const doExport = async () => {
+  const doExport = async (type) => {
     try {
       const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
-      const isPurchase = hammerInsightsTab === 'purchase'
+      const isPurchase = type === 'purchase'
       const ep = isPurchase ? '/api/insights/export-purchase-suggestions' : '/api/insights/export-purchase'
       const r = await fetch(API + ep + '?days=28&mode=' + mode + '&channel=' + channel)
       if (!r.ok) throw new Error('HTTP ' + r.status)
@@ -486,6 +486,7 @@ function HammerInsights({ channel }) {
       a.download = (isPurchase ? '采购建议_' : '补货建议_') + new Date().toISOString().slice(0,10).replace(/-/g,'') + '.xlsx'
       document.body.appendChild(a); a.click(); a.remove()
       URL.revokeObjectURL(url)
+      setHammerPanel(null)
     } catch(e) { toast.error('导出失败: ' + e.message) }
   }
 
@@ -517,13 +518,27 @@ function HammerInsights({ channel }) {
             {mode === 'bbcc' ? 'BBCC' : '传统'}
           </button>
         </>}
-        {hammerInsightsTab !== 'slow' && (
-          <button onClick={doExport}
-            className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px',display:'flex',alignItems:'center',gap:4,justifyContent:'center'}}>
-            <IconExport size={13} /> 导出
-          </button>
-        )}
+        <button onClick={() => setHammerPanel(hammerPanel === 'export' ? null : 'export')}
+          className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px',display:'flex',alignItems:'center',gap:4,justifyContent:'center'}}>
+          <IconExport size={13} /> 导出
+        </button>
       </div>
+      {/* 导出面板 */}
+      {hammerPanel === 'export' && (
+        <div style={{borderTop:'1px solid var(--border)',paddingTop:8,marginTop:8}}>
+          <div style={{fontSize:10,color:'var(--muted2)',marginBottom:4}}>选择导出类型 · {channel === 'jd' ? '京东' : '其他'}渠道{mode === 'bbcc' ? ' · BBCC' : ''}</div>
+          <div style={{display:'flex',gap:4}}>
+            <span onClick={() => doExport('replen')}
+              style={{flex:1,fontSize:12,padding:'6px 8px',borderRadius:99,cursor:'pointer',textAlign:'center',background:'var(--gray)',color:'var(--text)'}}>
+              补货建议
+            </span>
+            <span onClick={() => doExport('purchase')}
+              style={{flex:1,fontSize:12,padding:'6px 8px',borderRadius:99,cursor:'pointer',textAlign:'center',background:'var(--gray)',color:'var(--text)'}}>
+              采购建议
+            </span>
+          </div>
+        </div>
+      )}
       {/* 列选择面板 */}
       {hammerPanel === 'columns' && hammerInsightsTab === 'replen' && (
         <div style={{borderTop:'1px solid var(--border)',paddingTop:8,marginTop:8,maxHeight:260,overflowY:'auto'}}>

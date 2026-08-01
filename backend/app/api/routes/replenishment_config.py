@@ -18,14 +18,38 @@ def get_config(mode: str = None, channel: str = 'jd', db=get_db()):
 
 @router.put("")
 def update_config(data: dict, mode: str = '', channel: str = 'jd', db=get_db()):
+    now = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
     if mode:
         prefix = f'mode_{mode}_'
         for k, v in data.items():
-            db.table("replenishment_config").upsert({"key": prefix + k, "value": str(v), "channel": channel, "updated_at": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}, conflict_col='key')
+            full_key = prefix + k
+            existing = db.table("replenishment_config").select('value').eq('key', full_key).eq('channel', channel).execute().data
+            old_val = existing[0]['value'] if existing else ''
+            if str(old_val) != str(v):
+                db.table("replenishment_config_history").insert({
+                    'key': full_key, 'old_value': str(old_val), 'new_value': str(v),
+                    'channel': channel, 'mode': mode, 'created_at': now
+                })
+            db.table("replenishment_config").upsert({"key": full_key, "value": str(v), "channel": channel, "updated_at": now}, conflict_col='key')
     else:
         for k, v in data.items():
-            db.table("replenishment_config").upsert({"key": k, "value": str(v), "channel": channel, "updated_at": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}, conflict_col='key')
+            existing = db.table("replenishment_config").select('value').eq('key', k).eq('channel', channel).execute().data
+            old_val = existing[0]['value'] if existing else ''
+            if str(old_val) != str(v):
+                db.table("replenishment_config_history").insert({
+                    'key': k, 'old_value': str(old_val), 'new_value': str(v),
+                    'channel': channel, 'mode': '', 'created_at': now
+                })
+            db.table("replenishment_config").upsert({"key": k, "value": str(v), "channel": channel, "updated_at": now}, conflict_col='key')
     return ok({'mode': mode, 'channel': channel})
+
+
+@router.get('/history')
+def get_config_history(channel: str = 'jd', mode: str = '', limit: int = 50, db=get_db()):
+    query = db.table("replenishment_config_history").select('*').eq('channel', channel).order('created_at', desc=True).limit(limit)
+    if mode:
+        query = query.eq('mode', mode)
+    return ok(query.execute().data)
 
 
 @router.get('/seasons')
@@ -47,6 +71,13 @@ def update_seasons(data: dict, mode: str = 'bbcc', channel: str = 'jd', db=get_d
     items = data.get('items', data.get('seasons', []))
     val = json.dumps(list(items), ensure_ascii=False)
     key = f'season_config_{mode}'
+    existing = db.table("replenishment_config").select('value').eq('key', key).eq('channel', channel).execute().data
+    old_val = existing[0]['value'] if existing else ''
+    if old_val != val:
+        db.table("replenishment_config_history").insert({
+            'key': key, 'old_value': old_val, 'new_value': val,
+            'channel': channel, 'mode': mode, 'created_at': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+        })
     db.table("replenishment_config").upsert({"key": key, "value": val, "channel": channel, "updated_at": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}, conflict_col='key')
     return ok(items)
 @router.get('/calculate')

@@ -550,6 +550,18 @@ def init_db(path=None):
         CREATE INDEX IF NOT EXISTS idx_inventory_store ON inventory(store);
         CREATE INDEX IF NOT EXISTS idx_events_created_at ON events(created_at);
     """)
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS replenishment_config_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            key TEXT NOT NULL,
+            old_value TEXT DEFAULT '',
+            new_value TEXT DEFAULT '',
+            channel TEXT DEFAULT 'jd',
+            mode TEXT DEFAULT '',
+            operator TEXT DEFAULT 'web',
+            created_at TEXT DEFAULT (datetime('now'))
+        )
+    """)
     # 兼容旧表：补加可能缺失的列
     try: conn.execute("ALTER TABLE products ADD COLUMN box_qty INTEGER DEFAULT 1")
     except: pass

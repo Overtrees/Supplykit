@@ -614,9 +614,24 @@ function HammerCleansing({ channel }) {
   )
 }
 
-/* 规则页: 锤子菜单 tab入口 + 新建 + 模式切换 */
+/* 规则页: 锤子菜单 tab入口 + 新建 + 模式切换 + 变更历史 */
 function HammerRules({ channel }) {
   const { hammerRulesTab, setHammerRulesTab, bumpHammerRuleNew, hammerRulesMode, setHammerRulesMode } = useAppStore()
+  const [showHistory, setShowHistory] = useState(false)
+  const [history, setHistory] = useState([])
+  const [histLoading, setHistLoading] = useState(false)
+
+  const loadHistory = async () => {
+    setHistLoading(true)
+    try {
+      const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
+      const r = await fetch(API + '/api/replenishment-config/history?channel=' + channel + '&limit=50')
+      const d = await r.json()
+      setHistory(d.data || [])
+    } catch(e) { setHistory([]) }
+    setHistLoading(false)
+  }
+
   return (
     <div>
       <div style={{fontSize:11,color:'var(--muted2)',marginBottom:8,textAlign:'center'}}>
@@ -633,13 +648,17 @@ function HammerRules({ channel }) {
           </span>
         ))}
       </div>
-      {/* 规则 tab: 新建 */}
-      {hammerRulesTab === 'rules' && (
+      {/* 规则 tab: 新建 + 变更历史 */}
+      {hammerRulesTab === 'rules' && <>
         <button onClick={() => { setHammerRulesTab('rules'); bumpHammerRuleNew() }} className="btn btn-primary"
           style={{width:'100%',marginTop:8,fontSize:12,minHeight:34,padding:'4px 8px',display:'flex',alignItems:'center',justifyContent:'center',gap:4,boxSizing:'border-box'}}>
           + 新建规则
         </button>
-      )}
+        <button onClick={() => { setShowHistory(true); loadHistory() }} className="btn btn-ghost"
+          style={{width:'100%',marginTop:6,fontSize:12,minHeight:34,padding:'4px 8px',display:'flex',alignItems:'center',justifyContent:'center',gap:4,boxSizing:'border-box'}}>
+          变更历史
+        </button>
+      </>}
       {/* 补货参数 tab: 模式切换 */}
       {hammerRulesTab === 'params' && (
         <div style={{display:'flex',gap:4,marginTop:8}}>
@@ -656,6 +675,46 @@ function HammerRules({ channel }) {
             传统多仓
           </span>
         </div>
+      )}
+
+      {/* 变更历史底部弹窗 */}
+      {showHistory && (
+        <>
+          <div onPointerDown={() => setShowHistory(false)} style={{position:'fixed',inset:0,zIndex:9998,background:'rgba(0,0,0,0.3)'}} />
+          <div onClick={e => e.stopPropagation()} style={{
+            position:'fixed',bottom:0,left:0,right:0,zIndex:9999,background:'var(--card)',
+            borderRadius:'26px 26px 0 0',padding:20,paddingBottom:'calc(20px + env(safe-area-inset-bottom,0px))',
+            maxHeight:'70vh',overflowY:'auto',boxShadow:'0 -4px 30px rgba(0,0,0,0.15)',
+            animation:'slideUp 0.3s ease'
+          }}>
+            <div style={{width:40,height:4,background:'var(--border)',borderRadius:99,margin:'0 auto 16px'}} />
+            <div style={{fontSize:16,fontWeight:700,marginBottom:12}}>配置变更历史</div>
+            {histLoading ? (
+              <div style={{padding:20,textAlign:'center',color:'var(--muted2)'}}>加载中...</div>
+            ) : history.length === 0 ? (
+              <div style={{padding:20,textAlign:'center',color:'var(--muted2)'}}>暂无变更记录</div>
+            ) : (
+              <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                {history.map((h, i) => {
+                  const key = h.key.replace(/^mode_(bbcc|traditional)_/, '')
+                  const modeInfo = h.mode ? (h.mode === 'bbcc' ? 'BBCC' : '传统') : ''
+                  return <div key={h.id || i} style={{padding:'10px 12px',background:'var(--bg)',borderRadius:16,fontSize:12}}>
+                    <div style={{display:'flex',justifyContent:'space-between',gap:6,marginBottom:4}}>
+                      <span style={{fontWeight:600,fontSize:11}}>{key}{modeInfo ? ` (${modeInfo})` : ''}</span>
+                      <span style={{fontSize:10,color:'var(--muted2)',flexShrink:0}}>{h.created_at?.slice(5,16) || ''}</span>
+                    </div>
+                    <div style={{fontSize:11,color:'var(--muted2)',display:'flex',gap:4,flexWrap:'wrap'}}>
+                      <span style={{color:'var(--danger)',textDecoration:'line-through'}}>{h.old_value || '(空)'}</span>
+                      <span style={{color:'var(--muted2)'}}>→</span>
+                      <span style={{color:'var(--success)'}}>{h.new_value || '(空)'}</span>
+                    </div>
+                  </div>
+                })}
+              </div>
+            )}
+          </div>
+          <style>{`@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}`}</style>
+        </>
       )}
     </div>
   )

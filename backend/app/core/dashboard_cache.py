@@ -234,9 +234,10 @@ def get_dashboard(channel='jd'):
 
 def invalidate():
     """Mark cache as dirty. Called by event handlers."""
-    global _cache_dirty, _cache_by_channel, _cache_version
+    global _cache_dirty, _cache_by_channel, _cache_version, _stock_risk_cache
     _cache_dirty = True
     _cache_by_channel = {}
+    _stock_risk_cache = {}
     _cache_version += 1
     # 写入数据库持久化版本号（跨进程共享）
     try:

@@ -507,7 +507,7 @@ function HammerInsights({ channel }) {
       <div style={{display:'flex',gap:4,marginBottom:8,flexWrap:'wrap'}}>
         {[['replen','补货建议'],['purchase','采购建议'],['slow','滞销预警']].map(([id,label]) => (
           <span key={id} onClick={() => setHammerInsightsTab(id)}
-            style={{flex:1,fontSize:12,minHeight:30,padding:'4px 6px',borderRadius:99,cursor:'pointer',textAlign:'center',
+            style={{flex:1,fontSize:12,minHeight:32,padding:'4px 6px',borderRadius:99,cursor:'pointer',textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
               background: hammerInsightsTab === id ? 'var(--primary)' : 'var(--gray)',
               color: hammerInsightsTab === id ? '#fff' : 'var(--text)',fontWeight: hammerInsightsTab === id ? 600 : 400}}>
             {label}
@@ -519,13 +519,13 @@ function HammerInsights({ channel }) {
         <div style={{display:'flex',gap:4,marginBottom:6}}>
           {channel === 'jd' && (
             <span onClick={() => setHammerReplenMode('bbcc')}
-              style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px',borderRadius:99,cursor:'pointer',textAlign:'center',
+              style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px',borderRadius:99,cursor:'pointer',textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
                 background: mode==='bbcc'?'var(--primary)':'var(--gray)',color: mode==='bbcc'?'#fff':'var(--text)',fontWeight: mode==='bbcc'?600:400}}>
               BBCC
             </span>
           )}
           <span onClick={() => setHammerReplenMode('traditional')}
-            style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px',borderRadius:99,cursor:'pointer',textAlign:'center',
+            style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px',borderRadius:99,cursor:'pointer',textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
               background: mode==='traditional'?'var(--primary)':'var(--gray)',color: mode==='traditional'?'#fff':'var(--text)',fontWeight: mode==='traditional'?600:400}}>
             传统
           </span>

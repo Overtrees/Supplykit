@@ -86,9 +86,9 @@ export default function SettingsPage() {
     try {
       await fetch('https://overtrees.pythonanywhere.com/api/seed/reset', {method:'POST'})
       clearCache(); clearInflight()
-      toast.success('数据已重置，即将刷新页面')
+      useAppStore.setState({ dashboard: null, alerts: [], stockRisk: [] })
+      toast.success('数据已重置')
       setSeedStatus('数据已清空，可一键填充')
-      setTimeout(() => window.location.reload(), 1500)
     } catch { toast.error('重置失败') }
     setResetting(false)
   }

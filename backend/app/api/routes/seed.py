@@ -1,6 +1,7 @@
 """种子数据 — 填充/重置（按测试脚本复刻）"""
 from fastapi import APIRouter
 from app.core.database import get_db, init_db, get_conn
+from app.core.dashboard_cache import invalidate
 from app.core.response import ok, fail
 from datetime import datetime, timedelta
 import random, json
@@ -79,6 +80,7 @@ def seed_fill(db=get_db()):
             "channel": ch,
         }).execute()
 
+    invalidate()  # 清除看板缓存
     return ok({"products": len(products), "suppliers": len(suppliers), "inventory": len(inv_data), "orders": len(orders_data)})
 
 
@@ -96,6 +98,7 @@ def seed_reset(db=get_db()):
         except Exception:
             pass
     conn.commit()
+    invalidate()  # 清除看板缓存
     # 重新初始化种子规则
     from app.core.database import _seed_builtin_rules
     try:

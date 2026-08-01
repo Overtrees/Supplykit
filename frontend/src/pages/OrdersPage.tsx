@@ -55,15 +55,13 @@ export default function OrdersPage() {
   }
 
   return <div>
-    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:6,marginBottom:12}}>
-      <span style={{fontSize:18,fontWeight:700}}>订单 <span className="small muted" style={{fontWeight:400}}>共 {filtered.length} 条</span></span>
-    </div>
     {s !== '' && <div style={{display:'flex',gap:6,alignItems:'center',marginBottom:8,flexWrap:'wrap'}}>
       <span className="small muted">搜索 "{s}"</span>
       {st && <span className="pill info">{st}</span>}
     </div>}
 
     <div className="card">
+    <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>订单 <span className="small muted" style={{fontWeight:400}}>共 {filtered.length} 条</span></div>
     {orderLoading || !dataLoaded ? <OrderSkeleton />
     : filtered.length === 0
       ? <EmptyState icon='clipboard' title={s?'无匹配订单':'暂无订单'} desc={s?'换个关键词试试':''} />

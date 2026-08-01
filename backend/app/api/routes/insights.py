@@ -246,6 +246,7 @@ def inventory_with_sales(wh_type: str = 'own', channel: str = 'jd', db = get_db(
         result.append({
             'id': i['id'],
             'sku': sku,
+            'barcode': bc,
             'product_name': i.get('product_name',''),
             'store': i.get('store',''),
             'warehouse': i.get('warehouse',''),
@@ -255,11 +256,11 @@ def inventory_with_sales(wh_type: str = 'own', channel: str = 'jd', db = get_db(
             'in_transit_qty': int(i.get('in_transit_qty',0) or 0),
             'c_transit': c_transit.get(sku, 0) if wh_type == 'platform_b' else 0,
             'daily_sales': ds,
-            'month_inbound': inbound_month.get(sku, 0),
-            'month_outbound': outbound_month.get(sku, 0),
-            'beginning_stock': begin,
+            'month_inbound': inbound_month.get(sku, int(i.get('month_inbound',0) or 0)),
+            'month_outbound': outbound_month.get(sku, int(i.get('month_outbound',0) or 0)),
+            'beginning_stock': int(i.get('beginning_stock',0) or 0) or begin,
             'month_start': month_start,
             'month_end': month_end,
-            'turnover_days': round((begin + inbound_month.get(sku, 0)) / outbound_month.get(sku, 0), 1) if outbound_month.get(sku, 0) > 0 else None,
+            'turnover_days': round(i.get('turnover_days',0) or 0, 1) if (i.get('turnover_days') or 0) > 0 else None,
         })
     return ok(result)

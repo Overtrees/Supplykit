@@ -700,7 +700,10 @@ function HammerRules({ channel }) {
                   const modeInfo = h.mode ? (h.mode === 'bbcc' ? 'BBCC' : '传统') : ''
                   return <div key={h.id || i} style={{padding:'10px 12px',background:'var(--bg)',borderRadius:16,fontSize:12}}>
                     <div style={{display:'flex',justifyContent:'space-between',gap:6,marginBottom:4}}>
-                      <span style={{fontWeight:600,fontSize:11}}>{key}{modeInfo ? ` (${modeInfo})` : ''}</span>
+                      <span style={{fontWeight:600,fontSize:11}}>
+                        {key}{modeInfo ? ` (${modeInfo})` : ''}
+                        <span style={{fontWeight:400,fontSize:10,color:'var(--muted2)',marginLeft:4}}>{h.channel === 'jd' ? '京东' : '其他'}</span>
+                      </span>
                       <span style={{fontSize:10,color:'var(--muted2)',flexShrink:0}}>{h.created_at?.slice(5,16) || ''}</span>
                     </div>
                     <div style={{fontSize:11,color:'var(--muted2)',display:'flex',gap:4,flexWrap:'wrap'}}>

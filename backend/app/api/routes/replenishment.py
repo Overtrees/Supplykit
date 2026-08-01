@@ -254,10 +254,10 @@ def compare_replenishment_sources(days: int = 28, db = get_db()):
 
 
 @router.get('/export-orders')
-def export_orders_excel(db = get_db()):
+def export_orders_excel(channel: str = 'jd', db = get_db()):
     from openpyxl import Workbook
     from io import BytesIO; from fastapi.responses import Response; from urllib.parse import quote
-    orders = db.table("orders").select("*").order("id", desc=True).limit(2000).execute().data
+    orders = db.table("orders").select("*").eq("channel", channel).order("id", desc=True).limit(2000).execute().data
     wb = Workbook(); ws = wb.active; ws.title = "订单"
     ws.append(["订单号","SKU","商品","店铺","数量","单价","金额","状态","下单时间","平台"])
     from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
@@ -275,10 +275,13 @@ def export_orders_excel(db = get_db()):
 
 
 @router.get('/export-inventory')
-def export_inventory_excel(db = get_db()):
+def export_inventory_excel(channel: str = 'jd', wh_type: str = '', db = get_db()):
     from openpyxl import Workbook
     from io import BytesIO; from fastapi.responses import Response; from urllib.parse import quote
-    inv = db.table("inventory").select("*").eq("channel", channel).execute().data
+    query = db.table("inventory").select("*").eq("channel", channel)
+    if wh_type:
+        query = query.eq("warehouse_type", wh_type)
+    inv = query.execute().data
     wb = Workbook(); ws = wb.active; ws.title = "库存"
     ws.append(["SKU","商品","仓库","仓库类型","可用","在途","安全库存"])
     from openpyxl.styles import Font, Alignment, PatternFill, Border, Side

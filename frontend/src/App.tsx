@@ -200,7 +200,7 @@ function HammerOrders({ channel }) {
   const doExport = async () => {
     try {
       const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
-      const r = await fetch(API + '/api/insights/export-orders')
+      const r = await fetch(API + '/api/insights/export-orders?channel=' + channel)
       const b = await r.blob()
       const u = URL.createObjectURL(b)
       const a = document.createElement('a')
@@ -341,7 +341,7 @@ function HammerInventory({ channel }) {
   const doExport = async () => {
     try {
       const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
-      const r = await fetch(API + '/api/insights/export-inventory')
+      const r = await fetch(API + '/api/insights/export-inventory?channel=' + channel + '&wh_type=' + hammerWhType)
       const b = await r.blob()
       const u = URL.createObjectURL(b)
       const a = document.createElement('a')

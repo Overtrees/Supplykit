@@ -32,8 +32,8 @@ export const useAppStore = create((set, get) => ({
   hammerSearch: '',
   setHammerSearch: (text) => set({ hammerSearch: text }),
   hammerData: JSON.parse(localStorage.getItem('c_hammer_data') || '{}'),
-  hammerWhType: 'own',
-  setHammerWhType: (v) => set({ hammerWhType: v }),
+  hammerWhType: localStorage.getItem('c_wh_type_' + (localStorage.getItem('c_channel') || 'jd')) || 'own',
+  setHammerWhType: (v) => { localStorage.setItem('c_wh_type_' + get().channel, v); set({ hammerWhType: v }) },
   hammerCols: {},
   setHammerCols: (pageKey, cols) => set((s) => ({ hammerCols: { ...s.hammerCols, [pageKey]: cols } })),
   setHammerData: (page, data) => {
@@ -43,7 +43,7 @@ export const useAppStore = create((set, get) => ({
     localStorage.setItem('c_hammer_data', JSON.stringify(hd))
     set({ hammerData: hd })
   },
-  setChannel: (ch) => { localStorage.setItem('c_channel', ch); clearCache(); clearInflight(); set({ channel: ch, dataLoaded: false, loading: true }) },
+  setChannel: (ch) => { localStorage.setItem('c_channel', ch); clearCache(); clearInflight(); set({ channel: ch, dataLoaded: false, loading: true, hammerWhType: localStorage.getItem('c_wh_type_' + ch) || 'own' }) },
 
   async loadAll(page) {
     set({ loading: true })

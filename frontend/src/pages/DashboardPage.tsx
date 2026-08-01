@@ -97,7 +97,9 @@ export default function DashboardPage({ onAlert }) {
       <div className="card" style={{position:'relative',borderRadius:32,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16,overflow:'hidden'}}>
         <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>濒临断货 TOP 10</div>
         {(!stockRisk || stockRisk.length === 0)
-          ? <div className="small muted" style={{padding:'12px 0',textAlign:'center'}}>库存充足</div>
+          ? <div style={{flex:1,display:'flex',alignItems:'flex-end',justifyContent:'center',marginBottom:2}}>
+              <div style={{fontSize:20,fontWeight:700,color:'var(--muted2)'}}>库存充足</div>
+            </div>
           : <>
               <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:2}}>
                 <div className="card-value" style={{color:'#ef4444'}}>{stockRisk.length}</div>

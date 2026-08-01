@@ -514,28 +514,31 @@ function HammerInsights({ channel }) {
           </span>
         ))}
       </div>
-      {/* 功能按钮行 */}
-      <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-        {hammerInsightsTab === 'replen' && <>
-          <div style={{display:'flex',gap:4,flex:1,minWidth:0}}>
-            {channel === 'jd' && (
-              <span onClick={() => setHammerReplenMode('bbcc')}
-                style={{flex:1,minWidth:0,fontSize:12,minHeight:32,padding:'4px 8px',borderRadius:99,cursor:'pointer',textAlign:'center',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',boxSizing:'border-box',
-                  background: mode==='bbcc'?'var(--primary)':'var(--gray)',color: mode==='bbcc'?'#fff':'var(--text)',fontWeight: mode==='bbcc'?600:400}}>
-                BBCC
-              </span>
-            )}
-            <span onClick={() => setHammerReplenMode('traditional')}
-              style={{flex:1,minWidth:0,fontSize:12,minHeight:32,padding:'4px 8px',borderRadius:99,cursor:'pointer',textAlign:'center',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',boxSizing:'border-box',
-                background: mode==='traditional'?'var(--primary)':'var(--gray)',color: mode==='traditional'?'#fff':'var(--text)',fontWeight: mode==='traditional'?600:400}}>
-              传统
+      {/* 补货模式行（单独一行） */}
+      {hammerInsightsTab === 'replen' && (
+        <div style={{display:'flex',gap:4,marginBottom:6}}>
+          {channel === 'jd' && (
+            <span onClick={() => setHammerReplenMode('bbcc')}
+              style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px',borderRadius:99,cursor:'pointer',textAlign:'center',
+                background: mode==='bbcc'?'var(--primary)':'var(--gray)',color: mode==='bbcc'?'#fff':'var(--text)',fontWeight: mode==='bbcc'?600:400}}>
+              BBCC
             </span>
-          </div>
+          )}
+          <span onClick={() => setHammerReplenMode('traditional')}
+            style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px',borderRadius:99,cursor:'pointer',textAlign:'center',
+              background: mode==='traditional'?'var(--primary)':'var(--gray)',color: mode==='traditional'?'#fff':'var(--text)',fontWeight: mode==='traditional'?600:400}}>
+            传统
+          </span>
+        </div>
+      )}
+      {/* 操作行（列选择+导出，单独一行） */}
+      <div style={{display:'flex',gap:6}}>
+        {hammerInsightsTab === 'replen' && (
           <button onClick={() => setHammerPanel(hammerPanel === 'columns' ? null : 'columns')}
             className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
             列选择 ({visCols.length}/{cols.length})
           </button>
-        </>}
+        )}
         <button onClick={() => setHammerPanel(hammerPanel === 'export' ? null : 'export')}
           className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px',display:'flex',alignItems:'center',gap:4,justifyContent:'center'}}>
           <IconExport size={13} /> 导出
@@ -801,7 +804,7 @@ export default function App() {
               position: 'fixed', zIndex: 3002,
               right: 16,
               top: 'calc(env(safe-area-inset-top, 0px) + 7px + 46px + 6px)',
-              width: 220,
+              width: 240,
               background: 'var(--glass-bg)',
               backdropFilter: 'blur(var(--glass-blur)) saturate(var(--glass-saturate)) brightness(var(--glass-brightness))',
               WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(var(--glass-saturate)) brightness(var(--glass-brightness))',

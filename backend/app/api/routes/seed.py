@@ -1,6 +1,6 @@
 """种子数据 — 填充/重置（按测试脚本复刻）"""
 from fastapi import APIRouter
-from app.core.database import get_db, init_db
+from app.core.database import get_db, init_db, get_conn
 from app.core.response import ok, fail
 from datetime import datetime, timedelta
 import random, json
@@ -84,13 +84,18 @@ def seed_fill(db=get_db()):
 
 @router.post("/reset")
 def seed_reset(db=get_db()):
+    # 直接用 SQLite 原生连接清空（绕过 builder 层）
+    conn = get_conn()
+    conn.execute("PRAGMA busy_timeout=10000")
     tables = ['orders','inventory','products','suppliers','alerts','quality_logs','events',
-              'purchase_orders','replenishment_config_history','cleansing_templates','custom_fields']
+              'purchase_orders','replenishment_config_history','cleansing_templates','custom_fields',
+              'replenishment_config','rules']
     for t in tables:
         try:
-            db.table(t).delete().neq('id', -1).execute()
-        except:
+            conn.execute(f'DELETE FROM "{t}"')
+        except Exception:
             pass
+    conn.commit()
     # 重新初始化种子规则
     from app.core.database import _seed_builtin_rules
     try:

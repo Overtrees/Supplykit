@@ -469,7 +469,7 @@ function insDefVisTrad(cols){return cols.map(c=>c.id).filter((_,i)=>[0,1,2,3,4,5
 
 function HammerInsights({ channel }) {
   const toast = useToast()
-  const { hammerPanel, setHammerPanel, setHammerCols, hammerInsightsTab, setHammerInsightsTab, hammerReplenMode, setHammerReplenMode } = useAppStore()
+  const { hammerPanel, setHammerPanel, setHammerCols, hammerInsightsTab, setHammerInsightsTab, hammerReplenMode, setHammerReplenMode, hammerData, setHammerData } = useAppStore()
   const mode = (channel !== 'jd' && hammerReplenMode === 'bbcc') ? 'traditional' : hammerReplenMode
   const isPurchase = hammerInsightsTab === 'purchase'
   const isSlow = hammerInsightsTab === 'slow'
@@ -564,8 +564,12 @@ function HammerInsights({ channel }) {
           </span>
         </div>
       )}
-      {/* 操作行（列选择+导出，单独一行） */}
+      {/* 操作行（列选择+搜索+导出，单独一行） */}
       <div style={{display:'flex',gap:6}}>
+        <button onClick={() => setHammerPanel(hammerPanel === 'search' ? null : 'search')}
+          className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
+          搜索
+        </button>
         <button onClick={() => setHammerPanel(hammerPanel === 'columns' ? null : 'columns')}
             className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
             列选择 ({visCols.length}/{cols.length})
@@ -589,6 +593,24 @@ function HammerInsights({ channel }) {
               采购建议
             </span>
           </div>
+        </div>
+      )}
+      {/* 搜索面板 — 建议页 */}
+      {hammerPanel === 'search' && (
+        <div style={{borderTop:'1px solid var(--border)',paddingTop:8,marginTop:8}}>
+          <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4,textAlign:'center'}}>
+            {hammerInsightsTab === 'replen' ? '补货建议' : hammerInsightsTab === 'purchase' ? '采购建议' : '滞销预警'}
+            {isPurchase ? '' : mode === 'bbcc' ? ' (BBCC)' : ' (传统)'} · 搜索
+          </div>
+          <input id="hm-search-insights" value={hammerData?.['insights_search_' + (isPurchase ? 'purchase' : isSlow ? 'slow' : mode)] || ''}
+            onChange={e => setHammerData('insights_search_' + (isPurchase ? 'purchase' : isSlow ? 'slow' : mode), e.target.value)}
+            placeholder="搜索SKU/商品名..."
+            style={{width:'100%',padding:'6px 10px',fontSize:16,border:'1px solid var(--border)',borderRadius:32,outline:'none',boxSizing:'border-box',background:'var(--card)',color:'var(--text)'}} />
+          {hammerData?.['insights_search_' + (isPurchase ? 'purchase' : isSlow ? 'slow' : mode)] && (
+            <div style={{marginTop:4,textAlign:'center'}}>
+              <span className="clickable btn btn-ghost" onClick={() => setHammerData('insights_search_' + (isPurchase ? 'purchase' : isSlow ? 'slow' : mode), '')} style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>清除</span>
+            </div>
+          )}
         </div>
       )}
       {/* 列选择面板 */}

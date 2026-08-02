@@ -90,10 +90,21 @@ export default function InsightsPage() {
   const [purchaseLoading, setPurchaseLoading] = useState(true)
   const [slowLoading, setSlowLoading] = useState(true)
 
-  const { channel: globalChannel, hammerInsightsTab: tab, hammerReplenMode, setHammerReplenMode, hammerCols } = useAppStore()
+  const { channel: globalChannel, hammerInsightsTab: tab, hammerReplenMode, setHammerReplenMode, hammerCols, hammerData } = useAppStore()
   const replenMode = (globalChannel !== 'jd' && hammerReplenMode === 'bbcc') ? 'traditional' : hammerReplenMode
   const currentCols = replenMode === 'bbcc' ? BBCC_COLS : TRAD_COLS
   const [visCols, setVisCols] = useState(() => getVis(replenMode) || (replenMode==='bbcc'?defVis(BBCC_COLS):defVisTrad(TRAD_COLS)))
+  // 搜索：按 tab 和模式隔离
+  const searchKey = tab === 'purchase' ? 'insights_search_purchase' : (tab === 'slow' ? 'insights_search_slow' : 'insights_search_' + replenMode)
+  const insightSearch = hammerData?.[searchKey] || ''
+  const filterBySearch = (items) => {
+    if (!insightSearch) return items
+    const q = insightSearch.toLowerCase()
+    return items.filter(x => (x.sku||'').toLowerCase().includes(q) || (x.product_name||'').toLowerCase().includes(q) || (x.barcode||'').toLowerCase().includes(q))
+  }
+  const filteredReplen = filterBySearch(Array.isArray(replen) ? replen : [])
+  const filteredPurchase = filterBySearch(Array.isArray(purchase) ? purchase : [])
+  const filteredSlow = filterBySearch(Array.isArray(slowMoving) ? slowMoving : []))
   const [purchaseVisCols, setPurchaseVisCols] = useState(() => PURCHASE_COLS.map(c => c.id))
   const [slowVisCols, setSlowVisCols] = useState(() => SLOW_COLS.map(c => c.id))
   const reqSeq = useRef(0)
@@ -212,14 +223,14 @@ export default function InsightsPage() {
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4,display:'flex',gap:8,alignItems:'center'}}>
-                <span>显示 {visCols.length}/{currentCols.length} 列 · 点击"列"按钮切换</span>
+                <span>显示 {visCols.length}/{currentCols.length} 列 · 点击"列"按钮切换{insightSearch ? ` · 搜索 "${insightSearch}"` : ''}</span>
                 {replenMode==='bbcc' && orderedKeys.length > 0 && <span className="pill success" style={{fontSize:10}}>已下单 {orderedKeys.length} 项</span>}
               </div>
               <table>
                 <colgroup>{visCols.map(id => {const col = currentCols.find(c => c.id === id); return col ? <col key={col.id} /> : null})}</colgroup>
                 <thead><tr>{visCols.map(id => {const col = currentCols.find(c => c.id === id); return col ? <th key={col.id} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{col.label}</th> : null})}</tr></thead>
                 <tbody>
-                  {Array.isArray(replen) && replen.map((x, i) => {
+                  {Array.isArray(filteredReplen) && filteredReplen.map((x, i) => {
                     const isOrdered = orderedKeys.includes(x.sku+'|'+x.store)
                     const rowStyle = isOrdered ? {opacity:0.55,background:'var(--bg)'} : {}
                     return (
@@ -323,12 +334,12 @@ export default function InsightsPage() {
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>暂无采购建议</div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
-              <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {purchaseVisCols.length}/{PURCHASE_COLS.length} 列 · 点击"列"按钮切换</div>
+              <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {purchaseVisCols.length}/{PURCHASE_COLS.length} 列 · 点击"列"按钮切换{insightSearch ? ` · 搜索 "${insightSearch}"` : ''}</div>
               <table>
                 <colgroup>{purchaseVisCols.map(id => {const col = PURCHASE_COLS.find(c => c.id === id); return col ? <col key={col.id} /> : null})}</colgroup>
                 <thead><tr>{purchaseVisCols.map(id => {const col = PURCHASE_COLS.find(c => c.id === id); return col ? <th key={col.id} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{col.label}</th> : null})}</tr></thead>
                 <tbody>
-                  {purchase.map((x, i) => {
+                  {filteredPurchase.map((x, i) => {
                     const timing = !x.purchase_qty || x.purchase_qty <= 0 ? '充足' : (x.after_turnover && (x.target_turnover || 15) > 0 && x.after_turnover <= (x.target_turnover || 15) ? '建议' : '充足')
                     return (
                     <tr key={i}>
@@ -358,10 +369,10 @@ export default function InsightsPage() {
                   <tr style={{fontWeight:700,borderTop:'2px solid var(--border)'}}>
                     {purchaseVisCols.includes('actual_purchase') && <>
                       <td colSpan={purchaseVisCols.indexOf('actual_purchase')} style={{textAlign:'right',fontSize:12}}>合计</td>
-                      <td style={{color:'var(--success)',fontSize:13}}>+{purchase.reduce((s,x)=>s+(x.actual_purchase||0),0)}</td>
+                      <td style={{color:'var(--success)',fontSize:13}}>+{filteredPurchase.reduce((s,x)=>s+(x.actual_purchase||0),0)}</td>
                       {purchaseVisCols.includes('after_turnover') && purchaseVisCols.indexOf('after_turnover') > purchaseVisCols.indexOf('actual_purchase') && <td colSpan={purchaseVisCols.length - purchaseVisCols.indexOf('after_turnover') - 1} style={{fontSize:11,color:'var(--muted2)'}}>
                         {(() => {
-                          const withPurchase = purchase.filter(x => x.purchase_qty > 0)
+                          const withPurchase = filteredPurchase.filter(x => x.purchase_qty > 0)
                           const avgTurnover = withPurchase.length > 0
                             ? (withPurchase.reduce((s,x)=>s+(x.after_turnover||0),0) / withPurchase.length).toFixed(1)
                             : ''
@@ -390,12 +401,12 @@ export default function InsightsPage() {
           ) : (
             <>
               <div style={{ overflowX: 'auto' }}>
-                <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {slowVisCols.length}/{SLOW_COLS.length} 列 · 点击"列"按钮切换</div>
+                <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {slowVisCols.length}/{SLOW_COLS.length} 列 · 点击"列"按钮切换{insightSearch ? ` · 搜索 "${insightSearch}"` : ''}</div>
                 <table>
                   <colgroup>{slowVisCols.map(id => {const col = SLOW_COLS.find(c => c.id === id); return col ? <col key={col.id} /> : null})}</colgroup>
                   <thead><tr>{slowVisCols.map(id => {const col = SLOW_COLS.find(c => c.id === id); return col ? <th key={col.id} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{col.label}</th> : null})}</tr></thead>
                   <tbody>
-                    {slowMoving.filter(x => x.level !== '正常').map((x, i) => (
+                    {filteredSlow.filter(x => x.level !== '正常').map((x, i) => (
                       <tr key={i}>
                         {slowVisCols.map(id => {
                           const col = SLOW_COLS.find(c => c.id === id)

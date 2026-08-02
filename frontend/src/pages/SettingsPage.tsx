@@ -11,7 +11,7 @@ const BUILD = import.meta.env.VITE_BUILD_TIME || '2026-07-31'
 const Group = ({ title, children }) => (
   <div style={{marginBottom:20}}>
     {title && <div style={{fontSize:13,fontWeight:400,color:'var(--muted2)',textTransform:'uppercase',letterSpacing:0.3,padding:'0 4px 6px 4px'}}>{title}</div>}
-    <div style={{background:'var(--card)',borderRadius:14,overflow:'hidden',border:'0.5px solid var(--border)'}}>
+    <div style={{background:'var(--card)',borderRadius:32,overflow:'hidden',border:'0.5px solid var(--border)'}}>
       {children}
     </div>
   </div>

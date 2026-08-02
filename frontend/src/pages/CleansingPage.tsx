@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { api } from '../api/client'
 import { useToast } from '../components/Toast'
 import { useAppStore } from '../store/useAppStore'
-import { IconBroom, IconClipboard, IconPackage, IconImport, IconExport, IconTrendUp, IconLightning, IconCheck, IconAlert, IconLoading, IconFolder, IconTag } from '../components/Icons'
+import { IconClipboard, IconPackage, IconImport, IconExport, IconTrendUp, IconLightning, IconCheck, IconAlert, IconLoading, IconFolder, IconTag } from '../components/Icons'
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
 const INV_FIELDS = [
@@ -196,8 +196,7 @@ export default function CleansingPage() {
     </div>
 
     {s === 0 && <div style={{textAlign:'center',padding:40}}>
-      <div style={{fontSize:28,marginBottom:12,opacity:.3}}><IconBroom size={28} /></div>
-      <div style={{display:'flex',justifyContent:'center',gap:8,marginBottom:12}}>
+      <div style={{display:'flex',justifyContent:'center',gap:8,marginBottom:16}}>
         <select value={tt} onChange={e=>setTt(e.target.value)} style={{fontSize:16,padding:'8px 16px',border:'1px solid var(--border)',borderRadius:32,outline:'none',background:'var(--card)',minWidth:180}}>
           <option value='order'>导入订单</option>
           <optgroup label="库存">

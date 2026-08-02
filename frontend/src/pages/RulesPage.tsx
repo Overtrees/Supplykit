@@ -127,7 +127,7 @@ export default function RulesPage() {
             </div>
           </label>
           <label style={{fontSize:12}}>补货模式
-            <select value={f.mode||''} onChange={e=>setF({...f,mode:e.target.value})} style={{...IS,fontSize:13,marginTop:4,width:100}}>{MODES.map(m=><option key={m.v} value={m.v}>{m.l}</option>)}</select>
+            <select value={f.mode||''} onChange={e=>setF({...f,mode:e.target.value})} style={{...IS,fontSize:13,marginTop:4,width:'100%',minWidth:80}}>{MODES.map(m=><option key={m.v} value={m.v}>{m.l}</option>)}</select>
           </label>
         </div>
 
@@ -141,8 +141,8 @@ export default function RulesPage() {
             <select value={cond.op} onChange={e=>setCond(p=>({...p,op:e.target.value}))} style={{...IS,width:70,fontSize:14,textAlign:'center'}}>{OPS.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select>
             <span style={{display:'flex',alignItems:'center',gap:4,flex:2,minWidth:100}}>
               <input type='number' value={cond.pctValue||0} onChange={e=>setCond(p=>({...p,pctValue:parseInt(e.target.value)||0,rightType:'pct',right:'inv.safety_qty'}))} min={1} max={200} style={{...IS,width:'auto',flex:1,fontSize:14,textAlign:'center'}}/>
-              <span style={{fontSize:14,color:'var(--muted2)',fontWeight:500,whiteSpace:'nowrap'}}>
-                {cond.left==='inv.days_since_last' ? '天' : cond.left==='inv.available_qty' ? '%（安全库存的百分比）' : cond.left==='order.quantity' ? '件' : cond.left==='order.total_amount' ? '元' : '%'}
+              <span style={{fontSize:13,color:'var(--muted2)',fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:120}}>
+                {cond.left==='inv.days_since_last' ? '天' : cond.left==='inv.available_qty' ? '%（安全库存百分比）' : cond.left==='order.quantity' ? '件' : cond.left==='order.total_amount' ? '元' : '%'}
               </span>
             </span>
           </div>

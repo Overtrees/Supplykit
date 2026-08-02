@@ -221,17 +221,17 @@ export default function CleansingPage() {
 
     {s === 1 && <div>
       <div style={{fontSize:13,marginBottom:12}}>已识别 {cols.length} 列 · {tr} 行 · 目标: {tt}{tt==='order' && <span style={{marginLeft:8,display:'inline-flex',gap:4,verticalAlign:'middle'}}>
-        <span onClick={()=>setMp(p=>({...p,_meta:{data_source:'jdzx_sale'}}))} style={{padding:'2px 8px',fontSize:11,borderRadius:99,border:'1px solid',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:3,background:mp?._meta?.data_source==='jdzx_sale'?'var(--primary)':'var(--card)',color:mp?._meta?.data_source==='jdzx_sale'?'#fff':'var(--muted)',borderColor:mp?._meta?.data_source==='jdzx_sale'?'var(--primary)':'var(--border)'}}><IconTrendUp size={12} /> 商智日销</span>
-        <span onClick={()=>setMp(p=>({...p,_meta:{data_source:'jd_po'}}))} style={{padding:'2px 8px',fontSize:11,borderRadius:99,border:'1px solid',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:3,background:mp?._meta?.data_source==='jd_po'?'var(--primary)':'var(--card)',color:mp?._meta?.data_source==='jd_po'?'#fff':'var(--muted)',borderColor:mp?._meta?.data_source==='jd_po'?'var(--primary)':'var(--border)'}}><IconPackage size={12} /> 京东采购单</span>
+        <span onClick={()=>setMp(p=>({...p,_meta:{data_source:'jdzx_sale'}}))} className="clickable" style={{padding:'4px 10px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:3,background:mp?._meta?.data_source==='jdzx_sale'?'var(--primary)':'var(--card)',color:mp?._meta?.data_source==='jdzx_sale'?'#fff':'var(--muted)',borderColor:mp?._meta?.data_source==='jdzx_sale'?'var(--primary)':'var(--border)'}}><IconTrendUp size={12} /> 商智日销</span>
+        <span onClick={()=>setMp(p=>({...p,_meta:{data_source:'jd_po'}}))} className="clickable" style={{padding:'4px 10px',fontSize:12,borderRadius:99,border:'1px solid',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:3,background:mp?._meta?.data_source==='jd_po'?'var(--primary)':'var(--card)',color:mp?._meta?.data_source==='jd_po'?'#fff':'var(--muted)',borderColor:mp?._meta?.data_source==='jd_po'?'var(--primary)':'var(--border)'}}><IconPackage size={12} /> 京东采购单</span>
       </span>}</div>
       <div style={{display:'flex',gap:8,marginBottom:12,alignItems:'center',flexWrap:'wrap'}}>
-        <select id="tmplSelect" style={{flex:1,fontSize:16,padding:'6px 8px',border:'1px solid var(--border)',borderRadius:32,minWidth:140}}>
+        <select id="tmplSelect" style={{flex:1,fontSize:16,padding:'8px 12px',border:'1px solid var(--border)',borderRadius:32,minWidth:140}}>
           <option value="">加载映射模板...</option>
           {Array.isArray(templates) && templates.filter(t => t.doc_type === tt).map(t => <option key={t.id} value={t.mapping}>{t.name}</option>)}
           {Array.isArray(templates) && templates.filter(t => t.doc_type !== tt).length > 0 && <option disabled style={{color:'var(--muted2)',fontSize:11}}>── {tt==='order'?'库存':'订单'}模板（{templates.filter(t=>t.doc_type!==tt).length}个） ──</option>}
         </select>
-        <button onClick={()=>{const s=document.getElementById('tmplSelect');if(s.value)try{const m=typeof s.value==='string'&&s.value.startsWith('{')?JSON.parse(s.value):s.value;setMp(m&&typeof m==='object'?m:{})}catch(e){console.error(e)}}} style={{padding:'6px 14px',fontSize:12,border:'1px solid var(--border)',borderRadius:32,background:'var(--card)',cursor:'pointer'}}>应用</button>
-        <input id="tmplName" placeholder="新模板名称" style={{width:120,fontSize:16,padding:'6px 8px',border:'1px solid var(--border)',borderRadius:32,outline:'none'}}/>
+        <button onClick={()=>{const s=document.getElementById('tmplSelect');if(s.value)try{const m=typeof s.value==='string'&&s.value.startsWith('{')?JSON.parse(s.value):s.value;setMp(m&&typeof m==='object'?m:{})}catch(e){console.error(e)}}} className="clickable" style={{padding:'7px 16px',fontSize:13,border:'1px solid var(--border)',borderRadius:32,background:'var(--card)',cursor:'pointer',minHeight:36}}>应用</button>
+        <input id="tmplName" placeholder="新模板名称" style={{width:130,fontSize:16,padding:'7px 10px',border:'1px solid var(--border)',borderRadius:32,outline:'none'}}/>
         <button onClick={async()=>{
           const n=document.getElementById('tmplName').value;if(!n)return toast.error('请输入模板名称');
           try {
@@ -239,18 +239,18 @@ export default function CleansingPage() {
             const msg=r?.data?.message||'模板已保存';
             document.getElementById('tmplName').value='';loadTemplates();toast.success(msg);
           } catch(e){toast.error('模板保存失败: '+(e.response?.data?.detail||e.message));}
-        }} style={{padding:'6px 14px',fontSize:12,background:'var(--primary)',color:'var(--card)',border:'none',borderRadius:32,cursor:'pointer'}}>保存</button>
+        }} className="clickable" style={{padding:'7px 16px',fontSize:13,background:'var(--primary)',color:'var(--card)',border:'none',borderRadius:32,cursor:'pointer',minHeight:36}}>保存</button>
       </div>
-      {Array.isArray(cf) && <div style={{marginBottom:10,border:'1px solid var(--border)',borderRadius:32,padding:12,background:'var(--bg)'}}>
-        <div style={{fontSize:12,fontWeight:600,marginBottom:8}}>自定义字段</div>
-        {cf.map((f,i) => <div key={i} style={{display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
-          <input value={f.l} onChange={e=>{const v=e.target.value;setCf(p=>p.map((x,k)=>k===i?{...x,l:v}:x))}} placeholder="字段名" style={{flex:1,fontSize:16,padding:'5px 8px',border:'1px solid var(--border)',borderRadius:32,outline:'none'}}/>
-          <select value={f.tp} onChange={e=>{const v=e.target.value;setCf(p=>p.map((x,k)=>k===i?{...x,tp:v}:x))}} style={{fontSize:14,padding:'5px',border:'1px solid var(--border)',borderRadius:32}}>
+      {Array.isArray(cf) && <div style={{marginBottom:12,border:'1px solid var(--border)',borderRadius:32,padding:14,background:'var(--bg)'}}>
+        <div style={{fontSize:13,fontWeight:600,marginBottom:10}}>自定义字段</div>
+        {cf.map((f,i) => <div key={i} style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+          <input value={f.l} onChange={e=>{const v=e.target.value;setCf(p=>p.map((x,k)=>k===i?{...x,l:v}:x))}} placeholder="字段名" style={{flex:1,fontSize:16,padding:'7px 10px',border:'1px solid var(--border)',borderRadius:32,outline:'none'}}/>
+          <select value={f.tp} onChange={e=>{const v=e.target.value;setCf(p=>p.map((x,k)=>k===i?{...x,tp:v}:x))}} style={{fontSize:14,padding:'6px 10px',border:'1px solid var(--border)',borderRadius:32}}>
             <option value="string">文本</option><option value="number">数字</option><option value="date">日期</option>
           </select>
-          <button onClick={()=>delField(i)} style={{background:'rgba(225,29,72,0.12)',border:'none',borderRadius:32,cursor:'pointer',padding:'4px 8px',fontSize:12,color:'var(--danger)'}}>删除</button>
+          <button onClick={()=>delField(i)} className="clickable" style={{background:'rgba(225,29,72,0.12)',border:'none',borderRadius:32,cursor:'pointer',padding:'6px 12px',fontSize:13,color:'var(--danger)',minHeight:36}}>删除</button>
         </div>)}
-        <button onClick={addField} style={{padding:'5px 14px',fontSize:12,border:'1px dashed #94a3b8',borderRadius:32,background:'var(--card)',cursor:'pointer',color:'var(--muted)',width:'100%'}}>+ 添加自定义字段</button>
+        <button onClick={addField} className="clickable" style={{padding:'7px 16px',fontSize:13,border:'1px dashed #94a3b8',borderRadius:32,background:'var(--card)',cursor:'pointer',color:'var(--muted)',width:'100%',minHeight:36}}>+ 添加自定义字段</button>
       </div>}
       {cols.map(c => {
         const matched = ALIAS[c.name]
@@ -262,14 +262,14 @@ export default function CleansingPage() {
         }
         const currentTarget = mp[c.name]?.target
         const isShared = currentTarget && targetCounts[currentTarget] > 1
-        return (<div key={c.name} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 10px',border:'1px solid var(--border)',borderRadius:32,marginBottom:4}}>
-        <div style={{flex:1,fontSize:13,fontWeight:500}}>
+        return (<div key={c.name} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 12px',border:'1px solid var(--border)',borderRadius:32,marginBottom:6}}>
+        <div style={{flex:1,fontSize:14,fontWeight:500,minWidth:0}}>
           {c.name}
-          {matched && sf && <span className="small muted" style={{display:'block',fontSize:11}}>→ {sf.l} ({sf.t})</span>}
+          {matched && sf && <span className="small muted" style={{display:'block',fontSize:11,marginTop:1}}>→ {sf.l} ({sf.t})</span>}
         </div>
-        <div style={{fontSize:11,color:'var(--muted2)',flexShrink:0}}>→</div>
+        <div style={{fontSize:12,color:'var(--muted2)',flexShrink:0}}>→</div>
         <select value={mp[c.name]?.target || ''} onChange={e=>{const v=e.target.value;setMp(p=>({...p,[c.name]:{target:v,type:'string'}}))}}
-          style={{fontSize:13,padding:'5px 8px',border:'1px solid var(--border)',borderRadius:32,flex:1,minWidth:120,background:'var(--card)'}}>
+          style={{fontSize:14,padding:'7px 10px',border:'1px solid var(--border)',borderRadius:32,flex:1,minWidth:130,background:'var(--card)',minHeight:36}}>
           <option value="">-- 不映射 --</option>
           {(tt==='inventory'?INV_FIELDS:tt==='product'?PROD_FIELDS:SYS_FIELDS).map(f => <option key={f.t} value={f.t}>{f.l}</option>)}
           {cf.filter(f => f.t && f.l).map(f => <option key={f.t} value={f.t}>{f.l}</option>)}
@@ -318,10 +318,10 @@ export default function CleansingPage() {
           {btn('确认写入 ('+pv.total+' 条)', doExecute, 'success')}
         </div>
       </div>}
-    {s === 1 && <div style={{marginTop:12,display:'flex',gap:8,justifyContent:'flex-end'}}>
-      {btn('← 返回', ()=>setS(0), 'ghost')}
-      {btn('下一步 预览 →', preview, 'primary')}
-      {btn(<><IconLightning size={14} /> 一键执行</>, quickExecute, 'success')}
+    {s === 1 && <div style={{marginTop:16,display:'flex',gap:10}}>
+      <button onClick={()=>setS(0)} className="clickable" style={{flex:1,padding:'10px',fontSize:14,border:'1px solid var(--border)',borderRadius:99,background:'var(--card)',cursor:'pointer',fontWeight:600,minHeight:40}}>← 返回</button>
+      <button onClick={preview} className="clickable" style={{flex:1,padding:'10px',fontSize:14,border:'none',borderRadius:99,background:'var(--primary)',color:'#fff',cursor:'pointer',fontWeight:600,minHeight:40}}>下一步 预览 →</button>
+      <button onClick={quickExecute} className="clickable" style={{flex:1,padding:'10px',fontSize:14,border:'none',borderRadius:99,background:'var(--success)',color:'#fff',cursor:'pointer',fontWeight:600,minHeight:40,display:'inline-flex',alignItems:'center',gap:4,justifyContent:'center'}}><IconLightning size={14} /> 一键执行</button>
     </div>}
 
     {s === 3 && res && <div style={{textAlign:'center',padding:40}}>

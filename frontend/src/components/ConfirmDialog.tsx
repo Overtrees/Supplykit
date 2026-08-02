@@ -26,7 +26,7 @@ export default function ConfirmDialog({ open, title, desc, confirmLabel='确认'
         backdropFilter:'blur(40px) saturate(2.5) brightness(1.15)',
         WebkitBackdropFilter:'blur(40px) saturate(2.5) brightness(1.15)',
         border:'0.5px solid var(--glass-border)',
-        borderRadius:28,
+        borderRadius:32,
         padding:'18px 14px calc(14px + env(safe-area-inset-bottom))',
         boxShadow:'0 -8px 24px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.25)',
         pointerEvents:'auto',
@@ -43,27 +43,33 @@ export default function ConfirmDialog({ open, title, desc, confirmLabel='确认'
           textAlign:'center',marginBottom:16,padding:'0 4px',
         }}>{desc}</div>}
 
-        {/* 确认按钮 */}
-        <div onClick={onConfirm} className="clickable" style={{
-          border:'0.5px solid rgba(255,69,58,0.2)',
-          borderRadius:22,padding:14,marginBottom:10,
-          background:'var(--glass-bg)',
-          backdropFilter:'blur(40px) saturate(2.5) brightness(1.15)',
-          WebkitBackdropFilter:'blur(40px) saturate(2.5) brightness(1.15)',
-          cursor:'pointer',textAlign:'center',
-        }}>
-          <span style={{fontSize:15,fontWeight:700,color:'#ff3b30'}}>{confirmLabel}</span>
+        {/* 按钮行 */}
+        <div style={{display:'flex',gap:8}}>
+          {/* 取消按钮 */}
+          <div onClick={onCancel} className="clickable" style={{
+            flex:1,
+            border:'0.5px solid var(--glass-border)',
+            borderRadius:22,padding:14,
+            background:'var(--glass-bg)',
+            backdropFilter:'blur(40px) saturate(2.5) brightness(1.15)',
+            WebkitBackdropFilter:'blur(40px) saturate(2.5) brightness(1.15)',
+            cursor:'pointer',textAlign:'center',
+          }}>
+            <span style={{fontSize:15,fontWeight:600,color:'var(--muted)'}}>{cancelLabel}</span>
+          </div>
+          {/* 确认按钮 */}
+          <div onClick={onConfirm} className="clickable" style={{
+            flex:1,
+            border:'0.5px solid rgba(255,69,58,0.2)',
+            borderRadius:22,padding:14,
+            background:'var(--glass-bg)',
+            backdropFilter:'blur(40px) saturate(2.5) brightness(1.15)',
+            WebkitBackdropFilter:'blur(40px) saturate(2.5) brightness(1.15)',
+            cursor:'pointer',textAlign:'center',
+          }}>
+            <span style={{fontSize:15,fontWeight:700,color:'#ff3b30'}}>{confirmLabel}</span>
+          </div>
         </div>
-
-        {/* 取消按钮 */}
-        <button onClick={onCancel} style={{
-          width:'100%',height:44,
-          borderRadius:22,border:'0.5px solid var(--glass-border)',
-          background:'var(--glass-bg)',fontSize:15,
-          color:'var(--muted)',cursor:'pointer',
-        }}>
-          {cancelLabel}
-        </button>
       </div>
     </div>
   </>

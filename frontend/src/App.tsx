@@ -229,7 +229,7 @@ function HammerOrders({ channel }) {
         </button>
         <button onClick={() => setHammerPanel(hammerPanel === 'filter' ? null : 'filter')}
           className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
-          筛选{orderStatus ? ' ✓' : ''}
+          筛选{orderStatus ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{display:'inline',verticalAlign:'middle',marginLeft:2}}><polyline points="4 12 10 18 20 6"/></svg> : ''}
         </button>
         <button onClick={doExport}
           className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px',display:'flex',alignItems:'center',gap:4,justifyContent:'center'}}>

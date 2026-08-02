@@ -121,8 +121,8 @@ export default function RulesPage() {
           <label style={{flex:1,minWidth:140,fontSize:12}}>规则名称<input value={f.name} onChange={e=>setF({...f,name:e.target.value})} style={IS} placeholder='例：低库存预警'/></label>
           <label style={{fontSize:12}}>级别
             <div style={{display:'flex',gap:4,marginTop:4}}>
-              {[{v:'warning',l:'⚠️',t:'警告',c:'var(--warning)'},{v:'error',l:'🔴',t:'紧急',c:'var(--danger)'},{v:'info',l:'💡',t:'提示',c:'var(--primary)'}].map(({v,l,t,c}) =>
-                <span key={v} onClick={()=>setF({...f,severity:v})} className="clickable" style={{padding:'5px 12px',borderRadius:32,fontSize:13,fontWeight:600,cursor:'pointer',background:f.severity===v?c:'transparent',color:f.severity===v?'#fff':'var(--muted)',border:'1px solid',borderColor:f.severity===v?c:'var(--border)',display:'flex',alignItems:'center',gap:3}}>{l}{t}</span>
+              {[{v:'warning',t:'警告',c:'var(--warning)'},{v:'error',t:'紧急',c:'var(--danger)'},{v:'info',t:'提示',c:'var(--primary)'}].map(({v,t,c}) =>
+                <span key={v} onClick={()=>setF({...f,severity:v})} className="clickable" style={{padding:'5px 12px',borderRadius:32,fontSize:13,fontWeight:600,cursor:'pointer',background:f.severity===v?c:'transparent',color:f.severity===v?'#fff':'var(--muted)',border:'1px solid',borderColor:f.severity===v?c:'var(--border)',display:'flex',alignItems:'center',gap:3}}>{t}</span>
               )}
             </div>
           </label>
@@ -166,7 +166,7 @@ export default function RulesPage() {
               <input value={f.alert_title} onChange={e=>setF({...f,alert_title:e.target.value})} style={{...IS,fontSize:13,marginTop:4}} placeholder='输入文字，点击下方按钮插入变量'/>
               <div style={{display:'flex',gap:4,marginTop:4,flexWrap:'wrap'}}>
                 {[{v:'{product_name}',l:'商品名'},{v:'{sku}',l:'SKU'}].map(t=>
-                  <span key={t.v} onClick={()=>setF({...f,alert_title:f.alert_title+t.v})} className="clickable" style={{padding:'4px 12px',borderRadius:99,fontSize:12,background:'rgba(29,78,216,0.1)',color:'var(--primary)',cursor:'pointer',border:'1px solid rgba(29,78,216,0.2)',display:'inline-flex',alignItems:'center',gap:3}}>➕{t.l}</span>
+                  <span key={t.v} onClick={()=>setF({...f,alert_title:f.alert_title+t.v})} className="clickable" style={{padding:'4px 12px',borderRadius:99,fontSize:12,background:'rgba(29,78,216,0.1)',color:'var(--primary)',cursor:'pointer',border:'1px solid rgba(29,78,216,0.2)',display:'inline-flex',alignItems:'center',gap:3}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>{t.l}</span>
                 )}
               </div>
             </label>
@@ -178,7 +178,7 @@ export default function RulesPage() {
               <input value={f.alert_desc} onChange={e=>setF({...f,alert_desc:e.target.value})} style={{...IS,fontSize:13,marginTop:4}} placeholder='输入文字，点击下方按钮插入变量'/>
               <div style={{display:'flex',gap:4,marginTop:4,flexWrap:'wrap'}}>
                 {[{v:'{avail}',l:'可用量'},{v:'{safety}',l:'安全线'},{v:'{sku}',l:'SKU'}].map(t=>
-                  <span key={t.v} onClick={()=>setF({...f,alert_desc:f.alert_desc+t.v})} className="clickable" style={{padding:'4px 12px',borderRadius:99,fontSize:12,background:'rgba(29,78,216,0.1)',color:'var(--primary)',cursor:'pointer',border:'1px solid rgba(29,78,216,0.2)',display:'inline-flex',alignItems:'center',gap:3}}>➕{t.l}</span>
+                  <span key={t.v} onClick={()=>setF({...f,alert_desc:f.alert_desc+t.v})} className="clickable" style={{padding:'4px 12px',borderRadius:99,fontSize:12,background:'rgba(29,78,216,0.1)',color:'var(--primary)',cursor:'pointer',border:'1px solid rgba(29,78,216,0.2)',display:'inline-flex',alignItems:'center',gap:3}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>{t.l}</span>
                 )}
               </div>
             </label>

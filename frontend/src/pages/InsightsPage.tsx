@@ -271,7 +271,7 @@ export default function InsightsPage() {
                         if (col.id === 'note') return <td key={col.id} className="col-name" style={{color:'var(--muted2)',fontSize:12}}>{renderNote(x.note)}</td>
                         // 标记操作
                         if (col.id === 'action') return <td key={col.id}>{isOrdered
-                          ? <span onClick={()=>toggleOrdered(x.sku, x.store, x.product_name, x.suggested_qty || x.b_suggested)} style={{cursor:'pointer',fontSize:16,color:'var(--success)',display:'inline-flex',alignItems:'center',gap:2}}>✓<span style={{fontSize:9,color:'var(--muted2)'}}>撤销</span></span>
+                          ? <span onClick={()=>toggleOrdered(x.sku, x.store, x.product_name, x.suggested_qty || x.b_suggested)} style={{cursor:'pointer',fontSize:16,color:'var(--success)',display:'inline-flex',alignItems:'center',gap:2}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{display:'inline',verticalAlign:'middle'}}><polyline points="4 12 10 18 20 6"/></svg><span style={{fontSize:9,color:'var(--muted2)'}}>撤销</span></span>
                           : <span onClick={()=>{
                             if ((x.suggested_qty > 0 || x.b_suggested > 0) && x.combined_turnover > 90 && !window.confirm(`补后综合周转${x.combined_turnover}天，已超90天考核红线，仍标记操作？`)) return
                             toggleOrdered(x.sku, x.store, x.product_name, x.suggested_qty || x.b_suggested)

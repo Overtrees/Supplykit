@@ -200,10 +200,15 @@ export default function CleansingPage() {
       <div style={{display:'flex',justifyContent:'center',gap:8,marginBottom:12}}>
         <select value={tt} onChange={e=>setTt(e.target.value)} style={{fontSize:16,padding:'8px 16px',border:'1px solid var(--border)',borderRadius:32,outline:'none',background:'var(--card)',minWidth:180}}>
           <option value='order'>导入订单</option>
-          <option value='inventory'>导入库存</option>
-          <option value='platform_inv'>导入平台仓库存</option>
-          <option value='inbound'>导入入库</option>
-          <option value='outbound'>导入出库</option>
+          <optgroup label="── 导入库存 ──">
+            <option value='inventory'>自有仓库存</option>
+            <option value='platform_inv'>平台仓库存</option>
+            <option value='inventory_b'>B仓库存</option>
+          </optgroup>
+          <optgroup label="── 导入出入库（自有仓）──">
+            <option value='inbound'>导入入库记录</option>
+            <option value='outbound'>导入出库记录</option>
+          </optgroup>
           <option value='product'>导入商品</option>
         </select>
       </div>

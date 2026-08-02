@@ -11,14 +11,14 @@ const BUILD = import.meta.env.VITE_BUILD_TIME || '2026-07-31'
 const Group = ({ title, children }) => (
   <div style={{marginBottom:20}}>
     {title && <div style={{fontSize:13,fontWeight:400,color:'var(--muted2)',textTransform:'uppercase',letterSpacing:0.3,padding:'0 4px 6px 4px'}}>{title}</div>}
-    <div style={{background:'var(--card)',borderRadius:32,overflow:'hidden',border:'0.5px solid var(--border)'}}>
+    <div style={{background:'var(--card)',borderRadius:32,overflow:'hidden',border:'1px solid var(--border)'}}>
       {children}
     </div>
   </div>
 )
 
 const Row = ({ label, value, sub, onClick, danger }) => (
-  <div onClick={onClick} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 16px',borderBottom:'0.5px solid var(--border)',cursor:onClick?'pointer':'default',minHeight:44,background:'var(--card)'}}>
+  <div onClick={onClick} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 16px',borderBottom:'1px solid var(--border)',cursor:onClick?'pointer':'default',minHeight:44,background:'var(--card)'}}>
     <div style={{flex:1}}>
       <div style={{fontSize:16,color:danger?'#ef4444':'var(--text)'}}>{label}</div>
       {sub && <div style={{fontSize:12,color:'var(--muted2)',marginTop:2}}>{sub}</div>}

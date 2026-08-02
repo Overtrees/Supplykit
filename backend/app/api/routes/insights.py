@@ -20,20 +20,25 @@ def detect_slow_moving_products(db=None, create_alerts=False):
         db = get_db()
     orders = db.table("orders").select("*").execute().data
     products_map = {p["sku"]: p for p in db.table("products").select("*").execute().data}
+    sku_barcode_map = {sku: (p.get('barcode', '') or '') for sku, p in products_map.items()}
     inventory_map = {i["sku"]: i for i in db.table("inventory").select("*").execute().data}
     last_order = {}
     for o in orders:
         sku = o.get("sku")
         if not sku: continue
+        bc = sku_barcode_map.get(sku, '')
+        key = f"{sku}|{bc}" if bc else sku
         ds = str(o.get("ordered_at") or "")[:10]
-        if sku not in last_order or ds > last_order[sku]: last_order[sku] = ds
+        if key not in last_order or ds > last_order[key]: last_order[key] = ds
     now = datetime.utcnow()
     result = []
     all_skus = set(products_map.keys()) | {o.get("sku") for o in orders if o.get("sku")} | set(inventory_map.keys())
     for sku in all_skus:
         p = products_map.get(sku)
         inv = inventory_map.get(sku)
-        last_date = last_order.get(sku, "")
+        bc = sku_barcode_map.get(sku, '')
+        key = f"{sku}|{bc}" if bc else sku
+        last_date = last_order.get(key, "")
         days = 999
         if last_date:
             try: days = (now - datetime.strptime(last_date[:10], "%Y-%m-%d")).days
@@ -41,7 +46,7 @@ def detect_slow_moving_products(db=None, create_alerts=False):
         stock = int(inv.get("available_qty") or 0) if inv else 0
         if days > 30 and stock > 0:
             level = "滞销" if days > 60 else ("冷淡" if days > 30 else "正常")
-            result.append({"sku": sku, "product_name": p["product_name"] if p else inv.get("product_name",sku) if inv else sku, "last_order_date": last_date[:10], "days_since_last": days, "stock": stock, "level": level})
+            result.append({"sku": sku, "barcode": bc, "product_name": p["product_name"] if p else inv.get("product_name",sku) if inv else sku, "last_order_date": last_date[:10], "days_since_last": days, "stock": stock, "level": level})
             if create_alerts:
                 ex = db.table("alerts").select("id").eq("alert_type","slow_moving").eq("related_sku",sku).eq("status","active").execute().data
                 if not ex:

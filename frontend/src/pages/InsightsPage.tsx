@@ -38,7 +38,7 @@ const PURCHASE_COLS = [
   {id:'note',label:'备注'},{id:'timing',label:'采购时机'},
 ]
 const SLOW_COLS = [
-  {id:'sku',label:'SKU'},{id:'name',label:'商品'},{id:'store',label:'店铺'},{id:'category',label:'分类'},
+  {id:'barcode',label:'69码'},{id:'sku',label:'SKU'},{id:'name',label:'商品'},{id:'store',label:'店铺'},{id:'category',label:'分类'},
   {id:'last_order_date',label:'最近下单'},{id:'days',label:'天数'},{id:'stock',label:'库存'},{id:'level',label:'状态'},
 ]
 
@@ -400,6 +400,7 @@ export default function InsightsPage() {
                         {slowVisCols.map(id => {
                           const col = SLOW_COLS.find(c => c.id === id)
                           if (!col) return <td key={id}></td>
+                          if (col.id === 'barcode') return <td key={col.id} className="mono" style={{fontSize:11,color:'var(--muted2)'}}>{x.barcode || '-'}</td>
                           if (col.id === 'sku') return <td key={col.id} className="mono" style={{fontSize:12}}>{x.sku}</td>
                           if (col.id === 'name') return <td key={col.id}>{x.product_name}</td>
                           if (col.id === 'store') return <td key={col.id}>{x.store || x.warehouse || '-'}</td>

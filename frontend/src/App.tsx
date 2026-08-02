@@ -459,7 +459,7 @@ const INS_PURCHASE_COLS = [
   {id:'note',label:'备注'},{id:'timing',label:'采购时机'},
 ]
 const INS_SLOW_COLS = [
-  {id:'sku',label:'SKU'},{id:'name',label:'商品'},{id:'store',label:'店铺'},{id:'category',label:'分类'},
+  {id:'barcode',label:'69码'},{id:'sku',label:'SKU'},{id:'name',label:'商品'},{id:'store',label:'店铺'},{id:'category',label:'分类'},
   {id:'last_order_date',label:'最近下单'},{id:'days',label:'天数'},{id:'stock',label:'库存'},{id:'level',label:'状态'},
 ]
 const insColKey = (m) => 'c_cols_' + m

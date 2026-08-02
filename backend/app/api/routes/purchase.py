@@ -127,7 +127,7 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', channel: str = 
                 note += f" > 目标{target_turn}天" if after_turnover > target_turn else f" < 目标{target_turn}天"
 
         result.append({
-            'sku': sku, 'product_name': prod.get('product_name', ''),
+            'sku': sku, 'barcode': sku_barcode_map.get(sku, ''), 'product_name': prod.get('product_name', ''),
             'store': prod.get('store', ''), 'warehouse': st['own_warehouse'], 'category': prod.get('category', ''),
             'sys_available': st['available'], 'sys_transit': st['transit'], 'sys_total': sys_total,
             'own_available': st['own_avail'], 'own_transit': st['own_transit'],

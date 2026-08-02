@@ -299,14 +299,15 @@ export default function InsightsPage() {
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>暂无采购建议</div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
-              <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 9 列 · 左右滑动查看</div>
+              <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 10 列 · 左右滑动查看</div>
               <table>
-                <thead><tr>{['SKU','商品','仓库','系统总库存','日销(融合/14/28)','建议采购','补后周转','备注','采购时机'].map(h => <th key={h} style={{whiteSpace:'nowrap',fontSize:11}}>{h}</th>)}</tr></thead>
+                <thead><tr>{['69码','SKU','商品','仓库','系统总库存','日销(融合/14/28)','建议采购','补后周转','备注','采购时机'].map(h => <th key={h} style={{whiteSpace:'nowrap',fontSize:11}}>{h}</th>)}</tr></thead>
                 <tbody>
                   {purchase.map((x, i) => {
                     const timing = !x.purchase_qty || x.purchase_qty <= 0 ? '充足' : (x.after_turnover && (x.target_turnover || 15) > 0 && x.after_turnover <= (x.target_turnover || 15) ? '建议' : '充足')
                     return (
                     <tr key={i}>
+                      <td className="mono" style={{fontSize:11,color:'var(--muted2)'}}>{x.barcode || '-'}</td>
                       <td className="mono" style={{ fontSize: 12 }}>{x.sku}</td>
                       <td className="col-name">{x.product_name}</td>
                       <td className="col-store">{x.warehouse || x.store || '-'}</td>
@@ -325,7 +326,7 @@ export default function InsightsPage() {
                 </tbody>
                 <tfoot>
                   <tr style={{fontWeight:700,borderTop:'2px solid var(--border)'}}>
-                    <td colSpan={5} style={{textAlign:'right',fontSize:12}}>合计</td>
+                    <td colSpan={6} style={{textAlign:'right',fontSize:12}}>合计</td>
                     <td style={{color:'var(--success)',fontSize:13}}>+{purchase.reduce((s,x)=>s+(x.actual_purchase||0),0)}</td>
                     <td colSpan={3} style={{fontSize:11,color:'var(--muted2)'}}>
                       {(() => {

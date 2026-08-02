@@ -225,29 +225,29 @@ export default function RulesPage() {
     {/* ── 补货参数 ── */}
     {tab==='params' && <div>
       {isBBCC ? <>
-        <div className='section-title' style={{fontSize:13,marginBottom:8,display:'flex',alignItems:'center',gap:4}}><IconPackage size={14} /> C 仓</div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>{cParams.map(({k,l,h})=><label key={k} style={{fontSize:12}}>{l}<input value={cfg[k]||''} onChange={e=>setCfg(p=>({...p,[k]:e.target.value}))} style={IS}/>{h && <div className='small muted' style={{fontSize:11}}>{h}</div>}</label>)}</div>
-        <div className='section-title' style={{fontSize:13,marginBottom:8,display:'flex',alignItems:'center',gap:4}}><IconFactory size={14} /> B 仓</div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:16}}>{bParams.map(({k,l})=><label key={k} style={{fontSize:12}}>{l}<input value={cfg[k]||''} onChange={e=>setCfg(p=>({...p,[k]:e.target.value}))} style={IS}/></label>)}</div>
-      </> : <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:16}}>{paramFields.map(({k,l})=><label key={k} style={{fontSize:12}}>{l}<input value={cfg[k]||''} onChange={e=>setCfg(p=>({...p,[k]:e.target.value}))} style={IS}/></label>)}</div>}
-      <button disabled={saving} onClick={async()=>{setSaving(true);const m=cfg.replenishment_mode||'bbcc';const ch=globalChannel;try{const toSave={};[...cParams,...bParams,...paramFields].forEach(f=>{if(cfg[f.k]!==undefined)toSave[f.k]=cfg[f.k]});await api.put('/api/replenishment-config?mode='+m+'&channel='+ch,toSave);setCfg(p=>({...p,...toSave}));toast.success('已保存')}catch(e){toast.error('保存失败: '+e.message)}setSaving(false)}} className="btn btn-primary" style={{display:'inline-flex',alignItems:'center',gap:4}}>{saving?<><IconLoading size={14} /> 保存中...</>:<><IconSave size={14} /> 保存</>}</button>
+        <div className='section-title' style={{fontSize:14,marginBottom:10,display:'flex',alignItems:'center',gap:4}}><IconPackage size={14} /> C 仓</div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:20}}>{cParams.map(({k,l,h})=><label key={k} style={{fontSize:13}}>{l}<input value={cfg[k]||''} onChange={e=>setCfg(p=>({...p,[k]:e.target.value}))} style={IS}/>{h && <div className='small muted' style={{fontSize:11,marginTop:2}}>{h}</div>}</label>)}</div>
+        <div className='section-title' style={{fontSize:14,marginBottom:10,display:'flex',alignItems:'center',gap:4}}><IconFactory size={14} /> B 仓</div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14,marginBottom:20}}>{bParams.map(({k,l})=><label key={k} style={{fontSize:13}}>{l}<input value={cfg[k]||''} onChange={e=>setCfg(p=>({...p,[k]:e.target.value}))} style={IS}/></label>)}</div>
+      </> : <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14,marginBottom:20}}>{paramFields.map(({k,l})=><label key={k} style={{fontSize:13}}>{l}<input value={cfg[k]||''} onChange={e=>setCfg(p=>({...p,[k]:e.target.value}))} style={IS}/></label>)}</div>}
+      <button disabled={saving} onClick={async()=>{setSaving(true);const m=cfg.replenishment_mode||'bbcc';const ch=globalChannel;try{const toSave={};[...cParams,...bParams,...paramFields].forEach(f=>{if(cfg[f.k]!==undefined)toSave[f.k]=cfg[f.k]});await api.put('/api/replenishment-config?mode='+m+'&channel='+ch,toSave);setCfg(p=>({...p,...toSave}));toast.success('已保存')}catch(e){toast.error('保存失败: '+e.message)}setSaving(false)}} className="btn btn-primary" style={{width:'100%',display:'inline-flex',alignItems:'center',gap:4,justifyContent:'center',minHeight:42}}>{saving?<><IconLoading size={14} /> 保存中...</>:<><IconSave size={14} /> 保存</>}</button>
     </div>}
 
     {/* ── 采购参数 ── */}
-    {tab === 'purchase' && <div className='card' style={{padding:16,display:'flex',flexDirection:'column',gap:12}}>
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>{purchaseFields.map(({k,l})=><label key={k} style={{fontSize:12}}>{l}<input value={cfg[k]||''} onChange={e=>setCfg(p=>({...p,[k]:e.target.value}))} style={IS}/></label>)}</div>
-      <button disabled={saving} onClick={async()=>{setSaving(true);const ch=globalChannel;try{const toSave={};purchaseFields.forEach(f=>{if(cfg[f.k]!==undefined)toSave[f.k]=cfg[f.k]});await api.put('/api/replenishment-config?channel='+ch,toSave);setCfg(p=>({...p,...toSave}));toast.success('已保存')}catch(e){toast.error('保存失败: '+e.message)}setSaving(false)}} className="btn btn-primary" style={{display:'inline-flex',alignItems:'center',gap:4}}>{saving?<><IconLoading size={14} /> 保存中...</>:<><IconSave size={14} /> 保存</>}</button>
+    {tab === 'purchase' && <div>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:20}}>{purchaseFields.map(({k,l})=><label key={k} style={{fontSize:13}}>{l}<input value={cfg[k]||''} onChange={e=>setCfg(p=>({...p,[k]:e.target.value}))} style={IS}/></label>)}</div>
+      <button disabled={saving} onClick={async()=>{setSaving(true);const ch=globalChannel;try{const toSave={};purchaseFields.forEach(f=>{if(cfg[f.k]!==undefined)toSave[f.k]=cfg[f.k]});await api.put('/api/replenishment-config?channel='+ch,toSave);setCfg(p=>({...p,...toSave}));toast.success('已保存')}catch(e){toast.error('保存失败: '+e.message)}setSaving(false)}} className="btn btn-primary" style={{width:'100%',display:'inline-flex',alignItems:'center',gap:4,justifyContent:'center',minHeight:42}}>{saving?<><IconLoading size={14} /> 保存中...</>:<><IconSave size={14} /> 保存</>}</button>
     </div>}
 
     {/* ── 活动系数 ── */}
     {tab === 'params' && <><div className='section-title' style={{marginTop:16,marginBottom:8,display:'flex',alignItems:'center',gap:4}}><IconTag size={14} /> 活动系数</div>
-      {seasons.map((s,i)=><div key={s.key||i} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 12px',border:'1px solid var(--border)',borderRadius:32,marginBottom:6}}>
-        <input value={s.name} onChange={e=>setSeasons(p=>p.map((x,j)=>j===i?{...x,name:e.target.value}:x))} placeholder='618大促' style={{width:110,fontSize:16,padding:'5px 8px',border:'1px solid var(--border)',borderRadius:32,outline:'none'}}/>
+      {seasons.map((s,i)=><div key={s.key||i} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',border:'1px solid var(--border)',borderRadius:32,marginBottom:8}}>
+        <input value={s.name} onChange={e=>setSeasons(p=>p.map((x,j)=>j===i?{...x,name:e.target.value}:x))} placeholder='618大促' style={{flex:1,minWidth:80,fontSize:16,padding:'6px 10px',border:'1px solid var(--border)',borderRadius:32,outline:'none'}}/>
         <span className='small muted'>×</span>
-        <input type='number' value={s.factor} onChange={e=>setSeasons(p=>p.map((x,j)=>j===i?{...x,factor:parseFloat(e.target.value)||1}:x))} step='0.1' min='1' max='3' style={{width:70,fontSize:16,padding:'5px 8px',border:'1px solid var(--border)',borderRadius:32,outline:'none'}}/>
+        <input type='number' value={s.factor} onChange={e=>setSeasons(p=>p.map((x,j)=>j===i?{...x,factor:parseFloat(e.target.value)||1}:x))} step='0.1' min='1' max='3' style={{width:70,fontSize:16,padding:'6px 10px',border:'1px solid var(--border)',borderRadius:32,outline:'none'}}/>
         <span className='small muted'>倍</span>
-        <label style={{fontSize:12,display:'flex',alignItems:'center',gap:4,cursor:'pointer'}} onClick={()=>setSeasons(p=>p.map((x,j)=>j===i?{...x,enabled:!(x.enabled!==false)}:x))}>
-          <svg width="18" height="18" viewBox="0 0 18 18" style={{flexShrink:0}}>
+        <label style={{fontSize:12,display:'flex',alignItems:'center',gap:4,cursor:'pointer',flexShrink:0}} onClick={()=>setSeasons(p=>p.map((x,j)=>j===i?{...x,enabled:!(x.enabled!==false)}:x))}>
+          <svg width="20" height="20" viewBox="0 0 18 18" style={{flexShrink:0}}>
             {s.enabled!==false ? (
               <>
                 <circle cx="9" cy="9" r="8" fill="var(--primary)" />
@@ -259,11 +259,11 @@ export default function RulesPage() {
           </svg>
           启用
         </label>
-        <button onClick={()=>setSeasons(p=>p.filter((_,j)=>j!==i))} className="btn btn-danger" style={{fontSize:12,padding:'4px 10px',minHeight:0}}>删除</button>
+        <button onClick={()=>setSeasons(p=>p.filter((_,j)=>j!==i))} className="clickable" style={{fontSize:13,padding:'6px 14px',minHeight:36,borderRadius:99,border:'none',background:'var(--danger)',color:'#fff',cursor:'pointer',fontWeight:600,flexShrink:0}}>删除</button>
       </div>)}
-      <button onClick={()=>setSeasons(p=>[...p,{key:'new',name:'新活动',factor:1.2,enabled:true}])} className="btn btn-ghost" style={{fontSize:12,padding:'4px 12px',width:'100%'}}>+ 添加活动</button>
-      <div style={{display:'flex',justifyContent:'flex-end',marginTop:10}}>
-        <button disabled={seasonsSaving} onClick={async()=>{setSeasonsSaving(true);const m=cfg.replenishment_mode||'bbcc';const ch=globalChannel;try{await api.put('/api/replenishment-config/seasons?mode='+m+'&channel='+ch,{items:seasons});await loadCfg(m,ch);toast.success('已保存')}catch(e){toast.error('保存失败: '+e.message)}setSeasonsSaving(false)}} className="btn btn-primary" style={{opacity:seasonsSaving?0.6:1,display:'inline-flex',alignItems:'center',gap:4}}>{seasonsSaving?<><IconLoading size={14} /> 保存中...</>:<><IconSave size={14} /> 保存</>}</button>
+      <button onClick={()=>setSeasons(p=>[...p,{key:'new',name:'新活动',factor:1.2,enabled:true}])} className="btn btn-ghost clickable" style={{fontSize:13,padding:'8px 16px',width:'100%',minHeight:40}}>+ 添加活动</button>
+      <div style={{marginTop:12}}>
+        <button disabled={seasonsSaving} onClick={async()=>{setSeasonsSaving(true);const m=cfg.replenishment_mode||'bbcc';const ch=globalChannel;try{await api.put('/api/replenishment-config/seasons?mode='+m+'&channel='+ch,{items:seasons});await loadCfg(m,ch);toast.success('已保存')}catch(e){toast.error('保存失败: '+e.message)}setSeasonsSaving(false)}} className="btn btn-primary" style={{width:'100%',display:'inline-flex',alignItems:'center',gap:4,justifyContent:'center',minHeight:42,opacity:seasonsSaving?0.6:1}}>{seasonsSaving?<><IconLoading size={14} /> 保存中...</>:<><IconSave size={14} /> 保存</>}</button>
       </div>
     </>}
   </div>

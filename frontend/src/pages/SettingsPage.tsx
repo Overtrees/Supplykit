@@ -171,26 +171,22 @@ export default function SettingsPage() {
       </div>
 
       {/* 确认弹窗 */}
-      {confirm === 'fill' && (
-        <ConfirmDialog
-          open
-          title="生成种子数据？"
-          desc="将生成 160 个商品、60 天订单、9 个仓库库存等模拟数据，覆盖现有数据。"
-          confirmLabel="生成"
-          onConfirm={doSeed}
-          onCancel={() => setConfirm(null)}
-        />
-      )}
-      {confirm === 'reset' && (
-        <ConfirmDialog
-          open
-          title="重置所有数据？"
-          desc="此操作不可恢复。将清空订单、库存、商品、规则等全部数据。"
-          confirmLabel="重置"
-          onConfirm={doReset}
-          onCancel={() => setConfirm(null)}
-        />
-      )}
+      <ConfirmDialog
+        open={confirm === 'fill'}
+        title="生成种子数据？"
+        desc="将生成 160 个商品、60 天订单、9 个仓库库存等模拟数据，覆盖现有数据。"
+        confirmLabel="生成"
+        onConfirm={doSeed}
+        onCancel={() => setConfirm(null)}
+      />
+      <ConfirmDialog
+        open={confirm === 'reset'}
+        title="重置所有数据？"
+        desc="此操作不可恢复。将清空订单、库存、商品、规则等全部数据。"
+        confirmLabel="重置"
+        onConfirm={doReset}
+        onCancel={() => setConfirm(null)}
+      />
     </div>
   )
 }

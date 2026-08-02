@@ -730,7 +730,7 @@ function HammerDashboard({ channel }) {
 const HistorySheet = React.memo(({ show, loading, data, onClose }) => {
   if (!show) return null
   return <>
-    <div onPointerDown={(e) => { e.stopPropagation(); onClose() }} style={{position:'fixed',inset:0,zIndex:4000,background:'transparent'}} />
+    <div onPointerDown={(e) => { e.stopPropagation(); onClose() }} className="history-sheet" style={{position:'fixed',inset:0,zIndex:4000,background:'transparent'}} />
     <div style={{
       position:'fixed',left:0,right:0,
       bottom:'calc(env(safe-area-inset-bottom) + 14px)',
@@ -890,7 +890,7 @@ export default function App() {
   useEffect(() => {
     if (!showHammerMenu) return
     const handler = (e) => {
-      if (hammerMenuRef.current && !hammerMenuRef.current.contains(e.target) && !e.target.closest('.hammer-btn')) {
+      if (hammerMenuRef.current && !hammerMenuRef.current.contains(e.target) && !e.target.closest('.hammer-btn') && !e.target.closest('.history-sheet')) {
         closeHammerMenu()
       }
     }

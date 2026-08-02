@@ -156,7 +156,7 @@ export default function SettingsPage() {
 
       <Group title="操作">
         <Row label="刷新连接" onClick={checkConnection} loading={refreshing} />
-        <LastRow label="清除本地缓存" sub={cacheSize > 0 ? `${cacheSize}KB` : '无缓存'} onClick={() => cacheSize > 0 ? setConfirm('cache') : null} />
+        <LastRow label="清除本地缓存" sub={cacheSize > 0 ? `${cacheSize}KB` : '无缓存'} onClick={() => { if (cacheSize > 0) setConfirm('cache'); else toast.success('暂无缓存需要清除') }} />
       </Group>
 
       <Group title="系统信息">

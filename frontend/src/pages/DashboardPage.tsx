@@ -162,11 +162,11 @@ export default function DashboardPage({ onAlert }) {
           : <>
               <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:2}}>
                 <div className="card-value" style={{fontSize:'clamp(18px,9cqi,30px)',fontWeight:700,lineHeight:1.1,color:'#ef4444'}}>{stockRisk.length}</div>
-                <div className="card-sub" style={{marginTop:0,display:'flex',alignItems:'center',gap:4}}>
-                  <span>最短 {stockRisk[0].days_to_empty} 天断货</span>
-                  {riskCritical > 0 && <span style={{fontSize:10,color:'#ef4444'}}>· {riskCritical} 紧急</span>}
-                  {riskWarning > 0 && <span style={{fontSize:10,color:'var(--warning)'}}>· {riskWarning} 预警</span>}
-                </div>
+                <div className="card-sub" style={{marginTop:0}}>最短 {stockRisk[0].days_to_empty} 天断货</div>
+                {(riskCritical > 0 || riskWarning > 0) && <div style={{fontSize:10,display:'flex',gap:6,marginTop:2}}>
+                  {riskCritical > 0 && <span style={{color:'#ef4444'}}>● {riskCritical} 紧急</span>}
+                  {riskWarning > 0 && <span style={{color:'var(--warning)'}}>● {riskWarning} 预警</span>}
+                </div>}
               </div>
               {stockRisk.slice(0,3).map((x,i) => (
                 <div key={i} style={{fontSize:9,color:'var(--muted2)',lineHeight:1.4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>

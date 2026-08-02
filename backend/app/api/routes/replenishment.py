@@ -259,15 +259,16 @@ def export_orders_excel(channel: str = 'jd', db = get_db()):
     from io import BytesIO; from fastapi.responses import Response; from urllib.parse import quote
     orders = db.table("orders").select("*").eq("channel", channel).order("id", desc=True).limit(2000).execute().data
     wb = Workbook(); ws = wb.active; ws.title = "订单"
-    ws.append(["订单号","SKU","商品","店铺","数量","单价","金额","状态","下单时间","平台"])
+    ws.append(["下单日期","订单号","69码","店铺","仓库","商品","金额","状态","入库日期","平台"])
     from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
     hf = PatternFill(start_color="1d4ed8",end_color="1d4ed8",fill_type="solid")
     hfn = Font(bold=True,color="ffffff",size=11)
     thin = Border(left=Side(style='thin',color='e2e8f0'),right=Side(style='thin',color='e2e8f0'),top=Side(style='thin',color='e2e8f0'),bottom=Side(style='thin',color='e2e8f0'))
     for c in ws[1]: c.fill=hf; c.font=hfn; c.alignment=Alignment(horizontal='center'); c.border=thin
     for o in orders:
-        ws.append([o.get('order_no',''),o.get('sku',''),o.get('product_name',''),o.get('store',''),
-            o.get('quantity',0),o.get('unit_price',0),o.get('total_amount',0),o.get('order_status',''),str(o.get('ordered_at',''))[:10],o.get('platform','')])
+        ws.append([str(o.get('ordered_at',''))[:10],o.get('order_no',''),o.get('barcode',''),o.get('store',''),
+            o.get('warehouse',''),o.get('product_name',''),o.get('total_amount',0),o.get('order_status',''),
+            str(o.get('paid_at',''))[:10],o.get('platform','')])
         for c in ws[ws.max_row]: c.border=thin; c.alignment=Alignment(horizontal='center')
     buf = BytesIO(); wb.save(buf); buf.seek(0)
     return Response(content=buf.getvalue(),media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -283,15 +284,17 @@ def export_inventory_excel(channel: str = 'jd', wh_type: str = '', db = get_db()
         query = query.eq("warehouse_type", wh_type)
     inv = query.execute().data
     wb = Workbook(); ws = wb.active; ws.title = "库存"
-    ws.append(["SKU","商品","仓库","仓库类型","可用","在途","安全库存"])
+    ws.append(["SKU","69码","商品","仓库","仓库类型","渠道","可用","在途","安全库存","期初库存","当月采购入库","当月出库","在库周转"])
     from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
     hf = PatternFill(start_color="1d4ed8",end_color="1d4ed8",fill_type="solid")
     hfn = Font(bold=True,color="ffffff",size=11)
     thin = Border(left=Side(style='thin',color='e2e8f0'),right=Side(style='thin',color='e2e8f0'),top=Side(style='thin',color='e2e8f0'),bottom=Side(style='thin',color='e2e8f0'))
     for c in ws[1]: c.fill=hf; c.font=hfn; c.alignment=Alignment(horizontal='center'); c.border=thin
     for i in inv:
-        ws.append([i.get('sku',''),i.get('product_name',''),i.get('warehouse',''),i.get('warehouse_type',''),
-            i.get('available_qty',0),i.get('in_transit_qty',0),i.get('safety_qty',0)])
+        td = round(i.get('turnover_days',0) or 0, 1) if (i.get('turnover_days') or 0) > 0 else None
+        ws.append([i.get('sku',''),i.get('barcode',''),i.get('product_name',''),i.get('warehouse',''),i.get('warehouse_type',''),
+            i.get('channel',''),i.get('available_qty',0),i.get('in_transit_qty',0),i.get('safety_qty',0),
+            i.get('beginning_stock',0),i.get('month_inbound',0),i.get('month_outbound',0),td])
         for c in ws[ws.max_row]: c.border=thin; c.alignment=Alignment(horizontal='center')
     buf = BytesIO(); wb.save(buf); buf.seek(0)
     return Response(content=buf.getvalue(),media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

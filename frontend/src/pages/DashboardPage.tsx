@@ -79,7 +79,8 @@ export default function DashboardPage({ onAlert }) {
   const riskCCount = (stockRisk||[]).filter(x => x.type === 'C').length
   const outOfStockItems = (inventory||[]).filter(x => {
     const wt = healthTab === 'own' ? 'own' : 'platform'
-    return Number(x.available_qty) === 0 && (wt === 'own' ? x.warehouse_type === 'own' : x.warehouse_type !== 'own' && x.warehouse_type !== 'platform_b')
+    // 后端 _compute_health 中 platform 组包含 platform_b，所以前端也要一致
+    return Number(x.available_qty) === 0 && (wt === 'own' ? x.warehouse_type === 'own' : x.warehouse_type !== 'own')
   }).slice(0,3)
   // 告警 × 仓库维度拆分
   const skuWhMap = Object.fromEntries((inventory||[]).map(i => [i.sku, i.warehouse_type]))

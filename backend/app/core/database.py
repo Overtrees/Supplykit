@@ -661,8 +661,9 @@ def _seed_builtin_rules():
             ("超卖保护", "order.created", '{"left":"order.quantity","op":">","right":"inv.available_qty"}', "oversell", "超卖告警: {sku}", "订单数量超过可用库存", "error", 1),
             ("滞销识别", "scheduled.daily", '{"left":"inv.days_since_last","op":">","right":"30"}', "slow_moving", "滞销: {product_name}", "{days} 天无销售", "warning", 1),
         ]
-        for r in rules:
-            _local.conn.execute("INSERT INTO rules(name,event,condition_json,alert_type,alert_title,alert_desc,severity,is_active) VALUES(?,?,?,?,?,?,?,?)", r)
+        for ch in ['jd','other']:
+            for r in rules:
+                _local.conn.execute("INSERT INTO rules(name,event,condition_json,alert_type,alert_title,alert_desc,severity,is_active,channel) VALUES(?,?,?,?,?,?,?,?,?)", (*r, ch))
         _local.conn.commit()
     except: pass
 

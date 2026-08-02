@@ -86,11 +86,11 @@ def _compute_funnel(orders):
         ("已发货", statuses["已发货"], round(statuses["已发货"] / total * 100, 1) if total else 0),
         ("已完成", statuses["已完成"], round(statuses["已完成"] / total * 100, 1) if total else 0),
     ]
-    # Conversion rate between consecutive stages
+    # Conversion rate between consecutive stages (capped at 100%)
     result = []
     for i, (name, count, pct) in enumerate(stages):
         prev_count = stages[i - 1][1] if i > 0 else total
-        conv = round(count / prev_count * 100, 1) if prev_count else 0
+        conv = round(min(count / prev_count * 100, 100), 1) if prev_count else 0
         result.append({"name": name, "value": count, "percentage": pct, "conversion": conv})
     return result
 

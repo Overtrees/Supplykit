@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react"
 import { api } from '../api/client'
 import { useAppStore } from '../store/useAppStore'
-import Card from '../components/Card'
 import Chart from '../components/Chart'
 
 const periodLabel = { today:'今日', week:'本周', month:'本月' }
@@ -76,25 +75,79 @@ export default function DashboardPage({ onAlert }) {
   if (chLoading) return <div className="card" style={{padding:16}}>{[1,2,3,4,5,6].map(i=><div key={i} className="skeleton" style={{height:80,marginBottom:8,borderRadius:24}}/>)}</div>
   return <div>
     <div className="card-grid" style={{marginBottom:16}}>
-      <Card title={periodLabel[periodTab]+' GMV'} value={'¥'+Number(periodMeta.gmv||0).toLocaleString()} sub={periodMeta.orders+' 单'} borderRadius={26} />
-      <Card title="待处理" value={errCount+(dashboard?.summary?.active_alerts||0)} sub={errCount+' 异常 · '+(dashboard?.summary?.active_alerts||0)+' 告警'} borderRadius={26} valueColor={errCount+(dashboard?.summary?.active_alerts||0) > 10 ? '#ef4444' : (errCount+(dashboard?.summary?.active_alerts||0) > 5 ? '#f59e0b' : 'var(--text)')} />
-      <div className="card" style={{position:'relative',borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16}}>
+      {/* 1. GMV 卡 — 加环比微趋势线 */}
+      <div className="card" style={{borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16,overflow:'hidden'}}>
+        <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>{periodLabel[periodTab]} GMV</div>
+        <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:2}}>
+          <div className="card-value" style={{fontSize:'clamp(18px,9cqi,30px)',fontWeight:700,lineHeight:1.1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+            ¥{Number(periodMeta.gmv||0).toLocaleString()}
+          </div>
+          <div className="card-sub" style={{marginTop:0,display:'flex',alignItems:'center',gap:6}}>
+            <span>{periodMeta.orders} 单</span>
+            {periodTrend.length >= 2 && (() => {
+              const vals = periodTrend.map(i => Number(i['GMV'])||0)
+              const last = vals[vals.length-1], prev = vals[vals.length-2]
+              if (!prev) return null
+              const pct = ((last - prev) / prev * 100)
+              return <span style={{fontSize:11,fontWeight:600,color:pct >= 0 ? 'var(--success)' : '#ef4444'}}>
+                {pct >= 0 ? '↑' : '↓'} {Math.abs(pct).toFixed(1)}%
+              </span>
+            })()}
+          </div>
+        </div>
+        {/* 微趋势线 */}
+        {periodTrend.length >= 3 && <div style={{height:22,marginTop:'auto',display:'flex',alignItems:'flex-end',gap:1.5}}>
+          {periodTrend.map((i,idx) => {
+            const v = Number(i['GMV'])||0
+            const max = Math.max(...periodTrend.map(x => Number(x['GMV'])||0), 1)
+            const h = Math.max(v / max * 18, 2)
+            return <div key={idx} style={{flex:1,height:h,borderRadius:'2px 2px 0 0',background:'var(--primary)',opacity:0.3+0.7*(v/max)}} />
+          })}
+        </div>}
+      </div>
+
+      {/* 2. 待处理卡 — 拆分色点分布 */}
+      <div className="card" style={{borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16}}>
+        <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>待处理</div>
+        <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:2}}>
+          <div className="card-value" style={{fontSize:'clamp(18px,9cqi,30px)',fontWeight:700,lineHeight:1.1,color:errCount+(dashboard?.summary?.active_alerts||0) > 10 ? '#ef4444' : (errCount+(dashboard?.summary?.active_alerts||0) > 5 ? '#f59e0b' : 'var(--text)')}}>
+            {errCount+(dashboard?.summary?.active_alerts||0)}
+          </div>
+          <div className="card-sub" style={{marginTop:0,display:'flex',alignItems:'center',gap:8}}>
+            <span style={{display:'inline-flex',alignItems:'center',gap:3}}><span style={{width:6,height:6,borderRadius:3,background:'#ef4444'}}/>{errCount} 异常</span>
+            <span style={{display:'inline-flex',alignItems:'center',gap:3}}><span style={{width:6,height:6,borderRadius:3,background:'#f59e0b'}}/>{dashboard?.summary?.active_alerts||0} 告警</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. 库存健康度 — 下拉改行内 tab */}
+      <div className="card" style={{borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16}}>
         {(()=>{
           const h = dashboard?.health_index?.[healthTab]||{}
           return <>
-            <div className="small muted" style={{fontSize:12,lineHeight:1.2,marginBottom:4}}>库存健康度</div>
-            <select value={healthTab} onChange={e=>{const v=e.target.value;localStorage.setItem('health_tab',v);setHealthTab(v)}} style={{fontSize:12,padding:'2px 6px',border:'1px solid var(--border)',borderRadius:32,outline:'none',background:'var(--card)',color:'var(--text)',minWidth:0,width:60,marginBottom:4}}>
-                <option value="own">自有</option>
-                <option value="platform">平台</option>
-              </select>
-            <div style={{flex:1,display:'flex',alignItems:'flex-end',marginBottom:2}}>
-              <div className="card-value" style={{color:h.level==='danger'?'#ef4444':h.level==='warning'?'#f59e0b':'var(--success)'}}>{h.score||0}分</div>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
+              <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>库存健康度</div>
+              <div style={{display:'flex',gap:2,background:'var(--bg)',borderRadius:99,padding:2}}>
+                {[{v:'own',l:'自有'},{v:'platform',l:'平台'}].map(({v,l}) =>
+                  <span key={v} onClick={()=>{localStorage.setItem('health_tab',v);setHealthTab(v)}}
+                    style={{fontSize:10,padding:'2px 8px',borderRadius:99,cursor:'pointer',fontWeight:healthTab===v?600:400,background:healthTab===v?'var(--card)':'transparent',color:healthTab===v?'var(--text)':'var(--muted2)'}}>{l}</span>
+                )}
+              </div>
             </div>
-            <div className="card-sub" style={{marginTop:0}}>{h.healthy||0}健康 · {h.warning||0}偏低 · {h.out_of_stock||0}缺货</div>
+            <div style={{flex:1,display:'flex',alignItems:'flex-end',marginBottom:2}}>
+              <div className="card-value" style={{fontSize:'clamp(18px,9cqi,30px)',fontWeight:700,lineHeight:1.1,color:h.level==='danger'?'#ef4444':h.level==='warning'?'#f59e0b':'var(--success)'}}>{h.score||0}分</div>
+            </div>
+            <div className="card-sub" style={{marginTop:0,display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+              <span style={{color:'var(--success)'}}>● {h.healthy||0}健康</span>
+              <span style={{color:'var(--warning)'}}>● {h.warning||0}偏低</span>
+              <span style={{color:'#ef4444'}}>● {h.out_of_stock||0}缺货</span>
+            </div>
           </>
         })()}
       </div>
-      <div className="card" style={{position:'relative',borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16,overflow:'hidden'}}>
+
+      {/* 4. 濒临断货 TOP10 — 去底部引导，加 TOP3 SKU 名 */}
+      <div className="card" style={{borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16,overflow:'hidden'}}>
         <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>濒临断货 TOP 10</div>
         {(!stockRisk || stockRisk.length === 0)
           ? <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:2}}>
@@ -102,10 +155,14 @@ export default function DashboardPage({ onAlert }) {
             </div>
           : <>
               <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:2}}>
-                <div className="card-value" style={{color:'#ef4444'}}>{stockRisk.length}</div>
+                <div className="card-value" style={{fontSize:'clamp(18px,9cqi,30px)',fontWeight:700,lineHeight:1.1,color:'#ef4444'}}>{stockRisk.length}</div>
                 <div className="card-sub" style={{marginTop:0}}>最短 {stockRisk[0].days_to_empty} 天断货</div>
               </div>
-              <div style={{marginTop:'auto',fontSize:10,color:'var(--muted2)',textAlign:'center'}}>点击 SKU 查看详情</div>
+              {stockRisk.slice(0,3).map((x,i) => (
+                <div key={i} style={{fontSize:9,color:'var(--muted2)',lineHeight:1.4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                  {i+1}. {x.product_name || x.sku}
+                </div>
+              ))}
             </>}
       </div>
     </div>

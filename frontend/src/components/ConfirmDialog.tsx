@@ -49,10 +49,10 @@ export default function ConfirmDialog({ open, title, desc, confirmLabel='确认'
           <div onClick={onCancel} className="clickable" style={{
             flex:1,
             borderRadius:22,padding:14,
-            background:'var(--card)',
+            background:'var(--primary)',
             cursor:'pointer',textAlign:'center',
           }}>
-            <span style={{fontSize:15,fontWeight:600,color:'var(--primary)'}}>{cancelLabel}</span>
+            <span style={{fontSize:15,fontWeight:600,color:'#fff'}}>{cancelLabel}</span>
           </div>
           {/* 确认按钮 */}
           <div onClick={onConfirm} className="clickable" style={{

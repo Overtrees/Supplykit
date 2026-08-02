@@ -711,42 +711,61 @@ function HammerRules({ channel }) {
       {/* 变更历史底部弹窗 */}
       {showHistory && (
         <>
-          <div onPointerDown={() => setShowHistory(false)} style={{position:'fixed',inset:0,zIndex:9998,background:'rgba(0,0,0,0.3)'}} />
-          <div onClick={e => e.stopPropagation()} style={{
-            position:'fixed',bottom:0,left:0,right:0,zIndex:9999,background:'var(--card)',
-            borderRadius:'26px 26px 0 0',padding:20,paddingBottom:'calc(20px + env(safe-area-inset-bottom,0px))',
-            maxHeight:'70vh',overflowY:'auto',boxShadow:'0 -4px 30px rgba(0,0,0,0.15)',
-            animation:'slideUp 0.3s ease'
+          <div onPointerDown={() => setShowHistory(false)} style={{position:'fixed',inset:0,zIndex:4000,background:'transparent'}} />
+          <div style={{
+            position:'fixed',left:0,right:0,
+            bottom:'calc(env(safe-area-inset-bottom) + 14px)',
+            zIndex:4001,display:'flex',justifyContent:'center',
+            padding:'0 14px',pointerEvents:'none',
           }}>
-            <div style={{fontSize:16,fontWeight:700,marginBottom:12}}>配置变更历史</div>
-            {histLoading ? (
-              <div style={{padding:20,textAlign:'center',color:'var(--muted2)'}}>加载中...</div>
-            ) : history.length === 0 ? (
-              <div style={{padding:20,textAlign:'center',color:'var(--muted2)'}}>暂无变更记录</div>
-            ) : (
-              <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                {history.map((h, i) => {
-                  const key = h.key.replace(/^mode_(bbcc|traditional)_/, '')
-                  const modeInfo = h.mode ? (h.mode === 'bbcc' ? 'BBCC' : '传统') : ''
-                  return <div key={h.id || i} style={{padding:'10px 12px',background:'var(--bg)',borderRadius:16,fontSize:12}}>
-                    <div style={{display:'flex',justifyContent:'space-between',gap:6,marginBottom:4}}>
-                      <span style={{fontWeight:600,fontSize:11}}>
-                        {key}{modeInfo ? ` (${modeInfo})` : ''}
-                        <span style={{fontWeight:400,fontSize:10,color:'var(--muted2)',marginLeft:4}}>{h.channel === 'jd' ? '京东' : '其他'}</span>
-                      </span>
-                      <span style={{fontSize:10,color:'var(--muted2)',flexShrink:0}}>{h.created_at?.slice(5,16) || ''}</span>
+            <div onClick={e => e.stopPropagation()} style={{
+              width:'100%',maxWidth:600,
+              background:'var(--glass-bg)',
+              backdropFilter:'blur(40px) saturate(2.5) brightness(1.15)',
+              WebkitBackdropFilter:'blur(40px) saturate(2.5) brightness(1.15)',
+              border:'0.5px solid var(--glass-border)',
+              borderRadius:32,
+              padding:'18px 14px calc(14px + env(safe-area-inset-bottom))',
+              boxShadow:'0 -8px 24px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.25)',
+              pointerEvents:'auto',
+              maxHeight:'70vh',overflowY:'auto',
+            }}>
+              <div style={{fontSize:18,fontWeight:700,marginBottom:12,textAlign:'center',color:'var(--text)'}}>配置变更历史</div>
+              {histLoading ? (
+                <div style={{padding:20,textAlign:'center',color:'var(--muted2)'}}>加载中...</div>
+              ) : history.length === 0 ? (
+                <div style={{padding:20,textAlign:'center',color:'var(--muted2)'}}>暂无变更记录</div>
+              ) : (
+                <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                  {history.map((h, i) => {
+                    const key = h.key.replace(/^mode_(bbcc|traditional)_/, '')
+                    const modeInfo = h.mode ? (h.mode === 'bbcc' ? 'BBCC' : '传统') : ''
+                    return <div key={h.id || i} style={{padding:'10px 12px',background:'var(--card)',borderRadius:16,fontSize:12}}>
+                      <div style={{display:'flex',justifyContent:'space-between',gap:6,marginBottom:4}}>
+                        <span style={{fontWeight:600,fontSize:11}}>
+                          {key}{modeInfo ? ` (${modeInfo})` : ''}
+                          <span style={{fontWeight:400,fontSize:10,color:'var(--muted2)',marginLeft:4}}>{h.channel === 'jd' ? '京东' : '其他'}</span>
+                        </span>
+                        <span style={{fontSize:10,color:'var(--muted2)',flexShrink:0}}>{h.created_at?.slice(5,16) || ''}</span>
+                      </div>
+                      <div style={{fontSize:11,color:'var(--muted2)',display:'flex',gap:4,flexWrap:'wrap'}}>
+                        <span style={{color:'var(--danger)',textDecoration:'line-through'}}>{h.old_value || '(空)'}</span>
+                        <span style={{color:'var(--muted2)'}}>→</span>
+                        <span style={{color:'var(--success)'}}>{h.new_value || '(空)'}</span>
+                      </div>
                     </div>
-                    <div style={{fontSize:11,color:'var(--muted2)',display:'flex',gap:4,flexWrap:'wrap'}}>
-                      <span style={{color:'var(--danger)',textDecoration:'line-through'}}>{h.old_value || '(空)'}</span>
-                      <span style={{color:'var(--muted2)'}}>→</span>
-                      <span style={{color:'var(--success)'}}>{h.new_value || '(空)'}</span>
-                    </div>
-                  </div>
-                })}
+                  })}
+                </div>
+              )}
+              <div onClick={() => setShowHistory(false)} className="clickable" style={{
+                borderRadius:22,padding:14,marginTop:10,
+                background:'var(--primary)',
+                cursor:'pointer',textAlign:'center',
+              }}>
+                <span style={{fontSize:15,fontWeight:600,color:'#fff'}}>关闭</span>
               </div>
-            )}
+            </div>
           </div>
-          <style>{`@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}`}</style>
         </>
       )}
     </div>

@@ -173,9 +173,8 @@ def export_purchase_suggestions_excel(days: int = 28, mode: str = 'bbcc', channe
     wb = Workbook()
     ws = wb.active
     ws.title = "采购建议"
-    headers = ["序号","SKU","69码","商品名称","仓库","系统总库存","系统可用","系统在途",
-               "自有可用","自有在途","平台可用","平台在途","B仓可用",
-               "日销(融合)","日销14","日销28","建议采购量","箱规","实购数量","补后周转","目标周转","可撑天数","备注"]
+    headers = ["69码","SKU","商品名称","仓库","系统总库存","日销(融合)","日销14","日销28",
+               "建议采购","补后周转","可撑天数","采购时机","备注"]
     ws.append(headers)
 
     from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
@@ -188,14 +187,16 @@ def export_purchase_suggestions_excel(days: int = 28, mode: str = 'bbcc', channe
         cell.alignment = Alignment(horizontal='center'); cell.border = thin
 
     for i, r in enumerate(suggestions, 1):
-        ws.append([i, r["sku"], r.get("barcode","-"), r["product_name"], r["warehouse"], r["sys_total"], r["sys_available"], r["sys_transit"],
-            r["own_available"], r["own_transit"], r["plat_available"], r["plat_transit"], r["b_available"],
+        timing = '建议' if r.get('purchase_qty',0) > 0 and (r.get('after_turnover',0) and (r.get('target_turnover',15) or 15) > 0 and r['after_turnover'] <= (r.get('target_turnover',15) or 15)) else '充足'
+        if r.get('purchase_qty',0) <= 0: timing = '充足'
+        ws.append([r.get("barcode","-"), r["sku"], r["product_name"], r["warehouse"], r["sys_total"],
             r["daily_sales"], r["daily_sales_14"], r["daily_sales_28"],
-            r["purchase_qty"], r["box_qty"], r["actual_purchase"], r["after_turnover"], r["target_turnover"],
-            r["days_to_empty"] if r["days_to_empty"] < 999 else "∞", r["note"]])
+            r["actual_purchase"], r["after_turnover"],
+            r["days_to_empty"] if r["days_to_empty"] < 999 else "∞",
+            timing, r["note"]])
         for cell in ws[ws.max_row]: cell.border = thin; cell.alignment = Alignment(horizontal='center')
 
-    widths = [6,14,20,12,12,10,10,10,10,10,10,10,10,10,10,12,8,10,10,10,10,30]
+    widths = [14,14,20,12,10,10,10,10,10,10,10,10,30]
     for i, w in enumerate(widths, 1):
         ws.column_dimensions[ws.cell(1,i).column_letter].width = w
 

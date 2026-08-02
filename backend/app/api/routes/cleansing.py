@@ -317,6 +317,15 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                             }, conflict_col='alert_type')
                     except: pass
             # 触发事件
+            # 库存导入后触发规则引擎评估
+            if is_inv:
+                try:
+                    from app.core.rules import evaluate
+                    for item in data_list:
+                        try:
+                            evaluate('inventory.changed', {'inv': item, 'db': db, 'sku': item.get('sku','')})
+                        except: pass
+                except: pass
             try:
                 from app.core.events import bus
                 bus.emit('data.cleaned', {

@@ -67,6 +67,15 @@ def seed_fill(db=get_db()):
                 inv.append({'sku':sk['sku'],'product_name':sk['name'],'barcode':sk['barcode'],'warehouse':wn,'warehouse_type':wt,'available_qty':q,'in_transit_qty':random.randint(0,200),'safety_qty':100,'beginning_stock':q+random.randint(50,200),'month_inbound':random.randint(100,500),'month_outbound':random.randint(80,450),'turnover_days':round(random.uniform(5,45),1),'weight':sk['weight'],'volume':sk['volume'],'channel':'jd' if skus is jd_s else 'other'})
     db.table("inventory").insert(inv).execute()
 
+    # 触发规则引擎生成告警
+    try:
+        from app.core.rules import evaluate
+        for item in inv:
+            try:
+                evaluate('inventory.changed', {'inv': item, 'db': db, 'sku': item['sku']})
+            except: pass
+    except: pass
+
     invalidate()
     return ok({'products':160,'suppliers':10,'inventory':len(inv),'orders':len(orders)})
 

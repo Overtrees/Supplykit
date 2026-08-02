@@ -362,20 +362,6 @@ export default function InsightsPage() {
                 </tfoot>
               </table>
             </div>
-                    <td style={{color:'var(--success)',fontSize:13}}>+{purchase.reduce((s,x)=>s+(x.actual_purchase||0),0)}</td>
-                    <td colSpan={3} style={{fontSize:11,color:'var(--muted2)'}}>
-                      {(() => {
-                        const withPurchase = purchase.filter(x => x.purchase_qty > 0)
-                        const avgTurnover = withPurchase.length > 0
-                          ? (withPurchase.reduce((s,x)=>s+(x.after_turnover||0),0) / withPurchase.length).toFixed(1)
-                          : ''
-                        return avgTurnover ? '平均周转 ' + avgTurnover + ' 天' : '平均周转 —'
-                      })()}
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
           ))}
         </div>
       )}

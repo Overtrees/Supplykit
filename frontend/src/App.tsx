@@ -1012,7 +1012,7 @@ export default function App() {
               WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(var(--glass-saturate)) brightness(var(--glass-brightness))',
               border: '0.5px solid var(--glass-border)',
               boxShadow: '0 2px 20px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.25)',
-              borderRadius: 22,
+              borderRadius: 26,
               overflow: 'hidden',
               opacity: hammerMenuClosing ? 0 : 1,
               transform: hammerMenuClosing ? 'translateY(-10px) scale(0.92)' : 'translateY(0) scale(1)',

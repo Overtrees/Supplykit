@@ -267,7 +267,7 @@ function HammerOrders({ channel }) {
             placeholder="搜索单号/商品/SKU..."
             style={{width:'100%',padding:'6px 10px',fontSize:16,border:'1px solid var(--border)',borderRadius:32,outline:'none',boxSizing:'border-box',background:'var(--card)',color:'var(--text)'}} />
           {hammerSearch && <div style={{marginTop:4,textAlign:'right'}}>
-            <span className="clickable" onClick={()=>setHammerSearch('')} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>清除</span>
+            <span className="clickable btn btn-ghost" onClick={()=>setHammerSearch('')} style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>清除</span>
           </div>}
         </div>
       )}
@@ -410,7 +410,7 @@ function HammerInventory({ channel }) {
             placeholder="搜索SKU/商品名..."
             style={{width:'100%',padding:'6px 10px',fontSize:16,border:'1px solid var(--border)',borderRadius:32,outline:'none',boxSizing:'border-box',background:'var(--card)',color:'var(--text)'}} />
           {hammerSearch && <div style={{marginTop:4,textAlign:'right'}}>
-            <span className="clickable" onClick={()=>setHammerSearch('')} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>清除</span>
+            <span className="clickable btn btn-ghost" onClick={()=>setHammerSearch('')} style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>清除</span>
           </div>}
         </div>
       )}

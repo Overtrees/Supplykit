@@ -83,7 +83,6 @@ export default function SettingsPage() {
     }
     setRefreshing(false)
   }
-  }
 
   useEffect(() => {
     checkConnection()

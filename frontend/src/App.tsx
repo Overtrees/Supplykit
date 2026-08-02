@@ -646,22 +646,8 @@ function HammerCleansing({ channel }) {
 }
 
 /* 规则页: 锤子菜单 tab入口 + 新建 + 模式切换 + 变更历史 */
-function HammerRules({ channel }) {
+function HammerRules({ channel, onShowHistory }) {
   const { hammerRulesTab, setHammerRulesTab, bumpHammerRuleNew, hammerRulesMode, setHammerRulesMode } = useAppStore()
-  const [showHistory, setShowHistory] = useState(false)
-  const [history, setHistory] = useState([])
-  const [histLoading, setHistLoading] = useState(false)
-
-  const loadHistory = async () => {
-    setHistLoading(true)
-    try {
-      const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
-      const r = await fetch(API + '/api/replenishment-config/history?channel=' + channel + '&limit=50')
-      const d = await r.json()
-      setHistory(d.data || [])
-    } catch(e) { setHistory([]) }
-    setHistLoading(false)
-  }
 
   return (
     <div>
@@ -685,7 +671,7 @@ function HammerRules({ channel }) {
           style={{width:'100%',marginTop:8,fontSize:12,minHeight:34,padding:'4px 8px',display:'flex',alignItems:'center',justifyContent:'center',gap:4,boxSizing:'border-box'}}>
           + 新建规则
         </button>
-        <button onClick={() => { setShowHistory(true); loadHistory() }} className="btn btn-ghost"
+        <button onClick={() => { onShowHistory && onShowHistory(channel) }} className="btn btn-ghost"
           style={{width:'100%',marginTop:6,fontSize:12,minHeight:34,padding:'4px 8px',display:'flex',alignItems:'center',justifyContent:'center',gap:4,boxSizing:'border-box'}}>
           变更历史
         </button>
@@ -708,67 +694,7 @@ function HammerRules({ channel }) {
         </div>
       )}
 
-      {/* 变更历史底部弹窗 */}
-      {showHistory && (
-        <>
-          <div onPointerDown={() => setShowHistory(false)} style={{position:'fixed',inset:0,zIndex:4000,background:'transparent'}} />
-          <div style={{
-            position:'fixed',left:0,right:0,
-            bottom:'calc(env(safe-area-inset-bottom) + 14px)',
-            zIndex:4001,display:'flex',justifyContent:'center',
-            padding:'0 14px',pointerEvents:'none',
-          }}>
-            <div onClick={e => e.stopPropagation()} style={{
-              width:'100%',maxWidth:600,
-              background:'var(--glass-bg)',
-              backdropFilter:'blur(40px) saturate(2.5) brightness(1.15)',
-              WebkitBackdropFilter:'blur(40px) saturate(2.5) brightness(1.15)',
-              border:'0.5px solid var(--glass-border)',
-              borderRadius:32,
-              padding:'18px 14px calc(14px + env(safe-area-inset-bottom))',
-              boxShadow:'0 -8px 24px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.25)',
-              pointerEvents:'auto',
-              maxHeight:'70vh',overflowY:'auto',
-            }}>
-              <div style={{fontSize:18,fontWeight:700,marginBottom:12,textAlign:'center',color:'var(--text)'}}>配置变更历史</div>
-              {histLoading ? (
-                <div style={{padding:20,textAlign:'center',color:'var(--muted2)'}}>加载中...</div>
-              ) : history.length === 0 ? (
-                <div style={{padding:20,textAlign:'center',color:'var(--muted2)'}}>暂无变更记录</div>
-              ) : (
-                <div style={{display:'flex',flexDirection:'column',gap:6}}>
-                  {history.map((h, i) => {
-                    const key = h.key.replace(/^mode_(bbcc|traditional)_/, '')
-                    const modeInfo = h.mode ? (h.mode === 'bbcc' ? 'BBCC' : '传统') : ''
-                    return <div key={h.id || i} style={{padding:'10px 12px',background:'var(--card)',borderRadius:16,fontSize:12}}>
-                      <div style={{display:'flex',justifyContent:'space-between',gap:6,marginBottom:4}}>
-                        <span style={{fontWeight:600,fontSize:11}}>
-                          {key}{modeInfo ? ` (${modeInfo})` : ''}
-                          <span style={{fontWeight:400,fontSize:10,color:'var(--muted2)',marginLeft:4}}>{h.channel === 'jd' ? '京东' : '其他'}</span>
-                        </span>
-                        <span style={{fontSize:10,color:'var(--muted2)',flexShrink:0}}>{h.created_at?.slice(5,16) || ''}</span>
-                      </div>
-                      <div style={{fontSize:11,color:'var(--muted2)',display:'flex',gap:4,flexWrap:'wrap'}}>
-                        <span style={{color:'var(--danger)',textDecoration:'line-through'}}>{h.old_value || '(空)'}</span>
-                        <span style={{color:'var(--muted2)'}}>→</span>
-                        <span style={{color:'var(--success)'}}>{h.new_value || '(空)'}</span>
-                      </div>
-                    </div>
-                  })}
-                </div>
-              )}
-              <div onClick={() => setShowHistory(false)} className="clickable" style={{
-                borderRadius:22,padding:14,marginTop:10,
-                background:'var(--primary)',
-                cursor:'pointer',textAlign:'center',
-              }}>
-                <span style={{fontSize:15,fontWeight:600,color:'#fff'}}>关闭</span>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-    </div>
+      </div>
   )
 }
 
@@ -805,6 +731,20 @@ export default function App() {
   const [highlightSku, setHighlightSku] = useState('')
   const { inventory, qualityLogs, startPolling, stopAll, wsStatus, channel, setChannel, hammerData, setHammerPanel } = useAppStore()
   const [apiStatus, setApiStatus] = useState('checking')
+  const [showHistory, setShowHistory] = useState(false)
+  const [history, setHistory] = useState([])
+  const [histLoading, setHistLoading] = useState(false)
+  const loadHistory = useCallback(async (ch) => {
+    setHistLoading(true)
+    try {
+      const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
+      const r = await fetch(API + '/api/replenishment-config/history?channel=' + (ch||channel) + '&limit=50')
+      const d = await r.json()
+      setHistory(d.data || [])
+    } catch(e) { setHistory([]) }
+    setHistLoading(false)
+    setShowHistory(true)
+  }, [channel])
   const checkApi = useCallback(async() => {
     try {
       const ctrl = new AbortController(); setTimeout(() => ctrl.abort(), 5000)
@@ -1048,7 +988,7 @@ export default function App() {
              page === 'inv' ? <HammerInventory channel={channel} /> :
              page === 'insights' ? <HammerInsights channel={channel} /> :
              page === 'cleansing' ? <HammerCleansing channel={channel} /> :
-             page === 'rules' ? <HammerRules channel={channel} /> : (
+             page === 'rules' ? <HammerRules channel={channel} onShowHistory={loadHistory} /> : (
             <div style={{color:'var(--muted)',fontSize:13,textAlign:'center'}}>
               <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>
                 {channel === 'jd' ? '京东' : '其他'} · {page}
@@ -1068,6 +1008,67 @@ export default function App() {
       <main className="container">
         {renderPage(page)}
       </main>
+
+      {/* 变更历史底部弹窗 */}
+      {showHistory && (
+        <>
+          <div onPointerDown={() => setShowHistory(false)} style={{position:'fixed',inset:0,zIndex:4000,background:'transparent'}} />
+          <div style={{
+            position:'fixed',left:0,right:0,
+            bottom:'calc(env(safe-area-inset-bottom) + 14px)',
+            zIndex:4001,display:'flex',justifyContent:'center',
+            padding:'0 14px',pointerEvents:'none',
+          }}>
+            <div onClick={e => e.stopPropagation()} style={{
+              width:'100%',maxWidth:600,
+              background:'var(--glass-bg)',
+              backdropFilter:'blur(40px) saturate(2.5) brightness(1.15)',
+              WebkitBackdropFilter:'blur(40px) saturate(2.5) brightness(1.15)',
+              border:'0.5px solid var(--glass-border)',
+              borderRadius:32,
+              padding:'18px 14px calc(14px + env(safe-area-inset-bottom))',
+              boxShadow:'0 -8px 24px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.25)',
+              pointerEvents:'auto',
+              maxHeight:'70vh',overflowY:'auto',
+            }}>
+              <div style={{fontSize:18,fontWeight:700,marginBottom:12,textAlign:'center',color:'var(--text)'}}>配置变更历史</div>
+              {histLoading ? (
+                <div style={{padding:20,textAlign:'center',color:'var(--muted2)'}}>加载中...</div>
+              ) : history.length === 0 ? (
+                <div style={{padding:20,textAlign:'center',color:'var(--muted2)'}}>暂无变更记录</div>
+              ) : (
+                <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                  {history.map((h, i) => {
+                    const key = h.key.replace(/^mode_(bbcc|traditional)_/, '')
+                    const modeInfo = h.mode ? (h.mode === 'bbcc' ? 'BBCC' : '传统') : ''
+                    return <div key={h.id || i} style={{padding:'10px 12px',background:'var(--card)',borderRadius:16,fontSize:12}}>
+                      <div style={{display:'flex',justifyContent:'space-between',gap:6,marginBottom:4}}>
+                        <span style={{fontWeight:600,fontSize:11}}>
+                          {key}{modeInfo ? ` (${modeInfo})` : ''}
+                          <span style={{fontWeight:400,fontSize:10,color:'var(--muted2)',marginLeft:4}}>{h.channel === 'jd' ? '京东' : '其他'}</span>
+                        </span>
+                        <span style={{fontSize:10,color:'var(--muted2)',flexShrink:0}}>{h.created_at?.slice(5,16) || ''}</span>
+                      </div>
+                      <div style={{fontSize:11,color:'var(--muted2)',display:'flex',gap:4,flexWrap:'wrap'}}>
+                        <span style={{color:'var(--danger)',textDecoration:'line-through'}}>{h.old_value || '(空)'}</span>
+                        <span style={{color:'var(--muted2)'}}>→</span>
+                        <span style={{color:'var(--success)'}}>{h.new_value || '(空)'}</span>
+                      </div>
+                    </div>
+                  })}
+                </div>
+              )}
+              <div onClick={() => setShowHistory(false)} className="clickable" style={{
+                borderRadius:22,padding:14,marginTop:10,
+                background:'var(--primary)',
+                cursor:'pointer',textAlign:'center',
+              }}>
+                <span style={{fontSize:15,fontWeight:600,color:'#fff'}}>关闭</span>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </ToastProvider>
   )
 }

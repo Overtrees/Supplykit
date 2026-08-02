@@ -71,11 +71,15 @@ export default function DashboardPage({ onAlert }) {
   const alertsList = Array.isArray(alerts) ? alerts.filter(x => x.status === 'active') : []
   const lowStockAlerts = alertsList.filter(x => x.alert_type !== 'replenish')
   const replenishAlerts = alertsList.filter(x => x.alert_type === 'replenish')
+  const criticalAlerts = alertsList.filter(x => x.severity === 'error').length
+  const periodDays = {today:1,week:7,month:30}[periodTab]||30
+  const riskCritical = (stockRisk||[]).filter(x => x.days_to_empty < 3).length
+  const riskWarning = (stockRisk||[]).filter(x => x.days_to_empty >= 3 && x.days_to_empty < 7).length
 
   if (chLoading) return <div className="card" style={{padding:16}}>{[1,2,3,4,5,6].map(i=><div key={i} className="skeleton" style={{height:80,marginBottom:8,borderRadius:24}}/>)}</div>
   return <div>
     <div className="card-grid" style={{marginBottom:16}}>
-      {/* 1. GMV 卡 — 加环比微趋势线 */}
+      {/* 1. GMV 卡 — 加环比微趋势线 + 日均 */}
       <div className="card" style={{borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16,overflow:'hidden'}}>
         <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>{periodLabel[periodTab]} GMV</div>
         <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:2}}>
@@ -93,6 +97,7 @@ export default function DashboardPage({ onAlert }) {
                 {pct >= 0 ? '↑' : '↓'} {Math.abs(pct).toFixed(1)}%
               </span>
             })()}
+            <span style={{color:'var(--muted2)',fontSize:10}}>· 日均 ¥{Math.round((periodMeta.gmv||0)/periodDays).toLocaleString()}</span>
           </div>
         </div>
         {/* 微趋势线 */}
@@ -106,21 +111,22 @@ export default function DashboardPage({ onAlert }) {
         </div>}
       </div>
 
-      {/* 2. 待处理卡 — 拆分色点分布 */}
+      {/* 2. 待处理卡 — 加严重度拆分 */}
       <div className="card" style={{borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16}}>
         <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>待处理</div>
         <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:2}}>
           <div className="card-value" style={{fontSize:'clamp(18px,9cqi,30px)',fontWeight:700,lineHeight:1.1,color:errCount+(dashboard?.summary?.active_alerts||0) > 10 ? '#ef4444' : (errCount+(dashboard?.summary?.active_alerts||0) > 5 ? '#f59e0b' : 'var(--text)')}}>
             {errCount+(dashboard?.summary?.active_alerts||0)}
           </div>
-          <div className="card-sub" style={{marginTop:0,display:'flex',alignItems:'center',gap:8}}>
+          <div className="card-sub" style={{marginTop:0,display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
             <span style={{display:'inline-flex',alignItems:'center',gap:3}}><span style={{width:6,height:6,borderRadius:3,background:'#ef4444'}}/>{errCount} 异常</span>
             <span style={{display:'inline-flex',alignItems:'center',gap:3}}><span style={{width:6,height:6,borderRadius:3,background:'#f59e0b'}}/>{dashboard?.summary?.active_alerts||0} 告警</span>
+            {criticalAlerts > 0 && <span style={{fontSize:10,color:'#ef4444'}}>· {criticalAlerts} 严重</span>}
           </div>
         </div>
       </div>
 
-      {/* 3. 库存健康度 — 下拉改行内 tab */}
+      {/* 3. 库存健康度 — 加总 SKU 数 */}
       <div className="card" style={{borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16}}>
         {(()=>{
           const h = dashboard?.health_index?.[healthTab]||{}
@@ -141,12 +147,13 @@ export default function DashboardPage({ onAlert }) {
               <span style={{color:'var(--success)'}}>● {h.healthy||0}健康</span>
               <span style={{color:'var(--warning)'}}>● {h.warning||0}偏低</span>
               <span style={{color:'#ef4444'}}>● {h.out_of_stock||0}缺货</span>
+              <span style={{color:'var(--muted2)',fontSize:10}}>· {h.total||0} SKU</span>
             </div>
           </>
         })()}
       </div>
 
-      {/* 4. 濒临断货 TOP10 — 去底部引导，加 TOP3 SKU 名 */}
+      {/* 4. 濒临断货 TOP10 — 加危急/警告分层 */}
       <div className="card" style={{borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16,overflow:'hidden'}}>
         <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>濒临断货 TOP 10</div>
         {(!stockRisk || stockRisk.length === 0)
@@ -156,7 +163,11 @@ export default function DashboardPage({ onAlert }) {
           : <>
               <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:2}}>
                 <div className="card-value" style={{fontSize:'clamp(18px,9cqi,30px)',fontWeight:700,lineHeight:1.1,color:'#ef4444'}}>{stockRisk.length}</div>
-                <div className="card-sub" style={{marginTop:0}}>最短 {stockRisk[0].days_to_empty} 天断货</div>
+                <div className="card-sub" style={{marginTop:0,display:'flex',alignItems:'center',gap:4}}>
+                  <span>最短 {stockRisk[0].days_to_empty} 天断货</span>
+                  {riskCritical > 0 && <span style={{fontSize:10,color:'#ef4444'}}>· {riskCritical} 紧急</span>}
+                  {riskWarning > 0 && <span style={{fontSize:10,color:'var(--warning)'}}>· {riskWarning} 预警</span>}
+                </div>
               </div>
               {stockRisk.slice(0,3).map((x,i) => (
                 <div key={i} style={{fontSize:9,color:'var(--muted2)',lineHeight:1.4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>

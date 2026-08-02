@@ -59,6 +59,36 @@ def get_slow_moving_products(db = get_db()):
     return detect_slow_moving_products(db, create_alerts=False)
 
 
+@router.get('/export-slow-moving')
+def export_slow_moving_excel(channel: str = 'jd', db = get_db()):
+    """导出滞销预警为 Excel"""
+    from openpyxl import Workbook
+    from io import BytesIO
+    from fastapi.responses import Response
+    from urllib.parse import quote
+
+    result = get_slow_moving_products(db)
+    data = result.get("data") if isinstance(result, dict) and "data" in result else (result if isinstance(result, list) else [])
+    slow = [x for x in data if x.get('level') != '正常']
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "滞销预警"
+    headers = ["SKU","商品","最近下单","天数","库存","级别"]
+    from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+    hf = PatternFill(start_color="1d4ed8", end_color="1d4ed8", fill_type="solid")
+    hfn = Font(bold=True,color="ffffff",size=11)
+    thin = Border(left=Side(style='thin',color='e2e8f0'),right=Side(style='thin',color='e2e8f0'),top=Side(style='thin',color='e2e8f0'),bottom=Side(style='thin',color='e2e8f0'))
+    ws.append(headers)
+    for c in ws[1]: c.fill=hf; c.font=hfn; c.alignment=Alignment(horizontal='center'); c.border=thin
+    for r in slow:
+        ws.append([r.get('sku',''),r.get('product_name',''),r.get('last_order_date',''),r.get('days_since_last',0),r.get('stock',0),r.get('level','')])
+        for c in ws[ws.max_row]: c.border=thin; c.alignment=Alignment(horizontal='center')
+    buf = BytesIO(); wb.save(buf); buf.seek(0)
+    return Response(content=buf.getvalue(), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition":f"attachment; filename*=UTF-8''slow_moving_{datetime.utcnow().strftime('%Y%m%d')}.xlsx"})
+
+
 @router.get('/summary')
 def get_insight_summary(db = get_db()):
     inv = db.table("inventory").select("*").execute().data

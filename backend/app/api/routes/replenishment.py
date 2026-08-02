@@ -313,10 +313,10 @@ def export_purchase_excel(days: int = 28, mode: str = 'bbcc', channel: str = 'jd
 
     wb = Workbook(); ws = wb.active; ws.title = "补货建议"
     if mode == 'bbcc':
-        headers = ["序号","SKU","商品","仓库","B仓可用库存","B仓周转","C仓总和可用","B-C调拨在途",
+        headers = ["序号","SKU","69码","商品","仓库","B仓可用库存","B仓周转","C仓总和可用","B-C调拨在途",
             "日销(融合/7/14/28)","C仓周转","B→C调拨周转","C仓建议补","B仓需补","当前综转","补后综转","备注"]
     else:
-        headers = ["序号","SKU","商品","仓库","现有","在途","日销(融合/7/14/28)","安全线","在库周转","补后周转","建议补","备注"]
+        headers = ["序号","SKU","69码","商品","仓库","现有","在途","日销(融合/7/14/28)","安全线","在库周转","补后周转","建议补","备注"]
     ws.append(headers)
 
     from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
@@ -328,7 +328,7 @@ def export_purchase_excel(days: int = 28, mode: str = 'bbcc', channel: str = 'jd
     for i, r in enumerate(replen, 1):
         if mode == 'bbcc':
             b_turn = f"{round(r['b_stock']/r['daily_sales'],1)}天" if r.get("b_stock",0)>0 and r.get("daily_sales",0)>0 else ""
-            ws.append([i,r["sku"],r["product_name"],"B仓",r.get("b_stock","-"),b_turn,r.get("c_stock",r.get("available_qty",0)),
+            ws.append([i,r["sku"],r.get("barcode","-"),r["product_name"],"B仓",r.get("b_stock","-"),b_turn,r.get("c_stock",r.get("available_qty",0)),
                 r.get("in_transit_qty",0),r.get("daily_sales",0),r.get("daily_sales_7",0),r.get("daily_sales_14",0),r.get("daily_sales_28",0),
                 f"{r.get('c_turnover','∞')}天" if r.get('c_turnover') else "∞",f"{r.get('transit_turnover','∞')}天" if r.get('transit_turnover') else "∞",
                 r.get("suggested_qty","-"),r.get("b_suggested","-"),
@@ -336,7 +336,7 @@ def export_purchase_excel(days: int = 28, mode: str = 'bbcc', channel: str = 'jd
                 f"{r.get('combined_turnover','∞')}天" if r.get('combined_turnover') else "∞",r.get("note","")])
         else:
             after_turn = f"{r['after_turnover']}天" if r.get("suggested_qty",0)>0 and r.get("after_turnover") else ""
-            ws.append([i,r["sku"],r["product_name"],r.get("warehouse",r.get("store","-")),r.get("available_qty",0),r.get("in_transit_qty",0),
+            ws.append([i,r["sku"],r.get("barcode","-"),r["product_name"],r.get("warehouse",r.get("store","-")),r.get("available_qty",0),r.get("in_transit_qty",0),
                 r.get("daily_sales",0),r.get("daily_sales_7",0),r.get("daily_sales_14",0),r.get("daily_sales_28",0),
                 r.get("safety_qty",0),f"{r.get('days_to_empty','∞')}天" if r.get('days_to_empty',999)<999 else "∞",
                 after_turn,r.get("suggested_qty","-"),r.get("note","")])

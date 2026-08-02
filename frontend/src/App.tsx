@@ -1033,7 +1033,17 @@ export default function App() {
             }}>
               <div style={{fontSize:18,fontWeight:700,marginBottom:12,textAlign:'center',color:'var(--text)'}}>配置变更历史</div>
               {histLoading ? (
-                <div style={{padding:20,textAlign:'center',color:'var(--muted2)'}}>加载中...</div>
+                <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                  {[1,2,3,4].map(i => (
+                    <div key={i} style={{padding:'10px 12px',background:'var(--card)',borderRadius:16,fontSize:12}}>
+                      <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
+                        <div className="skeleton" style={{width:'40%',height:12,borderRadius:6}} />
+                        <div className="skeleton" style={{width:'20%',height:12,borderRadius:6}} />
+                      </div>
+                      <div className="skeleton" style={{width:'70%',height:12,borderRadius:6}} />
+                    </div>
+                  ))}
+                </div>
               ) : history.length === 0 ? (
                 <div style={{padding:20,textAlign:'center',color:'var(--muted2)'}}>暂无变更记录</div>
               ) : (

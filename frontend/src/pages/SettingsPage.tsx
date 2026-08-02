@@ -17,7 +17,7 @@ const Group = ({ title, children }) => (
 )
 
 const Row = ({ label, value, sub, onClick, danger }) => (
-  <div onClick={onClick} style={{padding:'0 4px',cursor:onClick?'pointer':'default',background:'var(--card)'}}>
+  <div onClick={onClick} className={onClick?'clickable':''} style={{padding:'0 4px',cursor:onClick?'pointer':'default',background:'var(--card)'}}>
     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 0',minHeight:44,borderBottom:'1px solid var(--border)'}}>
       <div style={{flex:1}}>
         <div style={{fontSize:16,color:danger?'#ef4444':'var(--text)'}}>{label}</div>
@@ -32,7 +32,7 @@ const Row = ({ label, value, sub, onClick, danger }) => (
 )
 
 const LastRow = ({ label, value, sub, onClick, danger }) => (
-  <div onClick={onClick} style={{padding:'0 4px',cursor:onClick?'pointer':'default',background:'var(--card)'}}>
+  <div onClick={onClick} className={onClick?'clickable':''} style={{padding:'0 4px',cursor:onClick?'pointer':'default',background:'var(--card)'}}>
     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 0',minHeight:44}}>
       <div style={{flex:1}}>
         <div style={{fontSize:16,color:danger?'#ef4444':'var(--text)'}}>{label}</div>

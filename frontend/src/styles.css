@@ -28,7 +28,8 @@ th{text-align:left;font-size:12px;color:var(--muted);border-bottom:1px solid var
 td{padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:middle;overflow-wrap:break-word;word-break:break-word;font-size:13px;line-height:1.4}
 td.mono{word-break:break-all}.col-sku{min-width:80px;font-size:12px;word-break:break-all}.col-name{min-width:100px;word-break:break-word}.col-store{min-width:72px;font-size:12px;word-break:break-word}.col-price{text-align:right;font-size:12px;white-space:nowrap}.col-qty{text-align:center;font-size:12px;white-space:nowrap}.col-date{white-space:nowrap;font-size:12px}tr:hover td{background:#f1f5f9}tbody tr:nth-child(even) td{background:#fff}tbody tr:nth-child(even):hover td{background:#f1f5f9}
 .btn{padding:8px 20px;border:none;border-radius:99px;cursor:pointer;font-size:13px;font-weight:600;min-height:36px;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:all 0.15s;white-space:nowrap;text-decoration:none;box-sizing:border-box}
-.btn:active{transform:scale(0.97)}
+.btn:active{transform:scale(0.96)}
+.clickable:active,.pill:active{opacity:0.7}
 .btn-primary{background:rgba(0,122,255,0.88);color:#fff;border:none}.btn-primary:hover{background:rgba(0,122,255,1)}
 .btn-success{background:rgba(5,150,105,0.88);color:#fff;border:none}.btn-success:hover{background:rgba(5,150,105,1)}
 .btn-danger{background:rgba(225,29,72,0.88);color:#fff;border:none}.btn-danger:hover{background:rgba(225,29,72,1)}

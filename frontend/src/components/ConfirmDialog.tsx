@@ -7,7 +7,6 @@ export default function ConfirmDialog({ open, title, desc, confirmLabel='确认'
         position:'fixed',inset:0,
         background:'var(--overlay)',
         zIndex:9998,
-        animation:'fadeIn 0.2s ease',
       }} />
     <div style={{
       position:'fixed',bottom:0,left:0,right:0,zIndex:9999,
@@ -24,7 +23,6 @@ export default function ConfirmDialog({ open, title, desc, confirmLabel='确认'
     </div>
     <style>{`
       @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
-      @keyframes fadeIn{from{opacity:0}to{opacity:1}}
     `}</style>
   </>
 }

@@ -81,6 +81,21 @@ export default function DashboardPage({ onAlert }) {
     const wt = healthTab === 'own' ? 'own' : 'platform'
     return Number(x.available_qty) === 0 && (wt === 'own' ? x.warehouse_type === 'own' : x.warehouse_type !== 'own' && x.warehouse_type !== 'platform_b')
   }).slice(0,3)
+  // 告警 × 仓库维度拆分
+  const skuWhMap = Object.fromEntries((inventory||[]).map(i => [i.sku, i.warehouse_type]))
+  const whLabel = (t) => t === 'platform_b' ? 'B' : t === 'own' ? '自有' : 'C'
+  function countByWh(items) {
+    const r = {b:0, c:0, own:0}
+    items.forEach(x => {
+      const wt = skuWhMap[x.related_sku] || ''
+      if (wt === 'platform_b') r.b++
+      else if (wt === 'own') r.own++
+      else r.c++
+    })
+    return r
+  }
+  const lsWh = countByWh(lowStockAlerts)
+  const rpWh = countByWh(replenishAlerts)
 
   if (chLoading) return <div className="card" style={{padding:16}}>{[1,2,3,4,5,6].map(i=><div key={i} className="skeleton" style={{height:80,marginBottom:8,borderRadius:24}}/>)}</div>
   return <div>
@@ -117,7 +132,7 @@ export default function DashboardPage({ onAlert }) {
         </div>}
       </div>
 
-      {/* 2. 待处理卡 — 加告警类型拆分 */}
+      {/* 2. 待处理卡 — 按仓库维度拆分 */}
       <div className="card" style={{borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16}}>
         <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>待处理</div>
         <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:2}}>
@@ -129,10 +144,17 @@ export default function DashboardPage({ onAlert }) {
               <span style={{display:'inline-flex',alignItems:'center',gap:3}}><span style={{width:6,height:6,borderRadius:3,background:'#ef4444'}}/>{errCount} 异常</span>
               <span style={{display:'inline-flex',alignItems:'center',gap:3}}><span style={{width:6,height:6,borderRadius:3,background:'#f59e0b'}}/>{dashboard?.summary?.active_alerts||0} 告警{criticalAlerts > 0 ? <span style={{color:'#ef4444',fontSize:10}}>({criticalAlerts} 严重)</span> : ''}</span>
             </div>
-            {(lowStockAlerts.length > 0 || replenishAlerts.length > 0) && <div style={{fontSize:10,display:'flex',gap:6,marginTop:1,color:'var(--muted2)'}}>
-              {lowStockAlerts.length > 0 && <span>● 低库存 {lowStockAlerts.length}</span>}
-              {replenishAlerts.length > 0 && <span>● 需补货 {replenishAlerts.length}</span>}
-            </div>}
+            {(lowStockAlerts.length > 0 || replenishAlerts.length > 0) && <>
+              <div style={{fontSize:10,display:'flex',gap:6,marginTop:2}}>
+                <span style={{color:'var(--muted2)'}}>● 低库存 {lowStockAlerts.length}</span>
+                <span style={{color:'var(--muted2)'}}>● 需补货 {replenishAlerts.length}</span>
+              </div>
+              <div style={{fontSize:9,display:'flex',gap:4,marginTop:1,color:'var(--muted)'}}>
+                <span>B{lsWh.b} C{lsWh.c} 自有{lsWh.own}</span>
+                <span style={{color:'var(--border)'}}>|</span>
+                <span>B{rpWh.b} C{rpWh.c} 自有{rpWh.own}</span>
+              </div>
+            </>}
           </div>
         </div>
       </div>

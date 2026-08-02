@@ -97,7 +97,7 @@ export default function DashboardPage({ onAlert }) {
   const lsWh = countByWh(lowStockAlerts)
   const rpWh = countByWh(replenishAlerts)
 
-  if (chLoading) return <div className="card" style={{padding:16}}>{[1,2,3,4,5,6].map(i=><div key={i} className="skeleton" style={{height:80,marginBottom:8,borderRadius:24}}/>)}</div>
+  if (chLoading) return <div className="card" style={{padding:16}}>{[1,2,3,4,5,6,7].map(i=><div key={i} className="skeleton" style={{height:80,marginBottom:8,borderRadius:24}}/>)}</div>
   return <div>
     <div className="card-grid" style={{marginBottom:16}}>
       {/* 1. GMV 卡 — 加环比微趋势线 + 日均 */}

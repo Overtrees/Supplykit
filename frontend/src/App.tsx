@@ -787,7 +787,7 @@ const HistorySheet = React.memo(({ show, loading, data, onClose }) => {
           </div>
         )}
         {!loading && <div style={{flexShrink:0,marginTop:10}}>
-          <div onClick={(e) => { e.stopPropagation(); onClose() }} className="clickable" style={{
+          <div onPointerDown={(e) => { e.stopPropagation(); onClose() }} className="clickable" style={{
             borderRadius:22,padding:14,
             background:'var(--primary)',
             cursor:'pointer',textAlign:'center',

@@ -75,6 +75,8 @@ export default function DashboardPage({ onAlert }) {
   const periodDays = {today:1,week:7,month:30}[periodTab]||30
   const riskCritical = (stockRisk||[]).filter(x => x.days_to_empty < 3).length
   const riskWarning = (stockRisk||[]).filter(x => x.days_to_empty >= 3 && x.days_to_empty < 7).length
+  const riskBCount = (stockRisk||[]).filter(x => x.type === 'B').length
+  const riskCCount = (stockRisk||[]).filter(x => x.type === 'C').length
 
   if (chLoading) return <div className="card" style={{padding:16}}>{[1,2,3,4,5,6].map(i=><div key={i} className="skeleton" style={{height:80,marginBottom:8,borderRadius:24}}/>)}</div>
   return <div>
@@ -172,6 +174,10 @@ export default function DashboardPage({ onAlert }) {
                 {(riskCritical > 0 || riskWarning > 0) && <div style={{fontSize:10,display:'flex',gap:6,marginTop:2}}>
                   {riskCritical > 0 && <span style={{color:'#ef4444'}}>● {riskCritical} 紧急</span>}
                   {riskWarning > 0 && <span style={{color:'var(--warning)'}}>● {riskWarning} 预警</span>}
+                </div>}
+                {(riskBCount > 0 || riskCCount > 0) && <div style={{fontSize:10,display:'flex',gap:6,marginTop:1,color:'var(--muted2)'}}>
+                  {riskBCount > 0 && <span>B 仓 {riskBCount}</span>}
+                  {riskCCount > 0 && <span>C 仓 {riskCCount}</span>}
                 </div>}
               </div>
               {stockRisk.slice(0,3).map((x,i) => (

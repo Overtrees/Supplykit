@@ -7,38 +7,41 @@ import { useToast } from '../components/Toast'
 const VERSION = '1.0.0'
 const BUILD = import.meta.env.VITE_BUILD_TIME || '2026-07-31'
 
-// ── iOS 风格小组件 ────────────────────────────────────────────────────
 const Group = ({ title, children }) => (
   <div style={{marginBottom:20}}>
     {title && <div style={{fontSize:13,fontWeight:400,color:'var(--muted2)',textTransform:'uppercase',letterSpacing:0.3,padding:'0 4px 6px 4px'}}>{title}</div>}
-    <div style={{background:'var(--card)',borderRadius:32,overflow:'hidden',border:'1px solid var(--border)'}}>
+    <div style={{background:'var(--card)',borderRadius:32,overflow:'hidden'}}>
       {children}
     </div>
   </div>
 )
 
 const Row = ({ label, value, sub, onClick, danger }) => (
-  <div onClick={onClick} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 16px',borderBottom:'1px solid var(--border)',cursor:onClick?'pointer':'default',minHeight:44,background:'var(--card)'}}>
-    <div style={{flex:1}}>
-      <div style={{fontSize:16,color:danger?'#ef4444':'var(--text)'}}>{label}</div>
-      {sub && <div style={{fontSize:12,color:'var(--muted2)',marginTop:2}}>{sub}</div>}
-    </div>
-    <div style={{display:'flex',alignItems:'center',gap:6}}>
-      {value && <span style={{fontSize:15,color:'var(--muted2)',maxWidth:160,textAlign:'right',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{value}</span>}
-      {onClick && <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{flexShrink:0,opacity:0.3}}><path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+  <div onClick={onClick} style={{padding:'0 4px',cursor:onClick?'pointer':'default',background:'var(--card)'}}>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 0',minHeight:44,borderBottom:'1px solid var(--border)'}}>
+      <div style={{flex:1}}>
+        <div style={{fontSize:16,color:danger?'#ef4444':'var(--text)'}}>{label}</div>
+        {sub && <div style={{fontSize:12,color:'var(--muted2)',marginTop:2}}>{sub}</div>}
+      </div>
+      <div style={{display:'flex',alignItems:'center',gap:6}}>
+        {value && <span style={{fontSize:15,color:'var(--muted2)',maxWidth:160,textAlign:'right',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{value}</span>}
+        {onClick && <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{flexShrink:0,opacity:0.3}}><path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+      </div>
     </div>
   </div>
 )
 
 const LastRow = ({ label, value, sub, onClick, danger }) => (
-  <div onClick={onClick} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 16px',borderBottom:'none',cursor:onClick?'pointer':'default',minHeight:44,background:'var(--card)'}}>
-    <div style={{flex:1}}>
-      <div style={{fontSize:16,color:danger?'#ef4444':'var(--text)'}}>{label}</div>
-      {sub && <div style={{fontSize:12,color:'var(--muted2)',marginTop:2}}>{sub}</div>}
-    </div>
-    <div style={{display:'flex',alignItems:'center',gap:6}}>
-      {value && <span style={{fontSize:15,color:'var(--muted2)',maxWidth:160,textAlign:'right',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{value}</span>}
-      {onClick && <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{flexShrink:0,opacity:0.3}}><path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+  <div onClick={onClick} style={{padding:'0 4px',cursor:onClick?'pointer':'default',background:'var(--card)'}}>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 0',minHeight:44}}>
+      <div style={{flex:1}}>
+        <div style={{fontSize:16,color:danger?'#ef4444':'var(--text)'}}>{label}</div>
+        {sub && <div style={{fontSize:12,color:'var(--muted2)',marginTop:2}}>{sub}</div>}
+      </div>
+      <div style={{display:'flex',alignItems:'center',gap:6}}>
+        {value && <span style={{fontSize:15,color:'var(--muted2)',maxWidth:160,textAlign:'right',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{value}</span>}
+        {onClick && <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{flexShrink:0,opacity:0.3}}><path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+      </div>
     </div>
   </div>
 )
@@ -129,26 +132,19 @@ export default function SettingsPage() {
     setResetting(false)
   }
 
-  const statusDot = (ok) => (
-    <span style={{display:'inline-block',width:8,height:8,borderRadius:4,background:ok?'var(--success)':'#ef4444',marginRight:6,verticalAlign:'middle'}} />
-  )
-
   return (
     <div style={{padding:'16px 0',maxWidth:500,margin:'0 auto'}}>
-      {/* 连接状态 */}
       <Group title="连接状态">
         <Row label="后端服务" value={status} sub={`${ping}ms · ${lastCheck}`} />
         <Row label="实时连接" value={wsStatus === 'connected' ? '已连接' : wsStatus === 'polling' ? '轮询中' : '已断开'} />
         <LastRow label="当前渠道" value={channel === 'jd' ? '京东' : '其他渠道'} />
       </Group>
 
-      {/* 操作 */}
       <Group title="操作">
         <Row label="刷新连接" onClick={checkConnection} />
         <LastRow label="清除本地缓存" sub={cacheSize > 0 ? `${cacheSize}KB` : '无缓存'} onClick={clearLocalCache} />
       </Group>
 
-      {/* 系统信息 */}
       <Group title="系统信息">
         <Row label="版本号" value={`v${VERSION}`} />
         <Row label="构建日期" value={BUILD} />
@@ -156,7 +152,6 @@ export default function SettingsPage() {
         <LastRow label="后端" value="FastAPI + SQLite" />
       </Group>
 
-      {/* 种子数据 */}
       <Group title="种子数据">
         <Row label="一键填充" sub="生成 12 SKU × 60 天 × 900 条模拟数据" onClick={doSeed} />
         <LastRow label="一键重置" sub="清空所有数据恢复初始状态" onClick={doReset} danger />

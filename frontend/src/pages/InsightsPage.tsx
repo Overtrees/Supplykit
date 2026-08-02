@@ -31,6 +31,12 @@ const colKey = m => 'c_cols_' + m
 function getVis(m) {try{return JSON.parse(localStorage.getItem(colKey(m))||'null')}catch{return null}}
 function defVis(cols){return cols.map(c=>c.id).filter((_,i)=>[0,1,2,3,4,8,11,12,15].includes(i))} // 默认9列(BBCC)
 function defVisTrad(cols){return cols.map(c=>c.id).filter((_,i)=>[0,1,2,3,4,5,6,10,11].includes(i))} // 默认9列(TRAD)
+const PURCHASE_COLS = [
+  {id:'barcode',label:'69码'},{id:'sku',label:'SKU'},{id:'name',label:'商品'},{id:'warehouse',label:'仓库'},
+  {id:'sys_total',label:'系统总库存'},{id:'daily_sales',label:'日销(融合/14/28)'},
+  {id:'actual_purchase',label:'建议采购'},{id:'after_turnover',label:'补后周转'},
+  {id:'note',label:'备注'},{id:'timing',label:'采购时机'},
+]
 
 function renderNote(text) {
   if (!text) return '-'
@@ -84,6 +90,7 @@ export default function InsightsPage() {
   const replenMode = (globalChannel !== 'jd' && hammerReplenMode === 'bbcc') ? 'traditional' : hammerReplenMode
   const currentCols = replenMode === 'bbcc' ? BBCC_COLS : TRAD_COLS
   const [visCols, setVisCols] = useState(() => getVis(replenMode) || (replenMode==='bbcc'?defVis(BBCC_COLS):defVisTrad(TRAD_COLS)))
+  const [purchaseVisCols, setPurchaseVisCols] = useState(() => PURCHASE_COLS.map(c => c.id))
   const reqSeq = useRef(0)
 
   useEffect(() => {
@@ -95,6 +102,12 @@ export default function InsightsPage() {
       else setVisCols(replenMode==='bbcc'?defVis(BBCC_COLS):defVisTrad(TRAD_COLS))
     }
   }, [hammerCols, replenMode])
+  // 采购建议列同步
+  useEffect(() => {
+    const saved = hammerCols?.['insights_' + globalChannel + '_purchase']
+    if (saved) setPurchaseVisCols(saved)
+    else setPurchaseVisCols(PURCHASE_COLS.map(c => c.id))
+  }, [hammerCols, globalChannel])
   const loadReplen = async (mode, ch) => {
     const seq = ++reqSeq.current
     setReplenLoading(true)
@@ -299,34 +312,56 @@ export default function InsightsPage() {
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>暂无采购建议</div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
-              <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 10 列 · 左右滑动查看</div>
+              <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {purchaseVisCols.length}/{PURCHASE_COLS.length} 列 · 点击"列"按钮切换</div>
               <table>
-                <thead><tr>{['69码','SKU','商品','仓库','系统总库存','日销(融合/14/28)','建议采购','补后周转','备注','采购时机'].map(h => <th key={h} style={{whiteSpace:'nowrap',fontSize:11}}>{h}</th>)}</tr></thead>
+                <colgroup>{purchaseVisCols.map(id => {const col = PURCHASE_COLS.find(c => c.id === id); return col ? <col key={col.id} /> : null})}</colgroup>
+                <thead><tr>{purchaseVisCols.map(id => {const col = PURCHASE_COLS.find(c => c.id === id); return col ? <th key={col.id} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{col.label}</th> : null})}</tr></thead>
                 <tbody>
                   {purchase.map((x, i) => {
                     const timing = !x.purchase_qty || x.purchase_qty <= 0 ? '充足' : (x.after_turnover && (x.target_turnover || 15) > 0 && x.after_turnover <= (x.target_turnover || 15) ? '建议' : '充足')
                     return (
                     <tr key={i}>
-                      <td className="mono" style={{fontSize:11,color:'var(--muted2)'}}>{x.barcode || '-'}</td>
-                      <td className="mono" style={{ fontSize: 12 }}>{x.sku}</td>
-                      <td className="col-name">{x.product_name}</td>
-                      <td className="col-store">{x.warehouse || x.store || '-'}</td>
-                      <td style={{fontSize:12}}>
-                        <span style={{fontWeight:600}}>{x.sys_total}</span>
-                        <span className="small muted" style={{fontWeight:400}}> 自有{x.own_available}+{x.own_transit ? `在途${x.own_transit}`:''} 平台{x.plat_available}+{x.plat_transit ? `在途${x.plat_transit}`:''} B仓{x.b_available||0}</span>
-                      </td>
-                      <td style={{fontSize:12,fontWeight:600,whiteSpace:'nowrap'}}>{x.daily_sales}<span style={{fontSize:10,fontWeight:400,color:'var(--muted2)'}}> /{x.daily_sales_14||0}/{x.daily_sales_28||0}</span></td>
-                      <td style={{fontWeight:700,color:x.actual_purchase > 0 ? 'var(--success)' : 'var(--muted2)'}}>{x.actual_purchase > 0 ? '+'+x.actual_purchase : (x.actual_purchase === 0 ? '0' : '-')}</td>
-                      <td style={{fontWeight:600,color: x.actual_purchase > 0 ? (x.target_turnover > 0 && x.after_turnover > x.target_turnover ? '#ef4444' : 'var(--text)') : 'var(--muted2)'}}>{x.actual_purchase > 0 ? x.after_turnover+'天' : '-'}</td>
-                      <td className="col-name" style={{color:'var(--muted2)',fontSize:12}}>{renderNote(x.note) || '无需采购'}</td>
-                      <td><span className={`pill ${timing==='建议'?'warning':'info'}`}>{timing}</span></td>
+                      {purchaseVisCols.map(id => {
+                        const col = PURCHASE_COLS.find(c => c.id === id)
+                        if (!col) return <td key={id}></td>
+                        if (col.id === 'barcode') return <td key={col.id} className="mono" style={{fontSize:11,color:'var(--muted2)'}}>{x.barcode || '-'}</td>
+                        if (col.id === 'sku') return <td key={col.id} className="mono" style={{fontSize:12}}>{x.sku}</td>
+                        if (col.id === 'name') return <td key={col.id} className="col-name">{x.product_name}</td>
+                        if (col.id === 'warehouse') return <td key={col.id} className="col-store">{x.warehouse || x.store || '-'}</td>
+                        if (col.id === 'sys_total') return <td key={col.id} style={{fontSize:12}}>
+                          <span style={{fontWeight:600}}>{x.sys_total}</span>
+                          <span className="small muted" style={{fontWeight:400}}> 自有{x.own_available}+{x.own_transit ? `在途${x.own_transit}`:''} 平台{x.plat_available}+{x.plat_transit ? `在途${x.plat_transit}`:''} B仓{x.b_available||0}</span>
+                        </td>
+                        if (col.id === 'daily_sales') return <td key={col.id} style={{fontSize:12,fontWeight:600,whiteSpace:'nowrap'}}>{x.daily_sales}<span style={{fontSize:10,fontWeight:400,color:'var(--muted2)'}}> /{x.daily_sales_14||0}/{x.daily_sales_28||0}</span></td>
+                        if (col.id === 'actual_purchase') return <td key={col.id} style={{fontWeight:700,color:x.actual_purchase > 0 ? 'var(--success)' : 'var(--muted2)'}}>{x.actual_purchase > 0 ? '+'+x.actual_purchase : (x.actual_purchase === 0 ? '0' : '-')}</td>
+                        if (col.id === 'after_turnover') return <td key={col.id} style={{fontWeight:600,color: x.actual_purchase > 0 ? (x.target_turnover > 0 && x.after_turnover > x.target_turnover ? '#ef4444' : 'var(--text)') : 'var(--muted2)'}}>{x.actual_purchase > 0 ? x.after_turnover+'天' : '-'}</td>
+                        if (col.id === 'note') return <td key={col.id} className="col-name" style={{color:'var(--muted2)',fontSize:12}}>{renderNote(x.note) || '无需采购'}</td>
+                        if (col.id === 'timing') return <td key={col.id}><span className={`pill ${timing==='建议'?'warning':'info'}`}>{timing}</span></td>
+                        return <td key={col.id}></td>
+                      })}
                     </tr>
                     )
                   })}
                 </tbody>
                 <tfoot>
                   <tr style={{fontWeight:700,borderTop:'2px solid var(--border)'}}>
-                    <td colSpan={6} style={{textAlign:'right',fontSize:12}}>合计</td>
+                    {purchaseVisCols.includes('actual_purchase') && <>
+                      <td colSpan={purchaseVisCols.indexOf('actual_purchase')} style={{textAlign:'right',fontSize:12}}>合计</td>
+                      <td style={{color:'var(--success)',fontSize:13}}>+{purchase.reduce((s,x)=>s+(x.actual_purchase||0),0)}</td>
+                      {purchaseVisCols.includes('after_turnover') && purchaseVisCols.indexOf('after_turnover') > purchaseVisCols.indexOf('actual_purchase') && <td colSpan={purchaseVisCols.length - purchaseVisCols.indexOf('after_turnover') - 1} style={{fontSize:11,color:'var(--muted2)'}}>
+                        {(() => {
+                          const withPurchase = purchase.filter(x => x.purchase_qty > 0)
+                          const avgTurnover = withPurchase.length > 0
+                            ? (withPurchase.reduce((s,x)=>s+(x.after_turnover||0),0) / withPurchase.length).toFixed(1)
+                            : ''
+                          return '平均周转 ' + (avgTurnover || '—') + ' 天'
+                        })()}
+                      </td>}
+                    </>}
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
                     <td style={{color:'var(--success)',fontSize:13}}>+{purchase.reduce((s,x)=>s+(x.actual_purchase||0),0)}</td>
                     <td colSpan={3} style={{fontSize:11,color:'var(--muted2)'}}>
                       {(() => {

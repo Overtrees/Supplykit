@@ -452,6 +452,12 @@ const INS_TRAD_COLS = [
   {id:'safety',label:'安全线'},{id:'turn',label:'在库周转'},{id:'after_turn',label:'补后周转'},
   {id:'suggest',label:'建议补'},{id:'note',label:'备注'},
 ]
+const INS_PURCHASE_COLS = [
+  {id:'barcode',label:'69码'},{id:'sku',label:'SKU'},{id:'name',label:'商品'},{id:'warehouse',label:'仓库'},
+  {id:'sys_total',label:'系统总库存'},{id:'daily_sales',label:'日销(融合/14/28)'},
+  {id:'actual_purchase',label:'建议采购'},{id:'after_turnover',label:'补后周转'},
+  {id:'note',label:'备注'},{id:'timing',label:'采购时机'},
+]
 const insColKey = (m) => 'c_cols_' + m
 const getInsVis = (m) => { try { return JSON.parse(localStorage.getItem(insColKey(m)) || 'null') } catch{return null} }
 function insDefVis(cols){return cols.map(c=>c.id).filter((_,i)=>[0,1,2,3,4,8,11,12,15].includes(i))}
@@ -461,19 +467,33 @@ function HammerInsights({ channel }) {
   const toast = useToast()
   const { hammerPanel, setHammerPanel, setHammerCols, hammerInsightsTab, setHammerInsightsTab, hammerReplenMode, setHammerReplenMode } = useAppStore()
   const mode = (channel !== 'jd' && hammerReplenMode === 'bbcc') ? 'traditional' : hammerReplenMode
-  const cols = mode === 'bbcc' ? INS_BBCC_COLS : INS_TRAD_COLS
-  const [visCols, setVisCols] = useState(() => getInsVis(mode) || (mode==='bbcc'?insDefVis(INS_BBCC_COLS):insDefVisTrad(INS_TRAD_COLS)))
+  const isPurchase = hammerInsightsTab === 'purchase'
+  const cols = isPurchase ? INS_PURCHASE_COLS : (mode === 'bbcc' ? INS_BBCC_COLS : INS_TRAD_COLS)
+  const [visCols, setVisCols] = useState(() => {
+    if (isPurchase) return INS_PURCHASE_COLS.map(c => c.id)
+    return getInsVis(mode) || (mode==='bbcc'?insDefVis(INS_BBCC_COLS):insDefVisTrad(INS_TRAD_COLS))
+  })
 
   useEffect(() => {
-    const saved = getInsVis(mode) || (mode==='bbcc'?insDefVis(INS_BBCC_COLS):insDefVisTrad(INS_TRAD_COLS))
-    setVisCols(saved)
-    setHammerCols('insights_' + mode, saved)
-  }, [mode])
+    if (isPurchase) {
+      const saved = JSON.parse(localStorage.getItem('c_cols_' + channel + '_purchase') || 'null')
+      const cols = saved || INS_PURCHASE_COLS.map(c => c.id)
+      setVisCols(cols); setHammerCols('insights_' + channel + '_purchase', cols)
+    } else {
+      const saved = getInsVis(mode) || (mode==='bbcc'?insDefVis(INS_BBCC_COLS):insDefVisTrad(INS_TRAD_COLS))
+      setVisCols(saved); setHammerCols('insights_' + mode, saved)
+    }
+  }, [mode, hammerInsightsTab, channel])
 
   const saveCols = (c) => {
     setVisCols(c)
-    localStorage.setItem(insColKey(mode), JSON.stringify(c))
-    setHammerCols('insights_' + mode, c)
+    if (isPurchase) {
+      localStorage.setItem('c_cols_' + channel + '_purchase', JSON.stringify(c))
+      setHammerCols('insights_' + channel + '_purchase', c)
+    } else {
+      localStorage.setItem(insColKey(mode), JSON.stringify(c))
+      setHammerCols('insights_' + mode, c)
+    }
   }
 
   const doExport = async (type) => {
@@ -533,7 +553,7 @@ function HammerInsights({ channel }) {
       )}
       {/* 操作行（列选择+导出，单独一行） */}
       <div style={{display:'flex',gap:6}}>
-        {hammerInsightsTab === 'replen' && (
+        {hammerInsightsTab !== 'slow' && (
           <button onClick={() => setHammerPanel(hammerPanel === 'columns' ? null : 'columns')}
             className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
             列选择 ({visCols.length}/{cols.length})
@@ -561,7 +581,7 @@ function HammerInsights({ channel }) {
         </div>
       )}
       {/* 列选择面板 */}
-      {hammerPanel === 'columns' && hammerInsightsTab === 'replen' && (
+      {hammerPanel === 'columns' && hammerInsightsTab !== 'slow' && (
         <div style={{borderTop:'1px solid var(--border)',paddingTop:8,marginTop:8,maxHeight:260,overflowY:'auto'}}>
           <div style={{fontSize:10,color:'var(--muted2)',marginBottom:4,padding:'0 4px'}}>拖拽 ⠿ 调整列顺序</div>
           {(visCols.map(id=>cols.find(c=>c.id===id)).filter(Boolean).concat(cols.filter(c=>!visCols.includes(c.id)))).map((col,idx)=>{
@@ -580,7 +600,7 @@ function HammerInsights({ channel }) {
             </div>
           })}
           <div style={{borderTop:'1px solid var(--border)',marginTop:4,paddingTop:4,display:'flex',gap:6}}>
-            <span onClick={()=>saveCols(mode==='bbcc'?insDefVis(INS_BBCC_COLS):insDefVisTrad(INS_TRAD_COLS))} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>默认</span>
+            <span onClick={()=>saveCols(isPurchase ? INS_PURCHASE_COLS.map(c=>c.id) : (mode==='bbcc'?insDefVis(INS_BBCC_COLS):insDefVisTrad(INS_TRAD_COLS)))} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>默认</span>
             <span onClick={()=>saveCols(cols.map(c=>c.id))} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>全部</span>
           </div>
         </div>

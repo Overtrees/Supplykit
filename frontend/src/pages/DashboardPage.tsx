@@ -154,11 +154,13 @@ export default function DashboardPage({ onAlert }) {
             <div style={{flex:1,display:'flex',alignItems:'flex-end',marginBottom:2}}>
               <div className="card-value" style={{fontSize:'clamp(18px,9cqi,30px)',fontWeight:700,lineHeight:1.1,color:h.level==='danger'?'#ef4444':h.level==='warning'?'#f59e0b':'var(--success)'}}>{h.score||0}分</div>
             </div>
-            <div className="card-sub" style={{marginTop:0,display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
-              <span style={{color:'var(--success)'}}>● {h.healthy||0}健康</span>
-              <span style={{color:'var(--warning)'}}>● {h.warning||0}偏低</span>
-              <span style={{color:'#ef4444'}}>● {h.out_of_stock||0}缺货</span>
-              <span style={{color:'var(--muted2)',fontSize:10}}>· {h.total||0} SKU</span>
+            <div className="card-sub" style={{marginTop:0}}>
+              <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+                <span style={{color:'var(--success)'}}>● {h.healthy||0}健康</span>
+                <span style={{color:'var(--warning)'}}>● {h.warning||0}偏低</span>
+                <span style={{color:'#ef4444'}}>● {h.out_of_stock||0}缺货</span>
+              </div>
+              <div style={{fontSize:10,color:'var(--muted2)',marginTop:1}}>{h.out_of_stock||0}缺货 · {h.total||0} SKU</div>
             </div>
             {h.out_of_stock > 0 && outOfStockItems.length > 0 && <div style={{marginTop:2}}>
               {outOfStockItems.map((x,i) => (

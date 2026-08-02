@@ -62,8 +62,10 @@ export default function SettingsPage() {
   const [dbSize, setDbSize] = useState('')
   const [cacheSize, setCacheSize] = useState(0)
   const [confirm, setConfirm] = useState(null) // {type:'fill'|'reset'}
+  const [refreshing, setRefreshing] = useState(false)
 
   const checkConnection = async () => {
+    setRefreshing(true)
     const start = performance.now()
     try {
       const r = await fetch('https://overtrees.pythonanywhere.com/api/insights/ping')
@@ -72,11 +74,15 @@ export default function SettingsPage() {
       setStatus(d.ok ? '正常' : '异常')
       setPing(ms)
       setLastCheck(new Date().toLocaleTimeString())
+      if (d.ok) toast.success('连接正常 · ' + ms + 'ms')
     } catch {
       setStatus('无法连接')
       setPing(0)
       setLastCheck(new Date().toLocaleTimeString())
+      toast.error('连接失败')
     }
+    setRefreshing(false)
+  }
   }
 
   useEffect(() => {
@@ -150,8 +156,8 @@ export default function SettingsPage() {
       </Group>
 
       <Group title="操作">
-        <Row label="刷新连接" onClick={checkConnection} />
-        <LastRow label="清除本地缓存" sub={cacheSize > 0 ? `${cacheSize}KB` : '无缓存'} onClick={clearLocalCache} />
+        <Row label="刷新连接" onClick={checkConnection} loading={refreshing} />
+        <LastRow label="清除本地缓存" sub={cacheSize > 0 ? `${cacheSize}KB` : '无缓存'} onClick={() => cacheSize > 0 ? setConfirm('cache') : null} />
       </Group>
 
       <Group title="系统信息">
@@ -188,6 +194,16 @@ export default function SettingsPage() {
           desc="此操作不可恢复。将清空订单、库存、商品、规则等全部数据。"
           confirmLabel="重置"
           onConfirm={doReset}
+          onCancel={() => setConfirm(null)}
+        />
+      )}
+      {confirm === 'cache' && (
+        <ConfirmDialog
+          open
+          title="清除本地缓存？"
+          desc="将清除列配置、搜索记录等本地缓存数据，不影响服务器数据。"
+          confirmLabel="清除"
+          onConfirm={() => { clearLocalCache(); setConfirm(null) }}
           onCancel={() => setConfirm(null)}
         />
       )}

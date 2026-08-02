@@ -3,6 +3,7 @@ import { api } from '../api/client'
 import { useAppStore } from '../store/useAppStore'
 import { clearCache, clearInflight } from '../api/client'
 import { useToast } from '../components/Toast'
+import ConfirmDialog from '../components/ConfirmDialog'
 
 const VERSION = '1.0.0'
 const BUILD = import.meta.env.VITE_BUILD_TIME || '2026-07-31'
@@ -16,31 +17,37 @@ const Group = ({ title, children }) => (
   </div>
 )
 
-const Row = ({ label, value, sub, onClick, danger }) => (
-  <div onClick={onClick} className={onClick?'clickable':''} style={{padding:'0 16px',cursor:onClick?'pointer':'default',background:'var(--card)'}}>
+const Row = ({ label, value, sub, onClick, danger, loading }) => (
+  <div onClick={loading ? undefined : onClick} className={onClick && !loading ? 'clickable' : ''} style={{padding:'0 16px',cursor:onClick && !loading ? 'pointer' : 'default',background:'var(--card)',opacity:loading?0.5:1}}>
     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'14px 0',minHeight:48,borderBottom:'1px solid var(--border)'}}>
       <div style={{flex:1,minWidth:0}}>
-        <div style={{fontSize:16,color:danger?'#ef4444':'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{label}</div>
+        <div style={{fontSize:16,color:danger?'#ef4444':'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',display:'flex',alignItems:'center',gap:6}}>
+          {loading && <span style={{display:'inline-block',width:14,height:14,border:'2px solid var(--primary)',borderTopColor:'transparent',borderRadius:'50%',animation:'spin 0.6s linear infinite'}} />}
+          {label}
+        </div>
         {sub && <div style={{fontSize:12,color:'var(--muted2)',marginTop:2}}>{sub}</div>}
       </div>
       <div style={{display:'flex',alignItems:'center',gap:6,flexShrink:0,marginLeft:8}}>
         {value && <span style={{fontSize:15,color:'var(--muted2)',maxWidth:160,textAlign:'right',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{value}</span>}
-        {onClick && <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{flexShrink:0,opacity:0.3}}><path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+        {onClick && !loading && <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{flexShrink:0,opacity:0.3}}><path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
       </div>
     </div>
   </div>
 )
 
-const LastRow = ({ label, value, sub, onClick, danger }) => (
-  <div onClick={onClick} className={onClick?'clickable':''} style={{padding:'0 16px',cursor:onClick?'pointer':'default',background:'var(--card)'}}>
+const LastRow = ({ label, value, sub, onClick, danger, loading }) => (
+  <div onClick={loading ? undefined : onClick} className={onClick && !loading ? 'clickable' : ''} style={{padding:'0 16px',cursor:onClick && !loading ? 'pointer' : 'default',background:'var(--card)',opacity:loading?0.5:1}}>
     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'14px 0',minHeight:48}}>
       <div style={{flex:1,minWidth:0}}>
-        <div style={{fontSize:16,color:danger?'#ef4444':'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{label}</div>
+        <div style={{fontSize:16,color:danger?'#ef4444':'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',display:'flex',alignItems:'center',gap:6}}>
+          {loading && <span style={{display:'inline-block',width:14,height:14,border:'2px solid var(--danger)',borderTopColor:'transparent',borderRadius:'50%',animation:'spin 0.6s linear infinite'}} />}
+          {label}
+        </div>
         {sub && <div style={{fontSize:12,color:'var(--muted2)',marginTop:2}}>{sub}</div>}
       </div>
       <div style={{display:'flex',alignItems:'center',gap:6,flexShrink:0,marginLeft:8}}>
         {value && <span style={{fontSize:15,color:'var(--muted2)',maxWidth:160,textAlign:'right',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{value}</span>}
-        {onClick && <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{flexShrink:0,opacity:0.3}}><path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+        {onClick && !loading && <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{flexShrink:0,opacity:0.3}}><path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
       </div>
     </div>
   </div>
@@ -54,6 +61,7 @@ export default function SettingsPage() {
   const [lastCheck, setLastCheck] = useState('')
   const [dbSize, setDbSize] = useState('')
   const [cacheSize, setCacheSize] = useState(0)
+  const [confirm, setConfirm] = useState(null) // {type:'fill'|'reset'}
 
   const checkConnection = async () => {
     const start = performance.now()
@@ -106,6 +114,7 @@ export default function SettingsPage() {
   const [resetting, setResetting] = useState(false)
 
   const doSeed = async () => {
+    setConfirm(null)
     setSeeding(true)
     try {
       const r = await fetch('https://overtrees.pythonanywhere.com/api/seed/fill', {method:'POST'})
@@ -120,7 +129,7 @@ export default function SettingsPage() {
   }
 
   const doReset = async () => {
-    if (!confirm('确认重置所有数据？此操作不可恢复！')) return
+    setConfirm(null)
     setResetting(true)
     try {
       await fetch('https://overtrees.pythonanywhere.com/api/seed/reset', {method:'POST'})
@@ -153,13 +162,35 @@ export default function SettingsPage() {
       </Group>
 
       <Group title="种子数据">
-        <Row label="一键填充" sub="生成 12 SKU × 60 天 × 900 条模拟数据" onClick={doSeed} />
-        <LastRow label="一键重置" sub="清空所有数据恢复初始状态" onClick={doReset} danger />
+        <Row label="一键填充" sub="生成 12 SKU × 60 天 × 900 条模拟数据" onClick={() => setConfirm('fill')} loading={seeding} />
+        <LastRow label="一键重置" sub="清空所有数据恢复初始状态" onClick={() => setConfirm('reset')} danger loading={resetting} />
       </Group>
 
       <div style={{textAlign:'center',marginTop:24,fontSize:12,color:'var(--muted2)'}}>
         SupplyKit · 供应链数据工作台
       </div>
+
+      {/* 确认弹窗 */}
+      {confirm === 'fill' && (
+        <ConfirmDialog
+          open
+          title="生成种子数据？"
+          desc="将生成 160 个商品、60 天订单、9 个仓库库存等模拟数据，覆盖现有数据。"
+          confirmLabel="生成"
+          onConfirm={doSeed}
+          onCancel={() => setConfirm(null)}
+        />
+      )}
+      {confirm === 'reset' && (
+        <ConfirmDialog
+          open
+          title="重置所有数据？"
+          desc="此操作不可恢复。将清空订单、库存、商品、规则等全部数据。"
+          confirmLabel="重置"
+          onConfirm={doReset}
+          onCancel={() => setConfirm(null)}
+        />
+      )}
     </div>
   )
 }

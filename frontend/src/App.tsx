@@ -732,13 +732,8 @@ export default function App() {
   const { inventory, qualityLogs, startPolling, stopAll, wsStatus, channel, setChannel, hammerData, setHammerPanel } = useAppStore()
   const [apiStatus, setApiStatus] = useState('checking')
   const [showHistory, setShowHistory] = useState(false)
-  const [historyClosing, setHistoryClosing] = useState(false)
   const [history, setHistory] = useState([])
   const [histLoading, setHistLoading] = useState(false)
-  const closeHistory = useCallback(() => {
-    setHistoryClosing(true)
-    setTimeout(() => { setShowHistory(false); setHistoryClosing(false) }, 180)
-  }, [])
   const loadHistory = useCallback(async (ch) => {
     setShowHistory(true)
     setHistLoading(true)
@@ -1019,14 +1014,12 @@ export default function App() {
       {/* 变更历史底部弹窗 */}
       {showHistory && (
         <>
-          <div onPointerDown={(e) => { e.stopPropagation(); closeHistory() }} style={{position:'fixed',inset:0,zIndex:4000,background:'transparent'}} />
+          <div onPointerDown={(e) => { e.stopPropagation(); setShowHistory(false) }} style={{position:'fixed',inset:0,zIndex:4000,background:'transparent'}} />
           <div style={{
             position:'fixed',left:0,right:0,
             bottom:'calc(env(safe-area-inset-bottom) + 14px)',
             zIndex:4001,display:'flex',justifyContent:'center',
             padding:'0 14px',pointerEvents:'none',
-            opacity: historyClosing ? 0 : 1,
-            transition: 'opacity 180ms ease',
           }}>
             <div onClick={e => e.stopPropagation()} style={{
               width:'100%',maxWidth:600,
@@ -1078,7 +1071,7 @@ export default function App() {
                 </div>
               )}
               <div style={{flexShrink:0,marginTop:10}}>
-                <div onClick={(e) => { e.stopPropagation(); closeHistory() }} className="clickable" style={{
+                <div onClick={(e) => { e.stopPropagation(); setShowHistory(false) }} className="clickable" style={{
                   borderRadius:22,padding:14,
                   background:'var(--primary)',
                   cursor:'pointer',textAlign:'center',

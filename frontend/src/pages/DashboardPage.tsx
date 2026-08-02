@@ -111,16 +111,22 @@ export default function DashboardPage({ onAlert }) {
         </div>}
       </div>
 
-      {/* 2. 待处理卡 — 加严重度拆分 */}
+      {/* 2. 待处理卡 — 加告警类型拆分 */}
       <div className="card" style={{borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16}}>
         <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>待处理</div>
         <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:2}}>
           <div className="card-value" style={{fontSize:'clamp(18px,9cqi,30px)',fontWeight:700,lineHeight:1.1,color:errCount+(dashboard?.summary?.active_alerts||0) > 10 ? '#ef4444' : (errCount+(dashboard?.summary?.active_alerts||0) > 5 ? '#f59e0b' : 'var(--text)')}}>
             {errCount+(dashboard?.summary?.active_alerts||0)}
           </div>
-          <div className="card-sub" style={{marginTop:0,display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
-            <span style={{display:'inline-flex',alignItems:'center',gap:3}}><span style={{width:6,height:6,borderRadius:3,background:'#ef4444'}}/>{errCount} 异常</span>
-            <span style={{display:'inline-flex',alignItems:'center',gap:3}}><span style={{width:6,height:6,borderRadius:3,background:'#f59e0b'}}/>{dashboard?.summary?.active_alerts||0} 告警{criticalAlerts > 0 ? <span style={{color:'#ef4444',fontSize:10}}>({criticalAlerts} 严重)</span> : ''}</span>
+          <div className="card-sub" style={{marginTop:0}}>
+            <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+              <span style={{display:'inline-flex',alignItems:'center',gap:3}}><span style={{width:6,height:6,borderRadius:3,background:'#ef4444'}}/>{errCount} 异常</span>
+              <span style={{display:'inline-flex',alignItems:'center',gap:3}}><span style={{width:6,height:6,borderRadius:3,background:'#f59e0b'}}/>{dashboard?.summary?.active_alerts||0} 告警{criticalAlerts > 0 ? <span style={{color:'#ef4444',fontSize:10}}>({criticalAlerts} 严重)</span> : ''}</span>
+            </div>
+            {(lowStockAlerts.length > 0 || replenishAlerts.length > 0) && <div style={{fontSize:10,display:'flex',gap:6,marginTop:1,color:'var(--muted2)'}}>
+              {lowStockAlerts.length > 0 && <span>● 低库存 {lowStockAlerts.length}</span>}
+              {replenishAlerts.length > 0 && <span>● 需补货 {replenishAlerts.length}</span>}
+            </div>}
           </div>
         </div>
       </div>

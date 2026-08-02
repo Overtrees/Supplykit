@@ -37,6 +37,10 @@ const PURCHASE_COLS = [
   {id:'actual_purchase',label:'建议采购'},{id:'after_turnover',label:'补后周转'},
   {id:'note',label:'备注'},{id:'timing',label:'采购时机'},
 ]
+const SLOW_COLS = [
+  {id:'sku',label:'SKU'},{id:'name',label:'商品'},{id:'store',label:'店铺'},{id:'category',label:'分类'},
+  {id:'last_order_date',label:'最近下单'},{id:'days',label:'天数'},{id:'stock',label:'库存'},{id:'level',label:'状态'},
+]
 
 function renderNote(text) {
   if (!text) return '-'
@@ -91,6 +95,7 @@ export default function InsightsPage() {
   const currentCols = replenMode === 'bbcc' ? BBCC_COLS : TRAD_COLS
   const [visCols, setVisCols] = useState(() => getVis(replenMode) || (replenMode==='bbcc'?defVis(BBCC_COLS):defVisTrad(TRAD_COLS)))
   const [purchaseVisCols, setPurchaseVisCols] = useState(() => PURCHASE_COLS.map(c => c.id))
+  const [slowVisCols, setSlowVisCols] = useState(() => SLOW_COLS.map(c => c.id))
   const reqSeq = useRef(0)
 
   useEffect(() => {
@@ -107,6 +112,12 @@ export default function InsightsPage() {
     const saved = hammerCols?.['insights_' + globalChannel + '_purchase']
     if (saved) setPurchaseVisCols(saved)
     else setPurchaseVisCols(PURCHASE_COLS.map(c => c.id))
+  }, [hammerCols, globalChannel])
+  // 滞销预警列同步
+  useEffect(() => {
+    const saved = hammerCols?.['insights_' + globalChannel + '_slow']
+    if (saved) setSlowVisCols(saved)
+    else setSlowVisCols(SLOW_COLS.map(c => c.id))
   }, [hammerCols, globalChannel])
   const loadReplen = async (mode, ch) => {
     const seq = ++reqSeq.current
@@ -379,18 +390,26 @@ export default function InsightsPage() {
           ) : (
             <>
               <div style={{ overflowX: 'auto' }}>
-                <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>共 8 列 · 左右滑动查看</div>
+                <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {slowVisCols.length}/{SLOW_COLS.length} 列 · 点击"列"按钮切换</div>
                 <table>
-                  <thead><tr>{['SKU','商品','店铺','分类','最近下单','天数','库存','状态'].map(h => <th key={h}>{h}</th>)}</tr></thead>
+                  <colgroup>{slowVisCols.map(id => {const col = SLOW_COLS.find(c => c.id === id); return col ? <col key={col.id} /> : null})}</colgroup>
+                  <thead><tr>{slowVisCols.map(id => {const col = SLOW_COLS.find(c => c.id === id); return col ? <th key={col.id} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{col.label}</th> : null})}</tr></thead>
                   <tbody>
                     {slowMoving.filter(x => x.level !== '正常').map((x, i) => (
                       <tr key={i}>
-                        <td className="mono" style={{ fontSize: 12 }}>{x.sku}</td>
-                        <td>{x.product_name}</td><td>{x.store}</td><td>{x.category}</td>
-                        <td style={{ fontSize: 12, color: 'var(--muted)' }}>{x.last_order_date}</td>
-                        <td style={{ fontWeight: 600, color: x.days_since_last_order >= 90 ? '#ef4444' : x.days_since_last_order >= 30 ? 'var(--warning)' : 'var(--muted)' }}>{x.days_since_last_order}天</td>
-                        <td>{x.available_qty}</td>
-                        <td><span className={`pill ${x.level === '滞销' ? 'danger' : x.level === '冷淡' ? 'warning' : 'info'}`}>{x.level}</span></td>
+                        {slowVisCols.map(id => {
+                          const col = SLOW_COLS.find(c => c.id === id)
+                          if (!col) return <td key={id}></td>
+                          if (col.id === 'sku') return <td key={col.id} className="mono" style={{fontSize:12}}>{x.sku}</td>
+                          if (col.id === 'name') return <td key={col.id}>{x.product_name}</td>
+                          if (col.id === 'store') return <td key={col.id}>{x.store || x.warehouse || '-'}</td>
+                          if (col.id === 'category') return <td key={col.id}>{x.category || '-'}</td>
+                          if (col.id === 'last_order_date') return <td key={col.id} style={{fontSize:12,color:'var(--muted)'}}>{x.last_order_date}</td>
+                          if (col.id === 'days') return <td key={col.id} style={{fontWeight:600,color:(x.days_since_last||x.days_since_last_order||0) >= 90 ? '#ef4444' : (x.days_since_last||x.days_since_last_order||0) >= 30 ? 'var(--warning)' : 'var(--muted)'}}>{(x.days_since_last||x.days_since_last_order||0)}天</td>
+                          if (col.id === 'stock') return <td key={col.id}>{(x.stock||x.available_qty||0)}</td>
+                          if (col.id === 'level') return <td key={col.id}><span className={`pill ${x.level === '滞销' ? 'danger' : x.level === '冷淡' ? 'warning' : 'info'}`}>{x.level}</span></td>
+                          return <td key={col.id}></td>
+                        })}
                       </tr>
                     ))}
                   </tbody>

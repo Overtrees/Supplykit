@@ -21,7 +21,7 @@ const renderTmpl = (text) => {
     return <span key={i}>{p}</span>
   })
 }
-const IS = {width:'100%',padding:'6px 8px',fontSize:16,border:'1px solid var(--border)',borderRadius:32,marginTop:4,outline:'none',background:'var(--card)',boxSizing:'border-box'}
+const IS = {width:'100%',padding:'8px 12px',fontSize:16,border:'1px solid var(--border)',borderRadius:32,marginTop:4,outline:'none',background:'var(--card)',boxSizing:'border-box'}
 
 const LF = [
   {l:'可用库存',v:'inv.available_qty'},{l:'安全库存',v:'inv.safety_qty'},{l:'在途库存',v:'inv.in_transit_qty'},
@@ -122,7 +122,7 @@ export default function RulesPage() {
           <label style={{fontSize:12}}>级别
             <div style={{display:'flex',gap:4,marginTop:4}}>
               {[{v:'warning',l:'⚠️',t:'警告',c:'var(--warning)'},{v:'error',l:'🔴',t:'紧急',c:'var(--danger)'},{v:'info',l:'💡',t:'提示',c:'var(--primary)'}].map(({v,l,t,c}) =>
-                <span key={v} onClick={()=>setF({...f,severity:v})} style={{padding:'4px 10px',borderRadius:32,fontSize:12,fontWeight:600,cursor:'pointer',background:f.severity===v?c:'transparent',color:f.severity===v?'#fff':'var(--muted)',border:'1px solid',borderColor:f.severity===v?c:'var(--border)',display:'flex',alignItems:'center',gap:2}}>{l}{t}</span>
+                <span key={v} onClick={()=>setF({...f,severity:v})} className="clickable" style={{padding:'5px 12px',borderRadius:32,fontSize:13,fontWeight:600,cursor:'pointer',background:f.severity===v?c:'transparent',color:f.severity===v?'#fff':'var(--muted)',border:'1px solid',borderColor:f.severity===v?c:'var(--border)',display:'flex',alignItems:'center',gap:3}}>{l}{t}</span>
               )}
             </div>
           </label>
@@ -166,7 +166,7 @@ export default function RulesPage() {
               <input value={f.alert_title} onChange={e=>setF({...f,alert_title:e.target.value})} style={{...IS,fontSize:13,marginTop:4}} placeholder='输入文字，点击下方按钮插入变量'/>
               <div style={{display:'flex',gap:4,marginTop:4,flexWrap:'wrap'}}>
                 {[{v:'{product_name}',l:'商品名'},{v:'{sku}',l:'SKU'}].map(t=>
-                  <span key={t.v} onClick={()=>setF({...f,alert_title:f.alert_title+t.v})} style={{padding:'2px 10px',borderRadius:99,fontSize:11,background:'rgba(29,78,216,0.1)',color:'var(--primary)',cursor:'pointer',border:'1px solid rgba(29,78,216,0.2)',display:'inline-flex',alignItems:'center',gap:2}}>➕{t.l}</span>
+                  <span key={t.v} onClick={()=>setF({...f,alert_title:f.alert_title+t.v})} className="clickable" style={{padding:'4px 12px',borderRadius:99,fontSize:12,background:'rgba(29,78,216,0.1)',color:'var(--primary)',cursor:'pointer',border:'1px solid rgba(29,78,216,0.2)',display:'inline-flex',alignItems:'center',gap:3}}>➕{t.l}</span>
                 )}
               </div>
             </label>
@@ -178,16 +178,16 @@ export default function RulesPage() {
               <input value={f.alert_desc} onChange={e=>setF({...f,alert_desc:e.target.value})} style={{...IS,fontSize:13,marginTop:4}} placeholder='输入文字，点击下方按钮插入变量'/>
               <div style={{display:'flex',gap:4,marginTop:4,flexWrap:'wrap'}}>
                 {[{v:'{avail}',l:'可用量'},{v:'{safety}',l:'安全线'},{v:'{sku}',l:'SKU'}].map(t=>
-                  <span key={t.v} onClick={()=>setF({...f,alert_desc:f.alert_desc+t.v})} style={{padding:'2px 10px',borderRadius:99,fontSize:11,background:'rgba(29,78,216,0.1)',color:'var(--primary)',cursor:'pointer',border:'1px solid rgba(29,78,216,0.2)',display:'inline-flex',alignItems:'center',gap:2}}>➕{t.l}</span>
+                  <span key={t.v} onClick={()=>setF({...f,alert_desc:f.alert_desc+t.v})} className="clickable" style={{padding:'4px 12px',borderRadius:99,fontSize:12,background:'rgba(29,78,216,0.1)',color:'var(--primary)',cursor:'pointer',border:'1px solid rgba(29,78,216,0.2)',display:'inline-flex',alignItems:'center',gap:3}}>➕{t.l}</span>
                 )}
               </div>
             </label>
           </div>
         </div>
 
-        <div style={{marginTop:12,display:'flex',gap:8}}>
-          <button onClick={save} className="btn btn-primary" style={{display:'inline-flex',alignItems:'center',gap:4}}><IconSave size={14} /> 保存</button>
-          <button onClick={cancelEdit} className="btn btn-ghost" style={{background:'var(--warning)',color:'#fff'}}>取消</button>
+        <div style={{marginTop:16,display:'flex',gap:10}}>
+          <button onClick={save} className="btn btn-primary" style={{flex:1,display:'inline-flex',alignItems:'center',gap:4,justifyContent:'center',minHeight:40}}><IconSave size={14} /> 保存</button>
+          <button onClick={cancelEdit} className="btn btn-ghost" style={{flex:1,background:'var(--warning)',color:'#fff',minHeight:40}}>取消</button>
         </div>
       </div>}
 
@@ -196,25 +196,26 @@ export default function RulesPage() {
         const whLbl = WHS.find(w=>w.v===condInfo.warehouse)?.l||'全部'
         const modeLbl = MODES.find(m=>m.v===(rule.mode||''))?.l||'全部'
         const condText = `当 ${whLbl} ${fieldLbl(condInfo.left)} ${opLbl(condInfo.op)} ${condInfo.rightType==='pct'?fieldLbl(condInfo.right)+'的'+condInfo.pctValue+'%':(condInfo.rightType==='field'?fieldLbl(condInfo.right):condInfo.right)}`
-        return <div key={rule.id} style={{padding:'10px 14px',border:'1px solid var(--border)',borderRadius:32,marginBottom:6}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
+        return <div key={rule.id} style={{padding:'14px 16px',border:'1px solid var(--border)',borderRadius:32,marginBottom:8}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:10}}>
         <div style={{flex:1,minWidth:0}}>
-          <div style={{fontWeight:600,fontSize:14,display:'flex',alignItems:'center',gap:6}}>
+          <div style={{fontWeight:600,fontSize:15,display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
             {rule.name}
-            <span className={'pill '+(rule.is_active?'success':'warning')} style={{fontSize:9,padding:'1px 6px',minHeight:'auto',lineHeight:'16px'}}>{rule.is_active?'启用':'停用'}</span>
-            <span className={'pill '+sevCls(rule.severity)} style={{fontSize:9,padding:'1px 6px',minHeight:'auto',lineHeight:'16px'}}>{sevLbl(rule.severity)}</span>
+            <span className={'pill '+(rule.is_active?'success':'warning')} style={{fontSize:10,padding:'2px 8px',minHeight:'auto',lineHeight:'18px'}}>{rule.is_active?'启用':'停用'}</span>
+            <span className={'pill '+sevCls(rule.severity)} style={{fontSize:10,padding:'2px 8px',minHeight:'auto',lineHeight:'18px'}}>{sevLbl(rule.severity)}</span>
+            {rule.mode && <span style={{fontSize:10,color:'var(--muted2)',background:'var(--bg)',padding:'2px 8px',borderRadius:99}}>{modeLbl}</span>}
           </div>
-          <div style={{marginTop:4,padding:'6px 10px',background:'var(--bg)',borderRadius:32,fontSize:12,color:'var(--primary)',display:'inline-block'}}>
-            <IconScale size={12} style={{display:'inline',verticalAlign:'middle',marginRight:2}} /> {condText}
+          <div style={{marginTop:6,padding:'8px 12px',background:'var(--bg)',borderRadius:32,fontSize:13,color:'var(--primary)',display:'block'}}>
+            <IconScale size={12} style={{display:'inline',verticalAlign:'middle',marginRight:4}} /> {condText}
           </div>
-          <div style={{fontSize:11,color:'var(--muted)',marginTop:2,display:'flex',flexWrap:'wrap',gap:2,alignItems:'center'}}>
+          <div style={{fontSize:12,color:'var(--muted)',marginTop:4,display:'flex',flexWrap:'wrap',gap:3,alignItems:'center'}}>
             {renderTmpl(rule.alert_title) || <span className="small muted">无标题</span>}
-            {rule.alert_desc ? <><span style={{color:'var(--muted2)',margin:'0 2px'}}>·</span>{renderTmpl(rule.alert_desc)}</> : ''}
+            {rule.alert_desc ? <><span style={{color:'var(--muted2)',margin:'0 3px'}}>·</span>{renderTmpl(rule.alert_desc)}</> : ''}
           </div>
         </div>
-        <div style={{display:'flex',gap:6,flexShrink:0}}>
-          <button onClick={()=>{const c=pc(rule.condition_json||'{}');setEditing(rule);setF({name:rule.name,event:rule.event,alert_type:rule.alert_type||'low_stock',alert_title:rule.alert_title||'',alert_desc:rule.alert_desc||'',severity:rule.severity||'warning',mode:rule.mode||'',condition_json:rule.condition_json||'{}'});setCond(c)}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 10px',minHeight:0,background:'var(--primary)',color:'#fff'}}>编辑</button>
-          <button onClick={()=>del(rule.id)} className="btn btn-danger" style={{fontSize:12,padding:'4px 10px',minHeight:0}}>删除</button>
+        <div style={{display:'flex',gap:8,flexShrink:0,alignItems:'flex-start'}}>
+          <button onClick={()=>{const c=pc(rule.condition_json||'{}');setEditing(rule);setF({name:rule.name,event:rule.event,alert_type:rule.alert_type||'low_stock',alert_title:rule.alert_title||'',alert_desc:rule.alert_desc||'',severity:rule.severity||'warning',mode:rule.mode||'',condition_json:rule.condition_json||'{}'});setCond(c)}} className="clickable" style={{fontSize:13,padding:'6px 14px',minHeight:36,borderRadius:99,border:'none',background:'var(--primary)',color:'#fff',cursor:'pointer',fontWeight:600}}>编辑</button>
+          <button onClick={()=>del(rule.id)} className="clickable" style={{fontSize:13,padding:'6px 14px',minHeight:36,borderRadius:99,border:'none',background:'var(--danger)',color:'#fff',cursor:'pointer',fontWeight:600}}>删除</button>
         </div>
         </div>
       </div>})}

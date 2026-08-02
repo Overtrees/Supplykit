@@ -455,7 +455,7 @@ const INS_TRAD_COLS = [
 const INS_PURCHASE_COLS = [
   {id:'barcode',label:'69码'},{id:'sku',label:'SKU'},{id:'name',label:'商品'},{id:'warehouse',label:'仓库'},
   {id:'sys_total',label:'系统总库存'},{id:'daily_sales',label:'日销(融合/14/28)'},
-  {id:'actual_purchase',label:'建议采购'},{id:'after_turnover',label:'补后周转'},
+  {id:'actual_purchase',label:'建议采购(含箱规取整)'},{id:'after_turnover',label:'补后周转'},
   {id:'note',label:'备注'},{id:'timing',label:'采购时机'},
 ]
 const INS_SLOW_COLS = [

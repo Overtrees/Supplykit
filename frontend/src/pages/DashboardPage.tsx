@@ -171,13 +171,10 @@ export default function DashboardPage({ onAlert }) {
               <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:2}}>
                 <div className="card-value" style={{fontSize:'clamp(18px,9cqi,30px)',fontWeight:700,lineHeight:1.1,color:'#ef4444'}}>{stockRisk.length}</div>
                 <div className="card-sub" style={{marginTop:0}}>最短 {stockRisk[0].days_to_empty} 天断货</div>
-                {(riskCritical > 0 || riskWarning > 0) && <div style={{fontSize:10,display:'flex',gap:6,marginTop:2}}>
+                {(riskCritical > 0 || riskWarning > 0 || riskBCount > 0 || riskCCount > 0) && <div style={{fontSize:10,display:'flex',gap:4,marginTop:2,flexWrap:'wrap'}}>
                   {riskCritical > 0 && <span style={{color:'#ef4444'}}>● {riskCritical} 紧急</span>}
                   {riskWarning > 0 && <span style={{color:'var(--warning)'}}>● {riskWarning} 预警</span>}
-                </div>}
-                {(riskBCount > 0 || riskCCount > 0) && <div style={{fontSize:10,display:'flex',gap:6,marginTop:1,color:'var(--muted2)'}}>
-                  {riskBCount > 0 && <span>B 仓 {riskBCount}</span>}
-                  {riskCCount > 0 && <span>C 仓 {riskCCount}</span>}
+                  {(riskBCount > 0 || riskCCount > 0) && <span style={{color:'var(--muted2)'}}>· B{riskBCount} C{riskCCount}</span>}
                 </div>}
               </div>
               {stockRisk.slice(0,3).map((x,i) => (

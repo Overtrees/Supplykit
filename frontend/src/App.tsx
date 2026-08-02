@@ -1070,7 +1070,7 @@ export default function App() {
                   })}
                 </div>
               )}
-              <div style={{flexShrink:0,marginTop:10}}>
+              {!histLoading && <div style={{flexShrink:0,marginTop:10}}>
                 <div onClick={(e) => { e.stopPropagation(); setShowHistory(false) }} className="clickable" style={{
                   borderRadius:22,padding:14,
                   background:'var(--primary)',
@@ -1078,7 +1078,7 @@ export default function App() {
                 }}>
                   <span style={{fontSize:15,fontWeight:600,color:'#fff'}}>关闭</span>
                 </div>
-              </div>
+              </div>}
             </div>
           </div>
         </>

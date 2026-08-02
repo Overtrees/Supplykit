@@ -120,8 +120,7 @@ export default function DashboardPage({ onAlert }) {
           </div>
           <div className="card-sub" style={{marginTop:0,display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
             <span style={{display:'inline-flex',alignItems:'center',gap:3}}><span style={{width:6,height:6,borderRadius:3,background:'#ef4444'}}/>{errCount} 异常</span>
-            <span style={{display:'inline-flex',alignItems:'center',gap:3}}><span style={{width:6,height:6,borderRadius:3,background:'#f59e0b'}}/>{dashboard?.summary?.active_alerts||0} 告警</span>
-            {criticalAlerts > 0 && <span style={{fontSize:10,color:'#ef4444'}}>· {criticalAlerts} 严重</span>}
+            <span style={{display:'inline-flex',alignItems:'center',gap:3}}><span style={{width:6,height:6,borderRadius:3,background:'#f59e0b'}}/>{dashboard?.summary?.active_alerts||0} 告警{criticalAlerts > 0 ? <span style={{color:'#ef4444',fontSize:10}}>({criticalAlerts} 严重)</span> : ''}</span>
           </div>
         </div>
       </div>

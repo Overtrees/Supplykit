@@ -101,6 +101,12 @@ def _check_single(cond: dict, ctx: dict) -> bool:
         left_raw = cond.get('left', '0')
         right_raw = cond.get('right', '0')
         op = cond.get('op', '<')
+        # 仓库过滤
+        wh = cond.get('warehouse', '')
+        if wh:
+            inv_wh = ctx.get('inv', {}).get('warehouse_type', '')
+            if inv_wh != wh:
+                return False
         if right_raw.startswith('max('):
             inner = right_raw[4:-1]
             parts = [p.strip() for p in inner.split(',')]
@@ -141,6 +147,11 @@ def evaluate(event: str, context: dict):
             try:
                 cond = json.loads(rule.get('condition_json', '{}'))
             except: continue
+            # 补货模式过滤
+            rule_mode = rule.get('mode', '') or ''
+            ctx_mode = context.get('mode', '') or ''
+            if rule_mode and rule_mode != ctx_mode:
+                continue
             ctx = {**context, 'rule': rule, 'avail': context.get('inv',{}).get('available_qty',0),
                    'safety': context.get('inv',{}).get('safety_qty',0),
                    'product_name': context.get('inv',{}).get('product_name','')}

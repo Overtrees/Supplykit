@@ -28,6 +28,8 @@ const LF = [
   {l:'距上次销售(天)',v:'inv.days_since_last'},{l:'库存量',v:'inv.stock'},{l:'仓库类型',v:'inv.warehouse_type'},
   {l:'订单数量',v:'order.quantity'},{l:'订单金额',v:'order.total_amount'},{l:'单价',v:'order.unit_price'}]
 const OPS = [{l:'小于',v:'<'},{l:'小于等于',v:'<='},{l:'大于',v:'>'},{l:'大于等于',v:'>='},{l:'等于',v:'=='},{l:'不等于',v:'!='}]
+const WHS = [{l:'全部',v:''},{l:'B仓',v:'platform_b'},{l:'C仓',v:'platform'},{l:'自有仓',v:'own'}]
+const MODES = [{l:'全部',v:''},{l:'BBCC',v:'bbcc'},{l:'传统多仓',v:'traditional'}]
 const fieldLbl = v => {const f=LF.find(x=>x.v===v);return f?f.l:v}
 const opLbl = v => {const o=OPS.find(x=>x.v===v);return o?o.l:v}
 const sevCls = s => s==='error'?'danger':s==='info'?'info':'warning'
@@ -35,12 +37,12 @@ const sevLbl = s => s==='error'?'严重':s==='info'?'提示':'警告'
 
 const pc = j => {
   try {
-    const c = JSON.parse(j); let rt = c.rightType||'field'; let r = c.right||'inv.safety_qty'; let pct = 100
+    const c = JSON.parse(j); let rt = c.rightType||'field'; let r = c.right||'inv.safety_qty'; let pct = 100; let wh = c.warehouse||''
     const m = typeof r==='string'?r.match(/^max\(1,\s*(\w+(?:\.\w+)*)\s*\*\s*([\d.]+)\)$/):null
     if (m) { r=m[1]; rt='pct'; pct=Math.round(parseFloat(m[2])*100) }
     if (!rt||rt==='field') { const f=LF.find(x=>x.v===r); if(!f&&typeof r==='string'&&!r.replace('.','').match(/^\d+$/))rt='text'; else if(!f)rt='number' }
-    return {left:c.left||'inv.available_qty', op:c.op||'<', right:r, rightType:rt, pctValue:pct}
-  } catch { return {left:'inv.available_qty', op:'<', right:'inv.safety_qty', rightType:'field', pctValue:100} }
+    return {left:c.left||'inv.available_qty', op:c.op||'<', right:r, rightType:rt, pctValue:pct, warehouse:wh}
+  } catch { return {left:'inv.available_qty', op:'<', right:'inv.safety_qty', rightType:'field', pctValue:100, warehouse:''} }
 }
 
 export default function RulesPage() {
@@ -55,7 +57,7 @@ export default function RulesPage() {
 
   const defaultF = {name:'', event:'inventory.changed', alert_type:'low_stock', alert_title:'', alert_desc:'', severity:'warning', condition_json:'{}'}
   const [f, setF] = useState(defaultF)
-  const [cond, setCond] = useState({left:'inv.available_qty', op:'<', right:'inv.safety_qty', rightType:'field', pctValue:100})
+  const [cond, setCond] = useState({left:'inv.available_qty', op:'<', right:'inv.safety_qty', rightType:'field', pctValue:100, warehouse:''})
   const { channel: globalChannel, setChannel: setGlobalChannel, hammerRulesTab: tab, hammerRuleNewVersion, hammerRulesMode } = useAppStore()
 
   const load = async (ch) => { try { const c=ch||globalChannel; const r = await api.get('/api/rules?channel='+c); setRules(r.data||[]) } catch(e) {} }
@@ -81,18 +83,18 @@ export default function RulesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hammerRuleNewVersion])
 
-  const resetForm = () => { setEditing({}); setF(defaultF); setCond({left:'inv.available_qty', op:'<', right:'inv.safety_qty', rightType:'field', pctValue:100}) }
-  const cancelEdit = () => { setEditing(null); setF(defaultF); setCond({left:'inv.available_qty', op:'<', right:'inv.safety_qty', rightType:'field', pctValue:100}) }
+  const resetForm = () => { setEditing({}); setF(defaultF); setCond({left:'inv.available_qty', op:'<', right:'inv.safety_qty', rightType:'field', pctValue:100, warehouse:''}) }
+  const cancelEdit = () => { setEditing(null); setF(defaultF); setCond({left:'inv.available_qty', op:'<', right:'inv.safety_qty', rightType:'field', pctValue:100, warehouse:''}) }
 
   const save = async () => {
     let rv = cond.right
     if (cond.rightType === 'number') rv = parseFloat(cond.right) || 0
     else if (cond.rightType === 'field') rv = cond.right
     else if (cond.rightType === 'pct') rv = `max(1,${cond.right}*${(cond.pctValue||100)/100})`
-    const cj = JSON.stringify({left:cond.left, op:cond.op, right:rv, rightType:cond.rightType})
+    const cj = JSON.stringify({left:cond.left, op:cond.op, right:rv, rightType:cond.rightType, warehouse:cond.warehouse})
     const isNew = !editing || !editing.id
     const url = isNew ? API+'/api/rules' : API+'/api/rules/'+editing.id
-    await fetch(url, {method: isNew?'POST':'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({...f, channel:globalChannel, condition_json:cj})})
+    await fetch(url, {method: isNew?'POST':'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({...f, mode: f.mode||'', channel:globalChannel, condition_json:cj})})
     cancelEdit(); load(globalChannel)
   }
   const del = async id => { await fetch(API+'/api/rules/'+id, {method:'DELETE'}); load(globalChannel) }
@@ -114,15 +116,18 @@ export default function RulesPage() {
       {editing !== null && <div style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:32,padding:16,marginBottom:16}}>
         <div style={{fontWeight:600,marginBottom:12}}>{editing.id?'编辑规则':'新建规则'}</div>
 
-        {/* 名称 + 级别 */}
-        <div style={{display:'flex',gap:12,alignItems:'flex-end',marginBottom:14}}>
-          <label style={{flex:1,fontSize:12}}>规则名称<input value={f.name} onChange={e=>setF({...f,name:e.target.value})} style={IS} placeholder='例：低库存预警'/></label>
+        {/* 名称 + 级别 + 补货模式 */}
+        <div style={{display:'flex',gap:12,alignItems:'flex-end',marginBottom:14,flexWrap:'wrap'}}>
+          <label style={{flex:1,minWidth:140,fontSize:12}}>规则名称<input value={f.name} onChange={e=>setF({...f,name:e.target.value})} style={IS} placeholder='例：低库存预警'/></label>
           <label style={{fontSize:12}}>级别
             <div style={{display:'flex',gap:4,marginTop:4}}>
               {[{v:'warning',l:'⚠️',t:'警告',c:'var(--warning)'},{v:'error',l:'🔴',t:'紧急',c:'var(--danger)'},{v:'info',l:'💡',t:'提示',c:'var(--primary)'}].map(({v,l,t,c}) =>
                 <span key={v} onClick={()=>setF({...f,severity:v})} style={{padding:'4px 10px',borderRadius:32,fontSize:12,fontWeight:600,cursor:'pointer',background:f.severity===v?c:'transparent',color:f.severity===v?'#fff':'var(--muted)',border:'1px solid',borderColor:f.severity===v?c:'var(--border)',display:'flex',alignItems:'center',gap:2}}>{l}{t}</span>
               )}
             </div>
+          </label>
+          <label style={{fontSize:12}}>补货模式
+            <select value={f.mode||''} onChange={e=>setF({...f,mode:e.target.value})} style={{...IS,fontSize:13,marginTop:4,width:100}}>{MODES.map(m=><option key={m.v} value={m.v}>{m.l}</option>)}</select>
           </label>
         </div>
 
@@ -131,6 +136,7 @@ export default function RulesPage() {
           <div style={{fontWeight:600,fontSize:13,marginBottom:10,display:'flex',alignItems:'center',gap:4}}><IconScale size={14} /> 触发条件</div>
           <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
             <span style={{fontSize:14,fontWeight:500}}>当</span>
+            <select value={cond.warehouse} onChange={e=>setCond(p=>({...p,warehouse:e.target.value}))} style={{...IS,flex:1,minWidth:60,fontSize:13}}>{WHS.map(w=><option key={w.v} value={w.v}>{w.l}</option>)}</select>
             <select value={cond.left} onChange={e=>setCond(p=>({...p,left:e.target.value}))} style={{...IS,flex:2,minWidth:120,fontSize:14}}>{LF.map(f=><option key={f.v} value={f.v}>{f.l}</option>)}</select>
             <select value={cond.op} onChange={e=>setCond(p=>({...p,op:e.target.value}))} style={{...IS,width:70,fontSize:14,textAlign:'center'}}>{OPS.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select>
             <span style={{display:'flex',alignItems:'center',gap:4,flex:2,minWidth:100}}>
@@ -142,7 +148,7 @@ export default function RulesPage() {
           </div>
           <div className='small' style={{marginTop:8,padding:'6px 10px',background:'var(--bg)',borderRadius:32,fontSize:13,color:'var(--primary)'}}>
             <IconClipboard size={12} style={{display:'inline',verticalAlign:'middle',marginRight:4}} />
-            当 <b>{fieldLbl(cond.left)}</b> {opLbl(cond.op)} <b>{cond.pctValue||0}{cond.left==='inv.days_since_last'?'天':cond.left==='inv.available_qty'?'%':'件'}</b>
+            当 <b>{WHS.find(w=>w.v===cond.warehouse)?.l||'全部'}</b> <b>{fieldLbl(cond.left)}</b> {opLbl(cond.op)} <b>{cond.pctValue||0}{cond.left==='inv.days_since_last'?'天':cond.left==='inv.available_qty'?'%':'件'}</b>
             {cond.left==='inv.available_qty' ? <span style={{color:'var(--muted2)',fontSize:11}}>（安全库存的 {cond.pctValue||0}%）</span> : ''}
             时
           </div>
@@ -187,7 +193,9 @@ export default function RulesPage() {
 
       {rules.map(rule => {
         const condInfo = pc(rule.condition_json||'{}')
-        const condText = `当 ${fieldLbl(condInfo.left)} ${opLbl(condInfo.op)} ${condInfo.rightType==='pct'?fieldLbl(condInfo.right)+'的'+condInfo.pctValue+'%':(condInfo.rightType==='field'?fieldLbl(condInfo.right):condInfo.right)}`
+        const whLbl = WHS.find(w=>w.v===condInfo.warehouse)?.l||'全部'
+        const modeLbl = MODES.find(m=>m.v===(rule.mode||''))?.l||'全部'
+        const condText = `当 ${whLbl} ${fieldLbl(condInfo.left)} ${opLbl(condInfo.op)} ${condInfo.rightType==='pct'?fieldLbl(condInfo.right)+'的'+condInfo.pctValue+'%':(condInfo.rightType==='field'?fieldLbl(condInfo.right):condInfo.right)}`
         return <div key={rule.id} style={{padding:'10px 14px',border:'1px solid var(--border)',borderRadius:32,marginBottom:6}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
         <div style={{flex:1,minWidth:0}}>
@@ -205,7 +213,7 @@ export default function RulesPage() {
           </div>
         </div>
         <div style={{display:'flex',gap:6,flexShrink:0}}>
-          <button onClick={()=>{const c=pc(rule.condition_json||'{}');setEditing(rule);setF({name:rule.name,event:rule.event,alert_type:rule.alert_type||'low_stock',alert_title:rule.alert_title||'',alert_desc:rule.alert_desc||'',severity:rule.severity||'warning',condition_json:rule.condition_json||'{}'});setCond(c)}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 10px',minHeight:0,background:'var(--primary)',color:'#fff'}}>编辑</button>
+          <button onClick={()=>{const c=pc(rule.condition_json||'{}');setEditing(rule);setF({name:rule.name,event:rule.event,alert_type:rule.alert_type||'low_stock',alert_title:rule.alert_title||'',alert_desc:rule.alert_desc||'',severity:rule.severity||'warning',mode:rule.mode||'',condition_json:rule.condition_json||'{}'});setCond(c)}} className="btn btn-ghost" style={{fontSize:12,padding:'4px 10px',minHeight:0,background:'var(--primary)',color:'#fff'}}>编辑</button>
           <button onClick={()=>del(rule.id)} className="btn btn-danger" style={{fontSize:12,padding:'4px 10px',minHeight:0}}>删除</button>
         </div>
         </div>

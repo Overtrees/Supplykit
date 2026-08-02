@@ -104,7 +104,7 @@ export default function InsightsPage() {
   }
   const filteredReplen = filterBySearch(Array.isArray(replen) ? replen : [])
   const filteredPurchase = filterBySearch(Array.isArray(purchase) ? purchase : [])
-  const filteredSlow = filterBySearch(Array.isArray(slowMoving) ? slowMoving : []))
+  const filteredSlow = filterBySearch(Array.isArray(slowMoving) ? slowMoving : [])
   const [purchaseVisCols, setPurchaseVisCols] = useState(() => PURCHASE_COLS.map(c => c.id))
   const [slowVisCols, setSlowVisCols] = useState(() => SLOW_COLS.map(c => c.id))
   const reqSeq = useRef(0)

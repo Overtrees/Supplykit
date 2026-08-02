@@ -735,6 +735,7 @@ export default function App() {
   const [history, setHistory] = useState([])
   const [histLoading, setHistLoading] = useState(false)
   const loadHistory = useCallback(async (ch) => {
+    setShowHistory(true)
     setHistLoading(true)
     try {
       const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
@@ -743,7 +744,6 @@ export default function App() {
       setHistory(d.data || [])
     } catch(e) { setHistory([]) }
     setHistLoading(false)
-    setShowHistory(true)
   }, [channel])
   const checkApi = useCallback(async() => {
     try {
@@ -1012,7 +1012,7 @@ export default function App() {
       {/* 变更历史底部弹窗 */}
       {showHistory && (
         <>
-          <div onPointerDown={() => setShowHistory(false)} style={{position:'fixed',inset:0,zIndex:4000,background:'transparent'}} />
+          <div onPointerDown={(e) => { e.stopPropagation(); setShowHistory(false) }} style={{position:'fixed',inset:0,zIndex:4000,background:'transparent'}} />
           <div style={{
             position:'fixed',left:0,right:0,
             bottom:'calc(env(safe-area-inset-bottom) + 14px)',
@@ -1058,7 +1058,7 @@ export default function App() {
                   })}
                 </div>
               )}
-              <div onClick={() => setShowHistory(false)} className="clickable" style={{
+              <div onClick={(e) => { e.stopPropagation(); setShowHistory(false) }} className="clickable" style={{
                 borderRadius:22,padding:14,marginTop:10,
                 background:'var(--primary)',
                 cursor:'pointer',textAlign:'center',

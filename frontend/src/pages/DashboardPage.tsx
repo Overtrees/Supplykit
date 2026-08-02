@@ -171,15 +171,14 @@ export default function DashboardPage({ onAlert }) {
               <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:2}}>
                 <div className="card-value" style={{fontSize:'clamp(18px,9cqi,30px)',fontWeight:700,lineHeight:1.1,color:'#ef4444'}}>{stockRisk.length}</div>
                 <div className="card-sub" style={{marginTop:0}}>最短 {stockRisk[0].days_to_empty} 天断货</div>
-                {(riskCritical > 0 || riskWarning > 0 || riskBCount > 0 || riskCCount > 0) && <div style={{fontSize:10,display:'flex',gap:4,marginTop:2,flexWrap:'wrap'}}>
+                {(riskCritical > 0 || riskWarning > 0) && <div style={{fontSize:10,display:'flex',gap:4,marginTop:2,flexWrap:'wrap'}}>
                   {riskCritical > 0 && <span style={{color:'#ef4444'}}>● {riskCritical} 紧急</span>}
                   {riskWarning > 0 && <span style={{color:'var(--warning)'}}>● {riskWarning} 预警</span>}
-                  {(riskBCount > 0 || riskCCount > 0) && <span style={{color:'var(--muted2)'}}>· B{riskBCount} C{riskCCount}</span>}
                 </div>}
               </div>
               {stockRisk.slice(0,3).map((x,i) => (
                 <div key={i} style={{fontSize:9,color:'var(--muted2)',lineHeight:1.4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-                  {i+1}. {x.product_name || x.sku}
+                  {i+1}. {x.product_name || x.sku} <span style={{fontSize:8,color:'var(--muted)',background:'var(--bg)',padding:'0 4px',borderRadius:4}}>{x.type === 'B' ? 'B' : x.type === 'C' ? 'C' : '自有'}</span>
                 </div>
               ))}
             </>}

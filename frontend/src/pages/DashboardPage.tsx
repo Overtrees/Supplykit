@@ -103,11 +103,11 @@ export default function DashboardPage({ onAlert }) {
       {/* 1. GMV 卡 — 加环比微趋势线 + 日均 */}
       <div className="card" style={{borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16,overflow:'hidden'}}>
         <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>{periodLabel[periodTab]} GMV</div>
-        <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:2}}>
+        <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:4}}>
           <div className="card-value" style={{fontSize:'clamp(18px,9cqi,30px)',fontWeight:700,lineHeight:1.1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
             ¥{Number(periodMeta.gmv||0).toLocaleString()}
           </div>
-          <div className="card-sub" style={{marginTop:0,display:'flex',alignItems:'center',gap:6}}>
+          <div className="card-sub" style={{marginTop:4,display:'flex',alignItems:'center',gap:6}}>
             <span>{periodMeta.orders} 单</span>
             {periodTrend.length >= 2 && (() => {
               const vals = periodTrend.map(i => Number(i['GMV'])||0)
@@ -122,7 +122,7 @@ export default function DashboardPage({ onAlert }) {
           </div>
         </div>
         {/* 微趋势线 */}
-        {periodTrend.length >= 3 && <div style={{height:22,marginTop:'auto',display:'flex',alignItems:'flex-end',gap:1.5}}>
+        {periodTrend.length >= 3 && <div style={{height:22,marginTop:6,display:'flex',alignItems:'flex-end',gap:1.5}}>
           {periodTrend.map((i,idx) => {
             const v = Number(i['GMV'])||0
             const max = Math.max(...periodTrend.map(x => Number(x['GMV'])||0), 1)
@@ -135,21 +135,21 @@ export default function DashboardPage({ onAlert }) {
       {/* 2. 待处理卡 — 按仓库维度拆分 */}
       <div className="card" style={{borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16}}>
         <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>待处理</div>
-        <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:2}}>
+        <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:4}}>
           <div className="card-value" style={{fontSize:'clamp(18px,9cqi,30px)',fontWeight:700,lineHeight:1.1,color:errCount+(dashboard?.summary?.active_alerts||0) > 10 ? '#ef4444' : (errCount+(dashboard?.summary?.active_alerts||0) > 5 ? '#f59e0b' : 'var(--text)')}}>
             {errCount+(dashboard?.summary?.active_alerts||0)}
           </div>
-          <div className="card-sub" style={{marginTop:0}}>
+          <div className="card-sub" style={{marginTop:4}}>
             <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
               <span style={{display:'inline-flex',alignItems:'center',gap:3}}><span style={{width:6,height:6,borderRadius:3,background:'#ef4444'}}/>{errCount} 异常</span>
               <span style={{display:'inline-flex',alignItems:'center',gap:3}}><span style={{width:6,height:6,borderRadius:3,background:'#f59e0b'}}/>{dashboard?.summary?.active_alerts||0} 告警{criticalAlerts > 0 ? <span style={{color:'#ef4444',fontSize:10}}>({criticalAlerts} 严重)</span> : ''}</span>
             </div>
             {(lowStockAlerts.length > 0 || replenishAlerts.length > 0) && <>
-              <div style={{fontSize:10,display:'flex',gap:6,marginTop:2}}>
+              <div style={{fontSize:10,display:'flex',gap:8,marginTop:4}}>
                 <span style={{color:'var(--muted2)'}}>● 低库存 {lowStockAlerts.length}</span>
                 <span style={{color:'var(--muted2)'}}>● 需补货 {replenishAlerts.length}</span>
               </div>
-              <div style={{fontSize:9,display:'flex',gap:4,marginTop:1,color:'var(--muted)'}}>
+              <div style={{fontSize:9,display:'flex',gap:6,marginTop:3,color:'var(--muted)'}}>
                 <span>B{lsWh.b} C{lsWh.c} 自有{lsWh.own}</span>
                 <span style={{color:'var(--border)'}}>|</span>
                 <span>B{rpWh.b} C{rpWh.c} 自有{rpWh.own}</span>
@@ -173,22 +173,22 @@ export default function DashboardPage({ onAlert }) {
                 )}
               </div>
             </div>
-            <div style={{flex:1,display:'flex',alignItems:'flex-end',marginBottom:2}}>
+            <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:4}}>
               <div className="card-value" style={{fontSize:'clamp(18px,9cqi,30px)',fontWeight:700,lineHeight:1.1,color:h.level==='danger'?'#ef4444':h.level==='warning'?'#f59e0b':'var(--success)'}}>{h.score||0}分</div>
-            </div>
-            <div className="card-sub" style={{marginTop:0}}>
-              <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
-                <span style={{color:'var(--success)'}}>● {h.healthy||0}健康</span>
-                <span style={{color:'var(--warning)'}}>● {h.warning||0}偏低</span>
+              <div className="card-sub" style={{marginTop:4}}>
+                <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+                  <span style={{color:'var(--success)'}}>● {h.healthy||0}健康</span>
+                  <span style={{color:'var(--warning)'}}>● {h.warning||0}偏低</span>
+                </div>
+                <div style={{fontSize:10,marginTop:3}}>
+                  <span style={{color:'#ef4444'}}>● {h.out_of_stock||0}缺货</span>
+                  <span style={{color:'var(--muted2)'}}> · {h.total||0} SKU</span>
+                </div>
               </div>
-              <div style={{fontSize:10,marginTop:1}}>
-                <span style={{color:'#ef4444'}}>● {h.out_of_stock||0}缺货</span>
-                <span style={{color:'var(--muted2)'}}> · {h.total||0} SKU</span>
-              </div>
             </div>
-            {h.out_of_stock > 0 && outOfStockItems.length > 0 && <div style={{marginTop:2}}>
+            {h.out_of_stock > 0 && outOfStockItems.length > 0 && <div style={{marginTop:4}}>
               {outOfStockItems.map((x,i) => (
-                <div key={i} style={{fontSize:9,color:'var(--muted2)',lineHeight:1.4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                <div key={i} style={{fontSize:9,color:'var(--muted2)',lineHeight:1.5,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
                   {x.product_name || x.sku} <span style={{fontSize:8,color:'var(--muted)',background:'var(--bg)',padding:'0 4px',borderRadius:4}}>{x.warehouse_type === 'own' ? '自有' : '平台'}</span>
                 </div>
               ))}
@@ -205,16 +205,16 @@ export default function DashboardPage({ onAlert }) {
               <div style={{fontSize:14,fontWeight:400,color:'var(--muted2)'}}>库存充足</div>
             </div>
           : <>
-              <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:2}}>
+              <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:4}}>
                 <div className="card-value" style={{fontSize:'clamp(18px,9cqi,30px)',fontWeight:700,lineHeight:1.1,color:'#ef4444'}}>{stockRisk.length}</div>
-                <div className="card-sub" style={{marginTop:0}}>最短 {stockRisk[0].days_to_empty} 天断货</div>
-                {(riskCritical > 0 || riskWarning > 0) && <div style={{fontSize:10,display:'flex',gap:4,marginTop:2,flexWrap:'wrap'}}>
+                <div className="card-sub" style={{marginTop:4}}>最短 {stockRisk[0].days_to_empty} 天断货</div>
+                {(riskCritical > 0 || riskWarning > 0) && <div style={{fontSize:10,display:'flex',gap:4,marginTop:3,flexWrap:'wrap'}}>
                   {riskCritical > 0 && <span style={{color:'#ef4444'}}>● {riskCritical} 紧急</span>}
                   {riskWarning > 0 && <span style={{color:'var(--warning)'}}>● {riskWarning} 预警</span>}
                 </div>}
               </div>
               {stockRisk.slice(0,3).map((x,i) => (
-                <div key={i} style={{fontSize:9,color:'var(--muted2)',lineHeight:1.4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                <div key={i} style={{fontSize:9,color:'var(--muted2)',lineHeight:1.5,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:i===0?4:0}}>
                   {i+1}. {x.product_name || x.sku} <span style={{fontSize:8,color:'var(--muted)',background:'var(--bg)',padding:'0 4px',borderRadius:4}}>{x.type === 'B' ? 'B' : x.type === 'C' ? 'C' : '自有'}</span>
                 </div>
               ))}

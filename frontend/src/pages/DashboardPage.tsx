@@ -77,6 +77,10 @@ export default function DashboardPage({ onAlert }) {
   const riskWarning = (stockRisk||[]).filter(x => x.days_to_empty >= 3 && x.days_to_empty < 7).length
   const riskBCount = (stockRisk||[]).filter(x => x.type === 'B').length
   const riskCCount = (stockRisk||[]).filter(x => x.type === 'C').length
+  const outOfStockItems = (inventory||[]).filter(x => {
+    const wt = healthTab === 'own' ? 'own' : 'platform'
+    return Number(x.available_qty) === 0 && (wt === 'own' ? x.warehouse_type === 'own' : x.warehouse_type !== 'own' && x.warehouse_type !== 'platform_b')
+  }).slice(0,3)
 
   if (chLoading) return <div className="card" style={{padding:16}}>{[1,2,3,4,5,6].map(i=><div key={i} className="skeleton" style={{height:80,marginBottom:8,borderRadius:24}}/>)}</div>
   return <div>
@@ -156,6 +160,13 @@ export default function DashboardPage({ onAlert }) {
               <span style={{color:'#ef4444'}}>● {h.out_of_stock||0}缺货</span>
               <span style={{color:'var(--muted2)',fontSize:10}}>· {h.total||0} SKU</span>
             </div>
+            {h.out_of_stock > 0 && outOfStockItems.length > 0 && <div style={{marginTop:2}}>
+              {outOfStockItems.map((x,i) => (
+                <div key={i} style={{fontSize:9,color:'var(--muted2)',lineHeight:1.4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                  {x.product_name || x.sku} <span style={{fontSize:8,color:'var(--muted)',background:'var(--bg)',padding:'0 4px',borderRadius:4}}>{x.warehouse_type === 'own' ? '自有' : '平台'}</span>
+                </div>
+              ))}
+            </div>}
           </>
         })()}
       </div>

@@ -96,7 +96,7 @@ export default function InsightsPage() {
   const [visCols, setVisCols] = useState(() => getVis(replenMode) || (replenMode==='bbcc'?defVis(BBCC_COLS):defVisTrad(TRAD_COLS)))
   // 搜索：按 tab 和模式隔离
   const searchKey = tab === 'purchase' ? 'insights_search_purchase' : (tab === 'slow' ? 'insights_search_slow' : 'insights_search_' + replenMode)
-  const insightSearch = hammerData?.[searchKey] || ''
+  const insightSearch = hammerData?.[globalChannel]?.[searchKey] || ''
   const filterBySearch = (items) => {
     if (!insightSearch) return items
     const q = insightSearch.toLowerCase()

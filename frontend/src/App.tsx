@@ -267,7 +267,7 @@ function HammerOrders({ channel }) {
             placeholder="搜索单号/商品/SKU..."
             style={{width:'100%',padding:'6px 10px',fontSize:16,border:'1px solid var(--border)',borderRadius:32,outline:'none',boxSizing:'border-box',background:'var(--card)',color:'var(--text)'}} />
           {hammerSearch && <div style={{marginTop:4,textAlign:'right'}}>
-            <span onClick={()=>setHammerSearch('')} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>清除</span>
+            <span className="clickable" onClick={() => setHammerSearch('')} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>清除</span>
           </div>}
         </div>
       )}
@@ -410,7 +410,7 @@ function HammerInventory({ channel }) {
             placeholder="搜索SKU/商品名..."
             style={{width:'100%',padding:'6px 10px',fontSize:16,border:'1px solid var(--border)',borderRadius:32,outline:'none',boxSizing:'border-box',background:'var(--card)',color:'var(--text)'}} />
           {hammerSearch && <div style={{marginTop:4,textAlign:'right'}}>
-            <span onClick={()=>setHammerSearch('')} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>清除</span>
+            <span className="clickable" onClick={() => setHammerSearch('')} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>清除</span>
           </div>}
         </div>
       )}
@@ -540,7 +540,7 @@ function HammerInsights({ channel }) {
       <div style={{display:'flex',gap:4,marginBottom:8,flexWrap:'wrap'}}>
         {[['replen','补货建议'],['purchase','采购建议'],['slow','滞销预警']].map(([id,label]) => (
           <span key={id} onClick={() => setHammerInsightsTab(id)}
-            style={{flex:1,fontSize:12,minHeight:32,padding:'4px 6px',borderRadius:99,cursor:'pointer',textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
+            className="clickable"
               background: hammerInsightsTab === id ? 'var(--primary)' : 'var(--gray)',
               color: hammerInsightsTab === id ? '#fff' : 'var(--text)',fontWeight: hammerInsightsTab === id ? 600 : 400}}>
             {label}
@@ -551,13 +551,13 @@ function HammerInsights({ channel }) {
       {hammerInsightsTab === 'replen' && (
         <div style={{display:'flex',gap:4,marginBottom:6}}>
           {channel === 'jd' && (
-            <span onClick={() => setHammerReplenMode('bbcc')}
-              style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px',borderRadius:99,cursor:'pointer',textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
+            <span className="clickable" onClick={() => setHammerReplenMode('bbcc')}
+              className="clickable"
                 background: mode==='bbcc'?'var(--primary)':'var(--gray)',color: mode==='bbcc'?'#fff':'var(--text)',fontWeight: mode==='bbcc'?600:400}}>
               BBCC
             </span>
           )}
-          <span onClick={() => setHammerReplenMode('traditional')}
+          <span className="clickable" onClick={() => setHammerReplenMode('traditional')}
             style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px',borderRadius:99,cursor:'pointer',textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
               background: mode==='traditional'?'var(--primary)':'var(--gray)',color: mode==='traditional'?'#fff':'var(--text)',fontWeight: mode==='traditional'?600:400}}>
             传统多仓
@@ -580,11 +580,11 @@ function HammerInsights({ channel }) {
         <div style={{borderTop:'1px solid var(--border)',paddingTop:8,marginTop:8}}>
           <div style={{fontSize:10,color:'var(--muted2)',marginBottom:4}}>选择导出类型 · {channel === 'jd' ? '京东' : '其他'}渠道</div>
           <div style={{display:'flex',gap:4}}>
-            <span onClick={() => doExport('replen')}
+            <span className="clickable" onClick={() => doExport('replen')}
               style={{flex:1,fontSize:12,padding:'6px 8px',borderRadius:99,cursor:'pointer',textAlign:'center',background:'var(--gray)',color:'var(--text)'}}>
               补货建议{mode === 'bbcc' ? ' (BBCC)' : ''}
             </span>
-            <span onClick={() => doExport('purchase')}
+            <span className="clickable" onClick={() => doExport('purchase')}
               style={{flex:1,fontSize:12,padding:'6px 8px',borderRadius:99,cursor:'pointer',textAlign:'center',background:'var(--gray)',color:'var(--text)'}}>
               采购建议
             </span>
@@ -694,13 +694,13 @@ function HammerRules({ channel }) {
       {hammerRulesTab === 'params' && (
         <div style={{display:'flex',gap:4,marginTop:8}}>
           {channel === 'jd' && (
-            <span onClick={() => setHammerRulesMode('bbcc')}
+            <span className="clickable" onClick={() => setHammerRulesMode('bbcc')}
               style={{flex:1,fontSize:12,minHeight:32,padding:'4px 6px',borderRadius:99,cursor:'pointer',textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
                 background: hammerRulesMode==='bbcc'?'var(--primary)':'var(--gray)',color: hammerRulesMode==='bbcc'?'#fff':'var(--text)',fontWeight: hammerRulesMode==='bbcc'?600:400}}>
               BBCC 送仓
             </span>
           )}
-          <span onClick={() => setHammerRulesMode('traditional')}
+          <span className="clickable" onClick={() => setHammerRulesMode('traditional')}
             style={{flex:1,fontSize:12,minHeight:32,padding:'4px 6px',borderRadius:99,cursor:'pointer',textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
               background: hammerRulesMode==='traditional'?'var(--primary)':'var(--gray)',color: hammerRulesMode==='traditional'?'#fff':'var(--text)',fontWeight: hammerRulesMode==='traditional'?600:400}}>
             传统多仓

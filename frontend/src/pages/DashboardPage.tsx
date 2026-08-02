@@ -169,6 +169,7 @@ export default function DashboardPage({ onAlert }) {
               <div style={{display:'flex',gap:2,background:'var(--bg)',borderRadius:99,padding:2}}>
                 {[{v:'own',l:'自有'},{v:'platform',l:'平台'}].map(({v,l}) =>
                   <span key={v} onClick={()=>{localStorage.setItem('health_tab',v);setHealthTab(v)}}
+                    className="clickable"
                     style={{fontSize:10,padding:'2px 8px',borderRadius:99,cursor:'pointer',fontWeight:healthTab===v?600:400,background:healthTab===v?'var(--card)':'transparent',color:healthTab===v?'var(--text)':'var(--muted2)'}}>{l}</span>
                 )}
               </div>
@@ -233,7 +234,7 @@ export default function DashboardPage({ onAlert }) {
         {lowStockAlerts.length === 0
           ? <div className="small muted" style={{padding:12,textAlign:'center'}}>暂无告警</div>
           : lowStockAlerts.slice(0,5).map(x => (
-              <div key={x.id} onClick={() => onAlert && onAlert(x.related_sku)} style={{padding:'6px 0',borderBottom:'1px solid var(--border)',fontSize:13,cursor:'pointer'}}>
+              <div key={x.id} onClick={() => onAlert && onAlert(x.related_sku)} className="clickable" style={{padding:'6px 0',borderBottom:'1px solid var(--border)',fontSize:13}}>
                 <div style={{display:'flex',justifyContent:'space-between',gap:8}}>
                   <span style={{fontWeight:600,fontSize:12}}>{x.title}</span>
                   <span className={'pill '+(x.severity==='error'?'danger':'warning')}>{x.severity==='warning'?'警告':'超储'}</span>
@@ -248,7 +249,7 @@ export default function DashboardPage({ onAlert }) {
         {replenishAlerts.length === 0
           ? <div className="small muted" style={{padding:12,textAlign:'center'}}>暂无告警</div>
           : replenishAlerts.slice(0,5).map(x => (
-              <div key={x.id} onClick={() => onAlert && onAlert(x.related_sku)} style={{padding:'6px 0',borderBottom:'1px solid var(--border)',fontSize:13,cursor:'pointer'}}>
+              <div key={x.id} onClick={() => onAlert && onAlert(x.related_sku)} className="clickable" style={{padding:'6px 0',borderBottom:'1px solid var(--border)',fontSize:13}}>
                 <div style={{display:'flex',justifyContent:'space-between',gap:8}}>
                   <span style={{fontWeight:600,fontSize:12}}>{x.title}</span>
                   <span className="pill danger">补货</span>

@@ -9,7 +9,7 @@ const BUILD = import.meta.env.VITE_BUILD_TIME || '2026-07-31'
 
 const Group = ({ title, children }) => (
   <div style={{marginBottom:20}}>
-    {title && <div style={{fontSize:13,fontWeight:400,color:'var(--muted2)',textTransform:'uppercase',letterSpacing:0.3,padding:'0 4px 6px 4px'}}>{title}</div>}
+    {title && <div style={{fontSize:13,fontWeight:400,color:'var(--muted2)',textTransform:'uppercase',letterSpacing:0.3,padding:'0 16px 6px 16px'}}>{title}</div>}
     <div style={{background:'var(--card)',borderRadius:32,overflow:'hidden'}}>
       {children}
     </div>
@@ -17,13 +17,13 @@ const Group = ({ title, children }) => (
 )
 
 const Row = ({ label, value, sub, onClick, danger }) => (
-  <div onClick={onClick} className={onClick?'clickable':''} style={{padding:'0 4px',cursor:onClick?'pointer':'default',background:'var(--card)'}}>
-    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 0',minHeight:44,borderBottom:'1px solid var(--border)'}}>
-      <div style={{flex:1}}>
-        <div style={{fontSize:16,color:danger?'#ef4444':'var(--text)'}}>{label}</div>
+  <div onClick={onClick} className={onClick?'clickable':''} style={{padding:'0 16px',cursor:onClick?'pointer':'default',background:'var(--card)'}}>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'14px 0',minHeight:48,borderBottom:'1px solid var(--border)'}}>
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{fontSize:16,color:danger?'#ef4444':'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{label}</div>
         {sub && <div style={{fontSize:12,color:'var(--muted2)',marginTop:2}}>{sub}</div>}
       </div>
-      <div style={{display:'flex',alignItems:'center',gap:6}}>
+      <div style={{display:'flex',alignItems:'center',gap:6,flexShrink:0,marginLeft:8}}>
         {value && <span style={{fontSize:15,color:'var(--muted2)',maxWidth:160,textAlign:'right',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{value}</span>}
         {onClick && <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{flexShrink:0,opacity:0.3}}><path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
       </div>
@@ -32,13 +32,13 @@ const Row = ({ label, value, sub, onClick, danger }) => (
 )
 
 const LastRow = ({ label, value, sub, onClick, danger }) => (
-  <div onClick={onClick} className={onClick?'clickable':''} style={{padding:'0 4px',cursor:onClick?'pointer':'default',background:'var(--card)'}}>
-    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 0',minHeight:44}}>
-      <div style={{flex:1}}>
-        <div style={{fontSize:16,color:danger?'#ef4444':'var(--text)'}}>{label}</div>
+  <div onClick={onClick} className={onClick?'clickable':''} style={{padding:'0 16px',cursor:onClick?'pointer':'default',background:'var(--card)'}}>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'14px 0',minHeight:48}}>
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{fontSize:16,color:danger?'#ef4444':'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{label}</div>
         {sub && <div style={{fontSize:12,color:'var(--muted2)',marginTop:2}}>{sub}</div>}
       </div>
-      <div style={{display:'flex',alignItems:'center',gap:6}}>
+      <div style={{display:'flex',alignItems:'center',gap:6,flexShrink:0,marginLeft:8}}>
         {value && <span style={{fontSize:15,color:'var(--muted2)',maxWidth:160,textAlign:'right',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{value}</span>}
         {onClick && <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{flexShrink:0,opacity:0.3}}><path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
       </div>

@@ -515,7 +515,7 @@ function HammerInsights({ channel }) {
       let url = ''
       let filename = ''
       if (type === 'slow') {
-        url = API + '/api/insights/export-slow-moving'
+        url = API + '/api/insights/export-slow-moving?channel=' + channel
         filename = '滞销预警_'
       } else if (type === 'purchase') {
         url = API + '/api/insights/export-purchase-suggestions?days=28&channel=' + channel

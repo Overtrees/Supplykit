@@ -68,7 +68,12 @@ def export_slow_moving_excel(channel: str = 'jd', db = get_db()):
     from urllib.parse import quote
 
     result = get_slow_moving_products(db)
+    # 按渠道过滤
+    import json
     data = result.get("data") if isinstance(result, dict) and "data" in result else (result if isinstance(result, list) else [])
+    if channel != 'all':
+        products = {p["sku"]: p for p in db.table("products").select("*").eq("channel", channel).execute().data or []}
+        data = [x for x in data if x['sku'] in products]
     slow = [x for x in data if x.get('level') != '正常']
 
     wb = Workbook()

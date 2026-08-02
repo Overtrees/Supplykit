@@ -9,7 +9,7 @@ router = APIRouter(prefix="/api/seed", tags=["seed"])
 
 cat_names = ['酱油','酱料','调味汁','食用油','醋','料酒','蚝油','芝麻油','辣椒酱','拌面酱']
 store_names = ['京东自营','京东旗舰店','广州调味食材专营店','华南食品旗舰店']
-WH = [('北京仓','platform'),('上海仓','platform'),('广州仓','own'),('成都仓','platform'),('武汉仓','platform'),('沈阳仓','platform'),('西安仓','platform'),('郑州仓','platform'),('天津仓','own')]
+WH = [('北京仓','platform'),('上海仓','platform'),('广州仓','own'),('成都仓','platform'),('武汉仓','platform'),('沈阳仓','platform'),('西安仓','platform'),('郑州仓','platform'),('天津仓','own'),('京东B仓','platform_b')]
 SUP = [
     {'code':'SUP-001','name':'广州海天调味品有限公司','contact':'张伟','phone':'13800138001','score':5},
     {'code':'SUP-002','name':'上海太太乐食品有限公司','contact':'李娜','phone':'13800138002','score':4},

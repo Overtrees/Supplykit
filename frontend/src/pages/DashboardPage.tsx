@@ -234,27 +234,27 @@ export default function DashboardPage({ onAlert }) {
         {lowStockAlerts.length === 0
           ? <div className="small muted" style={{padding:12,textAlign:'center'}}>暂无告警</div>
           : lowStockAlerts.slice(0,5).map(x => (
-              <div key={x.id} onClick={() => onAlert && onAlert(x.related_sku)} className="clickable" style={{padding:'6px 0',borderBottom:'1px solid var(--border)',fontSize:13}}>
-                <div style={{display:'flex',justifyContent:'space-between',gap:8}}>
-                  <span style={{fontWeight:600,fontSize:12}}>{x.title}</span>
-                  <span className={'pill '+(x.severity==='error'?'danger':'warning')}>{x.severity==='warning'?'警告':'超储'}</span>
+              <div key={x.id} onClick={() => onAlert && onAlert(x.related_sku)} className="clickable" style={{padding:'7px 0',borderBottom:'1px solid var(--border)',fontSize:13}}>
+                <div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'flex-start'}}>
+                  <span style={{fontWeight:600,fontSize:12,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1,minWidth:0}}>{x.title}</span>
+                  <span className={'pill '+(x.severity==='error'?'danger':'warning')} style={{flexShrink:0}}>{x.severity==='warning'?'警告':'超储'}</span>
                 </div>
-                <div className="small muted" style={{fontSize:11}}>{x.description}</div>
+                <div className="small muted" style={{fontSize:11,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:2}}>{x.description}</div>
               </div>
             ))}
-        {lowStockAlerts.length > 5 && <div className="small muted" style={{textAlign:'center',padding:6}}>还有 {lowStockAlerts.length - 5} 条...</div>}
+        {lowStockAlerts.length > 5 && <div className="small muted" style={{textAlign:'center',padding:8}}>还有 {lowStockAlerts.length - 5} 条...</div>}
       </div>
       <div className="card" style={{height:'auto',overflow:'visible'}}>
         <div className="section-title">补货告警</div>
         {replenishAlerts.length === 0
           ? <div className="small muted" style={{padding:12,textAlign:'center'}}>暂无告警</div>
           : replenishAlerts.slice(0,5).map(x => (
-              <div key={x.id} onClick={() => onAlert && onAlert(x.related_sku)} className="clickable" style={{padding:'6px 0',borderBottom:'1px solid var(--border)',fontSize:13}}>
-                <div style={{display:'flex',justifyContent:'space-between',gap:8}}>
-                  <span style={{fontWeight:600,fontSize:12}}>{x.title}</span>
-                  <span className="pill danger">补货</span>
+              <div key={x.id} onClick={() => onAlert && onAlert(x.related_sku)} className="clickable" style={{padding:'7px 0',borderBottom:'1px solid var(--border)',fontSize:13}}>
+                <div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'flex-start'}}>
+                  <span style={{fontWeight:600,fontSize:12,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1,minWidth:0}}>{x.title}</span>
+                  <span className="pill danger" style={{flexShrink:0}}>补货</span>
                 </div>
-                <div className="small muted" style={{fontSize:11}}>{x.description}</div>
+                <div className="small muted" style={{fontSize:11,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:2}}>{x.description}</div>
               </div>
             ))}
         {replenishAlerts.length > 5 && <div className="small muted" style={{textAlign:'center',padding:6}}>还有 {replenishAlerts.length - 5} 条...</div>}

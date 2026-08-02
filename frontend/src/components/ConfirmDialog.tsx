@@ -1,53 +1,70 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 
 export default function ConfirmDialog({ open, title, desc, confirmLabel='确认', cancelLabel='取消', onConfirm, onCancel }) {
-  const [closing, setClosing] = useState(false)
-  const [visible, setVisible] = useState(false)
-  const [slideIn, setSlideIn] = useState(false)
-
-  useEffect(() => {
-    if (open) {
-      setClosing(false)
-      setVisible(true)
-      requestAnimationFrame(() => requestAnimationFrame(() => setSlideIn(true)))
-    } else if (visible) {
-      setSlideIn(false)
-      setClosing(true)
-      const timer = setTimeout(() => { setClosing(false); setVisible(false) }, 220)
-      return () => clearTimeout(timer)
-    }
-  }, [open])
-
-  if (!visible && !closing) return null
+  if (!open) return null
 
   return <>
-    <div onClick={onCancel}
-      style={{
-        position:'fixed',inset:0,
-        background:'var(--overlay)',
-        zIndex:9998,
-        opacity: closing ? 0 : 1,
-        transition: 'opacity 180ms ease',
-      }} />
-    {/* 安全区占位 — 让遮罩层透出 */}
-    <div style={{
-      position:'fixed',bottom:0,left:0,right:0,zIndex:9999,
-      height:'env(safe-area-inset-bottom, 20px)',
-      pointerEvents:'none',
+    {/* 遮罩 */}
+    <div onClick={onCancel} style={{
+      position:'fixed',inset:0,zIndex:4000,
+      background:'transparent',
     }} />
-    {/* 面板 */}
+
+    {/* 面板容器 — 底部居中 */}
     <div style={{
-      position:'fixed',bottom:0,left:0,right:0,zIndex:9999,
-      margin:'0 8px 8px',
-      transform: closing ? 'translateY(calc(100% + 8px))' : (slideIn ? 'translateY(0)' : 'translateY(calc(100% + 8px))'),
-      transition: 'transform 220ms cubic-bezier(0.34,1.56,0.64,1)',
+      position:'fixed',left:0,right:0,
+      bottom:'calc(env(safe-area-inset-bottom) + 14px)',
+      zIndex:4001,
+      display:'flex',justifyContent:'center',
+      padding:'0 14px',
+      pointerEvents:'none',
     }}>
-      <div style={{background:'var(--card)',borderRadius:26,padding:24,textAlign:'center',marginBottom:8}}>
-        {title && <div style={{fontWeight:700,fontSize:17,marginBottom:6}}>{title}</div>}
-        {desc && <div className="small muted" style={{fontSize:13,marginBottom:16,lineHeight:1.4}}>{desc}</div>}
-        <button onClick={onConfirm} className="clickable" style={{width:'100%',padding:'14px',background:'var(--danger)',color:'var(--card)',border:'none',borderRadius:32,cursor:'pointer',fontSize:16,fontWeight:600}}>{confirmLabel}</button>
+      {/* 面板本体 */}
+      <div onClick={e => e.stopPropagation()} style={{
+        width:'100%',maxWidth:600,
+        background:'var(--glass-bg)',
+        backdropFilter:'blur(40px) saturate(2.5) brightness(1.15)',
+        WebkitBackdropFilter:'blur(40px) saturate(2.5) brightness(1.15)',
+        border:'0.5px solid var(--glass-border)',
+        borderRadius:28,
+        padding:'18px 14px calc(14px + env(safe-area-inset-bottom))',
+        boxShadow:'0 -8px 24px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.25)',
+        pointerEvents:'auto',
+      }}>
+        {/* 标题 */}
+        {title && <div style={{
+          textAlign:'center',fontSize:18,fontWeight:700,marginBottom:12,
+          color:'var(--text)',
+        }}>{title}</div>}
+
+        {/* 描述 */}
+        {desc && <div style={{
+          fontSize:13,lineHeight:1.45,color:'var(--muted2)',
+          textAlign:'center',marginBottom:16,padding:'0 4px',
+        }}>{desc}</div>}
+
+        {/* 确认按钮 */}
+        <div onClick={onConfirm} className="clickable" style={{
+          border:'0.5px solid rgba(255,69,58,0.2)',
+          borderRadius:22,padding:14,marginBottom:10,
+          background:'var(--glass-bg)',
+          backdropFilter:'blur(40px) saturate(2.5) brightness(1.15)',
+          WebkitBackdropFilter:'blur(40px) saturate(2.5) brightness(1.15)',
+          cursor:'pointer',textAlign:'center',
+        }}>
+          <span style={{fontSize:15,fontWeight:700,color:'#ff3b30'}}>{confirmLabel}</span>
+        </div>
+
+        {/* 取消按钮 */}
+        <button onClick={onCancel} style={{
+          width:'100%',height:44,
+          borderRadius:22,border:'0.5px solid var(--glass-border)',
+          background:'var(--glass-bg)',fontSize:15,
+          color:'var(--muted)',cursor:'pointer',
+        }}>
+          {cancelLabel}
+        </button>
       </div>
-      <button onClick={onCancel} className="clickable" style={{width:'100%',padding:'14px',background:'var(--card)',border:'none',borderRadius:32,cursor:'pointer',fontSize:16,fontWeight:600,color:'var(--primary)',boxShadow:'0 1px 4px rgba(0,0,0,0.08)'}}>{cancelLabel}</button>
     </div>
   </>
 }

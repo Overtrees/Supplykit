@@ -48,26 +48,20 @@ export default function ConfirmDialog({ open, title, desc, confirmLabel='确认'
           {/* 取消按钮 */}
           <div onClick={onCancel} className="clickable" style={{
             flex:1,
-            border:'0.5px solid var(--glass-border)',
             borderRadius:22,padding:14,
-            background:'var(--glass-bg)',
-            backdropFilter:'blur(40px) saturate(2.5) brightness(1.15)',
-            WebkitBackdropFilter:'blur(40px) saturate(2.5) brightness(1.15)',
+            background:'var(--card)',
             cursor:'pointer',textAlign:'center',
           }}>
-            <span style={{fontSize:15,fontWeight:600,color:'var(--muted)'}}>{cancelLabel}</span>
+            <span style={{fontSize:15,fontWeight:600,color:'var(--primary)'}}>{cancelLabel}</span>
           </div>
           {/* 确认按钮 */}
           <div onClick={onConfirm} className="clickable" style={{
             flex:1,
-            border:'0.5px solid rgba(255,69,58,0.2)',
             borderRadius:22,padding:14,
-            background:'var(--glass-bg)',
-            backdropFilter:'blur(40px) saturate(2.5) brightness(1.15)',
-            WebkitBackdropFilter:'blur(40px) saturate(2.5) brightness(1.15)',
+            background:'#ff3b30',
             cursor:'pointer',textAlign:'center',
           }}>
-            <span style={{fontSize:15,fontWeight:700,color:'#ff3b30'}}>{confirmLabel}</span>
+            <span style={{fontSize:15,fontWeight:700,color:'#fff'}}>{confirmLabel}</span>
           </div>
         </div>
       </div>

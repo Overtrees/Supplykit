@@ -139,9 +139,9 @@ export default function RulesPage() {
             <select value={cond.warehouse} onChange={e=>setCond(p=>({...p,warehouse:e.target.value}))} style={{...IS,flex:1,minWidth:60,fontSize:13}}>{WHS.map(w=><option key={w.v} value={w.v}>{w.l}</option>)}</select>
             <select value={cond.left} onChange={e=>setCond(p=>({...p,left:e.target.value}))} style={{...IS,flex:2,minWidth:120,fontSize:14}}>{LF.map(f=><option key={f.v} value={f.v}>{f.l}</option>)}</select>
             <select value={cond.op} onChange={e=>setCond(p=>({...p,op:e.target.value}))} style={{...IS,width:70,fontSize:14,textAlign:'center'}}>{OPS.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select>
-            <span style={{display:'flex',alignItems:'center',gap:4,flex:2,minWidth:100}}>
+            <span style={{display:'flex',alignItems:'center',gap:4,flex:2,minWidth:140}}>
               <input type='number' value={cond.pctValue||0} onChange={e=>setCond(p=>({...p,pctValue:parseInt(e.target.value)||0,rightType:'pct',right:'inv.safety_qty'}))} min={1} max={200} style={{...IS,width:'auto',flex:1,fontSize:14,textAlign:'center'}}/>
-              <span style={{fontSize:13,color:'var(--muted2)',fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:120}}>
+              <span style={{fontSize:13,color:'var(--muted2)',fontWeight:500,whiteSpace:'nowrap'}}>
                 {cond.left==='inv.days_since_last' ? '天' : cond.left==='inv.available_qty' ? '%（安全库存百分比）' : cond.left==='order.quantity' ? '件' : cond.left==='order.total_amount' ? '元' : '%'}
               </span>
             </span>

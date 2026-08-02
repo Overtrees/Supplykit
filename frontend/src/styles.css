@@ -46,7 +46,7 @@ input,select,button,textarea{font-family:inherit;font-size:16px}input[type="file
 .overflow-x-auto{overflow-x:auto;-webkit-overflow-scrolling:touch}
 
 /* 响应式卡片网格 */
-.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
 
 /* 中卡（图表卡）— 手机横屏2列，宽屏自适应 */
 .mid-chart-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:16px}

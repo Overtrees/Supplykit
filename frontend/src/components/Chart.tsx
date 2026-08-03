@@ -3,9 +3,9 @@ import { useEffect, useRef, useState } from 'react'
 import * as echarts from 'echarts/core'
 import { BarChart, LineChart } from 'echarts/charts'
 import { CanvasRenderer } from 'echarts/renderers'
-import { GridComponent, TooltipComponent, LegendComponent, AxisComponent } from 'echarts/components'
+import { GridComponent, TooltipComponent, LegendComponent, CategoryAxisComponent, ValueAxisComponent } from 'echarts/components'
 
-echarts.use([BarChart, LineChart, CanvasRenderer, GridComponent, TooltipComponent, LegendComponent, AxisComponent])
+echarts.use([BarChart, LineChart, CanvasRenderer, GridComponent, TooltipComponent, LegendComponent, CategoryAxisComponent, ValueAxisComponent])
 
 export default function Chart({ option, height = 260 }) {
   const ref = useRef(null)

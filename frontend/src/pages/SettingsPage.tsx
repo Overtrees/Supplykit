@@ -206,7 +206,8 @@ export default function SettingsPage() {
 
       <Group title="操作">
         <Row label="刷新连接" onClick={checkConnection} loading={refreshing} />
-        <LastRow label="清除本地缓存" sub={cacheSize > 0 ? `${cacheSize}KB` : '无缓存'} onClick={() => { if (cacheSize > 0) setConfirm('cache'); else toast.success('暂无缓存需要清除') }} />
+        <Row label="清除本地缓存" sub={cacheSize > 0 ? `${cacheSize}KB` : '无缓存'} onClick={() => { if (cacheSize > 0) setConfirm('cache'); else toast.success('暂无缓存需要清除') }} />
+        <LastRow label="回收站" sub="查看已删除的规则和订单，可恢复或永久删除" onClick={() => setConfirm('recycle')} />
       </Group>
 
       <Group title="系统信息">
@@ -216,11 +217,13 @@ export default function SettingsPage() {
         <LastRow label="后端" value="FastAPI + SQLite" />
       </Group>
 
+      <Group title="界面">
+        <Row label="重置欢迎页" sub="重新显示首次使用引导" onClick={() => { localStorage.removeItem('c_welcome_seen'); toast.success('欢迎页已重置') }} />
+      </Group>
+
       <Group title="种子数据">
         <Row label="一键填充" sub="生成 12 SKU × 60 天 × 900 条模拟数据" onClick={() => setConfirm('fill')} loading={seeding} />
-        <Row label="一键重置" sub="清空所有数据恢复初始状态" onClick={() => setConfirm('reset')} danger loading={resetting} />
-        <Row label="回收站" sub="查看已删除的规则和订单，可恢复或永久删除" onClick={() => setConfirm('recycle')} />
-        <LastRow label="重置欢迎页" sub="重新显示首次使用引导" onClick={() => { localStorage.removeItem('c_welcome_seen'); toast.success('欢迎页已重置') }} />
+        <LastRow label="一键重置" sub="清空所有数据恢复初始状态" onClick={() => setConfirm('reset')} danger loading={resetting} />
       </Group>
 
       <div style={{textAlign:'center',marginTop:24,fontSize:12,color:'var(--muted2)'}}>

@@ -375,7 +375,7 @@ export default function App() {
           </div>
         </div>
       )}
-      <main className="container" style={{display:showWelcome?'none':''}}>
+      <main className="container" style={{display:showWelcome?'none':'',animation:'fadeIn 0.2s ease'}} key={page}>
         {renderPage(page)}
       </main>
 

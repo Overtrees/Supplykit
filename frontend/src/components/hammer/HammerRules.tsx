@@ -1,7 +1,8 @@
 import React, { useState } from "react"
 import { useAppStore } from "../../store/useAppStore"
 export default function HammerRules({ channel, onShowHistory }) {
-  const { hammerRulesTab, setHammerRulesTab, bumpHammerRuleNew, hammerRulesMode, setHammerRulesMode } = useAppStore()
+  const { hammerRulesTab, setHammerRulesTab, bumpHammerRuleNew, hammerRulesMode, setHammerRulesMode, hammerSearch, setHammerSearch } = useAppStore()
+  const [searchOpen, setSearchOpen] = useState(false)
 
   return (
     <div>
@@ -19,16 +20,30 @@ export default function HammerRules({ channel, onShowHistory }) {
           </span>
         ))}
       </div>
-      {/* 规则 tab: 新建 + 变更历史 */}
+      {/* 规则 tab: 新建 + 搜索 + 变更历史 */}
       {hammerRulesTab === 'rules' && <>
-        <button onClick={() => { setHammerRulesTab('rules'); bumpHammerRuleNew() }} className="btn btn-primary"
-          style={{width:'100%',marginTop:8,fontSize:12,minHeight:34,padding:'4px 8px',display:'flex',alignItems:'center',justifyContent:'center',gap:4,boxSizing:'border-box'}}>
-          + 新建规则
-        </button>
-        <button onClick={() => { onShowHistory && onShowHistory(channel) }} className="btn btn-ghost"
-          style={{width:'100%',marginTop:6,fontSize:12,minHeight:34,padding:'4px 8px',display:'flex',alignItems:'center',justifyContent:'center',gap:4,boxSizing:'border-box'}}>
-          变更历史
-        </button>
+        <div style={{display:'flex',gap:4,marginTop:8}}>
+          <button onClick={() => { setHammerRulesTab('rules'); bumpHammerRuleNew() }} className="btn btn-primary"
+            style={{flex:1,fontSize:12,minHeight:34,padding:'4px 8px',display:'flex',alignItems:'center',justifyContent:'center',gap:4,boxSizing:'border-box'}}>
+            + 新建
+          </button>
+          <button onClick={() => setSearchOpen(!searchOpen)} className="btn btn-ghost"
+            style={{flex:1,fontSize:12,minHeight:34,padding:'4px 8px',display:'flex',alignItems:'center',justifyContent:'center',gap:4,boxSizing:'border-box'}}>
+            搜索{hammerSearch ? ' ✓' : ''}
+          </button>
+          <button onClick={() => { onShowHistory && onShowHistory(channel) }} className="btn btn-ghost"
+            style={{flex:1,fontSize:12,minHeight:34,padding:'4px 8px',display:'flex',alignItems:'center',justifyContent:'center',gap:4,boxSizing:'border-box'}}>
+            变更历史
+          </button>
+        </div>
+        {searchOpen && <div style={{borderTop:'1px solid var(--border)',paddingTop:8,marginTop:8}}>
+          <input value={hammerSearch} onChange={e=>setHammerSearch(e.target.value)}
+            placeholder="搜索规则名称..."
+            style={{width:'100%',padding:'6px 10px',fontSize:16,border:'1px solid var(--border)',borderRadius:32,outline:'none',boxSizing:'border-box',background:'var(--card)',color:'var(--text)'}} />
+          {hammerSearch && <div style={{marginTop:4,textAlign:'right'}}>
+            <span className="clickable btn btn-ghost" onClick={()=>setHammerSearch('')} style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>清除</span>
+          </div>}
+        </div>}
       </>}
       {/* 补货参数 tab: 模式切换 */}
       {hammerRulesTab === 'params' && (

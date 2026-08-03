@@ -52,12 +52,14 @@ export default function Sidebar({ page, onClose, onNavigate, lowStock, errCount,
           willChange: 'opacity, transform'
         }}
       >
-        <div style={{ padding: 7 }}>
-          {NAV.map(item => {
+        <div style={{ padding: 7, maxHeight:'calc(100vh - 140px)', overflowY:'auto' }}>
+          {NAV.map((item, idx) => {
             const active = page === item.id
             const IconComp = NAV_ICONS[item.id]
             return (
-              <button key={item.id} onClick={() => onNavigate(item.id)}
+              <React.Fragment key={item.id}>
+                {idx > 0 && <div style={{height:'0.5px',background:'var(--glass-border)',margin:'3px 10px'}} />}
+                <button onClick={() => onNavigate(item.id)}
                 style={{
                   width:'100%', minHeight:50, border:'none',
                   background: active ? 'rgba(29,78,216,0.1)' : 'transparent',

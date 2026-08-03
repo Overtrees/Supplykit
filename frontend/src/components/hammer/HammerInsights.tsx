@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react"
+import { useAppStore } from "../../store/useAppStore"
 import { useToast } from "../../components/Toast"
+import { INS_BBCC_COLS, INS_TRAD_COLS, INS_PURCHASE_COLS, INS_SLOW_COLS, insColKey, getInsVis, insDefVis, insDefVisTrad } from "./configs"
+import { IconExport } from "../Icons"
 export default function HammerInsights({ channel }) {
-  ()
   const { hammerPanel, setHammerPanel, setHammerCols, hammerInsightsTab, setHammerInsightsTab, hammerReplenMode, setHammerReplenMode, hammerData, setHammerData } = useAppStore()
   const mode = (channel !== 'jd' && hammerReplenMode === 'bbcc') ? 'traditional' : hammerReplenMode
   const isPurchase = hammerInsightsTab === 'purchase'

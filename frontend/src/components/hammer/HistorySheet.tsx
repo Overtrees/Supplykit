@@ -73,3 +73,5 @@ const HistorySheet = React.memo(({ show, loading, data, onClose }) => {
   </>
 })
 
+export default HistorySheet
+

@@ -995,7 +995,7 @@ export default function App() {
   return (
     <ToastProvider>
       {/* 主内容 — 侧边栏打开时显示菜单，关闭时显示页面 */}
-      <header>
+      <header style={{display:showWelcome?'none':''}}>
         <div className="header-inner">
           {page === 'dash' ? (
             /* 看板页：左侧渠道筛选+锤子按钮，右侧菜单按钮 */
@@ -1145,7 +1145,7 @@ export default function App() {
           </div>
         </div>
       )}
-      <main className="container">
+      <main className="container" style={{display:showWelcome?'none':''}}>
         {renderPage(page)}
       </main>
 

@@ -186,6 +186,7 @@ function HammerOrders({ channel }) {
   const toast = useToast()
   const { hammerPanel, setHammerPanel, hammerSearch, setHammerSearch, setHammerCols, setOrderFilterLocal, orderStatus } = useAppStore()
   const [visCols, setVisCols] = useState(() => getOrderVis(channel) || ORDER_COLS.map(c => c.id))
+  const [exporting, setExporting] = useState(false)
 
   useEffect(() => {
     setVisCols(getOrderVis(channel) || ORDER_COLS.map(c => c.id))
@@ -198,9 +199,11 @@ function HammerOrders({ channel }) {
   }
 
   const doExport = async () => {
+    setExporting(true)
     try {
       const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
       const r = await fetch(API + '/api/insights/export-orders?channel=' + channel)
+      if (!r.ok) throw new Error('HTTP ' + r.status)
       const b = await r.blob()
       const u = URL.createObjectURL(b)
       const a = document.createElement('a')
@@ -209,7 +212,10 @@ function HammerOrders({ channel }) {
       document.body.appendChild(a)
       a.click()
       a.remove()
+      URL.revokeObjectURL(u)
+      toast.success('订单导出完成')
     } catch(e) { toast.error('导出失败') }
+    setExporting(false)
   }
 
   return (
@@ -231,9 +237,9 @@ function HammerOrders({ channel }) {
           className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
           筛选{orderStatus ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{display:'inline',verticalAlign:'middle',marginLeft:2}}><polyline points="4 12 10 18 20 6"/></svg> : ''}
         </button>
-        <button onClick={doExport}
-          className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px',display:'flex',alignItems:'center',gap:4,justifyContent:'center'}}>
-          <IconExport size={13} /> 导出
+        <button onClick={doExport} disabled={exporting}
+          className="clickable btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px',display:'flex',alignItems:'center',gap:4,justifyContent:'center',opacity:exporting?0.5:1}}>
+          {exporting ? <span style={{display:'inline-block',width:12,height:12,border:'2px solid var(--primary)',borderTopColor:'transparent',borderRadius:'50%',animation:'spin 0.6s linear infinite'}} /> : <IconExport size={13} />} {exporting ? '导出中...' : '导出'}
         </button>
       </div>
       {/* 列选择面板 */}
@@ -320,6 +326,7 @@ function HammerInventory({ channel }) {
   const toast = useToast()
   const { hammerPanel, setHammerPanel, hammerSearch, setHammerSearch, setHammerCols, hammerWhType, setHammerWhType } = useAppStore()
   const [visCols, setVisCols] = useState(() => getInvVis(hammerWhType) || INV_COLS[hammerWhType].map(c => c.id))
+  const [exporting, setExporting] = useState(false)
 
   useEffect(() => {
     const saved = getInvVis(hammerWhType) || INV_COLS[hammerWhType].map(c => c.id)
@@ -341,18 +348,23 @@ function HammerInventory({ channel }) {
   }
 
   const doExport = async () => {
+    setExporting(true)
     try {
       const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
       const r = await fetch(API + '/api/insights/export-inventory?channel=' + channel + '&wh_type=' + hammerWhType)
+      if (!r.ok) throw new Error('HTTP ' + r.status)
       const b = await r.blob()
       const u = URL.createObjectURL(b)
       const a = document.createElement('a')
       a.href = u
-      a.download = 'inventory_' + new Date().toISOString().slice(0,10) + '.csv'
+      a.download = 'inventory_' + new Date().toISOString().slice(0,10) + '.xlsx'
       document.body.appendChild(a)
       a.click()
       a.remove()
+      URL.revokeObjectURL(u)
+      toast.success('库存导出完成')
     } catch(e) { toast.error('导出失败') }
+    setExporting(false)
   }
 
   return (
@@ -374,9 +386,9 @@ function HammerInventory({ channel }) {
           className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
           仓库 {INV_WH_LABEL[hammerWhType]}
         </button>
-        <button onClick={doExport}
-          className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px',display:'flex',alignItems:'center',gap:4,justifyContent:'center'}}>
-          <IconExport size={13} /> 导出
+        <button onClick={doExport} disabled={exporting}
+          className="clickable btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px',display:'flex',alignItems:'center',gap:4,justifyContent:'center',opacity:exporting?0.5:1}}>
+          {exporting ? <span style={{display:'inline-block',width:12,height:12,border:'2px solid var(--primary)',borderTopColor:'transparent',borderRadius:'50%',animation:'spin 0.6s linear infinite'}} /> : <IconExport size={13} />} {exporting ? '导出中...' : '导出'}
         </button>
       </div>
       {/* 列选择面板 */}
@@ -479,6 +491,7 @@ function HammerInsights({ channel }) {
     if (isPurchase) return INS_PURCHASE_COLS.map(c => c.id)
     return getInsVis(mode) || (mode==='bbcc'?insDefVis(INS_BBCC_COLS):insDefVisTrad(INS_TRAD_COLS))
   })
+  const [exporting, setExporting] = useState(false)
 
   useEffect(() => {
     if (isSlow) {
@@ -510,6 +523,7 @@ function HammerInsights({ channel }) {
   }
 
   const doExport = async (type) => {
+    setExporting(true)
     try {
       const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
       let url = ''
@@ -521,7 +535,6 @@ function HammerInsights({ channel }) {
         url = API + '/api/insights/export-purchase-suggestions?days=28&channel=' + channel
         filename = '采购建议_'
       } else {
-        // 补货建议：跟随当前模式
         url = API + '/api/insights/export-purchase?days=28&mode=' + mode + '&channel=' + channel
         filename = '补货建议_' + (mode === 'bbcc' ? 'BBCC_' : '传统_')
       }
@@ -532,9 +545,9 @@ function HammerInsights({ channel }) {
       a.href = URL.createObjectURL(blob)
       a.download = filename + new Date().toISOString().slice(0,10).replace(/-/g,'') + '.xlsx'
       document.body.appendChild(a); a.click(); a.remove()
-      URL.revokeObjectURL(url)
-      setHammerPanel(null)
+      toast.success('导出完成')
     } catch(e) { toast.error('导出失败: ' + e.message) }
+    setExporting(false)
   }
 
   return (
@@ -582,8 +595,8 @@ function HammerInsights({ channel }) {
           </button>
         <button onClick={() => doExport(
           isSlow ? 'slow' : (isPurchase ? 'purchase' : 'replen')
-        )} className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px',display:'flex',alignItems:'center',gap:4,justifyContent:'center'}}>
-          <IconExport size={13} /> 导出
+        )} disabled={exporting} className="clickable btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px',display:'flex',alignItems:'center',gap:4,justifyContent:'center',opacity:exporting?0.5:1}}>
+          {exporting ? <span style={{display:'inline-block',width:12,height:12,border:'2px solid var(--primary)',borderTopColor:'transparent',borderRadius:'50%',animation:'spin 0.6s linear infinite'}} /> : <IconExport size={13} />} {exporting ? '导出中...' : '导出'}
         </button>
       </div>
       {/* 搜索面板 — 建议页 */}

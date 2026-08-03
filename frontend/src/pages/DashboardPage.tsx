@@ -171,7 +171,7 @@ export default function DashboardPage({ onAlert }) {
               <div style={{display:'flex',gap:2,background:'var(--bg)',borderRadius:99,padding:2,position:'relative'}}>
                 <span onClick={function(){localStorage.setItem('health_tab','own');setHealthTab('own')}}
                   className="clickable"
-                  style={{fontSize:10,padding:'2px 8px',borderRadius:99,cursor:'pointer',fontWeight:healthTab==='own'?600:400,background:healthTab==='own'?'var(--card)':'transparent',color:healthTab==='own'?'var(--text)':'var(--muted2)'}}>自有</span>
+                  style={{fontSize:9,padding:'2px 6px',borderRadius:99,cursor:'pointer',fontWeight:healthTab==='own'?600:400,background:healthTab==='own'?'var(--card)':'transparent',color:healthTab==='own'?'var(--text)':'var(--muted2)',whiteSpace:'nowrap'}}>自有</span>
                 {isJd && <span onClick={function(){
               if (healthTab === 'bc' || healthTab === 'platform') {
                 setBcMenuOpen(!bcMenuOpen)

@@ -19,6 +19,8 @@ import { useToast } from './components/Toast'
 import { IconStatusOnline, IconStatusWarning, IconStatusOffline, IconExport } from './components/Icons'
 import { api } from './api/client'
 import './version'
+import HammerProducts from './components/hammer/HammerProducts'
+import { PRODUCT_COLS, prodColKey, getProdVis, SUPPLIER_COLS, suppColKey, getSuppVis, ORDER_COLS, ORDER_STATUSES, orderColKey, getOrderVis, INS_BBCC_COLS, INS_TRAD_COLS, INS_PURCHASE_COLS, INS_SLOW_COLS, insColKey, getInsVis, insDefVis, insDefVisTrad, INV_COLS, INV_COL_KEY, getInvVis, INV_WH_LABEL } from './components/hammer/configs'
 
 export const NAV = [
   { id:'dash',label:'多维数据看板'},{id:'products',label:'货品信息'},{id:'suppliers',label:'供应商管理'},
@@ -27,86 +29,7 @@ export const NAV = [
   { id:'quality',label:'操作异常记录'},{id:'settings',label:'设置'},
 ]
 
-/* 商品页: 锤子菜单列选择器 + 搜索 */
-const PRODUCT_COLS = [
-  {id:'barcode',label:'69码'},{id:'channel',label:'平台'},{id:'sku',label:'SKU'},{id:'name',label:'名称'},{id:'store',label:'店铺'},
-  {id:'cat',label:'分类'},{id:'price',label:'单价'},{id:'box',label:'箱规'},{id:'unit',label:'单位'},{id:'weight',label:'箱重/KG'},{id:'volume',label:'体积/方'},{id:'status',label:'状态'},
-]
-const prodColKey = (ch) => 'c_cols_products_' + ch
-const getProdVis = (ch) => { try { return JSON.parse(localStorage.getItem(prodColKey(ch)) || 'null') } catch{return null} }
-
-function HammerProducts({ channel }) {
-  const { hammerPanel, setHammerPanel, hammerSearch, setHammerSearch, setHammerCols } = useAppStore()
-  const [visCols, setVisCols] = useState(() => getProdVis(channel) || PRODUCT_COLS.map(c => c.id))
-
-  useEffect(() => {
-    setVisCols(getProdVis(channel) || PRODUCT_COLS.map(c => c.id))
-  }, [channel])
-
-  const saveCols = (cols) => {
-    setVisCols(cols)
-    localStorage.setItem(prodColKey(channel), JSON.stringify(cols))
-    setHammerCols('products', cols)
-  }
-
-  return (
-    <div>
-      <div style={{fontSize:11,color:'var(--muted2)',marginBottom:8,textAlign:'center'}}>
-        {channel === 'jd' ? '京东' : '其他'} · 商品
-      </div>
-      {/* 功能按钮 */}
-      <div style={{display:'flex',gap:6,marginBottom:hammerPanel?8:0}}>
-        <button onClick={() => setHammerPanel(hammerPanel === 'columns' ? null : 'columns')}
-          className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
-          列选择 ({visCols.length}/{PRODUCT_COLS.length})
-        </button>
-        <button onClick={() => { setHammerPanel(hammerPanel === 'search' ? null : 'search'); if (hammerPanel !== 'search') setTimeout(() => document.getElementById('hm-search-prod')?.focus(), 100) }}
-          className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
-          搜索
-        </button>
-      </div>
-      {/* 列选择面板 */}
-      {hammerPanel === 'columns' && (
-        <div style={{borderTop:'1px solid var(--border)',paddingTop:8,marginTop:0,maxHeight:260,overflowY:'auto'}}>
-          <div style={{fontSize:10,color:'var(--muted2)',marginBottom:4,padding:'0 4px'}}>拖拽 ⠿ 调整列顺序</div>
-          {(visCols.map(id=>PRODUCT_COLS.find(c=>c.id===id)).filter(Boolean).concat(PRODUCT_COLS.filter(c=>!visCols.includes(c.id)))).map((col,idx)=>{
-            const isVis=visCols.includes(col.id)
-            return <div key={col.id} draggable={isVis?true:undefined}
-              onDragStart={isVis?e=>{e.dataTransfer.setData('text/plain',col.id);e.target.style.opacity='0.4';e.currentTarget.parentNode._dragId=col.id}:undefined}
-              onDragEnd={isVis?e=>e.target.style.opacity='1':undefined}
-              onDragOver={isVis?e=>{e.preventDefault();e.currentTarget.style.borderTop='2px solid var(--primary)';const from=e.currentTarget.parentNode._dragId;if(from&&from!==col.id){const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(col.id);nxt.splice(toIdx,0,from);saveCols(nxt)}}:undefined}
-              onDragLeave={isVis?e=>e.currentTarget.style.borderTop='1px solid transparent':undefined}
-              onDrop={isVis?e=>{e.preventDefault();e.currentTarget.style.borderTop='1px solid transparent';const from=e.dataTransfer.getData('text/plain');if(from===col.id)return;const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(col.id);nxt.splice(toIdx,0,from);saveCols(nxt);e.currentTarget.parentNode._dragId=null}:undefined}
-              style={{display:'flex',alignItems:'center',gap:4,padding:'4px 6px',borderRadius:6,cursor:isVis?'grab':'default',fontSize:12,whiteSpace:'nowrap',borderTop:'1px solid transparent',background:isVis?'var(--card)':'transparent',opacity:isVis?1:0.4,userSelect:'none',WebkitUserSelect:'none'}}>
-              <span style={{color:'var(--muted2)',fontSize:12,width:16,flexShrink:0,textAlign:'center',cursor:isVis?'grab':'default'}}>{isVis?'⠿':'○'}</span>
-              <input type="checkbox" checked={isVis} onChange={e=>{const n=e.target.checked?[...visCols,col.id]:visCols.filter(c=>c!==col.id);saveCols(n)}} style={{accentColor:'var(--primary)'}} />
-              <span style={{flex:1}}>{col.label}</span>
-              <span style={{fontSize:9,color:'var(--muted2)'}}>{isVis?'#'+(visCols.indexOf(col.id)+1):''}</span>
-            </div>
-          })}
-          <div style={{borderTop:'1px solid var(--border)',marginTop:4,paddingTop:4}}>
-            <span onClick={()=>saveCols(PRODUCT_COLS.map(c=>c.id))} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>全部</span>
-          </div>
-        </div>
-      )}
-      {/* 搜索面板 */}
-      {hammerPanel === 'search' && (
-        <div style={{borderTop:'1px solid var(--border)',paddingTop:8}}>
-          <input id="hm-search-prod" value={hammerSearch} onChange={e=>setHammerSearch(e.target.value)}
-            placeholder="搜索SKU/名称/店铺..."
-            style={{width:'100%',padding:'6px 10px',fontSize:16,border:'1px solid var(--border)',borderRadius:32,outline:'none',boxSizing:'border-box',background:'var(--card)',color:'var(--text)'}} />
-          {hammerSearch && (
-            <div style={{fontSize:11,color:'var(--muted2)',marginTop:4,textAlign:'center'}}>
-              按 Enter 搜索
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
-
-/* 供应商页: 锤子菜单列选择器 + 搜索 */
+/* 商品页: 锤子菜单列选择器 + 搜索 — 已抽离到 components/hammer/ */
 const SUPPLIER_COLS = [{id:'code',label:'编号'},{id:'name',label:'名称'},{id:'contact',label:'联系人'},{id:'phone',label:'手机'},{id:'score',label:'评分'}]
 const suppColKey = (ch) => 'c_cols_suppliers_' + ch
 const getSuppVis = (ch) => { try { return JSON.parse(localStorage.getItem(suppColKey(ch)) || 'null') } catch{return null} }

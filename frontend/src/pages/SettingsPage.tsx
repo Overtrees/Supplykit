@@ -168,7 +168,8 @@ export default function SettingsPage() {
 
       <Group title="种子数据">
         <Row label="一键填充" sub="生成 12 SKU × 60 天 × 900 条模拟数据" onClick={() => setConfirm('fill')} loading={seeding} />
-        <LastRow label="一键重置" sub="清空所有数据恢复初始状态" onClick={() => setConfirm('reset')} danger loading={resetting} />
+        <Row label="一键重置" sub="清空所有数据恢复初始状态" onClick={() => setConfirm('reset')} danger loading={resetting} />
+        <LastRow label="重置欢迎页" sub="重新显示首次使用引导" onClick={() => { localStorage.removeItem('c_welcome_seen'); toast.success('欢迎页已重置') }} />
       </Group>
 
       <div style={{textAlign:'center',marginTop:24,fontSize:12,color:'var(--muted2)'}}>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react"
 import { useAppStore } from './store/useAppStore'
+import { clearCache, clearInflight } from './api/client'
 import { ToastProvider } from './components/Toast'
 import ProductPage from './pages/ProductPage'
 import SupplierPage from './pages/SupplierPage'

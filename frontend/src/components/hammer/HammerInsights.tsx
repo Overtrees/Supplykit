@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react"
 import { useToast } from "../../components/Toast"
-export default HammerInsights({ channel }) {
+export default function HammerInsights({ channel }) {
   ()
   const { hammerPanel, setHammerPanel, setHammerCols, hammerInsightsTab, setHammerInsightsTab, hammerReplenMode, setHammerReplenMode, hammerData, setHammerData } = useAppStore()
   const mode = (channel !== 'jd' && hammerReplenMode === 'bbcc') ? 'traditional' : hammerReplenMode

@@ -1,6 +1,6 @@
 import React, { useState } from "react"
 import { useAppStore } from "../../store/useAppStore"
-export default HammerRules({ channel, onShowHistory }) {
+export default function HammerRules({ channel, onShowHistory }) {
   const { hammerRulesTab, setHammerRulesTab, bumpHammerRuleNew, hammerRulesMode, setHammerRulesMode } = useAppStore()
 
   return (

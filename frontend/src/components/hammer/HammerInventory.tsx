@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { useAppStore } from '../../store/useAppStore'
 import { useToast } from '../../components/Toast'
+import { INV_COLS, INV_COL_KEY, getInvVis, INV_WH_LABEL } from './configs'
+import { IconExport } from '../Icons'
 
 export default function HammerInventory({ channel }) {
-  // toast injected
+  const toast = useToast()
   const { hammerPanel, setHammerPanel, hammerSearch, setHammerSearch, setHammerCols, hammerWhType, setHammerWhType } = useAppStore()
   const [visCols, setVisCols] = useState(() => getInvVis(hammerWhType) || INV_COLS[hammerWhType].map(c => c.id))
   const [exporting, setExporting] = useState(false)

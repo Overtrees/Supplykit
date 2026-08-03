@@ -285,8 +285,6 @@ export default function DashboardPage({ onAlert }) {
         {replenishAlerts.length > 5 && <button onClick={()=>setShowAllReplenish(true)} className="clickable" style={{width:'100%',padding:8,border:'none',borderRadius:0,background:'transparent',fontSize:12,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>还有 {replenishAlerts.length - 5} 条...</button>}
       </div>
     </div>
-  </>
-
       {/* 低库存告警弹窗 */}
       {showAllLowStock && <div onClick={function(){setShowAllLowStock(false)}} style={{position:'fixed',inset:0,zIndex:9998,background:'transparent'}} />}
       {showAllLowStock && <div style={{position:'fixed',left:0,right:0,bottom:'calc(env(safe-area-inset-bottom) + 14px)',zIndex:9999,display:'flex',justifyContent:'center',padding:'0 14px',pointerEvents:'none'}}>
@@ -326,4 +324,5 @@ export default function DashboardPage({ onAlert }) {
           </div>
         </div>
       </div>}
+</>
 }

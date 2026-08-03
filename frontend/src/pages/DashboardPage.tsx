@@ -99,7 +99,7 @@ export default function DashboardPage({ onAlert }) {
   const rpWh = countByWh(replenishAlerts)
 
   if (chLoading) return <div className="card" style={{padding:16}}>{[1,2,3,4,5,6,7].map(i=><div key={i} className="skeleton" style={{height:80,marginBottom:8,borderRadius:24}}/>)}</div>
-  return <div>
+  return <>
     <div className="card-grid" style={{marginBottom:16}}>
       {/* 1. GMV 卡 — 加环比微趋势线 + 日均 */}
       <div className="card" style={{borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16,overflow:'hidden'}}>
@@ -285,7 +285,7 @@ export default function DashboardPage({ onAlert }) {
         {replenishAlerts.length > 5 && <div className="clickable" onClick={function(){setShowAllReplenish(true)}} style={{textAlign:"center",padding:8,fontSize:12,color:"var(--muted)",cursor:"pointer"}}>还有 {replenishAlerts.length - 5} 条...</div>}
       </div>
     </div>
-  </div>
+  </>
 
       {/* 低库存告警弹窗 */}
       {showAllLowStock && <div onClick={function(){setShowAllLowStock(false)}} style={{position:'fixed',inset:0,zIndex:9998,background:'transparent'}} />}

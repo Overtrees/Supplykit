@@ -130,7 +130,7 @@ export const useAppStore = create((set, get) => ({
   setOrderPage(p, search, status) {
     const s = search ?? get().orderSearch
     const st = status ?? get().orderStatus
-    set({ orderPage: p, orderSearch: s, orderStatus: st })
+    set({ orderPage: p, orderSearch: s, orderStatus: st, orderLoading: true })
     get().loadAll(p)
   },
 

@@ -30,7 +30,7 @@ return<div className='card' style={{containerType:'inline-size'}}>
 <div className='section-title' style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
   <span>商品管理 <span className='small muted'>共 {list.length} 个</span></span>
 </div>
-{fl.length===0?<EmptyState icon='tag' title={s?'无匹配商品':'暂无商品'} desc={s?'换个关键词试试':''}/>:<div style={{overflowX:"auto"}}>
+{fl.length===0?<EmptyState icon='tag' title={s?'无匹配商品':'暂无商品'} desc={s?'换个关键词试试':'通过清洗页导入商品数据'}/>:<div style={{overflowX:"auto"}}>
 <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {visCols.length}/{COLS.length} 列</div>
 <table><colgroup>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>
 <thead><tr>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<th key={col.id}>{col.label}</th>:null})}</tr></thead>

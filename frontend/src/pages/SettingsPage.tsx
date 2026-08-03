@@ -84,29 +84,35 @@ function RecycleBin({ onClose }) {
     else setOrders(orders.filter(function(x) { return x.id !== id }))
   }
 
-  return <div style={{display:'flex',flexDirection:'column',minHeight:'100svh',background:'var(--bg)',padding:'calc(env(safe-area-inset-top, 0px) + 8px) 16px calc(16px + env(safe-area-inset-bottom, 20px))',overflowY:'auto',boxSizing:'border-box'}}>
-    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12,minHeight:40}}>
+  return <div style={{display:'flex',flexDirection:'column',minHeight:'100svh',background:'var(--bg)',padding:'calc(env(safe-area-inset-top, 0px)) 0 calc(0px + env(safe-area-inset-bottom, 20px))',overflowY:'auto',boxSizing:'border-box'}}>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 20px',minHeight:48}}>
       <div style={{fontSize:18,fontWeight:700,color:'var(--text)'}}>回收站</div>
-      <div onClick={onClose} className="clickable" style={{width:36,height:36,borderRadius:'50%',background:'var(--card)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',flexShrink:0}}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+      <div onClick={onClose} className="clickable" style={{width:40,height:40,borderRadius:'50%',background:'var(--card)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',flexShrink:0}}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
       </div>
     </div>
+    <div style={{padding:'0 16px',maxWidth:500,margin:'0 auto',width:'100%'}}>
     {loading ? <div className="small muted" style={{textAlign:'center',padding:40}}>加载中...</div> : <>
-      <div style={{fontSize:13,fontWeight:600,color:'var(--text)',marginBottom:4}}>已删除的规则 ({rules.length})</div>
-      {rules.length === 0 ? <div className="small muted" style={{padding:'8px 0',marginBottom:8,fontSize:12}}>暂无</div> : rules.map(function(r) {
-        return <div key={r.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'7px 10px',background:'var(--card)',borderRadius:12,marginBottom:3}}>
-          <span style={{fontSize:12,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{r.name}</span>
-          <span onClick={function(){restore('rules', r.id)}} className="clickable" style={{fontSize:11,fontWeight:600,color:'var(--primary)',cursor:'pointer',padding:'3px 7px',flexShrink:0}}>恢复</span>
+      <div style={{fontSize:13,fontWeight:600,color:'var(--muted2)',textTransform:'uppercase',letterSpacing:0.3,padding:'0 4px 6px 4px',marginBottom:0}}>已删除的规则 ({rules.length})</div>
+      <div style={{background:'var(--card)',borderRadius:32,overflow:'hidden'}}>
+      {rules.length === 0 ? <div className="small muted" style={{padding:'16px',textAlign:'center',fontSize:13}}>暂无已删除的规则</div> : rules.map(function(r) {
+        return <div key={r.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 16px',borderBottom:'1px solid var(--border)'}}>
+          <span style={{fontSize:14,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{r.name}</span>
+          <span onClick={function(){restore('rules', r.id)}} className="clickable" style={{fontSize:13,fontWeight:600,color:'var(--primary)',cursor:'pointer',padding:'4px 10px',flexShrink:0}}>恢复</span>
         </div>
       })}
-      <div style={{fontSize:13,fontWeight:600,color:'var(--text)',marginTop:12,marginBottom:4}}>已删除的订单 ({orders.length})</div>
-      {orders.length === 0 ? <div className="small muted" style={{padding:'8px 0',fontSize:12}}>暂无</div> : orders.map(function(o) {
-        return <div key={o.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'7px 10px',background:'var(--card)',borderRadius:12,marginBottom:3}}>
-          <span style={{fontSize:12,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{o.order_no} - {o.product_name}</span>
-          <span onClick={function(){restore('orders', o.id)}} className="clickable" style={{fontSize:11,fontWeight:600,color:'var(--primary)',cursor:'pointer',padding:'3px 7px',flexShrink:0}}>恢复</span>
+      </div>
+      <div style={{fontSize:13,fontWeight:600,color:'var(--muted2)',textTransform:'uppercase',letterSpacing:0.3,padding:'0 4px 6px 4px',marginTop:16,marginBottom:0}}>已删除的订单 ({orders.length})</div>
+      <div style={{background:'var(--card)',borderRadius:32,overflow:'hidden'}}>
+      {orders.length === 0 ? <div className="small muted" style={{padding:'16px',textAlign:'center',fontSize:13}}>暂无已删除的订单</div> : orders.map(function(o) {
+        return <div key={o.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 16px',borderBottom:'1px solid var(--border)'}}>
+          <span style={{fontSize:14,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{o.order_no} - {o.product_name}</span>
+          <span onClick={function(){restore('orders', o.id)}} className="clickable" style={{fontSize:13,fontWeight:600,color:'var(--primary)',cursor:'pointer',padding:'4px 10px',flexShrink:0}}>恢复</span>
         </div>
       })}
+      </div>
     </>}
+    </div>
   </div>
 }
 

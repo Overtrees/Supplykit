@@ -267,7 +267,7 @@ export default function DashboardPage({ onAlert }) {
                 <div className="small muted" style={{fontSize:11,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:2}}>{x.description}</div>
               </div>
             ))}
-        {lowStockAlerts.length > 5 && <div onClick={()=>setShowAllLowStock(true)} className="clickable" style={{textAlign:'center',padding:8,fontSize:12,color:'var(--muted)',cursor:'pointer'}}>还有 {lowStockAlerts.length - 5} 条...</div>}
+        {lowStockAlerts.length > 5 && <div onClick={()=>{console.log('low stock click',lowStockAlerts.length);setShowAllLowStock(true)}} className="clickable" style={{textAlign:'center',padding:8,fontSize:12,color:'var(--muted)',cursor:'pointer'}}>还有 {lowStockAlerts.length - 5} 条...</div>}
       </div>
       <div className="card" style={{height:'auto',overflow:'visible'}}>
         <div className="section-title">补货告警</div>
@@ -282,7 +282,7 @@ export default function DashboardPage({ onAlert }) {
                 <div className="small muted" style={{fontSize:11,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:2}}>{x.description}</div>
               </div>
             ))}
-        {replenishAlerts.length > 5 && <div onClick={()=>setShowAllReplenish(true)} className="clickable" style={{textAlign:'center',padding:8,fontSize:12,color:'var(--muted)',cursor:'pointer'}}>还有 {replenishAlerts.length - 5} 条...</div>}
+        {replenishAlerts.length > 5 && <div onClick={()=>{console.log('replenish click',replenishAlerts.length);setShowAllReplenish(true)}} className="clickable" style={{textAlign:'center',padding:8,fontSize:12,color:'var(--muted)',cursor:'pointer'}}>还有 {replenishAlerts.length - 5} 条...</div>}
       </div>
     </div>
   </>

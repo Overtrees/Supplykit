@@ -6,9 +6,9 @@ import Chart from '../components/Chart'
 const periodLabel = { today:'今日', week:'本周', month:'本月' }
 
 export default function DashboardPage({ onAlert }) {
+  const { dashboard, inventory, qualityLogs, alerts, stockRisk, channel, loading, hammerDashPeriod: periodTab } = useAppStore()
   const [healthTab, setHealthTab] = useState(() => localStorage.getItem('health_tab') || (channel === 'jd' ? 'own' : 'platform'))
   const [bcMenuOpen, setBcMenuOpen] = useState(false)
-  const { dashboard, inventory, qualityLogs, alerts, stockRisk, channel, loading, hammerDashPeriod: periodTab } = useAppStore()
   const [chLoading, setChLoading] = useState(false)
   useEffect(() => {
     setChLoading(true)

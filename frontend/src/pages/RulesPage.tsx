@@ -97,7 +97,18 @@ export default function RulesPage() {
     await fetch(url, {method: isNew?'POST':'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({...f, mode: f.mode||'', channel:globalChannel, condition_json:cj})})
     cancelEdit(); load(globalChannel)
   }
-  const del = async id => { await fetch(API+'/api/rules/'+id, {method:'DELETE'}); load(globalChannel) }
+  const del = async (id) => {
+    await fetch(API+'/api/rules/'+id, {method:'DELETE'})
+    load(globalChannel)
+    var timer = setTimeout(async function() {
+      await fetch(API+'/api/rules/'+id+'/permanent-delete', {method:'POST'})
+    }, 5000)
+    toast.add({type:'success', title:'已删除', duration:5000, action: {label:'撤销', handler: async function() {
+      clearTimeout(timer)
+      await fetch(API+'/api/rules/'+id+'/restore', {method:'POST'})
+      load(globalChannel)
+    }}})
+  }
 
   const isBBCC = (cfg.replenishment_mode||'bbcc')==='bbcc'
   const filteredRules = hammerSearch ? rules.filter(function(r) { return (r.name||'').toLowerCase().includes(hammerSearch.toLowerCase()) }) : rules

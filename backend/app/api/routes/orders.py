@@ -74,5 +74,16 @@ def batch_delete_orders(ids: str = '', db = get_db()):
 
 @router.delete('/{oid}')
 def delete_order(oid: int, db = get_db()):
+    from datetime import datetime
+    db.table("orders").update({"deleted_at": datetime.utcnow().isoformat()}).eq("id", oid).execute()
+    return {"ok": True, "id": oid}
+
+@router.post('/{oid}/restore')
+def restore_order(oid: int, db = get_db()):
+    db.table("orders").update({"deleted_at": None}).eq("id", oid).execute()
+    return {"ok": True, "id": oid}
+
+@router.post('/{oid}/permanent-delete')
+def permanent_delete_order(oid: int, db = get_db()):
     db.table("orders").delete().eq("id", oid).execute()
-    return {'ok': True}
+    return {"ok": True, "id": oid}

@@ -39,8 +39,20 @@ def update_rule(rule_id: int, data: dict, db = get_db()):
 
 @router.delete("/{rule_id}")
 def delete_rule(rule_id: int, db = get_db()):
+    # 软删除
+    from datetime import datetime
+    db.table("rules").update({"is_active": 0, "deleted_at": datetime.utcnow().isoformat()}).eq("id", rule_id).execute()
+    return ok({"message": "已删除", "id": rule_id})
+
+@router.post("/{rule_id}/restore")
+def restore_rule(rule_id: int, db = get_db()):
+    db.table("rules").update({"is_active": 1, "deleted_at": None}).eq("id", rule_id).execute()
+    return ok({"message": "已恢复", "id": rule_id})
+
+@router.post("/{rule_id}/permanent-delete")
+def permanent_delete_rule(rule_id: int, db = get_db()):
     db.table("rules").delete().eq("id", rule_id).execute()
-    return ok({"message": "已删除"})
+    return ok({"message": "已永久删除", "id": rule_id})
 
 @router.post("/evaluate-all")
 def evaluate_all_rules(db = get_db()):

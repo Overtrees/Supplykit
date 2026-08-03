@@ -45,13 +45,23 @@ export default function OrdersPage() {
   // 加载平台仓库存（按 SKU+仓库 维度）
   const delOrder = async () => {
     if (!confirmDel) return
+    var id = confirmDel
+    setConfirmDel(null)
     try {
       const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
-      const r = await fetch(`${API}/api/orders/${confirmDel}`, {method:'DELETE'})
-      if (r.ok) { toast.success('已删除'); setConfirmDel(null); useAppStore.getState().loadAll() }
-      else toast.error('删除失败')
+      const r = await fetch(`${API}/api/orders/${id}`, {method:'DELETE'})
+      if (r.ok) {
+        useAppStore.getState().loadAll()
+        var timer = setTimeout(async function() {
+          await fetch(`${API}/api/orders/${id}/permanent-delete`, {method:'POST'})
+        }, 5000)
+        toast.add({type:'success', title:'已删除', duration:5000, action: {label:'撤销', handler: async function() {
+          clearTimeout(timer)
+          await fetch(`${API}/api/orders/${id}/restore`, {method:'POST'})
+          useAppStore.getState().loadAll()
+        }}})
+      } else toast.error('删除失败')
     } catch(e) { toast.error('删除失败: '+e.message) }
-    setConfirmDel(null)
   }
 
   return <div>

@@ -25,22 +25,15 @@ function OrderSkeleton() {
 
 export default function OrdersPage() {
   const toast = useToast()
-  const { orders, orderPage, orderLoading, setOrderPage, orderStatus, dataLoaded, channel, hammerCols, hammerSearch } = useAppStore()
-  useEffect(() => { useAppStore.getState().loadAll() }, [channel])
+  const { orders, orderPage, orderLoading, setOrderPage, orderStatus, dataLoaded, channel, hammerCols, hammerSearch, orderTotal } = useAppStore()
+  useEffect(() => { useAppStore.getState().loadAll(1) }, [channel])
+  useEffect(() => { useAppStore.getState().loadAll() }, [hammerSearch, orderStatus])
   const [confirmDel, setConfirmDel] = useState(null)
   const [visCols, setVisCols] = useState(() => getVis(COL_KEY()) || COLS.map(c => c.id))
   useEffect(() => { if (hammerCols?.orders) setVisCols(hammerCols.orders) }, [hammerCols])
-  // 搜索/筛选变化时重置到第1页
-  useEffect(() => { setOrderPage(1) }, [hammerSearch, orderStatus, setOrderPage])
-  const PAGE_SIZE = 8
+  const totalPages = Math.max(1, Math.ceil((orderTotal || 0) / 30))
   const s = hammerSearch || ''
   const st = orderStatus || ''
-  const filtered = orders.filter(x =>
-    (!s || (x.order_no||'').includes(s) || (x.product_name||'').includes(s) || (x.sku||'').includes(s)) &&
-    (!st || x.order_status === st)
-  )
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
-  const pageData = filtered.slice((orderPage-1)*PAGE_SIZE, orderPage*PAGE_SIZE)
 
   // 加载平台仓库存（按 SKU+仓库 维度）
   const delOrder = async () => {
@@ -71,16 +64,16 @@ export default function OrdersPage() {
     </div>}
 
     <div className="card">
-    <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>订单 <span className="small muted" style={{fontWeight:400}}>共 {filtered.length} 条</span></div>
+    <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>订单 <span className="small muted" style={{fontWeight:400}}>共 {orderTotal || 0} 条</span></div>
     {orderLoading || !dataLoaded ? <OrderSkeleton />
-    : filtered.length === 0
+    : orders.length === 0
       ? <EmptyState icon='clipboard' title={s?'无匹配订单':'暂无订单'} desc={s?'换个关键词试试':''} />
       : <div style={{overflowX:"auto"}}>
         <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {visCols.length}/{COLS.length} 列</div>
       <table><colgroup>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>
       <thead><tr>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<th key={col.id}>{col.label}</th>:null})}</tr></thead>
       <tbody>
-        {pageData.map(x => {
+        {orders.map(x => {
           return <tr key={x.id}>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return null;
             if(col.id==='order_no')return <td key={col.id} className="mono col-sku">{x.order_no}</td>
             if(col.id==='barcode')return <td key={col.id} className="mono" style={{fontSize:11}}>{x.barcode||'-'}</td>
@@ -100,7 +93,7 @@ export default function OrdersPage() {
     </div>  {/* end card */}
     <ConfirmDialog open={!!confirmDel} title='删除订单' desc='删除后不可恢复' confirmLabel='删除' onConfirm={delOrder} onCancel={()=>setConfirmDel(null)} />
 
-    {filtered.length > PAGE_SIZE && <div style={{display:'flex',justifyContent:'center',alignItems:'center',gap:8,marginTop:12,flexWrap:'wrap'}}>
+    {orderTotal > 30 && <div style={{display:'flex',justifyContent:'center',alignItems:'center',gap:8,marginTop:12,flexWrap:'wrap'}}>
       <button onClick={()=>setOrderPage(1)} disabled={orderPage<=1} className="page-btn" style={{fontSize:12}}>‹‹</button>
       <button onClick={()=>setOrderPage(orderPage-1)} disabled={orderPage<=1} className="page-btn" style={{fontSize:14}}>‹</button>
       <span className="small muted" style={{fontSize:12}}>第 {orderPage}/{totalPages} 页</span>

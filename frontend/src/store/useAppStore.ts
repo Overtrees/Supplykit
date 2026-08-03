@@ -61,10 +61,14 @@ export const useAppStore = create((set, get) => ({
 
   async loadAll(page) {
     set({ loading: true })
+    const ch = get().channel
+    const s = get().hammerSearch || ''
+    const st = get().orderStatus || ''
+    const p = page || get().orderPage || 1
     try {
       const results = await Promise.allSettled([
         api.get('/api/dashboard/summary'),
-        api.get('/api/orders?page=1&page_size=1000'),
+        api.get('/api/orders?page=' + p + '&page_size=30&search=' + encodeURIComponent(s) + '&status=' + encodeURIComponent(st)),
         api.get('/api/inventory'),
         api.get('/api/quality-logs'),
         api.get('/api/alerts'),
@@ -126,10 +130,12 @@ export const useAppStore = create((set, get) => ({
     const s = search ?? get().orderSearch
     const st = status ?? get().orderStatus
     set({ orderPage: p, orderSearch: s, orderStatus: st })
+    get().loadAll(p)
   },
 
   setOrderFilterLocal(search, status) {
     set({ orderSearch: search, orderStatus: status, orderPage: 1 })
+    get().loadAll(1)
   },
 
   startPolling() {

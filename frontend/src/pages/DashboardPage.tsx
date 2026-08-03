@@ -286,4 +286,44 @@ export default function DashboardPage({ onAlert }) {
       </div>
     </div>
   </div>
+
+      {/* 低库存告警弹窗 */}
+      {showAllLowStock && <div onClick={function(){setShowAllLowStock(false)}} style={{position:'fixed',inset:0,zIndex:9998,background:'transparent'}} />}
+      {showAllLowStock && <div style={{position:'fixed',left:0,right:0,bottom:'calc(env(safe-area-inset-bottom) + 14px)',zIndex:9999,display:'flex',justifyContent:'center',padding:'0 14px',pointerEvents:'none'}}>
+        <div onClick={function(e){e.stopPropagation()}} style={{width:'100%',maxWidth:600,background:'var(--glass-bg)',backdropFilter:'blur(40px) saturate(2.5) brightness(1.15)',WebkitBackdropFilter:'blur(40px) saturate(2.5) brightness(1.15)',border:'0.5px solid var(--glass-border)',borderRadius:32,padding:'18px 14px calc(14px + env(safe-area-inset-bottom))',boxShadow:'0 -8px 24px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.25)',pointerEvents:'auto',maxHeight:'70vh',overflowY:'auto'}}>
+          <div style={{fontSize:18,fontWeight:700,marginBottom:12,textAlign:'center',color:'var(--text)'}}>低库存告警 · 共 {lowStockAlerts.length} 条</div>
+          {lowStockAlerts.map(function(x) {
+            return <div key={x.id} onClick={function(){onAlert && onAlert(x.related_sku)}} className="clickable" style={{padding:'8px 12px',background:'var(--card)',borderRadius:16,marginBottom:6}}>
+              <div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'flex-start',marginBottom:2}}>
+                <span style={{fontWeight:600,fontSize:12,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1,minWidth:0}}>{x.title}</span>
+                <span className={'pill '+(x.severity==='error'?'danger':'warning')} style={{flexShrink:0,fontSize:10}}>{x.severity==='warning'?'警告':'超储'}</span>
+              </div>
+              <div className="small muted" style={{fontSize:11}}>{x.description}</div>
+            </div>
+          })}
+          <div onClick={function(){setShowAllLowStock(false)}} className="clickable" style={{borderRadius:22,padding:12,marginTop:8,background:'var(--primary)',textAlign:'center',cursor:'pointer'}}>
+            <span style={{fontSize:15,fontWeight:600,color:'#fff'}}>关闭</span>
+          </div>
+        </div>
+      </div>}
+
+      {/* 补货告警弹窗 */}
+      {showAllReplenish && <div onClick={function(){setShowAllReplenish(false)}} style={{position:'fixed',inset:0,zIndex:9998,background:'transparent'}} />}
+      {showAllReplenish && <div style={{position:'fixed',left:0,right:0,bottom:'calc(env(safe-area-inset-bottom) + 14px)',zIndex:9999,display:'flex',justifyContent:'center',padding:'0 14px',pointerEvents:'none'}}>
+        <div onClick={function(e){e.stopPropagation()}} style={{width:'100%',maxWidth:600,background:'var(--glass-bg)',backdropFilter:'blur(40px) saturate(2.5) brightness(1.15)',WebkitBackdropFilter:'blur(40px) saturate(2.5) brightness(1.15)',border:'0.5px solid var(--glass-border)',borderRadius:32,padding:'18px 14px calc(14px + env(safe-area-inset-bottom))',boxShadow:'0 -8px 24px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.25)',pointerEvents:'auto',maxHeight:'70vh',overflowY:'auto'}}>
+          <div style={{fontSize:18,fontWeight:700,marginBottom:12,textAlign:'center',color:'var(--text)'}}>补货告警 · 共 {replenishAlerts.length} 条</div>
+          {replenishAlerts.map(function(x) {
+            return <div key={x.id} onClick={function(){onAlert && onAlert(x.related_sku)}} className="clickable" style={{padding:'8px 12px',background:'var(--card)',borderRadius:16,marginBottom:6}}>
+              <div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'flex-start',marginBottom:2}}>
+                <span style={{fontWeight:600,fontSize:12,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1,minWidth:0}}>{x.title}</span>
+                <span className="pill danger" style={{flexShrink:0,fontSize:10}}>补货</span>
+              </div>
+              <div className="small muted" style={{fontSize:11}}>{x.description}</div>
+            </div>
+          })}
+          <div onClick={function(){setShowAllReplenish(false)}} className="clickable" style={{borderRadius:22,padding:12,marginTop:8,background:'var(--primary)',textAlign:'center',cursor:'pointer'}}>
+            <span style={{fontSize:15,fontWeight:600,color:'#fff'}}>关闭</span>
+          </div>
+        </div>
+      </div>}
 }

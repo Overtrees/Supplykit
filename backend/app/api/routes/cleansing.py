@@ -317,6 +317,10 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                             }, conflict_col='alert_type')
                     except: pass
             # 触发事件
+            try:
+                from app.core.replenishment_cache import invalidate_cache
+                invalidate_cache(db)
+            except: pass
             # 库存导入后触发规则引擎评估
             if is_inv:
                 try:

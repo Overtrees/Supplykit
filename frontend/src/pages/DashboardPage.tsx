@@ -172,11 +172,17 @@ export default function DashboardPage({ onAlert }) {
                 <span onClick={function(){localStorage.setItem('health_tab','own');setHealthTab('own')}}
                   className="clickable"
                   style={{fontSize:10,padding:'2px 8px',borderRadius:99,cursor:'pointer',fontWeight:healthTab==='own'?600:400,background:healthTab==='own'?'var(--card)':'transparent',color:healthTab==='own'?'var(--text)':'var(--muted2)'}}>自有</span>
-                {isJd && <span onClick={function(){setBcMenuOpen(!bcMenuOpen)}}
-                  className="clickable"
-                  style={{fontSize:10,padding:'2px 8px',borderRadius:99,cursor:'pointer',fontWeight:bcActive?600:400,background:bcActive?'var(--card)':'transparent',color:bcActive?'var(--text)':'var(--muted2)',display:'flex',alignItems:'center',gap:2}}>
-                  {bcLabel}<svg width="8" height="8" viewBox="0 0 8 8" fill="none" style={{transform:'rotate('+(bcMenuOpen?'180':'0')+'deg)',transition:'transform 0.15s'}}><path d="M2 3l2 2 2-2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>
-                </span>}
+                {isJd && <span onClick={function(){
+              if (healthTab === 'bc' || healthTab === 'platform') {
+                setBcMenuOpen(!bcMenuOpen)
+              } else {
+                localStorage.setItem('health_tab','bc');setHealthTab('bc')
+              }
+            }}
+              className="clickable"
+              style={{fontSize:9,padding:'2px 6px',borderRadius:99,cursor:'pointer',fontWeight:bcActive?600:400,background:bcActive?'var(--card)':'transparent',color:bcActive?'var(--text)':'var(--muted2)',display:'flex',alignItems:'center',gap:1,whiteSpace:'nowrap'}}>
+              {bcLabel}{bcActive && <svg width="6" height="6" viewBox="0 0 8 8" fill="none" style={{transform:'rotate('+(bcMenuOpen?'180':'0')+'deg)',transition:'transform 0.15s'}}><path d="M2 3l2 2 2-2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>}
+            </span>}
                 {!isJd && <span onClick={function(){localStorage.setItem('health_tab','platform');setHealthTab('platform')}}
                   className="clickable"
                   style={{fontSize:10,padding:'2px 8px',borderRadius:99,cursor:'pointer',fontWeight:healthTab==='platform'?600:400,background:healthTab==='platform'?'var(--card)':'transparent',color:healthTab==='platform'?'var(--text)':'var(--muted2)'}}>平台</span>}

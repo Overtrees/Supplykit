@@ -6,7 +6,8 @@ import Chart from '../components/Chart'
 const periodLabel = { today:'今日', week:'本周', month:'本月' }
 
 export default function DashboardPage({ onAlert }) {
-  const [healthTab, setHealthTab] = useState(() => localStorage.getItem('health_tab') || 'platform')
+  const [healthTab, setHealthTab] = useState(() => localStorage.getItem('health_tab') || (channel === 'jd' ? 'own' : 'platform'))
+  const [bcMenuOpen, setBcMenuOpen] = useState(false)
   const { dashboard, inventory, qualityLogs, alerts, stockRisk, channel, loading, hammerDashPeriod: periodTab } = useAppStore()
   const [chLoading, setChLoading] = useState(false)
   useEffect(() => {
@@ -75,25 +76,22 @@ export default function DashboardPage({ onAlert }) {
   const periodDays = {today:1,week:7,month:30}[periodTab]||30
   const riskCritical = (stockRisk||[]).filter(x => x.days_to_empty < 3).length
   const riskWarning = (stockRisk||[]).filter(x => x.days_to_empty >= 3 && x.days_to_empty < 7).length
-  const riskBCount = (stockRisk||[]).filter(x => x.type === 'B').length
-  const riskCCount = (stockRisk||[]).filter(x => x.type === 'C').length
-  const outOfStockItems = (inventory||[]).filter(x => {
-    const wt = healthTab === 'own' ? 'own' : 'platform'
-    // 后端 _compute_health 中 platform 组包含 platform_b，所以前端也要一致
-    return Number(x.available_qty) === 0 && (wt === 'own' ? x.warehouse_type === 'own' : x.warehouse_type !== 'own')
+  var outOfStockItems = (inventory||[]).filter(function(item) {
+    var filterType = healthTab === 'bc' ? 'bc' : (healthTab === 'platform' ? 'platform' : (healthTab === 'platform_b' ? 'platform_b' : 'own'))
+    if (filterType === 'bc') return Number(item.available_qty) === 0 && item.warehouse_type !== 'own'
+    return Number(item.available_qty) === 0 && item.warehouse_type === filterType
   }).slice(0,3)
   // 告警 × 仓库维度拆分
   const skuWhMap = Object.fromEntries((inventory||[]).map(i => [i.sku, i.warehouse_type]))
-  const whLabel = (t) => t === 'platform_b' ? 'B' : t === 'own' ? '自有' : 'C'
   function countByWh(items) {
-    const r = {b:0, c:0, own:0}
-    items.forEach(x => {
-      const wt = skuWhMap[x.related_sku] || ''
-      if (wt === 'platform_b') r.b++
-      else if (wt === 'own') r.own++
-      else r.c++
+    var result = {b:0, c:0, own:0}
+    items.forEach(function(item) {
+      var whType = skuWhMap[item.related_sku] || ''
+      if (whType === 'platform_b') result.b++
+      else if (whType === 'own') result.own++
+      else result.c++
     })
-    return r
+    return result
   }
   const lsWh = countByWh(lowStockAlerts)
   const rpWh = countByWh(replenishAlerts)
@@ -163,32 +161,50 @@ export default function DashboardPage({ onAlert }) {
       {/* 3. 库存健康度 — 加总 SKU 数 */}
       <div className="card" style={{borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16}}>
         {(()=>{
-          const h = dashboard?.health_index?.[healthTab]||{}
+          var healthData = dashboard?.health_index?.[healthTab]||{}
+          var isJd = channel === 'jd'
+          var bcActive = healthTab === 'bc' || healthTab === 'platform'
+          var bcLabel = healthTab === 'platform' ? 'C仓' : 'BC'
           return <>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
               <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>库存健康度</div>
-              <div style={{display:'flex',gap:2,background:'var(--bg)',borderRadius:99,padding:2}}>
-                {[{v:'own',l:'自有'},{v:'platform',l:'平台'}].map(({v,l}) =>
-                  <span key={v} onClick={()=>{localStorage.setItem('health_tab',v);setHealthTab(v)}}
-                    className="clickable"
-                    style={{fontSize:10,padding:'2px 8px',borderRadius:99,cursor:'pointer',fontWeight:healthTab===v?600:400,background:healthTab===v?'var(--card)':'transparent',color:healthTab===v?'var(--text)':'var(--muted2)'}}>{l}</span>
-                )}
+              <div style={{display:'flex',gap:2,background:'var(--bg)',borderRadius:99,padding:2,position:'relative'}}>
+                <span onClick={function(){localStorage.setItem('health_tab','own');setHealthTab('own')}}
+                  className="clickable"
+                  style={{fontSize:10,padding:'2px 8px',borderRadius:99,cursor:'pointer',fontWeight:healthTab==='own'?600:400,background:healthTab==='own'?'var(--card)':'transparent',color:healthTab==='own'?'var(--text)':'var(--muted2)'}}>自有</span>
+                {isJd && <span onClick={function(){setBcMenuOpen(!bcMenuOpen)}}
+                  className="clickable"
+                  style={{fontSize:10,padding:'2px 8px',borderRadius:99,cursor:'pointer',fontWeight:bcActive?600:400,background:bcActive?'var(--card)':'transparent',color:bcActive?'var(--text)':'var(--muted2)',display:'flex',alignItems:'center',gap:2}}>
+                  {bcLabel}<svg width="8" height="8" viewBox="0 0 8 8" fill="none" style={{transform:'rotate('+(bcMenuOpen?'180':'0')+'deg)',transition:'transform 0.15s'}}><path d="M2 3l2 2 2-2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>
+                </span>}
+                {!isJd && <span onClick={function(){localStorage.setItem('health_tab','platform');setHealthTab('platform')}}
+                  className="clickable"
+                  style={{fontSize:10,padding:'2px 8px',borderRadius:99,cursor:'pointer',fontWeight:healthTab==='platform'?600:400,background:healthTab==='platform'?'var(--card)':'transparent',color:healthTab==='platform'?'var(--text)':'var(--muted2)'}}>平台</span>}
+                {bcMenuOpen && <div onClick={function(){setBcMenuOpen(false)}} style={{position:'fixed',inset:0,zIndex:9}} />}
+                {bcMenuOpen && <div style={{position:'absolute',top:'calc(100% + 4px)',right:0,background:'var(--card)',borderRadius:12,border:'0.5px solid var(--border)',boxShadow:'0 4px 12px rgba(0,0,0,0.1)',overflow:'hidden',minWidth:64,zIndex:10}}>
+                  {healthTab === 'bc'
+                    ? <div onClick={function(){localStorage.setItem('health_tab','platform');setHealthTab('platform');setBcMenuOpen(false)}}
+                        className="clickable" style={{padding:'6px 12px',fontSize:11,color:'var(--text)',cursor:'pointer',whiteSpace:'nowrap'}}>C仓</div>
+                    : <div onClick={function(){localStorage.setItem('health_tab','bc');setHealthTab('bc');setBcMenuOpen(false)}}
+                        className="clickable" style={{padding:'6px 12px',fontSize:11,color:'var(--text)',cursor:'pointer',whiteSpace:'nowrap'}}>BC</div>
+                  }
+                </div>}
               </div>
             </div>
             <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:4}}>
-              <div className="card-value" style={{fontSize:'clamp(18px,9cqi,30px)',fontWeight:700,lineHeight:1.1,color:h.level==='danger'?'#ef4444':h.level==='warning'?'#f59e0b':'var(--success)'}}>{h.score||0}分</div>
+              <div className="card-value" style={{fontSize:'clamp(18px,9cqi,30px)',fontWeight:700,lineHeight:1.1,color:healthData.level==='danger'?'#ef4444':healthData.level==='warning'?'#f59e0b':'var(--success)'}}>{healthData.score||0}分</div>
               <div className="card-sub" style={{marginTop:4}}>
                 <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
-                  <span style={{color:'var(--success)'}}>● {h.healthy||0}健康</span>
-                  <span style={{color:'var(--warning)'}}>● {h.warning||0}偏低</span>
+                  <span style={{color:'var(--success)'}}>● {healthData.healthy||0}健康</span>
+                  <span style={{color:'var(--warning)'}}>● {healthData.warning||0}偏低</span>
                 </div>
                 <div style={{fontSize:10,marginTop:3}}>
-                  <span style={{color:'#ef4444'}}>● {h.out_of_stock||0}缺货</span>
-                  <span style={{color:'var(--muted2)'}}> · {h.total||0} SKU</span>
+                  <span style={{color:'#ef4444'}}>● {healthData.out_of_stock||0}缺货</span>
+                  <span style={{color:'var(--muted2)'}}> · {healthData.total||0} SKU</span>
                 </div>
               </div>
             </div>
-            {h.out_of_stock > 0 && outOfStockItems.length > 0 && <div style={{marginTop:4}}>
+            {healthData.out_of_stock > 0 && outOfStockItems.length > 0 && <div style={{marginTop:4}}>
               {outOfStockItems.map((x,i) => (
                 <div key={i} style={{fontSize:9,color:'var(--muted2)',lineHeight:1.5,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
                   {x.product_name || x.sku} <span style={{fontSize:8,color:'var(--muted)',background:'var(--bg)',padding:'0 4px',borderRadius:4}}>{x.warehouse_type === 'own' ? '自有' : '平台'}</span>

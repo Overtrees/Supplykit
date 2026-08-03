@@ -106,8 +106,10 @@ def _compute_health(inv):
         return {"score": score, "healthy": healthy, "warning": warning, "out_of_stock": out_of_stock,
                 "total": total, "level": "good" if score >= 85 else ("warning" if score >= 60 else "danger")}
     own = [x for x in inv if x.get('warehouse_type') == 'own']
-    plat = [x for x in inv if x.get('warehouse_type') != 'own']
-    return {"own": _score(own), "platform": _score(plat),
+    plat = [x for x in inv if x.get('warehouse_type') == 'platform']
+    platformB = [x for x in inv if x.get('warehouse_type') == 'platform_b']
+    bc = plat + platformB
+    return {"own": _score(own), "platform": _score(plat), "platform_b": _score(platformB), "bc": _score(bc),
             "score": _score(inv)["score"], "level": _score(inv)["level"]}
 
 

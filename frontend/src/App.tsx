@@ -1034,7 +1034,7 @@ export default function App() {
       <Sidebar page={page} onClose={closeEditorMenu} onNavigate={navAndClose} lowStock={lowStock} errCount={errCount} apiStatus={apiStatus} open={showMenu} menuClosing={menuClosing} onBackdrop={closeEditorMenu} />
       {/* 欢迎页 — 首次使用 */}
       {showWelcome && (
-        <div style={{display:'flex',flexDirection:'column',minHeight:'100vh',minHeight:'100svh',padding:'calc(env(safe-area-inset-top, 0px) + 40px) 24px calc(24px + env(safe-area-inset-bottom, 20px))',overflowY:'auto',boxSizing:'border-box'}}>
+        <div style={{display:'flex',flexDirection:'column',minHeight:'100svh',padding:'calc(env(safe-area-inset-top, 0px) + 40px) 24px calc(24px + env(safe-area-inset-bottom, 20px))',overflowY:'auto',boxSizing:'border-box'}}>
           <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'center',maxWidth:360,margin:'0 auto',width:'100%'}}>
           <div style={{textAlign:'center',marginBottom:32}}>
             <div style={{fontSize:32,fontWeight:800,color:'var(--text)',marginBottom:8,letterSpacing:'-0.5px'}}>SupplyKit</div>

@@ -261,7 +261,5 @@ export default function SettingsPage() {
           onCancel={() => setConfirm(null)}
         />
       )}
-    </div>}
     </>
-  )
 }

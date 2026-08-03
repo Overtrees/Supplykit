@@ -55,6 +55,11 @@ const LastRow = ({ label, value, sub, onClick, danger, loading }) => (
 
 function RecycleBin({ onClose }) {
   var [rules, setRules] = useState([])
+  useEffect(function() {
+    var header = document.querySelector('header')
+    if (header) header.style.display = 'none'
+    return function() { if (header) header.style.display = '' }
+  }, [])
   var [orders, setOrders] = useState([])
   var [loading, setLoading] = useState(true)
   var API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
@@ -80,9 +85,11 @@ function RecycleBin({ onClose }) {
   }
 
   return <div style={{display:'flex',flexDirection:'column',minHeight:'100svh',background:'var(--bg)',padding:'calc(env(safe-area-inset-top, 0px) + 20px) 16px calc(16px + env(safe-area-inset-bottom, 20px))',overflowY:'auto',boxSizing:'border-box'}}>
-    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20,minHeight:48}}>
       <div style={{fontSize:22,fontWeight:700,color:'var(--text)'}}>回收站</div>
-      <span onClick={onClose} className="clickable" style={{fontSize:15,color:'var(--primary)',cursor:'pointer',padding:'6px 12px'}}>关闭</span>
+      <div onClick={onClose} className="clickable" style={{width:48,height:48,borderRadius:'50%',background:'var(--card)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',flexShrink:0}}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+      </div>
     </div>
     {loading ? <div className="small muted" style={{textAlign:'center',padding:40}}>加载中...</div> : <>
       <div style={{fontSize:15,fontWeight:600,color:'var(--text)',marginBottom:8}}>已删除的规则 ({rules.length})</div>

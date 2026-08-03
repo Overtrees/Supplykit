@@ -1112,8 +1112,7 @@ export default function App() {
       {/* 欢迎页 — 首次使用 */}
       {showWelcome && (
         <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,zIndex:5000,display:'flex',flexDirection:'column',padding:'calc(env(safe-area-inset-top, 0px) + 40px) 24px calc(24px + env(safe-area-inset-bottom, 20px))',overflowY:'auto'}}>
-          <div style={{position:'fixed',inset:0,zIndex:-1,background:'var(--bg)'}} />
-          <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'center',maxWidth:360,margin:'0 auto',width:'100%',position:'relative',zIndex:1}}>
+          <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'center',maxWidth:360,margin:'0 auto',width:'100%'}}>
           <div style={{textAlign:'center',marginBottom:32}}>
             <div style={{fontSize:32,fontWeight:800,color:'var(--text)',marginBottom:8,letterSpacing:'-0.5px'}}>SupplyKit</div>
             <div style={{fontSize:15,color:'var(--muted2)',lineHeight:1.5}}>电商供应链数据清洗<br/>与补货决策看板</div>

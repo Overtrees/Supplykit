@@ -1119,9 +1119,9 @@ export default function App() {
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:24}}>
             {[
               {icon:'📊',title:'看数据',desc:'多维看板总览',page:'dash'},
+              {icon:'💡',title:'看补货',desc:'补货/采购建议',page:'insights'},
               {icon:'🧹',title:'导数据',desc:'数据清洗导入',page:'cleansing'},
               {icon:'⚙️',title:'设规则',desc:'规则引擎配置',page:'rules'},
-              {icon:'⚡',title:'看设置',desc:'连接与系统设置',page:'settings'},
             ].map(function(card) {
               return <div key={card.page} onClick={function(){setPage(card.page);localStorage.setItem('c_welcome_seen','1');setShowWelcome(false)}}
                 className="clickable" style={{background:'var(--card)',borderRadius:26,padding:16,textAlign:'center',cursor:'pointer',border:'0.5px solid var(--border)'}}>

@@ -14,6 +14,12 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     """补货建议，支持 days=7/14/28 切换，mode=bbcc/traditional 切换模型"""
     from datetime import timedelta
 
+    # 尝试读取缓存
+    from app.core.replenishment_cache import get_cached, set_cache
+    cached, hit = get_cached(mode, channel, days, db)
+    if hit:
+        return cached
+
     try: db.table("alerts").update({"status": "inactive"}).eq("alert_type", "storage_fee").eq("status", "active").execute()
     except: pass
 
@@ -236,6 +242,13 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                 "suggested_qty": box_qty, "after_turnover": after_turnover, "days_to_empty": days_to_empty,
                 "note": note,
             })
+
+    # 写入缓存
+    try:
+        from app.core.replenishment_cache import set_cache
+        set_cache(mode, channel, days, {"data": suggestions}, db)
+    except:
+        pass
 
     return ok(suggestions)
 

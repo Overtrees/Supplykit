@@ -36,6 +36,12 @@ def seed_fill(db=get_db()):
         except: pass
     conn.commit()
 
+    # 刷新补货缓存
+    try:
+        from app.core.replenishment_cache import invalidate_cache
+        invalidate_cache(db)
+    except: pass
+
     jd_s = make_skus('')
     ot_s = make_skus('-O')
     for skus,ch in [(jd_s,'jd'),(ot_s,'other')]:
@@ -89,6 +95,13 @@ def seed_reset():
     conn.execute("PRAGMA foreign_keys=ON")
     conn.commit(); conn.close()
     invalidate()
+    # 刷新补货缓存
+    try:
+        from app.core.database import get_db
+        db = get_db()
+        from app.core.replenishment_cache import invalidate_cache
+        invalidate_cache(db)
+    except: pass
     from app.core.database import _seed_builtin_rules
     try: _seed_builtin_rules()
     except: pass

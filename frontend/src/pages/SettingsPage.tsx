@@ -79,24 +79,24 @@ function RecycleBin({ onClose }) {
     else setOrders(orders.filter(function(x) { return x.id !== id }))
   }
 
-  return <div style={{position:'fixed',inset:0,zIndex:5000,background:'var(--bg)',display:'flex',flexDirection:'column',padding:'calc(env(safe-area-inset-top, 0px) + 20px) 16px calc(16px + env(safe-area-inset-bottom, 20px))',overflowY:'auto'}}>
-    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-      <div style={{fontSize:20,fontWeight:700}}>回收站</div>
-      <span onClick={onClose} className="clickable" style={{fontSize:14,color:'var(--primary)',cursor:'pointer'}}>关闭</span>
+  return <div style={{minHeight:'100svh',background:'var(--bg)',display:'flex',flexDirection:'column',padding:'calc(env(safe-area-inset-top, 0px) + 20px) 16px calc(16px + env(safe-area-inset-bottom, 20px))',overflowY:'auto',boxSizing:'border-box'}}>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+      <div style={{fontSize:22,fontWeight:700,color:'var(--text)'}}>回收站</div>
+      <span onClick={onClose} className="clickable" style={{fontSize:15,color:'var(--primary)',cursor:'pointer',padding:'6px 12px'}}>关闭</span>
     </div>
-    {loading ? <div className="small muted" style={{textAlign:'center',padding:20}}>加载中...</div> : <>
-      <div style={{fontSize:14,fontWeight:600,marginBottom:8}}>已删除的规则 ({rules.length})</div>
-      {rules.length === 0 ? <div className="small muted" style={{marginBottom:16}}>暂无</div> : rules.map(function(r) {
-        return <div key={r.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 12px',background:'var(--card)',borderRadius:16,marginBottom:6}}>
-          <span style={{fontSize:13}}>{r.name}</span>
-          <span onClick={function(){restore('rules', r.id)}} className="clickable" style={{fontSize:12,color:'var(--primary)',cursor:'pointer'}}>恢复</span>
+    {loading ? <div className="small muted" style={{textAlign:'center',padding:40}}>加载中...</div> : <>
+      <div style={{fontSize:15,fontWeight:600,color:'var(--text)',marginBottom:8}}>已删除的规则 ({rules.length})</div>
+      {rules.length === 0 ? <div className="small muted" style={{padding:'12px 0',marginBottom:12}}>暂无</div> : rules.map(function(r) {
+        return <div key={r.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 14px',background:'var(--card)',borderRadius:16,marginBottom:6}}>
+          <span style={{fontSize:14,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{r.name}</span>
+          <span onClick={function(){restore('rules', r.id)}} className="clickable" style={{fontSize:13,fontWeight:600,color:'var(--primary)',cursor:'pointer',padding:'4px 10px',flexShrink:0}}>恢复</span>
         </div>
       })}
-      <div style={{fontSize:14,fontWeight:600,marginTop:16,marginBottom:8}}>已删除的订单 ({orders.length})</div>
-      {orders.length === 0 ? <div className="small muted">暂无</div> : orders.map(function(o) {
-        return <div key={o.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 12px',background:'var(--card)',borderRadius:16,marginBottom:6}}>
-          <span style={{fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{o.order_no} - {o.product_name}</span>
-          <span onClick={function(){restore('orders', o.id)}} className="clickable" style={{fontSize:12,color:'var(--primary)',cursor:'pointer',flexShrink:0}}>恢复</span>
+      <div style={{fontSize:15,fontWeight:600,color:'var(--text)',marginTop:20,marginBottom:8}}>已删除的订单 ({orders.length})</div>
+      {orders.length === 0 ? <div className="small muted" style={{padding:'12px 0'}}>暂无</div> : orders.map(function(o) {
+        return <div key={o.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 14px',background:'var(--card)',borderRadius:16,marginBottom:6}}>
+          <span style={{fontSize:14,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{o.order_no} - {o.product_name}</span>
+          <span onClick={function(){restore('orders', o.id)}} className="clickable" style={{fontSize:13,fontWeight:600,color:'var(--primary)',cursor:'pointer',padding:'4px 10px',flexShrink:0}}>恢复</span>
         </div>
       })}
     </>}

@@ -53,24 +53,23 @@ export default function Sidebar({ page, onClose, onNavigate, lowStock, errCount,
         }}
       >
         <div style={{ padding: 7, maxHeight:'calc(100vh - 140px)', overflowY:'auto' }}>
-          {NAV.map(function(item, idx) {
-            const active = page === item.id
+          {NAV.filter(function(item) { return !(page === 'dash' && item.id === 'dash') }).map(function(item, idx) {
             const IconComp = NAV_ICONS[item.id]
             return <div key={item.id}>{idx > 0 ? <div style={{height:'0.5px',background:'var(--glass-border)',margin:'3px 10px'}} /> : null}
                 <button onClick={() => onNavigate(item.id)}
                 style={{
                   width:'100%', minHeight:50, border:'none',
-                  background: active ? 'rgba(29,78,216,0.1)' : 'transparent',
+                  background:'transparent',
                   borderRadius:17, display:'flex', alignItems:'center', gap:11,
                   padding:'8px 10px', color:'var(--text)', fontSize:14,
                   fontFamily:'inherit', cursor:'pointer', textAlign:'left',
-                  fontWeight: active ? 600 : 400, marginBottom:2
+                  fontWeight:400, marginBottom:2
                 }}>
                 {IconComp && <span style={{ width:24, height:24, display:'flex', alignItems:'center', justifyContent:'center', flex:'none', color:'var(--primary)' }}>
                   <IconComp size={20} />
                 </span>}
                 <span style={{ minWidth:0, flex:1 }}>
-                  <span style={{ display:'block', fontSize:15, fontWeight: active ? 650 : 400, letterSpacing:'-0.1px' }}>
+                  <span style={{ display:'block', fontSize:15, fontWeight:400, letterSpacing:'-0.1px' }}>
                     {item.label}
                   </span>
                   <span style={{ display:'block', fontSize:11, color:'var(--muted2)', marginTop:2 }}>

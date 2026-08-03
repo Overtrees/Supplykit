@@ -9,6 +9,8 @@ export default function DashboardPage({ onAlert }) {
   const { dashboard, inventory, qualityLogs, alerts, stockRisk, channel, loading, hammerDashPeriod: periodTab } = useAppStore()
   const [healthTab, setHealthTab] = useState(() => localStorage.getItem('health_tab') || (channel === 'jd' ? 'own' : 'platform'))
   const [bcMenuOpen, setBcMenuOpen] = useState(false)
+  const [showAllLowStock, setShowAllLowStock] = useState(false)
+  const [showAllReplenish, setShowAllReplenish] = useState(false)
   const [chLoading, setChLoading] = useState(false)
   useEffect(() => {
     setChLoading(true)
@@ -265,7 +267,7 @@ export default function DashboardPage({ onAlert }) {
                 <div className="small muted" style={{fontSize:11,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:2}}>{x.description}</div>
               </div>
             ))}
-        {lowStockAlerts.length > 5 && <div className="small muted" style={{textAlign:'center',padding:8}}>还有 {lowStockAlerts.length - 5} 条...</div>}
+        {lowStockAlerts.length > 5 && <div className="clickable" onClick={function(){setShowAllLowStock(true)}} style={{textAlign:"center",padding:8,fontSize:12,color:"var(--muted)",cursor:"pointer"}}>还有 {lowStockAlerts.length - 5} 条...</div>}
       </div>
       <div className="card" style={{height:'auto',overflow:'visible'}}>
         <div className="section-title">补货告警</div>
@@ -280,7 +282,7 @@ export default function DashboardPage({ onAlert }) {
                 <div className="small muted" style={{fontSize:11,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:2}}>{x.description}</div>
               </div>
             ))}
-        {replenishAlerts.length > 5 && <div className="small muted" style={{textAlign:'center',padding:6}}>还有 {replenishAlerts.length - 5} 条...</div>}
+        {replenishAlerts.length > 5 && <div className="clickable" onClick={function(){setShowAllReplenish(true)}} style={{textAlign:"center",padding:8,fontSize:12,color:"var(--muted)",cursor:"pointer"}}>还有 {replenishAlerts.length - 5} 条...</div>}
       </div>
     </div>
   </div>

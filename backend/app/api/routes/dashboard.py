@@ -125,6 +125,7 @@ def stock_risk(channel: str = 'jd'):
         days_left = round(b_avail / daily_need, 1) if daily_need > 0 else 999
         result.append({
             "sku": sku,
+            "barcode": products.get(sku, {}).get("barcode", ""),
             "product_name": products.get(sku, {}).get("product_name", st["product_name"]),
             "warehouse": "B仓", "type": "B",
             "available_qty": b_avail,
@@ -143,6 +144,7 @@ def stock_risk(channel: str = 'jd'):
         days_left = round(avail / ds, 1)
         result.append({
             "sku": sku,
+            "barcode": products.get(sku, {}).get("barcode", ""),
             "product_name": products.get(sku, {}).get("product_name", st["product_name"]),
             "warehouse": wh, "type": "C",
             "available_qty": avail,

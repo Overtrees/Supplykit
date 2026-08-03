@@ -93,7 +93,19 @@ export default function InsightsPage() {
   const { channel: globalChannel, hammerInsightsTab: tab, hammerReplenMode, setHammerReplenMode, hammerCols, hammerData } = useAppStore()
   const replenMode = (globalChannel !== 'jd' && hammerReplenMode === 'bbcc') ? 'traditional' : hammerReplenMode
   const currentCols = replenMode === 'bbcc' ? BBCC_COLS : TRAD_COLS
-  const [visCols, setVisCols] = useState(() => getVis(replenMode) || (replenMode==='bbcc'?defVis(BBCC_COLS):defVisTrad(TRAD_COLS)))
+  const [visCols, setVisCols] = useState(() => {
+    var saved = getVis(replenMode)
+    var defaultCols = replenMode==='bbcc'?defVis(BBCC_COLS):defVisTrad(TRAD_COLS)
+    if (saved) {
+      // 过滤掉已不存在的列ID（如旧版 combined_turn → cur_turn）
+      var validIds = currentCols.map(function(c) { return c.id })
+      saved = saved.filter(function(id) { return validIds.includes(id) })
+      if (saved.length === 0) saved = defaultCols
+    } else {
+      saved = defaultCols
+    }
+    return saved
+  })
   // 搜索：按 tab 和模式隔离
   const searchKey = tab === 'purchase' ? 'insights_search_purchase' : (tab === 'slow' ? 'insights_search_slow' : 'insights_search_' + replenMode)
   const insightSearch = hammerData?.[globalChannel]?.[searchKey] || ''
@@ -111,8 +123,11 @@ export default function InsightsPage() {
 
   useEffect(() => {
     const saved = hammerCols?.['insights_'+replenMode]
-    if (saved) setVisCols(saved)
-    else {
+    if (saved) {
+      var validIds = currentCols.map(function(c) { return c.id })
+      var filtered = saved.filter(function(id) { return validIds.includes(id) })
+      setVisCols(filtered.length > 0 ? filtered : (replenMode==='bbcc'?defVis(BBCC_COLS):defVisTrad(TRAD_COLS)))
+    } else {
       const ls = getVis(replenMode)
       if (ls) setVisCols(ls)
       else setVisCols(replenMode==='bbcc'?defVis(BBCC_COLS):defVisTrad(TRAD_COLS))

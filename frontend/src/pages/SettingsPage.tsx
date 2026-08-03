@@ -6,7 +6,7 @@ import { useToast } from '../components/Toast'
 import ConfirmDialog from '../components/ConfirmDialog'
 
 const VERSION = '1.0.0'
-const BUILD = import.meta.env.VITE_BUILD_TIME || '2026-07-31'
+const BUILD = new Date().toISOString().slice(0,10)
 
 const Group = ({ title, children }) => (
   <div style={{marginBottom:20}}>

@@ -1111,22 +1111,23 @@ export default function App() {
       <Sidebar page={page} onClose={closeEditorMenu} onNavigate={navAndClose} lowStock={lowStock} errCount={errCount} apiStatus={apiStatus} open={showMenu} menuClosing={menuClosing} onBackdrop={closeEditorMenu} />
       {/* 欢迎页 — 首次使用 */}
       {showWelcome && (
-        <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,zIndex:5000,background:'var(--bg)',display:'flex',flexDirection:'column',padding:'calc(env(safe-area-inset-top, 0px) + 40px) 24px calc(24px + env(safe-area-inset-bottom, 20px))',overflowY:'auto'}}>
-          <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'center',maxWidth:360,margin:'0 auto',width:'100%'}}>
+        <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,zIndex:5000,display:'flex',flexDirection:'column',padding:'calc(env(safe-area-inset-top, 0px) + 40px) 24px calc(24px + env(safe-area-inset-bottom, 20px))',overflowY:'auto'}}>
+          <div style={{position:'fixed',inset:0,zIndex:-1,background:'var(--bg)'}} />
+          <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'center',maxWidth:360,margin:'0 auto',width:'100%',position:'relative',zIndex:1}}>
           <div style={{textAlign:'center',marginBottom:32}}>
             <div style={{fontSize:32,fontWeight:800,color:'var(--text)',marginBottom:8,letterSpacing:'-0.5px'}}>SupplyKit</div>
             <div style={{fontSize:15,color:'var(--muted2)',lineHeight:1.5}}>电商供应链数据清洗<br/>与补货决策看板</div>
           </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:32}}>
             {[
-              {icon:'📊',title:'看数据',desc:'多维看板总览',page:'dash'},
-              {icon:'💡',title:'看补货',desc:'补货/采购建议',page:'insights'},
-              {icon:'🧹',title:'导数据',desc:'数据清洗导入',page:'cleansing'},
-              {icon:'⚙️',title:'设规则',desc:'规则引擎配置',page:'rules'},
+              {svg:'M3 12h4l2-9 4 18 2-9h4',title:'看数据',desc:'多维看板总览',page:'dash'},
+              {svg:'M9 18h6M10 22h4M15.09 14c.6-.77 1.05-1.6 1.32-2.5A5.4 5.4 0 0 0 12 6a5.4 5.4 0 0 0-4.41 5.5c.27.9.72 1.73 1.32 2.5M9 18c0-1.5.5-2.9 1.5-4h3c1 1.1 1.5 2.5 1.5 4',title:'看补货',desc:'补货/采购建议',page:'insights'},
+              {svg:'M20 4 8 16M16 20 4 8M14 6a3 3 0 0 0-6 0v5h6V6ZM6 14c0 2 1.5 4 3 5M14 14c0 2-1.5 4-3 5M4 8h16',title:'导数据',desc:'数据清洗导入',page:'cleansing'},
+              {svg:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42',title:'设规则',desc:'规则引擎配置',page:'rules'},
             ].map(function(card) {
               return <div key={card.page} onClick={function(){setPage(card.page);localStorage.setItem('c_welcome_seen','1');setShowWelcome(false)}}
                 className="clickable" style={{background:'var(--card)',borderRadius:26,padding:18,textAlign:'center',cursor:'pointer',border:'0.5px solid var(--border)',boxShadow:'0 1px 4px rgba(0,0,0,0.04)'}}>
-                <div style={{fontSize:30,marginBottom:8}}>{card.icon}</div>
+                <div style={{marginBottom:8}}><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={card.svg}/></svg></div>
                 <div style={{fontSize:15,fontWeight:600,color:'var(--text)',marginBottom:3}}>{card.title}</div>
                 <div style={{fontSize:12,color:'var(--muted2)'}}>{card.desc}</div>
               </div>

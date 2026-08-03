@@ -60,7 +60,7 @@ export const useAppStore = create((set, get) => ({
   setChannel: (ch) => { localStorage.setItem('c_channel', ch); clearCache(); clearInflight(); set({ channel: ch, dataLoaded: false, loading: true, hammerWhType: localStorage.getItem('c_wh_type_' + ch) || 'own', hammerDashPeriod: localStorage.getItem('c_dash_period_' + ch) || 'month', hammerReplenMode: localStorage.getItem('c_replen_mode_' + ch) || (ch === 'jd' ? 'bbcc' : 'traditional'), hammerRulesMode: localStorage.getItem('c_replen_mode_' + ch) || (ch === 'jd' ? 'bbcc' : 'traditional') }) },
 
   async loadAll(page) {
-    set({ loading: true })
+    set({ loading: true, orderLoading: true })
     const ch = get().channel
     const s = get().hammerSearch || ''
     const st = get().orderStatus || ''
@@ -88,10 +88,11 @@ export const useAppStore = create((set, get) => ({
         stockRisk: stockRisk.data || [],
         dataLoaded: true,
         loading: false,
+        orderLoading: false,
       })
     } catch (e) {
       console.error('loadAll failed:', e)
-      set({ loading: false })
+      set({ loading: false, orderLoading: false })
     }
   },
 

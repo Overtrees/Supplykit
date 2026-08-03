@@ -53,6 +53,56 @@ const LastRow = ({ label, value, sub, onClick, danger, loading }) => (
   </div>
 )
 
+function RecycleBin({ onClose }) {
+  var [rules, setRules] = useState([])
+  var [orders, setOrders] = useState([])
+  var [loading, setLoading] = useState(true)
+  var API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
+
+  useEffect(function() {
+    setLoading(true)
+    Promise.all([
+      fetch(API + '/api/rules?channel=all').then(function(r) { return r.json() }),
+      fetch(API + '/api/orders?page=1&page_size=200').then(function(r) { return r.json() }),
+    ]).then(function([rData, oData]) {
+      var items = rData.data || rData || []
+      setRules(items.filter(function(x) { return x.is_active === 0 }))
+      var o = oData.data || oData || []
+      setOrders(Array.isArray(o) ? o.filter(function(x) { return x.deleted_at }) : [])
+      setLoading(false)
+    }).catch(function() { setLoading(false) })
+  }, [])
+
+  var restore = async function(type, id) {
+    await fetch(API + '/api/' + type + '/' + id + '/restore', {method:'POST'})
+    if (type === 'rules') setRules(rules.filter(function(x) { return x.id !== id }))
+    else setOrders(orders.filter(function(x) { return x.id !== id }))
+  }
+
+  return <div style={{position:'fixed',inset:0,zIndex:5000,background:'var(--bg)',display:'flex',flexDirection:'column',padding:'calc(env(safe-area-inset-top, 0px) + 20px) 16px calc(16px + env(safe-area-inset-bottom, 20px))',overflowY:'auto'}}>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+      <div style={{fontSize:20,fontWeight:700}}>回收站</div>
+      <span onClick={onClose} className="clickable" style={{fontSize:14,color:'var(--primary)',cursor:'pointer'}}>关闭</span>
+    </div>
+    {loading ? <div className="small muted" style={{textAlign:'center',padding:20}}>加载中...</div> : <>
+      <div style={{fontSize:14,fontWeight:600,marginBottom:8}}>已删除的规则 ({rules.length})</div>
+      {rules.length === 0 ? <div className="small muted" style={{marginBottom:16}}>暂无</div> : rules.map(function(r) {
+        return <div key={r.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 12px',background:'var(--card)',borderRadius:16,marginBottom:6}}>
+          <span style={{fontSize:13}}>{r.name}</span>
+          <span onClick={function(){restore('rules', r.id)}} className="clickable" style={{fontSize:12,color:'var(--primary)',cursor:'pointer'}}>恢复</span>
+        </div>
+      })}
+      <div style={{fontSize:14,fontWeight:600,marginTop:16,marginBottom:8}}>已删除的订单 ({orders.length})</div>
+      {orders.length === 0 ? <div className="small muted">暂无</div> : orders.map(function(o) {
+        return <div key={o.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 12px',background:'var(--card)',borderRadius:16,marginBottom:6}}>
+          <span style={{fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{o.order_no} - {o.product_name}</span>
+          <span onClick={function(){restore('orders', o.id)}} className="clickable" style={{fontSize:12,color:'var(--primary)',cursor:'pointer',flexShrink:0}}>恢复</span>
+        </div>
+      })}
+    </>}
+  </div>
+}
+
 export default function SettingsPage() {
   const toast = useToast()
   const { channel, wsStatus } = useAppStore()
@@ -169,6 +219,7 @@ export default function SettingsPage() {
       <Group title="种子数据">
         <Row label="一键填充" sub="生成 12 SKU × 60 天 × 900 条模拟数据" onClick={() => setConfirm('fill')} loading={seeding} />
         <Row label="一键重置" sub="清空所有数据恢复初始状态" onClick={() => setConfirm('reset')} danger loading={resetting} />
+        <Row label="回收站" sub="查看已删除的规则和订单，可恢复或永久删除" onClick={() => setConfirm('recycle')} />
         <LastRow label="重置欢迎页" sub="重新显示首次使用引导" onClick={() => { localStorage.removeItem('c_welcome_seen'); toast.success('欢迎页已重置') }} />
       </Group>
 
@@ -206,6 +257,9 @@ export default function SettingsPage() {
           onConfirm={() => { clearLocalCache(); setConfirm(null) }}
           onCancel={() => setConfirm(null)}
         />
+      )}
+      {confirm === 'recycle' && (
+        <RecycleBin onClose={() => setConfirm(null)} />
       )}
     </div>
   )

@@ -100,7 +100,7 @@ export default function RulesPage() {
   const del = async id => { await fetch(API+'/api/rules/'+id, {method:'DELETE'}); load(globalChannel) }
 
   const isBBCC = (cfg.replenishment_mode||'bbcc')==='bbcc'
-  const filteredRules = hammerSearch ? rules.filter(function(r) { return (r.name||'').toLowerCase().includes(hammerSearch.toLowerCase()) }) : rules'
+  const filteredRules = hammerSearch ? rules.filter(function(r) { return (r.name||'').toLowerCase().includes(hammerSearch.toLowerCase()) }) : rules
   const cParams = isBBCC ? [{k:'b_to_c_days',l:'B→C调拨(天)',h:'京东B仓→C仓调拨时效'},{k:'c_safety_days',l:'C仓缓冲(天)',h:'C仓安全储备'}] : []
   const bParams = isBBCC ? [{k:'ship_to_b_days',l:'自有仓→B仓时效(天)'},{k:'safety_multiplier',l:'安全库存天数'},{k:'turnover_warning_15',l:'仓储费阈值(天)'},{k:'turnover_warning_90',l:'周转考核红线(天)'}] : []
   const paramFields = isBBCC ? [] : [{k:'lead_time_days',l:'前置期(天)'},{k:'safety_multiplier',l:'安全库存天数'},{k:'turnover_warning_90',l:'周转考核红线(天)'}]

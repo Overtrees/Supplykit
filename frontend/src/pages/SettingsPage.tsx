@@ -85,10 +85,10 @@ function RecycleBin({ onClose }) {
   }
 
   return <div style={{display:'flex',flexDirection:'column',minHeight:'100%',background:'var(--bg)',padding:'0 0 calc(0px + env(safe-area-inset-bottom, 20px))',boxSizing:'border-box'}}>
-    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'calc(env(safe-area-inset-top, 0px) + 12px) 20px 12px 20px',minHeight:48}}>
-      <div style={{fontSize:18,fontWeight:700,color:'var(--text)'}}>回收站</div>
-      <div onClick={onClose} className="clickable" style={{width:40,height:40,borderRadius:'50%',background:'var(--card)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',flexShrink:0}}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'calc(env(safe-area-inset-top, 0px) + 12px) 20px 12px 20px'}}>
+      <div style={{fontSize:16,fontWeight:600,color:'var(--text)',background:'var(--card)',padding:'4px 16px',borderRadius:99,minHeight:32,display:'flex',alignItems:'center'}}>回收站</div>
+      <div onClick={onClose} className="clickable" style={{width:48,height:48,borderRadius:'50%',background:'var(--card)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',flexShrink:0}}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
       </div>
     </div>
     <div style={{padding:'0 16px',maxWidth:500,margin:'0 auto',width:'100%'}}>

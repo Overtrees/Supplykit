@@ -53,12 +53,10 @@ export default function Sidebar({ page, onClose, onNavigate, lowStock, errCount,
         }}
       >
         <div style={{ padding: 7, maxHeight:'calc(100vh - 140px)', overflowY:'auto' }}>
-          {NAV.map((item, idx) => {
+          {NAV.map(function(item, idx) {
             const active = page === item.id
             const IconComp = NAV_ICONS[item.id]
-            return (
-              <React.Fragment key={item.id}>
-                {idx > 0 && <div style={{height:'0.5px',background:'var(--glass-border)',margin:'3px 10px'}} />}
+            return <div key={item.id}>{idx > 0 ? <div style={{height:'0.5px',background:'var(--glass-border)',margin:'3px 10px'}} /> : null}
                 <button onClick={() => onNavigate(item.id)}
                 style={{
                   width:'100%', minHeight:50, border:'none',
@@ -93,7 +91,7 @@ export default function Sidebar({ page, onClose, onNavigate, lowStock, errCount,
                 {item.id === 'inv' && lowStock > 0 &&
                   <span style={{ background:'var(--warning)', color:'#fff', borderRadius:99, fontSize:11, fontWeight:700, padding:'1px 7px', minWidth:20, textAlign:'center' }}>{lowStock}</span>}
               </button>
-            )
+            </div>
           })}
         </div>
       </div>

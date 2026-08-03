@@ -84,7 +84,7 @@ function RecycleBin({ onClose }) {
     else setOrders(orders.filter(function(x) { return x.id !== id }))
   }
 
-  return <div style={{display:'flex',flexDirection:'column',minHeight:'100svh',background:'var(--bg)',padding:'0 0 calc(0px + env(safe-area-inset-bottom, 20px))',overflowY:'auto',boxSizing:'border-box'}}>
+  return <div style={{display:'flex',flexDirection:'column',minHeight:'100%',background:'var(--bg)',padding:'0 0 calc(0px + env(safe-area-inset-bottom, 20px))',boxSizing:'border-box'}}>
     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 20px',minHeight:48}}>
       <div style={{fontSize:18,fontWeight:700,color:'var(--text)'}}>回收站</div>
       <div onClick={onClose} className="clickable" style={{width:40,height:40,borderRadius:'50%',background:'var(--card)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',flexShrink:0}}>

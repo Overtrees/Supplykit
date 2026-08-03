@@ -20,6 +20,7 @@ import { IconStatusOnline, IconStatusWarning, IconStatusOffline, IconExport } fr
 import { api } from './api/client'
 import './version'
 import HammerProducts from './components/hammer/HammerProducts'
+import HammerSuppliers from './components/hammer/HammerSuppliers'
 import { PRODUCT_COLS, prodColKey, getProdVis, SUPPLIER_COLS, suppColKey, getSuppVis, ORDER_COLS, ORDER_STATUSES, orderColKey, getOrderVis, INS_BBCC_COLS, INS_TRAD_COLS, INS_PURCHASE_COLS, INS_SLOW_COLS, insColKey, getInsVis, insDefVis, insDefVisTrad, INV_COLS, INV_COL_KEY, getInvVis, INV_WH_LABEL } from './components/hammer/configs'
 
 export const NAV = [
@@ -29,82 +30,6 @@ export const NAV = [
   { id:'quality',label:'操作异常记录'},{id:'settings',label:'设置'},
 ]
 
-/* 商品页: 锤子菜单列选择器 + 搜索 — 已抽离到 components/hammer/ */
-const SUPPLIER_COLS = [{id:'code',label:'编号'},{id:'name',label:'名称'},{id:'contact',label:'联系人'},{id:'phone',label:'手机'},{id:'score',label:'评分'}]
-const suppColKey = (ch) => 'c_cols_suppliers_' + ch
-const getSuppVis = (ch) => { try { return JSON.parse(localStorage.getItem(suppColKey(ch)) || 'null') } catch{return null} }
-
-function HammerSuppliers({ channel }) {
-  const { hammerPanel, setHammerPanel, hammerSearch, setHammerSearch, setHammerCols } = useAppStore()
-  const [visCols, setVisCols] = useState(() => getSuppVis(channel) || SUPPLIER_COLS.map(c => c.id))
-
-  useEffect(() => {
-    setVisCols(getSuppVis(channel) || SUPPLIER_COLS.map(c => c.id))
-  }, [channel])
-
-  const saveCols = (cols) => {
-    setVisCols(cols)
-    localStorage.setItem(suppColKey(channel), JSON.stringify(cols))
-    setHammerCols('suppliers', cols)
-  }
-
-  return (
-    <div>
-      <div style={{fontSize:11,color:'var(--muted2)',marginBottom:8,textAlign:'center'}}>
-        {channel === 'jd' ? '京东' : '其他'} · 供应商
-      </div>
-      <div style={{display:'flex',gap:6,marginBottom:hammerPanel?8:0}}>
-        <button onClick={() => setHammerPanel(hammerPanel === 'columns' ? null : 'columns')}
-          className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
-          列选择 ({visCols.length}/{SUPPLIER_COLS.length})
-        </button>
-        <button onClick={() => { setHammerPanel(hammerPanel === 'search' ? null : 'search'); if (hammerPanel !== 'search') setTimeout(() => document.getElementById('hm-search-supp')?.focus(), 100) }}
-          className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
-          搜索
-        </button>
-      </div>
-      {hammerPanel === 'columns' && (
-        <div style={{borderTop:'1px solid var(--border)',paddingTop:8,marginTop:0,maxHeight:260,overflowY:'auto'}}>
-          <div style={{fontSize:10,color:'var(--muted2)',marginBottom:4,padding:'0 4px'}}>拖拽 ⠿ 调整列顺序</div>
-          {(visCols.map(id=>SUPPLIER_COLS.find(c=>c.id===id)).filter(Boolean).concat(SUPPLIER_COLS.filter(c=>!visCols.includes(c.id)))).map((col,idx)=>{
-            const isVis=visCols.includes(col.id)
-            return <div key={col.id} draggable={isVis?true:undefined}
-              onDragStart={isVis?e=>{e.dataTransfer.setData('text/plain',col.id);e.target.style.opacity='0.4';e.currentTarget.parentNode._dragId=col.id}:undefined}
-              onDragEnd={isVis?e=>e.target.style.opacity='1':undefined}
-              onDragOver={isVis?e=>{e.preventDefault();e.currentTarget.style.borderTop='2px solid var(--primary)';const from=e.currentTarget.parentNode._dragId;if(from&&from!==col.id){const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(col.id);nxt.splice(toIdx,0,from);saveCols(nxt)}}:undefined}
-              onDragLeave={isVis?e=>e.currentTarget.style.borderTop='1px solid transparent':undefined}
-              onDrop={isVis?e=>{e.preventDefault();e.currentTarget.style.borderTop='1px solid transparent';const from=e.dataTransfer.getData('text/plain');if(from===col.id)return;const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(col.id);nxt.splice(toIdx,0,from);saveCols(nxt);e.currentTarget.parentNode._dragId=null}:undefined}
-              style={{display:'flex',alignItems:'center',gap:4,padding:'4px 6px',borderRadius:6,cursor:isVis?'grab':'default',fontSize:12,whiteSpace:'nowrap',borderTop:'1px solid transparent',background:isVis?'var(--card)':'transparent',opacity:isVis?1:0.4,userSelect:'none',WebkitUserSelect:'none'}}>
-              <span style={{color:'var(--muted2)',fontSize:12,width:16,flexShrink:0,textAlign:'center',cursor:isVis?'grab':'default'}}>{isVis?'⠿':'○'}</span>
-              <input type="checkbox" checked={isVis} onChange={e=>{const n=e.target.checked?[...visCols,col.id]:visCols.filter(c=>c!==col.id);saveCols(n)}} style={{accentColor:'var(--primary)'}} />
-              <span style={{flex:1}}>{col.label}</span>
-              <span style={{fontSize:9,color:'var(--muted2)'}}>{isVis?'#'+(visCols.indexOf(col.id)+1):''}</span>
-            </div>
-          })}
-          <div style={{borderTop:'1px solid var(--border)',marginTop:4,paddingTop:4}}>
-            <span onClick={()=>saveCols(SUPPLIER_COLS.map(c=>c.id))} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>全部</span>
-          </div>
-        </div>
-      )}
-      {hammerPanel === 'search' && (
-        <div style={{borderTop:'1px solid var(--border)',paddingTop:8}}>
-          <input id="hm-search-supp" value={hammerSearch} onChange={e=>setHammerSearch(e.target.value)}
-            placeholder="搜索供应商..."
-            style={{width:'100%',padding:'6px 10px',fontSize:16,border:'1px solid var(--border)',borderRadius:32,outline:'none',boxSizing:'border-box',background:'var(--card)',color:'var(--text)'}} />
-        </div>
-      )}
-    </div>
-  )
-}
-
-/* 订单页: 锤子菜单列选择器 + 搜索 + 筛选 + 导出 */
-const ORDER_COLS = [
-  {id:'order_no',label:'订单号'},{id:'barcode',label:'69码'},{id:'store',label:'店铺'},{id:'warehouse',label:'仓库'},
-  {id:'date',label:'下单日期'},{id:'order_no',label:'订单号'},{id:'barcode',label:'69码'},{id:'store',label:'店铺'},{id:'warehouse',label:'仓库'},{id:'product',label:'商品'},{id:'amount',label:'金额'},{id:'status',label:'状态'},{id:'paid_at',label:'入库日期'},
-]
-const ORDER_STATUSES = ['','已完成','待发货','已发货','待确认','申请退款']
-const orderColKey = (ch) => 'c_cols_orders_' + ch
-const getOrderVis = (ch) => { try { return JSON.parse(localStorage.getItem(orderColKey(ch)) || 'null') } catch{return null} }
 
 function HammerOrders({ channel }) {
   const toast = useToast()

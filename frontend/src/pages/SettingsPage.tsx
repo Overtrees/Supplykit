@@ -79,8 +79,7 @@ function RecycleBin({ onClose }) {
     else setOrders(orders.filter(function(x) { return x.id !== id }))
   }
 
-  return <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,zIndex:5000,display:'flex',flexDirection:'column',padding:'calc(env(safe-area-inset-top, 0px) + 20px) 16px calc(16px + env(safe-area-inset-bottom, 20px))',overflowY:'auto'}}>
-    <div style={{position:'fixed',inset:0,zIndex:-1,background:'var(--bg)'}} />
+  return <div style={{display:'flex',flexDirection:'column',minHeight:'100svh',background:'var(--bg)',padding:'calc(env(safe-area-inset-top, 0px) + 20px) 16px calc(16px + env(safe-area-inset-bottom, 20px))',overflowY:'auto',boxSizing:'border-box'}}>
     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
       <div style={{fontSize:22,fontWeight:700,color:'var(--text)'}}>回收站</div>
       <span onClick={onClose} className="clickable" style={{fontSize:15,color:'var(--primary)',cursor:'pointer',padding:'6px 12px'}}>关闭</span>
@@ -197,8 +196,8 @@ export default function SettingsPage() {
     setResetting(false)
   }
 
-  return (
-    <div style={{padding:'16px 0',maxWidth:500,margin:'0 auto'}}>
+  return <>
+    {confirm === 'recycle' ? <RecycleBin onClose={() => setConfirm(null)} /> : <div style={{padding:'16px 0',maxWidth:500,margin:'0 auto'}}>
       <Group title="连接状态">
         <Row label="后端服务" value={status} sub={`${ping}ms · ${lastCheck}`} />
         <Row label="实时连接" value={wsStatus === 'connected' ? '已连接' : wsStatus === 'polling' ? '轮询中' : '已断开'} />
@@ -262,9 +261,7 @@ export default function SettingsPage() {
           onCancel={() => setConfirm(null)}
         />
       )}
-      {confirm === 'recycle' && (
-        <RecycleBin onClose={() => setConfirm(null)} />
-      )}
-    </div>
+    </div>}
+    </>
   )
 }

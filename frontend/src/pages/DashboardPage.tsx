@@ -230,15 +230,15 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
 
       {/* 4. 濒临断货 TOP10 — 加危急/{t("dash.alert_warning")}分层 */}
       <div className="card" style={{borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16,overflow:'hidden'}}>
-        <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>{t("ddash.risk")}</div>
+        <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>{t("dash.risk")}</div>
         {(!stockRisk || stockRisk.length === 0)
           ? <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:2}}>
-              <div style={{fontSize:14,fontWeight:400,color:'var(--muted2)'}}>{t("ddash.stock_ok")}</div>
+              <div style={{fontSize:14,fontWeight:400,color:'var(--muted2)'}}>{t("dash.stock_ok")}</div>
             </div>
           : <>
               <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:4}}>
                 <div className="card-value" style={{fontSize:'clamp(18px,9cqi,30px)',fontWeight:700,lineHeight:1.1,color:'#ef4444'}}>{stockRisk.length}</div>
-                <div className="card-sub" style={{marginTop:4}}>{t("ddash.min_days")} {stockRisk[0].days_to_empty} {t("dash.days_out")}</div>
+                <div className="card-sub" style={{marginTop:4}}>{t("dash.min_days")} {stockRisk[0].days_to_empty} {t("dash.days_out")}</div>
                 {(riskCritical > 0 || riskWarning > 0) && <div style={{fontSize:10,display:'flex',gap:4,marginTop:3,flexWrap:'wrap'}}>
                   {riskCritical > 0 && <span style={{color:'#ef4444'}}>● {riskCritical} {t("dash.critical")}</span>}
                   {riskWarning > 0 && <span style={{color:'var(--warning)'}}>● {riskWarning} {t("dash.warning")}</span>}
@@ -254,15 +254,15 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
     </div>
 
     <div className="mid-chart-grid">
-      <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title">{t("ddash.funnel")}</div><Chart option={barOption} height={200} /></div>
-      <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title">{t("ddash.store_gmv")}</div><Chart option={storeOption} height={170} /></div>
+      <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title">{t("dash.funnel")}</div><Chart option={barOption} height={200} /></div>
+      <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title">{t("dash.store_gmv")}</div><Chart option={storeOption} height={170} /></div>
     </div>
 
     <div className="chart-row-3">
       <div className="card" style={{height:'auto',overflow:'visible'}}>
-        <div className="section-title">{t("ddash.low_stock")}</div>
+        <div className="section-title">{t("dash.low_stock")}</div>
         {lowStockAlerts.length === 0
-          ? <div className="small muted" style={{padding:12,textAlign:'center'}}>{t("ddash.no_alerts")}</div>
+          ? <div className="small muted" style={{padding:12,textAlign:'center'}}>{t("dash.no_alerts")}</div>
           : lowStockAlerts.slice(0,5).map(x => (
               <div key={x.id} onClick={() => onAlert && onAlert(x.related_sku)} className="clickable" style={{padding:'7px 0',borderBottom:'1px solid var(--border)',fontSize:13}}>
                 <div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'flex-start'}}>
@@ -275,7 +275,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
         {lowStockAlerts.length > 5 && <button onClick={()=>setShowAllLowStock(true)} className="clickable" style={{width:'100%',padding:8,border:'none',borderRadius:0,background:'transparent',fontSize:12,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>还有 {lowStockAlerts.length - 5} 条...</button>}
       </div>
       <div className="card" style={{height:'auto',overflow:'visible'}}>
-        <div className="section-title">{t("ddash.replenish_alert")}</div>
+        <div className="section-title">{t("dash.replenish_alert")}</div>
         {replenishAlerts.length === 0
           ? <div className="small muted" style={{padding:12,textAlign:'center'}}>暂无告警</div>
           : replenishAlerts.slice(0,5).map(x => (

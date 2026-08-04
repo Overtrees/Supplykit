@@ -19,8 +19,8 @@ const { channelVersion, hammerCols, hammerSearch } = useAppStore()
 useEffect(()=>{api.get('/api/suppliers').then(r=>{const d=r.data?.items||r.data||[];setList(d);setLd(false)}).catch(()=>setLd(false))},[channelVersion])
 useEffect(() => { if (hammerCols?.suppliers) setVisCols(hammerCols.suppliers) }, [hammerCols])
 if(ld)return<div className='card'><div className='section-title'><span>{t("nav.suppliers")}</span></div><Skeleton/></div>
-const s = hammerSearch || ''
-const fl=s?list.filter(x=>(x.supplier_name||x.name||'').includes(s)||(x.supplier_code||x.code||'').includes(s)||(x.contact_person||'').includes(s)||(x.contact_phone||x.phone||'').includes(s)):list
+const s = (hammerSearch || '').toLowerCase()
+const fl=s?list.filter(x=>(x.supplier_name||x.name||'').toLowerCase().includes(s)||(x.supplier_code||x.code||'').toLowerCase().includes(s)||(x.contact_person||'').toLowerCase().includes(s)||(x.contact_phone||x.phone||'').toLowerCase().includes(s)||(x.mobile||'').toLowerCase().includes(s)):list
 return<div className='card'><div className='section-title' style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
   <span>供应商管理 <span className='small muted'>{t("common.total")} {list.length} {t("common.items")}</span></span>
 </div>

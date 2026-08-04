@@ -80,7 +80,7 @@ export default function HammerInsights({ channel }: HammerInsightsProps) {
     <div>
       <div className="hammer-header">{channel === 'jd' ? '京东' : '其他'} · 建议</div>
       {/* tab 入口 */}
-      <div className="hammer-btn-row" style={{marginBottom:8}}>
+      <div className="hammer-btn-row" style={{marginBottom:8,flexWrap:'nowrap'}}>
         {[['replen','补货建议'],['purchase','采购建议'],['slow','滞销预警']].map(([id,label]) => (
           <span key={id} onClick={() => setHammerInsightsTab(id)}
             className={'hammer-tab' + (hammerInsightsTab === id ? ' active' : '')}>

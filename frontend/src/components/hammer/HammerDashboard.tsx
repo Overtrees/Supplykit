@@ -42,7 +42,7 @@ export default function HammerDashboard({ channel }) {
           </span>
         ))}
       </div>
-      {showCustom && <div style={{borderTop:'1px solid var(--border)',paddingTop:8,marginTop:8}}>
+      {showCustom && <div style={{borderTop:'1px solid var(--border)',paddingTop:8,marginTop:8,overflow:'hidden'}}>
         <div style={{marginBottom:6}}>
           <div style={{fontSize:10,color:'var(--muted2)',marginBottom:3,padding:'0 2px'}}>开始</div>
           <input type="date" value={startVal} onChange={e=>setStartVal(e.target.value)}

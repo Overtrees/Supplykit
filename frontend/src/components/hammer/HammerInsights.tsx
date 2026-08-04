@@ -83,7 +83,8 @@ export default function HammerInsights({ channel }: HammerInsightsProps) {
       <div className="hammer-btn-row" style={{marginBottom:8,flexWrap:'nowrap',gap:4}}>
         {[['replen','补货建议'],['purchase','采购建议'],['slow','滞销预警']].map(([id,label]) => (
           <span key={id} onClick={() => setHammerInsightsTab(id)}
-            className={'hammer-tab' + (hammerInsightsTab === id ? ' active' : '')}>
+            className={'hammer-tab' + (hammerInsightsTab === id ? ' active' : '')}
+            style={{fontSize:11,padding:'2px 6px'}}>
             {label}
           </span>
         ))}

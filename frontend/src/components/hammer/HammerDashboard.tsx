@@ -43,12 +43,15 @@ export default function HammerDashboard({ channel }) {
         ))}
       </div>
       {showCustom && <div style={{borderTop:'1px solid var(--border)',paddingTop:8,marginTop:8}}>
-        <div style={{display:'grid',gridTemplateColumns:'1fr auto 1fr',gap:2,alignItems:'center',marginBottom:6}}>
+        <div style={{marginBottom:6}}>
+          <div style={{fontSize:10,color:'var(--muted2)',marginBottom:3,padding:'0 2px'}}>开始</div>
           <input type="date" value={startVal} onChange={e=>setStartVal(e.target.value)}
-            style={{width:'100%',minWidth:0,padding:'1px 3px',fontSize:10,border:'1px solid var(--border)',borderRadius:99,outline:'none',background:'var(--card)',color:'var(--text)',boxSizing:'border-box'}} />
-          <span style={{color:'var(--muted2)',fontSize:9,textAlign:'center'}}>~</span>
+            style={{width:'100%',padding:'6px 10px',fontSize:14,border:'1px solid var(--border)',borderRadius:99,outline:'none',background:'var(--card)',color:'var(--text)',boxSizing:'border-box'}} />
+        </div>
+        <div style={{marginBottom:8}}>
+          <div style={{fontSize:10,color:'var(--muted2)',marginBottom:3,padding:'0 2px'}}>结束</div>
           <input type="date" value={endVal} onChange={e=>setEndVal(e.target.value)}
-            style={{width:'100%',minWidth:0,padding:'1px 3px',fontSize:10,border:'1px solid var(--border)',borderRadius:99,outline:'none',background:'var(--card)',color:'var(--text)',boxSizing:'border-box'}} />
+            style={{width:'100%',padding:'6px 10px',fontSize:14,border:'1px solid var(--border)',borderRadius:99,outline:'none',background:'var(--card)',color:'var(--text)',boxSizing:'border-box'}} />
         </div>
         <button onClick={() => {
           if (startVal && endVal && startVal <= endVal) {

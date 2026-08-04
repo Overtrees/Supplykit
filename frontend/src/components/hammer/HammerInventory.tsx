@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { t } from "../../locale"
 import { useAppStore } from '../../store/useAppStore'
 import { useToast } from '../../components/Toast'
 import { INV_COLS, INV_COL_KEY, getInvVis, INV_WH_LABEL } from './configs'
@@ -54,7 +55,7 @@ export default function HammerInventory({ channel }: HammerInventoryProps) {
   return (
     <div>
       <div style={{fontSize:11,color:'var(--muted2)',marginBottom:8,textAlign:'center'}}>
-        {channel === 'jd' ? '京东' : '其他'} · 进销存
+        {channel === 'jd' ? 't('channel.jd') : t('channel.other')} · {t('nav.inv')}
       </div>
       {/* 功能按钮行 */}
       <div style={{display:'flex',gap:6,marginBottom:hammerPanel?8:0,flexWrap:'wrap'}}>
@@ -78,7 +79,7 @@ export default function HammerInventory({ channel }: HammerInventoryProps) {
       {/* 列选择面板 */}
       {hammerPanel === 'columns' && (
         <div style={{borderTop:'1px solid var(--border)',paddingTop:8,marginTop:0,maxHeight:260,overflowY:'auto'}}>
-          <div style={{fontSize:10,color:'var(--muted2)',marginBottom:4,padding:'0 4px'}}>拖拽 ⠿ 调整列顺序</div>
+          <div style={{fontSize:10,color:'var(--muted2)',marginBottom:4,padding:'0 4px'}}>{t("common.drag_hint")}</div>
           {(visCols.map(id=>INV_COLS[hammerWhType].find(c=>c.id===id)).filter(Boolean).concat(INV_COLS[hammerWhType].filter(c=>!visCols.includes(c.id)))).map((col,idx)=>{
             const isVis=visCols.includes(col.id)
             return <div key={col.id} draggable={isVis?true:undefined}
@@ -95,7 +96,7 @@ export default function HammerInventory({ channel }: HammerInventoryProps) {
             </div>
           })}
           <div style={{borderTop:'1px solid var(--border)',marginTop:4,paddingTop:4}}>
-            <span onClick={()=>saveCols(INV_COLS[hammerWhType].map(c=>c.id))} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>全部</span>
+            <span onClick={()=>saveCols(INV_COLS[hammerWhType].map(c=>c.id))} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>{t("common.all")}</span>
           </div>
         </div>
       )}
@@ -106,7 +107,7 @@ export default function HammerInventory({ channel }: HammerInventoryProps) {
             placeholder="搜索SKU/商品名..."
             style={{width:'100%',padding:'6px 10px',fontSize:16,border:'1px solid var(--border)',borderRadius:32,outline:'none',boxSizing:'border-box',background:'var(--card)',color:'var(--text)'}} />
           {hammerSearch && <div style={{marginTop:4,textAlign:'right'}}>
-            <span className="clickable btn btn-ghost" onClick={()=>setHammerSearch('')} style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>清除</span>
+            <span className="clickable btn btn-ghost" onClick={()=>setHammerSearch('')} style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>{t("common.clear")}</span>
           </div>}
         </div>
       )}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react"
+import { t } from "../../locale"
 import { useAppStore } from "../../store/useAppStore"
 import { useToast } from "../../components/Toast"
 import { INS_BBCC_COLS, INS_TRAD_COLS, INS_PURCHASE_COLS, INS_SLOW_COLS, insColKey, getInsVis, insDefVis, insDefVisTrad } from "./configs"
@@ -137,7 +138,7 @@ export default function HammerInsights({ channel }: HammerInsightsProps) {
             style={{width:'100%',padding:'6px 10px',fontSize:16,border:'1px solid var(--border)',borderRadius:32,outline:'none',boxSizing:'border-box',background:'var(--card)',color:'var(--text)'}} />
           {hammerData?.[channel]?.['insights_search_' + (isPurchase ? 'purchase' : isSlow ? 'slow' : mode)] && (
             <div style={{marginTop:4,textAlign:'center'}}>
-              <span className="clickable btn btn-ghost" onClick={() => setHammerData('insights_search_' + (isPurchase ? 'purchase' : isSlow ? 'slow' : mode), '')} style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>清除</span>
+              <span className="clickable btn btn-ghost" onClick={() => setHammerData('insights_search_' + (isPurchase ? 'purchase' : isSlow ? 'slow' : mode), '')} style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>{t("common.clear")}</span>
             </div>
           )}
         </div>
@@ -145,7 +146,7 @@ export default function HammerInsights({ channel }: HammerInsightsProps) {
       {/* 列选择面板 */}
       {hammerPanel === 'columns' && (
         <div style={{borderTop:'1px solid var(--border)',paddingTop:8,marginTop:8,maxHeight:260,overflowY:'auto'}}>
-          <div style={{fontSize:10,color:'var(--muted2)',marginBottom:4,padding:'0 4px'}}>拖拽 ⠿ 调整列顺序</div>
+          <div style={{fontSize:10,color:'var(--muted2)',marginBottom:4,padding:'0 4px'}}>{t("common.drag_hint")}</div>
           {(visCols.map(id=>cols.find(c=>c.id===id)).filter(Boolean).concat(cols.filter(c=>!visCols.includes(c.id)))).map((col,idx)=>{
             const isVis=visCols.includes(col.id)
             return <div key={col.id} draggable={isVis?true:undefined}
@@ -162,8 +163,8 @@ export default function HammerInsights({ channel }: HammerInsightsProps) {
             </div>
           })}
           <div style={{borderTop:'1px solid var(--border)',marginTop:4,paddingTop:4,display:'flex',gap:6}}>
-            <span onClick={()=>saveCols(isSlow ? INS_SLOW_COLS.map(c=>c.id) : (isPurchase ? INS_PURCHASE_COLS.map(c=>c.id) : (mode==='bbcc'?insDefVis(INS_BBCC_COLS):insDefVisTrad(INS_TRAD_COLS))))} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>默认</span>
-            <span onClick={()=>saveCols(cols.map(c=>c.id))} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>全部</span>
+            <span onClick={()=>saveCols(isSlow ? INS_SLOW_COLS.map(c=>c.id) : (isPurchase ? INS_PURCHASE_COLS.map(c=>c.id) : (mode==='bbcc'?insDefVis(INS_BBCC_COLS):insDefVisTrad(INS_TRAD_COLS))))} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>{t("common.default")}</span>
+            <span onClick={()=>saveCols(cols.map(c=>c.id))} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>{t("common.all")}</span>
           </div>
         </div>
       )}

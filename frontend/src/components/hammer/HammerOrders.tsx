@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { t } from "../../locale"
 import { useAppStore } from '../../store/useAppStore'
 import { useToast } from '../../components/Toast'
 import { ORDER_COLS, ORDER_STATUSES, orderColKey, getOrderVis } from './configs'
@@ -43,7 +44,7 @@ export default function HammerOrders({ channel }: HammerOrdersProps) {
   return (
     <div>
       <div style={{fontSize:11,color:'var(--muted2)',marginBottom:8,textAlign:'center'}}>
-        {channel === 'jd' ? '京东' : '其他'} · 订单
+        {channel === 'jd' ? 't('channel.jd') : t('channel.other')} · {t('nav.orders')}
       </div>
       <div style={{display:'flex',gap:6,marginBottom:hammerPanel?8:0,flexWrap:'wrap'}}>
         <button onClick={() => setHammerPanel(hammerPanel === 'columns' ? null : 'columns')}
@@ -66,7 +67,7 @@ export default function HammerOrders({ channel }: HammerOrdersProps) {
       {/* 列选择面板 */}
       {hammerPanel === 'columns' && (
         <div style={{borderTop:'1px solid var(--border)',paddingTop:8,marginTop:0,maxHeight:260,overflowY:'auto'}}>
-          <div style={{fontSize:10,color:'var(--muted2)',marginBottom:4,padding:'0 4px'}}>拖拽 ⠿ 调整列顺序</div>
+          <div style={{fontSize:10,color:'var(--muted2)',marginBottom:4,padding:'0 4px'}}>{t("common.drag_hint")}</div>
           {(visCols.map(id=>ORDER_COLS.find(c=>c.id===id)).filter(Boolean).concat(ORDER_COLS.filter(c=>!visCols.includes(c.id)))).map((col,idx)=>{
             const isVis=visCols.includes(col.id)
             return <div key={col.id} draggable={isVis?true:undefined}
@@ -83,7 +84,7 @@ export default function HammerOrders({ channel }: HammerOrdersProps) {
             </div>
           })}
           <div style={{borderTop:'1px solid var(--border)',marginTop:4,paddingTop:4}}>
-            <span onClick={()=>saveCols(ORDER_COLS.map(c=>c.id))} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>全部</span>
+            <span onClick={()=>saveCols(ORDER_COLS.map(c=>c.id))} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>{t("common.all")}</span>
           </div>
         </div>
       )}
@@ -94,14 +95,14 @@ export default function HammerOrders({ channel }: HammerOrdersProps) {
             placeholder="搜索单号/商品/SKU..."
             style={{width:'100%',padding:'6px 10px',fontSize:16,border:'1px solid var(--border)',borderRadius:32,outline:'none',boxSizing:'border-box',background:'var(--card)',color:'var(--text)'}} />
           {hammerSearch && <div style={{marginTop:4,textAlign:'right'}}>
-            <span className="clickable btn btn-ghost" onClick={()=>setHammerSearch('')} style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>清除</span>
+            <span className="clickable btn btn-ghost" onClick={()=>setHammerSearch('')} style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>{t("common.clear")}</span>
           </div>}
         </div>
       )}
       {/* 筛选面板 */}
       {hammerPanel === 'filter' && (
         <div style={{borderTop:'1px solid var(--border)',paddingTop:8}}>
-          <div style={{fontSize:10,color:'var(--muted2)',marginBottom:4}}>订单状态</div>
+          <div style={{fontSize:10,color:'var(--muted2)',marginBottom:4}}>{t("common.order_status")}</div>
           <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
             {ORDER_STATUSES.map(s => (
               <span key={s} onClick={() => setOrderFilterLocal('', s)}
@@ -115,7 +116,7 @@ export default function HammerOrders({ channel }: HammerOrdersProps) {
             ))}
           </div>
           {orderStatus && <div style={{marginTop:4,textAlign:'right'}}>
-            <span onClick={()=>setOrderFilterLocal('','')} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>清除筛选</span>
+            <span onClick={()=>setOrderFilterLocal('','')} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>{t("common.clear_filter")}</span>
           </div>}
         </div>
       )}

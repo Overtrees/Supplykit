@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { t } from "../../locale"
 import { useAppStore } from '../../store/useAppStore'
 import { PRODUCT_COLS, prodColKey, getProdVis } from './configs'
 
@@ -18,16 +19,16 @@ export default function HammerProducts({ channel }: HammerProductsProps) {
 
   return (
     <div>
-      <div className="hammer-header">{channel === 'jd' ? '京东' : '其他'} · 商品</div>
+      <div className="hammer-header">{channel === 'jd' ? 't('channel.jd') : t('channel.other')} · {t('nav.products')}</div>
       <div className="hammer-btn-row" style={{marginBottom:hammerPanel?8:0}}>
         <button onClick={() => setHammerPanel(hammerPanel === 'columns' ? null : 'columns')}
-          className="btn-ghost hammer-btn">列选择 ({visCols.length}/{PRODUCT_COLS.length})</button>
+          className="btn-ghost hammer-btn">{t("common.columns")} ({visCols.length}/{PRODUCT_COLS.length})</button>
         <button onClick={() => { setHammerPanel(hammerPanel === 'search' ? null : 'search'); if (hammerPanel !== 'search') setTimeout(() => document.getElementById('hm-search-prod')?.focus(), 100) }}
-          className="btn-ghost hammer-btn">搜索</button>
+          className="btn-ghost hammer-btn">{t("common.search")}</button>
       </div>
       {hammerPanel === 'columns' && (
         <div className="hammer-panel hammer-panel-scroll">
-          <div className="muted2" style={{fontSize:10,marginBottom:4,padding:'0 4px'}}>拖拽 ⠿ 调整列顺序</div>
+          <div className="muted2" style={{fontSize:10,marginBottom:4,padding:'0 4px'}}>{t("common.drag_hint")}</div>
           {(visCols.map(id=>PRODUCT_COLS.find(c=>c.id===id)).filter(Boolean).concat(PRODUCT_COLS.filter(c=>!visCols.includes(c.id)))).map((col,idx)=>{
             const isVis=visCols.includes(col.id)
             return <div key={col.id} draggable={isVis?true:undefined}
@@ -44,7 +45,7 @@ export default function HammerProducts({ channel }: HammerProductsProps) {
             </div>
           })}
           <div style={{borderTop:'1px solid var(--border)',marginTop:4,paddingTop:4}}>
-            <span onClick={()=>saveCols(PRODUCT_COLS.map(c=>c.id))} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>全部</span>
+            <span onClick={()=>saveCols(PRODUCT_COLS.map(c=>c.id))} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>{t("common.all")}</span>
           </div>
         </div>
       )}
@@ -53,7 +54,7 @@ export default function HammerProducts({ channel }: HammerProductsProps) {
           <input id="hm-search-prod" value={hammerSearch} onChange={e=>setHammerSearch(e.target.value)}
             placeholder="搜索SKU/商品名..." className="hammer-input" />
           {hammerSearch && <div className="text-right mt-8">
-            <span className="clickable btn btn-ghost" onClick={()=>setHammerSearch('')} style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>清除</span>
+            <span className="clickable btn btn-ghost" onClick={()=>setHammerSearch('')} style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>{t("common.clear")}</span>
           </div>}
         </div>
       )}

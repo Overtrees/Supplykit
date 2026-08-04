@@ -1,76 +1,144 @@
-// 国际化迁移脚本
+// 国际化迁移第二阶段
 const fs = require('fs');
 
-console.log('迁移开始...');
+console.log('第二阶段迁移开始...');
 
-// 1. App.tsx - 导航栏
-let s = fs.readFileSync('src/App.tsx', 'utf8');
-s = s.replace('import { IconStatusOnline, IconStatusWarning, IconStatusOffline, IconExport }', 'import { t } from "./locale"\nimport { IconStatusOnline, IconStatusWarning, IconStatusOffline, IconExport }');
-s = s.replace("{ id:'dash',label:'多维数据看板'}", "{ id:'dash',label:t('nav.dash')}");
-s = s.replace("{id:'products',label:'货品信息'}", "{id:'products',label:t('nav.products')}");
-s = s.replace("{id:'suppliers',label:'供应商管理'}", "{id:'suppliers',label:t('nav.suppliers')}");
-s = s.replace("{id:'orders',label:'订单明细'}", "{id:'orders',label:t('nav.orders')}");
-s = s.replace("{id:'inv',label:'进销存台账'}", "{id:'inv',label:t('nav.inv')}");
-s = s.replace("{id:'insights',label:'货品供应建议'}", "{id:'insights',label:t('nav.insights')}");
-s = s.replace("{id:'cleansing',label:'数据清洗及导入'}", "{id:'cleansing',label:t('nav.cleansing')}");
-s = s.replace("{id:'rules',label:'规则搭建'}", "{id:'rules',label:t('nav.rules')}");
-s = s.replace("{id:'quality',label:'操作异常记录'}", "{id:'quality',label:t('nav.quality')}");
-s = s.replace("{id:'settings',label:'设置'}", "{id:'settings',label:t('nav.settings')}");
-fs.writeFileSync('src/App.tsx', s);
-console.log('App.tsx done');
+// 辅助函数：安全替换文本
+function replaceInFile(filePath, replacements) {
+  let s = fs.readFileSync(filePath, 'utf8');
+  let changed = false;
+  for (const [from, to] of replacements) {
+    if (s.includes(from)) {
+      s = s.replace(from, to);
+      changed = true;
+    }
+  }
+  if (changed) fs.writeFileSync(filePath, s);
+  return changed;
+}
 
-// 2. Sidebar
-s = fs.readFileSync('src/components/Sidebar.tsx', 'utf8');
-s = s.replace('import { NAV }', 'import { t } from "../../locale"\nimport { NAV }');
-s = s.replace("item.id === 'dash' && '数据概览'", "item.id === 'dash' && t('nav.dash')");
-s = s.replace("item.id === 'insights' && '补货/采购建议'", "item.id === 'insights' && t('nav.insights')");
-s = s.replace("item.id === 'orders' && '订单明细'", "item.id === 'orders' && t('nav.orders')");
-s = s.replace("item.id === 'inv' && '进销存台账'", "item.id === 'inv' && t('nav.inv')");
-s = s.replace("item.id === 'products' && '商品管理'", "item.id === 'products' && t('nav.products')");
-s = s.replace("item.id === 'suppliers' && '供应商管理'", "item.id === 'suppliers' && t('nav.suppliers')");
-s = s.replace("item.id === 'cleansing' && '数据清洗导入'", "item.id === 'cleansing' && t('nav.cleansing')");
-s = s.replace("item.id === 'rules' && '规则与参数的配置'", "item.id === 'rules' && t('nav.rules')");
-s = s.replace("item.id === 'quality' && '数据异常记录'", "item.id === 'quality' && t('nav.quality')");
-s = s.replace("item.id === 'settings' && '系统设置与连接状态'", "item.id === 'settings' && t('nav.settings')");
-fs.writeFileSync('src/components/Sidebar.tsx', s);
-console.log('Sidebar done');
+// 1. Toast 通知
+console.log('1. Toast...');
+replaceInFile('src/components/Toast.tsx', [
+  ['import { ToastProvider }', 'import { t } from "../locale"\nimport { ToastProvider }'],
+]);
 
-// 3. SettingsPage
-s = fs.readFileSync('src/pages/SettingsPage.tsx', 'utf8');
-s = s.replace('import ConfirmDialog', 'import { t } from "../locale"\nimport ConfirmDialog');
-s = s.replace('>连接状态<', '>{t("settings.connection")}<');
-s = s.replace('>操作<', '>{t("settings.actions")}<');
-s = s.replace('>系统信息<', '>{t("settings.system")}<');
-s = s.replace('>界面<', '>{t("settings.interface")}<');
-s = s.replace('>种子数据<', '>{t("settings.seed_data")}<');
-s = s.replace('>刷新连接<', '>{t("settings.refresh")}<');
-s = s.replace('>清除本地缓存<', '>{t("settings.clear_cache")}<');
-s = s.replace('>回收站<', '>{t("settings.recycle_bin")}<');
-s = s.replace('>版本号<', '>{t("settings.version")}<');
-s = s.replace('>构建日期<', '>{t("settings.build_date")}<');
-s = s.replace('>重置欢迎页<', '>{t("settings.reset_welcome")}<');
-s = s.replace('>一键填充<', '>{t("settings.seed_fill")}<');
-s = s.replace('>一键重置<', '>{t("settings.seed_reset")}<');
-s = s.replace('>前端<', '>{t("settings.frontend")}<');
-s = s.replace('>后端<', '>{t("settings.backend")}<');
-s = s.replace('>已删除的规则<', '>{t("recycle.deleted_rules")}<');
-s = s.replace('>已删除的订单<', '>{t("recycle.deleted_orders")}<');
-s = s.replace('>暂无已删除的规则<', '>{t("recycle.empty_rules")}<');
-s = s.replace('>暂无已删除的订单<', '>{t("recycle.empty_orders")}<');
-s = s.replace('>恢复<', '>{t("common.restore")}<');
-s = s.replace('>关闭<', '>{t("common.close")}<');
-fs.writeFileSync('src/pages/SettingsPage.tsx', s);
-console.log('SettingsPage done');
+// 2. HammerProducts
+console.log('2. HammerProducts...');
+let hp = fs.readFileSync('src/components/hammer/HammerProducts.tsx', 'utf8');
+hp = hp.replace('import { useAppStore }', 'import { t } from "../../locale"\nimport { useAppStore }');
+hp = hp.replace("京东' : '其他'} · 商品", "t('channel.jd') : t('channel.other')} · {t('nav.products')}");
+hp = hp.replace('>列选择 (', '>{t("common.columns")} (');
+hp = hp.replace('>搜索<', '>{t("common.search")}<');
+hp = hp.replace('>清除<', '>{t("common.clear")}<');
+hp = hp.replace('>全部<', '>{t("common.all")}<');
+hp = hp.replace('>拖拽 ⠿ 调整列顺序<', '>{t("common.drag_hint")}<');
+fs.writeFileSync('src/components/hammer/HammerProducts.tsx', hp);
+console.log('   done');
 
-// 4. HammerDashboard
-s = fs.readFileSync('src/components/hammer/HammerDashboard.tsx', 'utf8');
-s = s.replace("import { useAppStore }", "import { t } from \"../../locale\"\nimport { useAppStore }");
-s = s.replace("京东' : '其他'} · 看板", "t('channel.jd') : t('channel.other')} · " + "' + t('nav.dash') + '");
-s = s.replace(">聚合时间维度<", ">{t('dash.period_label')}<");
-s = s.replace(">开始<", ">{t('common.start_date')}<");
-s = s.replace(">结束<", ">{t('common.end_date')}<");
-s = s.replace(">确定<", ">{t('common.confirm')}<");
-fs.writeFileSync('src/components/hammer/HammerDashboard.tsx', s);
-console.log('HammerDashboard done');
+// 3. HammerSuppliers
+console.log('3. HammerSuppliers...');
+let hs = fs.readFileSync('src/components/hammer/HammerSuppliers.tsx', 'utf8');
+hs = hs.replace('import { useAppStore }', 'import { t } from "../../locale"\nimport { useAppStore }');
+hs = hs.replace("京东' : '其他'} · 供应商", "t('channel.jd') : t('channel.other')} · {t('nav.suppliers')}");
+hs = hs.replace('>列选择 (', '>{t("common.columns")} (');
+hs = hs.replace('>搜索<', '>{t("common.search")}<');
+hs = hs.replace('>清除<', '>{t("common.clear")}<');
+hs = hs.replace('>全部<', '>{t("common.all")}<');
+hs = hs.replace('>拖拽 ⠿ 调整列顺序<', '>{t("common.drag_hint")}<');
+fs.writeFileSync('src/components/hammer/HammerSuppliers.tsx', hs);
+console.log('   done');
 
-console.log('迁移完成!');
+// 4. HammerOrders
+console.log('4. HammerOrders...');
+let ho = fs.readFileSync('src/components/hammer/HammerOrders.tsx', 'utf8');
+ho = ho.replace('import { useAppStore }', 'import { t } from "../../locale"\nimport { useAppStore }');
+ho = ho.replace("京东' : '其他'} · 订单", "t('channel.jd') : t('channel.other')} · {t('nav.orders')}");
+ho = ho.replace('>列选择 (', '>{t("common.columns")} (');
+ho = ho.replace('>搜索<', '>{t("common.search")}<');
+ho = ho.replace('>筛选', '>{t("common.filter")}');
+ho = ho.replace('>导出<', '>{t("common.export")}<');
+ho = ho.replace('>导出中...<', '>{t("common.exporting")}<');
+ho = ho.replace('>清除<', '>{t("common.clear")}<');
+ho = ho.replace('>全部<', '>{t("common.all")}<');
+ho = ho.replace('>清除筛选<', '>{t("common.clear_filter")}<');
+ho = ho.replace('>订单状态<', '>{t("common.order_status")}<');
+ho = ho.replace('>拖拽 ⠿ 调整列顺序<', '>{t("common.drag_hint")}<');
+fs.writeFileSync('src/components/hammer/HammerOrders.tsx', ho);
+console.log('   done');
+
+// 5. HammerInventory
+console.log('5. HammerInventory...');
+let hi = fs.readFileSync('src/components/hammer/HammerInventory.tsx', 'utf8');
+hi = hi.replace('import { useAppStore }', 'import { t } from "../../locale"\nimport { useAppStore }');
+hi = hi.replace("京东' : '其他'} · 进销存", "t('channel.jd') : t('channel.other')} · {t('nav.inv')}");
+hi = hi.replace('>列选择 (', '>{t("common.columns")} (');
+hi = hi.replace('>搜索<', '>{t("common.search")}<');
+hi = hi.replace('>导出<', '>{t("common.export")}<');
+hi = hi.replace('>导出中...<', '>{t("common.exporting")}<');
+hi = hi.replace('>清除<', '>{t("common.clear")}<');
+hi = hi.replace('>全部<', '>{t("common.all")}<');
+hi = hi.replace('>拖拽 ⠿ 调整列顺序<', '>{t("common.drag_hint")}<');
+// 仓库类型
+hi = hi.replace('>自有仓<', '>{t("inv.own")}<');
+hi = hi.replace('>平台仓<', '>{t("inv.platform")}<');
+fs.writeFileSync('src/components/hammer/HammerInventory.tsx', hi);
+console.log('   done');
+
+// 6. HammerInsights
+console.log('6. HammerInsights...');
+let hins = fs.readFileSync('src/components/hammer/HammerInsights.tsx', 'utf8');
+hins = hins.replace('import { useAppStore }', 'import { t } from "../../locale"\nimport { useAppStore }');
+hins = hins.replace("京东' : '其他'} · 补货建议", "t('channel.jd') : t('channel.other')} · {t('nav.insights')}");
+hins = hins.replace('>列选择 (', '>{t("common.columns")} (');
+hins = hins.replace('>搜索<', '>{t("common.search")}<');
+hins = hins.replace('>导出<', '>{t("common.export")}<');
+hins = hins.replace('>导出中...<', '>{t("common.exporting")}<');
+hins = hins.replace('>清除<', '>{t("common.clear")}<');
+hins = hins.replace('>全部<', '>{t("common.all")}<');
+hins = hins.replace('>默认<', '>{t("common.default")}<');
+hins = hins.replace('>拖拽 ⠿ 调整列顺序<', '>{t("common.drag_hint")}<');
+fs.writeFileSync('src/components/hammer/HammerInsights.tsx', hins);
+console.log('   done');
+
+// 7. locale.ts 补充翻译键
+console.log('7. 补充缺失翻译键...');
+let loc = fs.readFileSync('src/locale.ts', 'utf8');
+const newKeys = `
+  'common.columns': '列选择',
+  'common.clear': '清除',
+  'common.clear_filter': '清除筛选',
+  'common.drag_hint': '拖拽 ⠿ 调整列顺序',
+  'common.filter': '筛选',
+  'common.order_status': '订单状态',
+  'common.default': '默认',
+  'common.start_date': '开始',
+  'common.end_date': '结束',
+  'inv.own': '自有仓',
+  'inv.platform': '平台仓',`;
+
+// 在 settings 后面添加
+loc = loc.replace("'settings.seed_reset': '一键重置',", "'settings.seed_reset': '一键重置'," + newKeys);
+fs.writeFileSync('src/locale.ts', loc);
+console.log('   done');
+
+// 英文翻译
+loc = fs.readFileSync('src/locale.ts', 'utf8');
+const enKeys = `
+  'common.columns': 'Columns',
+  'common.clear': 'Clear',
+  'common.clear_filter': 'Clear Filter',
+  'common.drag_hint': 'Drag to reorder',
+  'common.filter': 'Filter',
+  'common.order_status': 'Order Status',
+  'common.default': 'Default',
+  'common.start_date': 'Start',
+  'common.end_date': 'End',
+  'inv.own': 'Own Warehouse',
+  'inv.platform': 'Platform Warehouse',`;
+
+loc = loc.replace("'settings.seed_reset': 'Reset All Data',", "'settings.seed_reset': 'Reset All Data'," + enKeys);
+fs.writeFileSync('src/locale.ts', loc);
+console.log('   done');
+
+console.log('第二阶段迁移完成!');

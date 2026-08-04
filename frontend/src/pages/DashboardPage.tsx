@@ -69,7 +69,7 @@ export default function DashboardPage({ onAlert }) {
         label: { show: true, position: 'right', fontSize: 10, formatter: (p) => `${p.value}单`, textBorderColor: 'transparent' }
       }]
     }
-  }, [dashboard])
+  }, [dashboard, periodTab])
 
   const lowStock = (inventory||[]).filter(x => Number(x.available_qty) < Number(x.safety_qty)).length
   const errCount = (qualityLogs||[]).length

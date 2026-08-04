@@ -42,12 +42,18 @@ def dashboard_summary(channel: str = 'jd', start_date: str = '', end_date: str =
             "gmv": round(gmv, 2), "total_orders": len(orders), "pending_count": pending, "refund_count": refund,
             "low_stock_count": low_stock, "active_alerts": len(alerts), "total_products": len(products), "total_suppliers": len(suppliers),
         }
+        # 店铺 GMV
+        store_gmv = defaultdict(float)
+        for o in orders:
+            if o.get("order_status") == "已完成":
+                store_gmv[o.get('store', '其他')] += float(o.get("total_amount") or 0)
+        stores = [{"name": k, "gmv": round(v, 2)} for k, v in sorted(store_gmv.items(), key=lambda x: -x[1])]
         return ok({
             "summary": summary,
             "periods": {"custom": {"gmv": round(gmv, 2), "orders": len(orders), "days": day_count}},
             "trend": trend_data,
             "funnel": _compute_funnel(orders), "health_index": _compute_health(inv),
-            "stores": [],
+            "stores": stores,
         })
     data = get_dashboard(channel=channel)
     return ok(data)

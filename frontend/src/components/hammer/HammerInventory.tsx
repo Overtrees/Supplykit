@@ -55,7 +55,7 @@ export default function HammerInventory({ channel }: HammerInventoryProps) {
   return (
     <div>
       <div style={{fontSize:11,color:'var(--muted2)',marginBottom:8,textAlign:'center'}}>
-        {channel === 'jd' ? t('channel.jd') : t('channel.other')} · {t('nav.inv')
+        {channel === 'jd' ? t('channel.jd') : t('channel.other')} · {t('nav.inv')}
 
       </div>
       {/* 功能按钮行 */}

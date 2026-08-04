@@ -87,7 +87,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
     if (filterType === 'bc') return Number(item.available_qty) === 0 && item.warehouse_type !== 'own'
     return Number(item.available_qty) === 0 && item.warehouse_type === filterType
   }).slice(0,3)
-  // 告警 × 仓库维度拆分
+  // 告警 × 仓库维度拆t("dash.score_unit")
   const skuWhMap = Object.fromEntries((inventory||[]).map(i => [i.sku, i.warehouse_type]))
   function countByWh(items) {
     var result = {b:0, c:0, own:0}
@@ -137,7 +137,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
         </div>}
       </div>
 
-      {/* 2. 待处理卡 — 按仓库维度拆分 */}
+      {/* 2. t("dash.pending")卡 — 按仓库维度拆分 */}
       <div className="card" style={{borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16}}>
         <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>待处理</div>
         <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:4}}>
@@ -152,10 +152,10 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
             {(lowStockAlerts.length > 0 || replenishAlerts.length > 0) && <>
               <div style={{fontSize:10,display:'flex',gap:8,marginTop:4}}>
                 <span style={{color:'var(--muted2)'}}>● 低库存 {lowStockAlerts.length}</span>
-                <span style={{color:'var(--muted2)'}}>● 需补货 {replenishAlerts.length}</span>
+                <span style={{color:'var(--muted2)'}}>● 需t("dash.replenish") {replenishAlerts.length}</span>
               </div>
               <div style={{fontSize:9,display:'flex',gap:6,marginTop:3,color:'var(--muted)'}}>
-                <span>B{lsWh.b} C{lsWh.c} 自有{lsWh.own}</span>
+                <span>B{lsWh.b} C{lsWh.c} t("dash.own"){lsWh.own}</span>
                 <span style={{color:'var(--border)'}}>|</span>
                 <span>B{rpWh.b} C{rpWh.c} 自有{rpWh.own}</span>
               </div>
@@ -164,7 +164,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
         </div>
       </div>
 
-      {/* 3. 库存健康度 — 加总 SKU 数 */}
+      {/* 3. t("dash.health") — 加总 t("dash.sku") 数 */}
       <div className="card" style={{borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16}}>
         {(()=>{
           var healthData = dashboard?.health_index?.[healthTab]||{}
@@ -173,7 +173,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
           var bcLabel = healthTab === 'platform' ? 'C仓' : 'BC'
           return <>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
-              <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>库存健康度</div>
+              <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>库存t("dash.healthy")度</div>
               <div style={{display:'flex',gap:2,background:'var(--bg)',borderRadius:99,padding:2,position:'relative'}}>
                 <span onClick={function(){localStorage.setItem('health_tab','own');setHealthTab('own')}}
                   className="clickable"
@@ -208,10 +208,10 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
               <div className="card-sub" style={{marginTop:4}}>
                 <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
                   <span style={{color:'var(--success)'}}>● {healthData.healthy||0}健康</span>
-                  <span style={{color:'var(--warning)'}}>● {healthData.warning||0}偏低</span>
+                  <span style={{color:'var(--warning)'}}>● {healthData.warning||0}t("dash.low")</span>
                 </div>
                 <div style={{fontSize:10,marginTop:3}}>
-                  <span style={{color:'#ef4444'}}>● {healthData.out_of_stock||0}缺货</span>
+                  <span style={{color:'#ef4444'}}>● {healthData.out_of_stock||0}t("dash.out_of_stock")</span>
                   <span style={{color:'var(--muted2)'}}> · {healthData.total||0} SKU</span>
                 </div>
               </div>
@@ -227,20 +227,20 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
         })()}
       </div>
 
-      {/* 4. 濒临断货 TOP10 — 加危急/警告分层 */}
+      {/* 4. 濒临断货 TOP10 — 加危急/t("dash.alert_warning")分层 */}
       <div className="card" style={{borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16,overflow:'hidden'}}>
-        <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>濒临断货 TOP 10</div>
+        <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>t("dash.risk")</div>
         {(!stockRisk || stockRisk.length === 0)
           ? <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:2}}>
-              <div style={{fontSize:14,fontWeight:400,color:'var(--muted2)'}}>库存充足</div>
+              <div style={{fontSize:14,fontWeight:400,color:'var(--muted2)'}}>t("dash.stock_ok")</div>
             </div>
           : <>
               <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:4}}>
                 <div className="card-value" style={{fontSize:'clamp(18px,9cqi,30px)',fontWeight:700,lineHeight:1.1,color:'#ef4444'}}>{stockRisk.length}</div>
-                <div className="card-sub" style={{marginTop:4}}>最短 {stockRisk[0].days_to_empty} 天断货</div>
+                <div className="card-sub" style={{marginTop:4}}>t("dash.min_days") {stockRisk[0].days_to_empty} t("dash.days_out")</div>
                 {(riskCritical > 0 || riskWarning > 0) && <div style={{fontSize:10,display:'flex',gap:4,marginTop:3,flexWrap:'wrap'}}>
-                  {riskCritical > 0 && <span style={{color:'#ef4444'}}>● {riskCritical} 紧急</span>}
-                  {riskWarning > 0 && <span style={{color:'var(--warning)'}}>● {riskWarning} 预警</span>}
+                  {riskCritical > 0 && <span style={{color:'#ef4444'}}>● {riskCritical} t("dash.critical")</span>}
+                  {riskWarning > 0 && <span style={{color:'var(--warning)'}}>● {riskWarning} t("dash.warning")</span>}
                 </div>}
               </div>
               {stockRisk.slice(0,3).map((x,i) => (
@@ -253,20 +253,20 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
     </div>
 
     <div className="mid-chart-grid">
-      <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title">订单阶段分布</div><Chart option={barOption} height={200} /></div>
-      <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title">店铺 GMV</div><Chart option={storeOption} height={170} /></div>
+      <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title">t("dash.funnel")</div><Chart option={barOption} height={200} /></div>
+      <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title">t("dash.store_gmv")</div><Chart option={storeOption} height={170} /></div>
     </div>
 
     <div className="chart-row-3">
       <div className="card" style={{height:'auto',overflow:'visible'}}>
-        <div className="section-title">低库存告警</div>
+        <div className="section-title">t("dash.low_stock")</div>
         {lowStockAlerts.length === 0
-          ? <div className="small muted" style={{padding:12,textAlign:'center'}}>暂无告警</div>
+          ? <div className="small muted" style={{padding:12,textAlign:'center'}}>t("dash.no_alerts")</div>
           : lowStockAlerts.slice(0,5).map(x => (
               <div key={x.id} onClick={() => onAlert && onAlert(x.related_sku)} className="clickable" style={{padding:'7px 0',borderBottom:'1px solid var(--border)',fontSize:13}}>
                 <div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'flex-start'}}>
                   <span style={{fontWeight:600,fontSize:12,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1,minWidth:0}}>{x.title}</span>
-                  <span className={'pill '+(x.severity==='error'?'danger':'warning')} style={{flexShrink:0}}>{x.severity==='warning'?'警告':'超储'}</span>
+                  <span className={'pill '+(x.severity==='error'?'danger':'warning')} style={{flexShrink:0}}>{x.severity==='warning'?'警告':'t("dash.alert_overstock")'}</span>
                 </div>
                 <div className="small muted" style={{fontSize:11,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:2}}>{x.description}</div>
               </div>
@@ -274,7 +274,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
         {lowStockAlerts.length > 5 && <button onClick={()=>setShowAllLowStock(true)} className="clickable" style={{width:'100%',padding:8,border:'none',borderRadius:0,background:'transparent',fontSize:12,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>还有 {lowStockAlerts.length - 5} 条...</button>}
       </div>
       <div className="card" style={{height:'auto',overflow:'visible'}}>
-        <div className="section-title">补货告警</div>
+        <div className="section-title">t("dash.replenish_alert")</div>
         {replenishAlerts.length === 0
           ? <div className="small muted" style={{padding:12,textAlign:'center'}}>暂无告警</div>
           : replenishAlerts.slice(0,5).map(x => (

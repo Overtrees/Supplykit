@@ -1,12 +1,13 @@
-// 国际化迁移第三阶段 - 页面组件+欢迎页
+// 第四阶段迁移脚本
 const fs = require('fs');
 
 function migrate(file, replacements) {
   let s = fs.readFileSync(file, 'utf8');
   let count = 0;
   for (const [from, to] of replacements) {
-    if (s.includes(from)) {
-      s = s.replace(from, to);
+    const idx = s.indexOf(from);
+    if (idx !== -1) {
+      s = s.substring(0, idx) + to + s.substring(idx + from.length);
       count++;
     }
   }
@@ -14,125 +15,98 @@ function migrate(file, replacements) {
   return count;
 }
 
-console.log('第三阶段迁移开始...');
+console.log('第四阶段迁移开始...');
 
-// 1. 欢迎页 (App.tsx)
-let app = fs.readFileSync('src/App.tsx', 'utf8');
-app = app.replace('>SupplyKit<', '>{t("welcome.title")}<');
-app = app.replace('>电商供应链数据清洗与补货决策看板<', '>{t("app.desc")}<');
-app = app.replace('>看数据<', '>{t("welcome.dash")}<');
-app = app.replace('>看补货<', '>{t("welcome.insights")}<');
-app = app.replace('>导数据<', '>{t("welcome.cleansing")}<');
-app = app.replace('>设规则<', '>{t("welcome.rules")}<');
-app = app.replace('>开始体验<', '>{t("welcome.start")}<');
-app = app.replace('>跳过，直接进入<', '>{t("welcome.skip")}<');
-app = app.replace('>多维看板总览<', '>{t("welcome.dash_desc")}<');
-app = app.replace('>补货/采购建议<', '>{t("welcome.insights_desc")}<');
-app = app.replace('>数据清洗导入<', '>{t("welcome.cleansing_desc")}<');
-app = app.replace('>规则引擎配置<', '>{t("welcome.rules_desc")}<');
-fs.writeFileSync('src/App.tsx', app);
-console.log('1. App.tsx (欢迎页) done');
+// 1. DashboardPage 看板
+migrate('src/pages/DashboardPage.tsx', [
+  ['本月 GMV', 't("period.month") + " " + t("dash.gmv")'],
+  ['今日 GMV', 't("period.today") + " " + t("dash.gmv")'],
+  ['本周 GMV', 't("period.week") + " " + t("dash.gmv")'],
+  ['自定义 GMV', 't("period.custom") + " " + t("dash.gmv")'],
+  ['待处理', 't("dash.pending")'],
+  ['库存健康度', 't("dash.health")'],
+  ['濒临断货 TOP 10', 't("dash.risk")'],
+  ['订单阶段分布', 't("dash.funnel")'],
+  ['店铺 GMV', 't("dash.store_gmv")'],
+  ['低库存告警', 't("dash.low_stock")'],
+  ['补货告警', 't("dash.replenish_alert")'],
+  ['暂无告警', 't("dash.no_alerts")'],
+  ['最短', 't("dash.min_days")'],
+  ['天断货', 't("dash.days_out")'],
+  ['紧急', 't("dash.critical")'],
+  ['预警', 't("dash.warning")'],
+  ['库存充足', 't("dash.stock_ok")'],
+  ['警告', 't("dash.alert_warning")'],
+  ['超储', 't("dash.alert_overstock")'],
+  ['补货', 't("dash.replenish")'],
+  ['分', 't("dash.score_unit")'],
+  ['健康', 't("dash.healthy")'],
+  ['偏低', 't("dash.low")'],
+  ['缺货', 't("dash.out_of_stock")'],
+  ['SKU', 't("dash.sku")'],
+  ['自有', 't("dash.own")'],
+]);
+console.log('1. DashboardPage done');
 
-// 2. locale.ts 补充新键
+// 2. locale.ts 补充看板键
 let loc = fs.readFileSync('src/locale.ts', 'utf8');
-const zhKeys = `\n  'welcome.dash_desc': '多维看板总览',
-  'welcome.insights_desc': '补货/采购建议',
-  'welcome.cleansing_desc': '数据清洗导入',
-  'welcome.rules_desc': '规则引擎配置',`;
-loc = loc.replace("'welcome.rules': '设规则',", "'welcome.rules': '设规则'," + zhKeys);
-const enKeys = `\n  'welcome.dash_desc': 'Dashboard Overview',
-  'welcome.insights_desc': 'Replenishment & Purchase',
-  'welcome.cleansing_desc': 'Data Import & Cleaning',
-  'welcome.rules_desc': 'Rule Engine Config',`;
-loc = loc.replace("'welcome.rules': 'Rules',", "'welcome.rules': 'Rules'," + enKeys);
+const zhDash = `\n  'dash.no_alerts': '暂无告警',
+  'dash.min_days': '最短',
+  'dash.days_out': '天断货',
+  'dash.critical': '紧急',
+  'dash.warning': '预警',
+  'dash.stock_ok': '库存充足',
+  'dash.alert_warning': '警告',
+  'dash.alert_overstock': '超储',
+  'dash.replenish': '补货',
+  'dash.score_unit': '分',
+  'dash.healthy': '健康',
+  'dash.low': '偏低',
+  'dash.out_of_stock': '缺货',
+  'dash.sku': 'SKU',
+  'dash.own': '自有',`;
+loc = loc.replace("'inv.empty_matched': '无匹配库存',", "'inv.empty_matched': '无匹配库存'," + zhDash);
+const enDash = `\n  'dash.no_alerts': 'No alerts',
+  'dash.min_days': 'Min',
+  'dash.days_out': 'days to stockout',
+  'dash.critical': 'Critical',
+  'dash.warning': 'Warning',
+  'dash.stock_ok': 'Stock OK',
+  'dash.alert_warning': 'Warning',
+  'dash.alert_overstock': 'Overstock',
+  'dash.replenish': 'Replenish',
+  'dash.score_unit': 'pts',
+  'dash.healthy': 'Healthy',
+  'dash.low': 'Low',
+  'dash.out_of_stock': 'Out of stock',
+  'dash.sku': 'SKU',
+  'dash.own': 'Own',`;
+loc = loc.replace("'inv.empty_matched': 'No matching inventory',", "'inv.empty_matched': 'No matching inventory'," + enDash);
 fs.writeFileSync('src/locale.ts', loc);
 console.log('2. locale.ts 补充键 done');
 
-// 3. 供应商页面
-migrate('src/pages/SupplierPage.tsx', [
-  ['供应商管理', 't("nav.suppliers")'],
-  ['共', 't("common.total")'],
-  ['个', 't("common.items")'],
-  ['无匹配供应商', 't("supplier.empty_matched")'],
-  ['暂无供应商', 't("supplier.empty")'],
-  ['显示', 't("common.showing")'],
-  ['列', 't("common.columns")'],
-]);
-console.log('3. SupplierPage done');
-
-// 4. 商品页面
-migrate('src/pages/ProductPage.tsx', [
-  ['商品管理', 't("nav.products")'],
-  ['共', 't("common.total")'],
-  ['个', 't("common.items")'],
-  ['无匹配商品', 't("product.empty_matched")'],
-  ['暂无商品', 't("product.empty")'],
-  ['显示', 't("common.showing")'],
-  ['列', 't("common.columns")'],
-]);
-console.log('4. ProductPage done');
-
-// 5. 订单页面
-migrate('src/pages/OrdersPage.tsx', [
-  ['订单', 't("nav.orders")'],
-  ['共', 't("common.total")'],
-  ['条', 't("common.items")'],
-  ['无匹配订单', 't("order.empty_matched")'],
-  ['暂无订单', 't("order.empty")'],
-  ['显示', 't("common.showing")'],
-  ['列', 't("common.columns")'],
-  ['已删除', 't("undo.deleted")'],
-  ['撤销', 't("undo.undo")'],
-  ['导出失败', 't("export.failed")'],
-  ['订单导出完成', 't("export.order_success")'],
-]);
-console.log('5. OrdersPage done');
-
-// 6. 库存页面
-migrate('src/pages/InventoryPage.tsx', [
-  ['进销存台账', 't("nav.inv")'],
-  ['共', 't("common.total")'],
-  ['条', 't("common.items")'],
-  ['无匹配', 't("inv.empty_matched")'],
+// 3. 通用组件
+migrate('src/components/EmptyState.tsx', [
   ['暂无数据', 't("common.empty")'],
-  ['显示', 't("common.showing")'],
-  ['列', 't("common.columns")'],
-  ['导出失败', 't("export.failed")'],
-  ['库存导出完成', 't("export.inv_success")'],
 ]);
-console.log('6. InventoryPage done');
+console.log('3. EmptyState done');
 
-// 7. locale.ts 补充页面相关键
+// 4. ErrorBoundary
+migrate('src/components/ErrorBoundary.tsx', [
+  ['组件渲染错误', 't("error.component_render")'],
+  ['重试', 't("common.retry")'],
+]);
+console.log('4. ErrorBoundary done');
+
+// 5. locale.ts 补充通用键
 loc = fs.readFileSync('src/locale.ts', 'utf8');
-const zhPage = `\n  'common.total': '共',
-  'common.items': '条',
-  'common.showing': '显示',
-  'export.failed': '导出失败',
-  'export.order_success': '订单导出完成',
-  'export.inv_success': '库存导出完成',
-  'supplier.empty': '暂无供应商',
-  'supplier.empty_matched': '无匹配供应商',
-  'product.empty': '暂无商品',
-  'product.empty_matched': '无匹配商品',
-  'order.empty': '暂无订单',
-  'order.empty_matched': '无匹配订单',
-  'inv.empty_matched': '无匹配库存',`;
-loc = loc.replace("'welcome.rules_desc': '规则引擎配置',", "'welcome.rules_desc': '规则引擎配置'," + zhPage);
-const enPage = `\n  'common.total': 'Total',
-  'common.items': 'items',
-  'common.showing': 'Showing',
-  'export.failed': 'Export failed',
-  'export.order_success': 'Orders exported',
-  'export.inv_success': 'Inventory exported',
-  'supplier.empty': 'No suppliers',
-  'supplier.empty_matched': 'No matching suppliers',
-  'product.empty': 'No products',
-  'product.empty_matched': 'No matching products',
-  'order.empty': 'No orders',
-  'order.empty_matched': 'No matching orders',
-  'inv.empty_matched': 'No matching inventory',`;
-loc = loc.replace("'welcome.rules_desc': 'Rule Engine Config',", "'welcome.rules_desc': 'Rule Engine Config'," + enPage);
+const zhCommon = `\n  'common.retry': '重试',
+  'error.component_render': '组件渲染错误',`;
+loc = loc.replace("'inv.empty_matched': '无匹配库存',", "'inv.empty_matched': '无匹配库存'," + zhCommon);
+const enCommon = `\n  'common.retry': 'Retry',
+  'error.component_render': 'Component Render Error',`;
+loc = loc.replace("'inv.empty_matched': 'No matching inventory',", "'inv.empty_matched': 'No matching inventory'," + enCommon);
 fs.writeFileSync('src/locale.ts', loc);
-console.log('7. locale.ts 补充页面键 done');
+console.log('5. locale.ts 补充通用键 done');
 
-console.log('第三阶段迁移完成!');
+console.log('第四阶段迁移完成!');

@@ -19,9 +19,9 @@ export default function HammerProducts({ channel }) {
       <div className="hammer-header">{channel === 'jd' ? '京东' : '其他'} · 商品</div>
       <div className="hammer-btn-row" style={{marginBottom:hammerPanel?8:0}}>
         <button onClick={() => setHammerPanel(hammerPanel === 'columns' ? null : 'columns')}
-          className="btn btn-ghost hammer-btn">列选择 ({visCols.length}/{PRODUCT_COLS.length})</button>
+          className="btn-ghost hammer-btn">列选择 ({visCols.length}/{PRODUCT_COLS.length})</button>
         <button onClick={() => { setHammerPanel(hammerPanel === 'search' ? null : 'search'); if (hammerPanel !== 'search') setTimeout(() => document.getElementById('hm-search-prod')?.focus(), 100) }}
-          className="btn btn-ghost hammer-btn">搜索</button>
+          className="btn-ghost hammer-btn">搜索</button>
       </div>
       {hammerPanel === 'columns' && (
         <div className="hammer-panel hammer-panel-scroll">

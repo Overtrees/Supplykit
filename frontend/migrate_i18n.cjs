@@ -1,144 +1,138 @@
-// 国际化迁移第二阶段
+// 国际化迁移第三阶段 - 页面组件+欢迎页
 const fs = require('fs');
 
-console.log('第二阶段迁移开始...');
-
-// 辅助函数：安全替换文本
-function replaceInFile(filePath, replacements) {
-  let s = fs.readFileSync(filePath, 'utf8');
-  let changed = false;
+function migrate(file, replacements) {
+  let s = fs.readFileSync(file, 'utf8');
+  let count = 0;
   for (const [from, to] of replacements) {
     if (s.includes(from)) {
       s = s.replace(from, to);
-      changed = true;
+      count++;
     }
   }
-  if (changed) fs.writeFileSync(filePath, s);
-  return changed;
+  if (count > 0) fs.writeFileSync(file, s);
+  return count;
 }
 
-// 1. Toast 通知
-console.log('1. Toast...');
-replaceInFile('src/components/Toast.tsx', [
-  ['import { ToastProvider }', 'import { t } from "../locale"\nimport { ToastProvider }'],
-]);
+console.log('第三阶段迁移开始...');
 
-// 2. HammerProducts
-console.log('2. HammerProducts...');
-let hp = fs.readFileSync('src/components/hammer/HammerProducts.tsx', 'utf8');
-hp = hp.replace('import { useAppStore }', 'import { t } from "../../locale"\nimport { useAppStore }');
-hp = hp.replace("京东' : '其他'} · 商品", "t('channel.jd') : t('channel.other')} · {t('nav.products')}");
-hp = hp.replace('>列选择 (', '>{t("common.columns")} (');
-hp = hp.replace('>搜索<', '>{t("common.search")}<');
-hp = hp.replace('>清除<', '>{t("common.clear")}<');
-hp = hp.replace('>全部<', '>{t("common.all")}<');
-hp = hp.replace('>拖拽 ⠿ 调整列顺序<', '>{t("common.drag_hint")}<');
-fs.writeFileSync('src/components/hammer/HammerProducts.tsx', hp);
-console.log('   done');
+// 1. 欢迎页 (App.tsx)
+let app = fs.readFileSync('src/App.tsx', 'utf8');
+app = app.replace('>SupplyKit<', '>{t("welcome.title")}<');
+app = app.replace('>电商供应链数据清洗与补货决策看板<', '>{t("app.desc")}<');
+app = app.replace('>看数据<', '>{t("welcome.dash")}<');
+app = app.replace('>看补货<', '>{t("welcome.insights")}<');
+app = app.replace('>导数据<', '>{t("welcome.cleansing")}<');
+app = app.replace('>设规则<', '>{t("welcome.rules")}<');
+app = app.replace('>开始体验<', '>{t("welcome.start")}<');
+app = app.replace('>跳过，直接进入<', '>{t("welcome.skip")}<');
+app = app.replace('>多维看板总览<', '>{t("welcome.dash_desc")}<');
+app = app.replace('>补货/采购建议<', '>{t("welcome.insights_desc")}<');
+app = app.replace('>数据清洗导入<', '>{t("welcome.cleansing_desc")}<');
+app = app.replace('>规则引擎配置<', '>{t("welcome.rules_desc")}<');
+fs.writeFileSync('src/App.tsx', app);
+console.log('1. App.tsx (欢迎页) done');
 
-// 3. HammerSuppliers
-console.log('3. HammerSuppliers...');
-let hs = fs.readFileSync('src/components/hammer/HammerSuppliers.tsx', 'utf8');
-hs = hs.replace('import { useAppStore }', 'import { t } from "../../locale"\nimport { useAppStore }');
-hs = hs.replace("京东' : '其他'} · 供应商", "t('channel.jd') : t('channel.other')} · {t('nav.suppliers')}");
-hs = hs.replace('>列选择 (', '>{t("common.columns")} (');
-hs = hs.replace('>搜索<', '>{t("common.search")}<');
-hs = hs.replace('>清除<', '>{t("common.clear")}<');
-hs = hs.replace('>全部<', '>{t("common.all")}<');
-hs = hs.replace('>拖拽 ⠿ 调整列顺序<', '>{t("common.drag_hint")}<');
-fs.writeFileSync('src/components/hammer/HammerSuppliers.tsx', hs);
-console.log('   done');
-
-// 4. HammerOrders
-console.log('4. HammerOrders...');
-let ho = fs.readFileSync('src/components/hammer/HammerOrders.tsx', 'utf8');
-ho = ho.replace('import { useAppStore }', 'import { t } from "../../locale"\nimport { useAppStore }');
-ho = ho.replace("京东' : '其他'} · 订单", "t('channel.jd') : t('channel.other')} · {t('nav.orders')}");
-ho = ho.replace('>列选择 (', '>{t("common.columns")} (');
-ho = ho.replace('>搜索<', '>{t("common.search")}<');
-ho = ho.replace('>筛选', '>{t("common.filter")}');
-ho = ho.replace('>导出<', '>{t("common.export")}<');
-ho = ho.replace('>导出中...<', '>{t("common.exporting")}<');
-ho = ho.replace('>清除<', '>{t("common.clear")}<');
-ho = ho.replace('>全部<', '>{t("common.all")}<');
-ho = ho.replace('>清除筛选<', '>{t("common.clear_filter")}<');
-ho = ho.replace('>订单状态<', '>{t("common.order_status")}<');
-ho = ho.replace('>拖拽 ⠿ 调整列顺序<', '>{t("common.drag_hint")}<');
-fs.writeFileSync('src/components/hammer/HammerOrders.tsx', ho);
-console.log('   done');
-
-// 5. HammerInventory
-console.log('5. HammerInventory...');
-let hi = fs.readFileSync('src/components/hammer/HammerInventory.tsx', 'utf8');
-hi = hi.replace('import { useAppStore }', 'import { t } from "../../locale"\nimport { useAppStore }');
-hi = hi.replace("京东' : '其他'} · 进销存", "t('channel.jd') : t('channel.other')} · {t('nav.inv')}");
-hi = hi.replace('>列选择 (', '>{t("common.columns")} (');
-hi = hi.replace('>搜索<', '>{t("common.search")}<');
-hi = hi.replace('>导出<', '>{t("common.export")}<');
-hi = hi.replace('>导出中...<', '>{t("common.exporting")}<');
-hi = hi.replace('>清除<', '>{t("common.clear")}<');
-hi = hi.replace('>全部<', '>{t("common.all")}<');
-hi = hi.replace('>拖拽 ⠿ 调整列顺序<', '>{t("common.drag_hint")}<');
-// 仓库类型
-hi = hi.replace('>自有仓<', '>{t("inv.own")}<');
-hi = hi.replace('>平台仓<', '>{t("inv.platform")}<');
-fs.writeFileSync('src/components/hammer/HammerInventory.tsx', hi);
-console.log('   done');
-
-// 6. HammerInsights
-console.log('6. HammerInsights...');
-let hins = fs.readFileSync('src/components/hammer/HammerInsights.tsx', 'utf8');
-hins = hins.replace('import { useAppStore }', 'import { t } from "../../locale"\nimport { useAppStore }');
-hins = hins.replace("京东' : '其他'} · 补货建议", "t('channel.jd') : t('channel.other')} · {t('nav.insights')}");
-hins = hins.replace('>列选择 (', '>{t("common.columns")} (');
-hins = hins.replace('>搜索<', '>{t("common.search")}<');
-hins = hins.replace('>导出<', '>{t("common.export")}<');
-hins = hins.replace('>导出中...<', '>{t("common.exporting")}<');
-hins = hins.replace('>清除<', '>{t("common.clear")}<');
-hins = hins.replace('>全部<', '>{t("common.all")}<');
-hins = hins.replace('>默认<', '>{t("common.default")}<');
-hins = hins.replace('>拖拽 ⠿ 调整列顺序<', '>{t("common.drag_hint")}<');
-fs.writeFileSync('src/components/hammer/HammerInsights.tsx', hins);
-console.log('   done');
-
-// 7. locale.ts 补充翻译键
-console.log('7. 补充缺失翻译键...');
+// 2. locale.ts 补充新键
 let loc = fs.readFileSync('src/locale.ts', 'utf8');
-const newKeys = `
-  'common.columns': '列选择',
-  'common.clear': '清除',
-  'common.clear_filter': '清除筛选',
-  'common.drag_hint': '拖拽 ⠿ 调整列顺序',
-  'common.filter': '筛选',
-  'common.order_status': '订单状态',
-  'common.default': '默认',
-  'common.start_date': '开始',
-  'common.end_date': '结束',
-  'inv.own': '自有仓',
-  'inv.platform': '平台仓',`;
-
-// 在 settings 后面添加
-loc = loc.replace("'settings.seed_reset': '一键重置',", "'settings.seed_reset': '一键重置'," + newKeys);
+const zhKeys = `\n  'welcome.dash_desc': '多维看板总览',
+  'welcome.insights_desc': '补货/采购建议',
+  'welcome.cleansing_desc': '数据清洗导入',
+  'welcome.rules_desc': '规则引擎配置',`;
+loc = loc.replace("'welcome.rules': '设规则',", "'welcome.rules': '设规则'," + zhKeys);
+const enKeys = `\n  'welcome.dash_desc': 'Dashboard Overview',
+  'welcome.insights_desc': 'Replenishment & Purchase',
+  'welcome.cleansing_desc': 'Data Import & Cleaning',
+  'welcome.rules_desc': 'Rule Engine Config',`;
+loc = loc.replace("'welcome.rules': 'Rules',", "'welcome.rules': 'Rules'," + enKeys);
 fs.writeFileSync('src/locale.ts', loc);
-console.log('   done');
+console.log('2. locale.ts 补充键 done');
 
-// 英文翻译
+// 3. 供应商页面
+migrate('src/pages/SupplierPage.tsx', [
+  ['供应商管理', 't("nav.suppliers")'],
+  ['共', 't("common.total")'],
+  ['个', 't("common.items")'],
+  ['无匹配供应商', 't("supplier.empty_matched")'],
+  ['暂无供应商', 't("supplier.empty")'],
+  ['显示', 't("common.showing")'],
+  ['列', 't("common.columns")'],
+]);
+console.log('3. SupplierPage done');
+
+// 4. 商品页面
+migrate('src/pages/ProductPage.tsx', [
+  ['商品管理', 't("nav.products")'],
+  ['共', 't("common.total")'],
+  ['个', 't("common.items")'],
+  ['无匹配商品', 't("product.empty_matched")'],
+  ['暂无商品', 't("product.empty")'],
+  ['显示', 't("common.showing")'],
+  ['列', 't("common.columns")'],
+]);
+console.log('4. ProductPage done');
+
+// 5. 订单页面
+migrate('src/pages/OrdersPage.tsx', [
+  ['订单', 't("nav.orders")'],
+  ['共', 't("common.total")'],
+  ['条', 't("common.items")'],
+  ['无匹配订单', 't("order.empty_matched")'],
+  ['暂无订单', 't("order.empty")'],
+  ['显示', 't("common.showing")'],
+  ['列', 't("common.columns")'],
+  ['已删除', 't("undo.deleted")'],
+  ['撤销', 't("undo.undo")'],
+  ['导出失败', 't("export.failed")'],
+  ['订单导出完成', 't("export.order_success")'],
+]);
+console.log('5. OrdersPage done');
+
+// 6. 库存页面
+migrate('src/pages/InventoryPage.tsx', [
+  ['进销存台账', 't("nav.inv")'],
+  ['共', 't("common.total")'],
+  ['条', 't("common.items")'],
+  ['无匹配', 't("inv.empty_matched")'],
+  ['暂无数据', 't("common.empty")'],
+  ['显示', 't("common.showing")'],
+  ['列', 't("common.columns")'],
+  ['导出失败', 't("export.failed")'],
+  ['库存导出完成', 't("export.inv_success")'],
+]);
+console.log('6. InventoryPage done');
+
+// 7. locale.ts 补充页面相关键
 loc = fs.readFileSync('src/locale.ts', 'utf8');
-const enKeys = `
-  'common.columns': 'Columns',
-  'common.clear': 'Clear',
-  'common.clear_filter': 'Clear Filter',
-  'common.drag_hint': 'Drag to reorder',
-  'common.filter': 'Filter',
-  'common.order_status': 'Order Status',
-  'common.default': 'Default',
-  'common.start_date': 'Start',
-  'common.end_date': 'End',
-  'inv.own': 'Own Warehouse',
-  'inv.platform': 'Platform Warehouse',`;
-
-loc = loc.replace("'settings.seed_reset': 'Reset All Data',", "'settings.seed_reset': 'Reset All Data'," + enKeys);
+const zhPage = `\n  'common.total': '共',
+  'common.items': '条',
+  'common.showing': '显示',
+  'export.failed': '导出失败',
+  'export.order_success': '订单导出完成',
+  'export.inv_success': '库存导出完成',
+  'supplier.empty': '暂无供应商',
+  'supplier.empty_matched': '无匹配供应商',
+  'product.empty': '暂无商品',
+  'product.empty_matched': '无匹配商品',
+  'order.empty': '暂无订单',
+  'order.empty_matched': '无匹配订单',
+  'inv.empty_matched': '无匹配库存',`;
+loc = loc.replace("'welcome.rules_desc': '规则引擎配置',", "'welcome.rules_desc': '规则引擎配置'," + zhPage);
+const enPage = `\n  'common.total': 'Total',
+  'common.items': 'items',
+  'common.showing': 'Showing',
+  'export.failed': 'Export failed',
+  'export.order_success': 'Orders exported',
+  'export.inv_success': 'Inventory exported',
+  'supplier.empty': 'No suppliers',
+  'supplier.empty_matched': 'No matching suppliers',
+  'product.empty': 'No products',
+  'product.empty_matched': 'No matching products',
+  'order.empty': 'No orders',
+  'order.empty_matched': 'No matching orders',
+  'inv.empty_matched': 'No matching inventory',`;
+loc = loc.replace("'welcome.rules_desc': 'Rule Engine Config',", "'welcome.rules_desc': 'Rule Engine Config'," + enPage);
 fs.writeFileSync('src/locale.ts', loc);
-console.log('   done');
+console.log('7. locale.ts 补充页面键 done');
 
-console.log('第二阶段迁移完成!');
+console.log('第三阶段迁移完成!');

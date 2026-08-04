@@ -5,7 +5,7 @@ import { useToast } from '../components/Toast'
 import ConfirmDialog from '../components/ConfirmDialog'
 
 const COLS = [
-  {id:'date',label:'下单日期'},{id:'order_no',label:'订单号'},{id:'barcode',label:'69码'},{id:'store',label:'店铺'},{id:'warehouse',label:'仓库'},
+  {id:'date',label:'下单日期'},{id:'order_no',label:'t("nav.orders")号'},{id:'barcode',label:'69码'},{id:'store',label:'店铺'},{id:'warehouse',label:'仓库'},
   {id:'product',label:'商品'},{id:'amount',label:'金额'},{id:'status',label:'状态'},
   {id:'paid_at',label:'入库日期'},
 ]
@@ -48,7 +48,7 @@ export default function OrdersPage() {
         var timer = setTimeout(async function() {
           await fetch(`${API}/api/orders/${id}/permanent-delete`, {method:'POST'})
         }, 5000)
-        toast.add({type:'success', title:'已删除', duration:5000, action: {label:'撤销', handler: async function() {
+        toast.add({type:'success', title:'t("undo.deleted")', duration:5000, action: {label:'t("undo.undo")', handler: async function() {
           clearTimeout(timer)
           await fetch(`${API}/api/orders/${id}/restore`, {method:'POST'})
           useAppStore.getState().loadAll()
@@ -64,12 +64,12 @@ export default function OrdersPage() {
     </div>}
 
     <div className="card">
-    <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>订单 <span className="small muted" style={{fontWeight:400}}>共 {orderTotal || 0} 条</span></div>
+    <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>订单 <span className="small muted" style={{fontWeight:400}}>t("common.total") {orderTotal || 0} t("common.items")</span></div>
     {orderLoading || !dataLoaded ? <OrderSkeleton />
     : orders.length === 0
-      ? <EmptyState icon='clipboard' title={s?'无匹配订单':'暂无订单'} desc={s?'换个关键词试试':''} />
+      ? <EmptyState icon='clipboard' title={s?'t("order.empty_matched")':'t("order.empty")'} desc={s?'换个关键词试试':''} />
       : <div style={{overflowX:"auto"}}>
-        <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {visCols.length}/{COLS.length} 列</div>
+        <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>t("common.showing") {visCols.length}/{COLS.length} t("common.columns")</div>
       <table><colgroup>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>
       <thead><tr>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<th key={col.id}>{col.label}</th>:null})}</tr></thead>
       <tbody>

@@ -348,7 +348,7 @@ export default function App() {
         <div style={{display:'flex',flexDirection:'column',minHeight:'100svh',padding:'calc(env(safe-area-inset-top, 0px) + 40px) 24px calc(24px + env(safe-area-inset-bottom, 20px))',overflowY:'auto',boxSizing:'border-box'}}>
           <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'center',maxWidth:360,margin:'0 auto',width:'100%'}}>
           <div style={{textAlign:'center',marginBottom:32}}>
-            <div style={{fontSize:32,fontWeight:800,color:'var(--text)',marginBottom:8,letterSpacing:'-0.5px'}}>SupplyKit</div>
+            <div style={{fontSize:32,fontWeight:800,color:'var(--text)',marginBottom:8,letterSpacing:'-0.5px'}}>{t("welcome.title")}</div>
             <div style={{fontSize:15,color:'var(--muted2)',lineHeight:1.5}}>电商供应链数据清洗<br/>与补货决策看板</div>
           </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:32}}>
@@ -372,9 +372,9 @@ export default function App() {
               var d = await r.json()
               if (d.ok) { clearCache(); clearInflight(); setTimeout(function(){window.location.reload()}, 1500) }
             } catch(e) {}
-          }} className="btn btn-primary" style={{width:'100%',padding:'14px',fontSize:16,fontWeight:600,marginBottom:10}}>开始体验</button>
+          }} className="btn btn-primary" style={{width:'100%',padding:'14px',fontSize:16,fontWeight:600,marginBottom:10}}>{t("welcome.start")}</button>
           <button onClick={function(){localStorage.setItem('c_welcome_seen','1');setShowWelcome(false)}}
-            className="btn btn-ghost clickable" style={{width:'100%',padding:'10px',fontSize:14,color:'var(--muted2)'}}>跳过，直接进入</button>
+            className="btn btn-ghost clickable" style={{width:'100%',padding:'10px',fontSize:14,color:'var(--muted2)'}}>{t("welcome.skip")}</button>
           </div>
         </div>
       )}

@@ -93,7 +93,7 @@ function RecycleBin({ onClose }) {
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
       </div>
     </div>
-    <div style={{padding:'calc(env(safe-area-inset-top, 0px) + 64px) 16px 16px',maxWidth:500,margin:'0 auto',width:'100%'}}>
+    <div style={{padding:'calc(env(safe-area-inset-top, 0px) + 44px) 16px 16px',maxWidth:500,margin:'0 auto',width:'100%'}}>
     {loading ? <div style={{padding:'0 4px'}}>{[1,2,3].map(function(i) {
       return <div key={i} style={{background:'var(--card)',borderRadius:32,padding:16,marginBottom:8}}>
         <div className="skeleton" style={{width:'40%',height:14,marginBottom:8}} />

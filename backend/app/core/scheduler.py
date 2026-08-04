@@ -24,6 +24,17 @@ def _task_inventory_sync():
     except Exception as e:
         print(f"[Scheduler] Inventory sync error: {e}")
 
+def _task_build_sales_snapshot():
+    """每天凌晨 3:30 构建日销快照"""
+    try:
+        from app.core.database import get_db
+        from app.core.sales_utils import build_daily_sales_snapshot
+        db = get_db()
+        count = build_daily_sales_snapshot(db)
+        print(f"[Scheduler] Sales snapshot: {count} rows")
+    except Exception as e:
+        print(f"[Scheduler] Sales snapshot error: {e}")
+
 def _task_archive_orders():
     """每天凌晨 1 点归档 90 天前的订单"""
     try:
@@ -128,6 +139,7 @@ def start():
         return
     _started = True
     scheduler.add_job(_task_inventory_sync, IntervalTrigger(minutes=30), id='inventory_sync')
+    scheduler.add_job(_task_build_sales_snapshot, CronTrigger(hour=3, minute=30), id='build_sales_snapshot')
     scheduler.add_job(_task_archive_orders, CronTrigger(hour=1, minute=0), id='archive_orders')
     scheduler.add_job(_task_cleanup_logs, CronTrigger(hour=3, minute=0), id='cleanup_logs')
     scheduler.add_job(_task_backup, CronTrigger(hour=2, minute=0), id='db_backup')

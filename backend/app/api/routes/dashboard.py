@@ -101,9 +101,9 @@ def stock_risk(channel: str = 'jd'):
     sku_barcode_map = {sku: p.get('barcode', '') or '' for sku, p in products.items()}
 
     # 三窗口日销 + 融合值（复用补货建议算法）
-    s7 = calc_sales(orders, 7, sku_barcode_map=sku_barcode_map)
-    s14 = calc_sales(orders, 14, sku_barcode_map=sku_barcode_map)
-    s28 = calc_sales(orders, 28, sku_barcode_map=sku_barcode_map)
+    s7 = calc_sales(orders, 7, sku_barcode_map=sku_barcode_map, db=db)
+    s14 = calc_sales(orders, 14, sku_barcode_map=sku_barcode_map, db=db)
+    s28 = calc_sales(orders, 28, sku_barcode_map=sku_barcode_map, db=db)
     all_skus = set(o.get('sku', '') for o in orders)
     fused = {}
     for sku in all_skus:

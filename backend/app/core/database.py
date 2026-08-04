@@ -488,6 +488,12 @@ def init_db(path=None):
             quantity INTEGER DEFAULT 0,
             UNIQUE(date, channel, store, sku)
         );
+        CREATE TABLE IF NOT EXISTS daily_sales_snapshot (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT NOT NULL, channel TEXT DEFAULT 'jd',
+            sku TEXT NOT NULL, order_count INTEGER DEFAULT 0,
+            UNIQUE(date, channel, sku)
+        );
         CREATE INDEX IF NOT EXISTS idx_orders_order_no ON orders(order_no);
         CREATE INDEX IF NOT EXISTS idx_inventory_sku ON inventory(sku);
         CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku);

@@ -64,9 +64,9 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     sku_barcode_map = {sku: p.get('barcode', '') or '' for sku, p in products.items()}
 
     # 三周期日销
-    sales_7 = calc_sales(orders, 7, source=source, sku_barcode_map=sku_barcode_map)
-    sales_14 = calc_sales(orders, 14, source=source, sku_barcode_map=sku_barcode_map)
-    sales_28 = calc_sales(orders, 28, source=source, sku_barcode_map=sku_barcode_map)
+    sales_7 = calc_sales(orders, 7, source=source, sku_barcode_map=sku_barcode_map, db=db)
+    sales_14 = calc_sales(orders, 14, source=source, sku_barcode_map=sku_barcode_map, db=db)
+    sales_28 = calc_sales(orders, 28, source=source, sku_barcode_map=sku_barcode_map, db=db)
 
     def get_sales(sales_dict, sku):
         """按 sku 查询日销，优先用复合 key sku|barcode，降级为 sku"""

@@ -159,9 +159,11 @@ def _rebuild(channel='jd'):
     from datetime import timedelta
     today = datetime.utcnow().date()
     period_stores = {}
+    period_funnel = {}
     for pname, pdays in [('today', 1), ('week', 7), ('month', 30)]:
         cutoff = today - timedelta(days=pdays - 1)
-        porders = [o for o in orders if o.get('order_date') and datetime.strptime(str(o['order_date'])[:10], '%Y-%m-%d').date() >= cutoff]
+        porders = [o for o in orders if o.get('ordered_at') and datetime.strptime(str(o['ordered_at'])[:10], '%Y-%m-%d').date() >= cutoff]
+        # stores
         period_stores[pname] = []
         for s in store_names:
             so = [x for x in porders if x.get("store") == s]
@@ -169,6 +171,8 @@ def _rebuild(channel='jd'):
                 "name": s,
                 "gmv": sum(float(x.get("total_amount") or 0) for x in so if x.get("order_status") == "已完成"),
             })
+        # funnel
+        period_funnel[pname] = _compute_funnel(porders)
     
     status_dist = defaultdict(int)
     for x in orders:
@@ -192,6 +196,7 @@ def _rebuild(channel='jd'):
         "trend": trend,
         "stores": store_rows,
         "period_stores": period_stores,
+        "period_funnel": period_funnel,
         "status_distribution": [{"name": k, "value": v} for k, v in sorted(status_dist.items())],
         "category_distribution": [{"name": k, "value": v} for k, v in sorted(cat_dist.items(), key=lambda x: -x[1])],
         # ① 总览新增

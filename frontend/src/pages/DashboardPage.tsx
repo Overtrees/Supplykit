@@ -52,7 +52,7 @@ export default function DashboardPage({ onAlert }) {
   }}, [dashboard, periodTab])
 
   const funnelOption = useMemo(() => {
-    const f = dashboard?.funnel || []
+    const f = dashboard?.period_funnel?.[periodTab] || dashboard?.funnel || []
     const names = f.map(x => x.name)
     const values = f.map(x => x.value)
     return {

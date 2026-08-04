@@ -61,25 +61,41 @@ export default function HammerOrders({ channel }: HammerOrdersProps) {
       </div>
       {hammerPanel === 'columns' && (
         <div className="hammer-panel hammer-panel-scroll">
-          <div className="muted2 text-10" style={{marginBottom:4,padding:'0 4px'}}>{t('common.drag_hint')}</div>
-          {(visCols.map(id=>ORDER_COLS.find(c=>c.id===id)).filter(Boolean).concat(ORDER_COLS.filter(c=>!visCols.includes(c.id)))).map((col,idx)=>{
-            const isVis=visCols.includes(col.id)
-            return <div key={col.id} draggable={isVis?true:undefined}
-              onDragStart={isVis?e=>{e.dataTransfer.setData('text/plain',col.id);e.target.style.opacity='0.4';e.currentTarget.parentNode._dragId=col.id}:undefined}
-              onDragEnd={isVis?e=>e.target.style.opacity='1':undefined}
-              onDragOver={isVis?e=>{e.preventDefault();e.currentTarget.style.borderTop='2px solid var(--primary)';const from=e.currentTarget.parentNode._dragId;if(from&&from!==col.id){const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(col.id);nxt.splice(toIdx,0,from);saveCols(nxt)}}:undefined}
-              onDragLeave={isVis?e=>e.currentTarget.style.borderTop='1px solid transparent':undefined}
-              onDrop={isVis?e=>{e.preventDefault();e.currentTarget.style.borderTop='1px solid transparent';const from=e.dataTransfer.getData('text/plain');if(from===col.id)return;const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(col.id);nxt.splice(toIdx,0,from);saveCols(nxt);e.currentTarget.parentNode._dragId=null}:undefined}
-              className={'col-drag' + (isVis ? ' visible' : ' hidden')}>
-              <span className="muted2 text-12" style={{width:16,flexShrink:0,textAlign:'center',cursor:isVis?'grab':'default'}}>{isVis?'⠿':'○'}</span>
-              <input type="checkbox" checked={isVis} onChange={e=>{const n=e.target.checked?[...visCols,col.id]:visCols.filter(c=>c!==col.id);saveCols(n)}} className="accent-primary" />
+          <div className="cols-top-bar">
+            <button onClick={()=>saveCols(ORDER_COLS.map(c=>c.id))} className="hammer-clear">{t('common.all')}</button>
+            <button onClick={()=>saveCols([])} className="hammer-clear">取消全选</button>
+          </div>
+          <div className="muted2 text-10" style={{marginBottom:2,padding:'0 4px'}}>{t('common.drag_hint')}</div>
+          {visCols.length > 0 && <div className="cols-group-title"><span>已显示</span><span>{visCols.length}</span></div>}
+          {visCols.map(id=>{
+            const col=ORDER_COLS.find(c=>c.id===id);if(!col)return null
+            return <div key={col.id} draggable
+              onDragStart={e=>{e.dataTransfer.setData('text/plain',col.id);e.target.style.opacity='0.4';e.currentTarget.parentNode._dragId=col.id}}
+              onDragEnd={e=>e.target.style.opacity='1'}
+              onDragOver={e=>{e.preventDefault();e.currentTarget.style.borderTop='2px solid var(--primary)';const from=e.currentTarget.parentNode._dragId;if(from&&from!==col.id){const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(col.id);nxt.splice(toIdx,0,from);saveCols(nxt)}}}
+              onDragLeave={e=>e.currentTarget.style.borderTop='1px solid transparent'}
+              onDrop={e=>{e.preventDefault();e.currentTarget.style.borderTop='1px solid transparent';const from=e.dataTransfer.getData('text/plain');if(from===col.id)return;const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(col.id);nxt.splice(toIdx,0,from);saveCols(nxt);e.currentTarget.parentNode._dragId=null}}
+              className="col-drag visible">
+              <span className="muted2 text-12" style={{width:16,flexShrink:0,textAlign:'center',cursor:'grab'}}>⠿</span>
+              <input type="checkbox" checked onChange={e=>{saveCols(visCols.filter(c=>c!==col.id))}} className="accent-primary" />
               <span className="flex-1 text-12">{col.label}</span>
-              <span className="muted2 text-9">{isVis?'#'+(visCols.indexOf(col.id)+1):''}</span>
+              <span className="muted2 text-9">#{visCols.indexOf(col.id)+1}</span>
             </div>
           })}
-          <div className="border-bottom mt-4" style={{paddingTop:4}}>
-            <button onClick={()=>saveCols(ORDER_COLS.map(c=>c.id))} className="hammer-clear">{t('common.all')}</button>
-          </div>
+          {(()=>{
+            const hidden=ORDER_COLS.filter(c=>!visCols.includes(c.id))
+            if(hidden.length===0)return null
+            return <>
+              <div className="cols-group-title"><span>已隐藏</span><span>{hidden.length}</span></div>
+              {hidden.map(col=>
+                <div key={col.id} className="col-drag hidden">
+                  <span className="muted2" style={{width:16,flexShrink:0,textAlign:'center'}}>○</span>
+                  <input type="checkbox" onChange={e=>{saveCols([...visCols,col.id])}} className="accent-primary" />
+                  <span className="flex-1 text-12">{col.label}</span>
+                </div>
+              )}
+            </>
+          })()}
         </div>
       )}
       {hammerPanel === 'search' && (

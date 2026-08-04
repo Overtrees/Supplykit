@@ -17,7 +17,7 @@ const instance = axios.create({
 })
 
 // 请求拦截器：自动注入全局 channel 参数
-instance.interceptors.request.use(config => {
+instance.interceptors.request.use((config: any) => {
   if (!config.params || !config.params.channel) {
     const ch = localStorage.getItem('c_channel') || 'jd'
     if (config.params) {

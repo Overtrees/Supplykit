@@ -1,6 +1,17 @@
 import React from 'react'
 
-export default function ConfirmDialog({ open, title, desc, confirmLabel='确认', cancelLabel='取消', onConfirm, onCancel }) {
+interface ConfirmDialogProps {
+  open: boolean
+  title?: string
+  desc?: string
+  confirmLabel?: string
+  cancelLabel?: string
+  onConfirm?: () => void
+  onCancel?: () => void
+  danger?: boolean
+}
+
+export default function ConfirmDialog({ open, title, desc, confirmLabel = '确认', cancelLabel = '取消', onConfirm, onCancel, danger }: ConfirmDialogProps) {
   if (!open) return null
 
   return <>

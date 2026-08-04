@@ -1,4 +1,5 @@
 import React, { useState } from "react"
+import { t } from "../../locale"
 import { useAppStore } from "../../store/useAppStore"
 interface HammerDashboardProps { channel: string }
 
@@ -15,7 +16,7 @@ export default function HammerDashboard({ channel }: HammerDashboardProps) {
 
   return (
     <div>
-      <div className="hammer-header">{channel === 'jd' ? '京东' : '其他'} · 看板</div>
+      <div className="hammer-header">{channel === 'jd' ? 't('channel.jd') : t('channel.other')} · ' + t('nav.dash') + '</div>
       <div className="flex flex-center gap-6 muted2" style={{fontSize:10,marginBottom:4,flexWrap:'wrap'}}>
         聚合时间维度
         {hammerDashPeriod === 'custom' && customDateStart && customDateEnd &&
@@ -35,16 +36,16 @@ export default function HammerDashboard({ channel }: HammerDashboardProps) {
       </div>
       {showCustom && <div className="hammer-panel" style={{overflow:'hidden'}}>
         <div className="mb-8">
-          <div className="muted2" style={{fontSize:10,marginBottom:3,padding:'0 2px'}}>开始</div>
+          <div className="muted2" style={{fontSize:10,marginBottom:3,padding:'0 2px'}}>{t('common.start_date')}</div>
           <input type="date" value={startVal} onChange={e=>setStartVal(e.target.value)} className="hammer-input" style={{fontSize:14,padding:'6px 10px'}} />
         </div>
         <div className="mb-8">
-          <div className="muted2" style={{fontSize:10,marginBottom:3,padding:'0 2px'}}>结束</div>
+          <div className="muted2" style={{fontSize:10,marginBottom:3,padding:'0 2px'}}>{t('common.end_date')}</div>
           <input type="date" value={endVal} onChange={e=>setEndVal(e.target.value)} className="hammer-input" style={{fontSize:14,padding:'6px 10px'}} />
         </div>
         <button onClick={() => {
           if (startVal && endVal && startVal <= endVal) { setCustomDate(startVal, endVal); setShowCustom(false) }
-        }} className="btn btn-primary w-full" style={{fontSize:12,minHeight:32,padding:'4px 8px'}}>确定</button>
+        }} className="btn btn-primary w-full" style={{fontSize:12,minHeight:32,padding:'4px 8px'}}>{t('common.confirm')}</button>
       </div>}
     </div>
   )

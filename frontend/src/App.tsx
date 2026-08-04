@@ -16,6 +16,9 @@ import SettingsPage from './pages/SettingsPage'
 import Sidebar from './components/Sidebar'
 import useKeyboard from './hooks/useKeyboard'
 import { useToast } from './components/Toast'
+import { t } from "./locale"
+import { t } from "./locale"
+import { t } from "./locale"
 import { IconStatusOnline, IconStatusWarning, IconStatusOffline, IconExport } from './components/Icons'
 import { api } from './api/client'
 import './version'
@@ -31,10 +34,10 @@ import HammerSuppliers from './components/hammer/HammerSuppliers'
 import { PRODUCT_COLS, prodColKey, getProdVis, SUPPLIER_COLS, suppColKey, getSuppVis, ORDER_COLS, ORDER_STATUSES, orderColKey, getOrderVis, INS_BBCC_COLS, INS_TRAD_COLS, INS_PURCHASE_COLS, INS_SLOW_COLS, insColKey, getInsVis, insDefVis, insDefVisTrad, INV_COLS, INV_COL_KEY, getInvVis, INV_WH_LABEL } from './components/hammer/configs'
 
 export const NAV = [
-  { id:'dash',label:'多维数据看板'},{id:'products',label:'货品信息'},{id:'suppliers',label:'供应商管理'},
-  { id:'orders',label:'订单明细'},{id:'inv',label:'进销存台账'},{id:'insights',label:'货品供应建议'},
-  { id:'cleansing',label:'数据清洗及导入'},{id:'rules',label:'规则搭建'},
-  { id:'quality',label:'操作异常记录'},{id:'settings',label:'设置'},
+  { id:'dash',label:t('nav.dash')},{id:'products',label:t('nav.products')},{id:'suppliers',label:t('nav.suppliers')},
+  { id:'orders',label:'订单明细'},{id:'inv',label:t('nav.inv')},{id:'insights',label:t('nav.insights')},
+  { id:'cleansing',label:'数据清洗及导入'},{id:'rules',label:t('nav.rules')},
+  { id:'quality',label:'操作异常记录'},{id:'settings',label:t('nav.settings')},
 ]
 
 

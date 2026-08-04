@@ -1,4 +1,7 @@
 import React, { useEffect, useRef, useCallback } from 'react'
+import { t } from "../../locale"
+import { t } from "../../locale"
+import { t } from "../../locale"
 import { NAV } from '../App'
 import { NAV_ICONS } from './Icons'
 
@@ -79,16 +82,16 @@ export default function Sidebar({ page, onClose, onNavigate, lowStock, errCount,
                     {item.label}
                   </span>
                   <span style={{ display:'block', fontSize:11, color:'var(--muted2)', marginTop:2 }}>
-                    {item.id === 'dash' && '数据概览'}
-                    {item.id === 'insights' && '补货/采购建议'}
-                    {item.id === 'orders' && '订单明细'}
-                    {item.id === 'inv' && '进销存台账'}
-                    {item.id === 'products' && '商品管理'}
-                    {item.id === 'suppliers' && '供应商管理'}
-                    {item.id === 'cleansing' && '数据清洗导入'}
-                    {item.id === 'rules' && '规则与参数的配置'}
-                    {item.id === 'quality' && '数据异常记录'}
-                    {item.id === 'settings' && '系统设置与连接状态'}
+                    {item.id === 'dash' && t('nav.dash')}
+                    {item.id === 'insights' && t('nav.insights')}
+                    {item.id === 'orders' && t('nav.orders')}
+                    {item.id === 'inv' && t('nav.inv')}
+                    {item.id === 'products' && t('nav.products')}
+                    {item.id === 'suppliers' && t('nav.suppliers')}
+                    {item.id === 'cleansing' && t('nav.cleansing')}
+                    {item.id === 'rules' && t('nav.rules')}
+                    {item.id === 'quality' && t('nav.quality')}
+                    {item.id === 'settings' && t('nav.settings')}
                   </span>
                 </span>
                 {item.id === 'quality' && errCount > 0 &&

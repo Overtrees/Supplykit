@@ -148,7 +148,7 @@ export default function RulesPage() {
         <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:32,padding:14,marginBottom:14}}>
           <div style={{fontWeight:600,fontSize:13,marginBottom:10,display:'flex',alignItems:'center',gap:4}}><IconScale size={14} /> 触发条件</div>
           <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
-            <span style={{fontSize:14,fontWeight:500}}>当</span>
+            <span className="text-14 font-500">当</span>
             <select value={cond.warehouse} onChange={e=>setCond(p=>({...p,warehouse:e.target.value}))} style={{...IS,flex:1,minWidth:60,fontSize:13}}>{WHS.map(w=><option key={w.v} value={w.v}>{w.l}</option>)}</select>
             <select value={cond.left} onChange={e=>setCond(p=>({...p,left:e.target.value}))} style={{...IS,flex:2,minWidth:120,fontSize:14}}>{LF.map(f=><option key={f.v} value={f.v}>{f.l}</option>)}</select>
             <select value={cond.op} onChange={e=>setCond(p=>({...p,op:e.target.value}))} style={{...IS,width:70,fontSize:14,textAlign:'center'}}>{OPS.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select>

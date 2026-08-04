@@ -255,7 +255,7 @@ export default function InsightsPage() {
                         const col = currentCols.find(c => c.id === id)
                         if (!col) return <td key={id}></td>
                         // 序号列
-                        if (col.id === 'seq') return <td key={col.id} style={{fontSize:11,color:'var(--muted2)'}}>{i+1}</td>
+                        if (col.id === 'seq') return <td key={col.id} className="text-11 muted2">{i+1}</td>
                         // SKU
                         if (col.id === 'sku') return <td key={col.id} className="mono" style={{fontSize:12,textDecoration:isOrdered?'line-through':'none'}}>{x.sku}</td>
                         if (col.id === 'barcode') return <td key={col.id} className='mono' style={{fontSize:11}}>{x.barcode||'-'}</td>
@@ -279,7 +279,7 @@ export default function InsightsPage() {
                           /{x.daily_sales_14||0 > (x.daily_sales_28||0)*1.15 ? <IconTrendUp size={12} style={{display:'inline',verticalAlign:'middle'}} /> : x.daily_sales_14||0 < (x.daily_sales_28||0)*0.85 ? <IconTrendDown size={12} style={{display:'inline',verticalAlign:'middle'}} /> : <IconTrendFlat size={12} style={{display:'inline',verticalAlign:'middle'}} />}{x.daily_sales_14||0}
                           /{x.daily_sales_28||0}</span></td>
                         // C仓周转
-                        if (col.id === 'c_turn') return <td key={col.id} style={{fontSize:11,fontWeight:600}}>{x.c_turnover != null ? x.c_turnover+'天' : '∞'}</td>
+                        if (col.id === 'c_turn') return <td key={col.id} className="text-11 font-600">{x.c_turnover != null ? x.c_turnover+'天' : '∞'}</td>
                         // 在途周转
                         if (col.id === 'transit_turn') return <td key={col.id} style={{fontSize:11}}>{x.transit_turnover != null ? x.transit_turnover+'天' : '∞'}</td>
                         // 安全线(TRAD)
@@ -298,7 +298,7 @@ export default function InsightsPage() {
                         if (col.id === 'note') return <td key={col.id} className="col-name" style={{color:'var(--muted2)',fontSize:12}}>{renderNote(x.note)}</td>
                         // 标记操作
                         if (col.id === 'action') return <td key={col.id}>{isOrdered
-                          ? <span onClick={()=>toggleOrdered(x.sku, x.store, x.product_name, x.suggested_qty || x.b_suggested)} style={{cursor:'pointer',fontSize:16,color:'var(--success)',display:'inline-flex',alignItems:'center',gap:2}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{display:'inline',verticalAlign:'middle'}}><polyline points="4 12 10 18 20 6"/></svg><span style={{fontSize:9,color:'var(--muted2)'}}>{t("undo.undo")}</span></span>
+                          ? <span onClick={()=>toggleOrdered(x.sku, x.store, x.product_name, x.suggested_qty || x.b_suggested)} style={{cursor:'pointer',fontSize:16,color:'var(--success)',display:'inline-flex',alignItems:'center',gap:2}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{display:'inline',verticalAlign:'middle'}}><polyline points="4 12 10 18 20 6"/></svg><span className="text-9 muted2">{t("undo.undo")}</span></span>
                           : <span onClick={()=>{
                             if ((x.suggested_qty > 0 || x.b_suggested > 0) && x.combined_turnover > 90 && !window.confirm(`补后综合周转${x.combined_turnover}天，已超90天考核红线，仍标记操作？`)) return
                             toggleOrdered(x.sku, x.store, x.product_name, x.suggested_qty || x.b_suggested)
@@ -362,7 +362,7 @@ export default function InsightsPage() {
                       {purchaseVisCols.map(id => {
                         const col = PURCHASE_COLS.find(c => c.id === id)
                         if (!col) return <td key={id}></td>
-                        if (col.id === 'barcode') return <td key={col.id} className="mono" style={{fontSize:11,color:'var(--muted2)'}}>{x.barcode || '-'}</td>
+                        if (col.id === 'barcode') return <td key={col.id} className="mono" className="text-11 muted2">{x.barcode || '-'}</td>
                         if (col.id === 'sku') return <td key={col.id} className="mono" style={{fontSize:12}}>{x.sku}</td>
                         if (col.id === 'name') return <td key={col.id} className="col-name">{x.product_name}</td>
                         if (col.id === 'warehouse') return <td key={col.id} className="col-store">{x.warehouse || x.store || '-'}</td>
@@ -386,7 +386,7 @@ export default function InsightsPage() {
                     {purchaseVisCols.includes('actual_purchase') && <>
                       <td colSpan={purchaseVisCols.indexOf('actual_purchase')} style={{textAlign:'right',fontSize:12}}>合计</td>
                       <td style={{color:'var(--success)',fontSize:13}}>+{filteredPurchase.reduce((s,x)=>s+(x.actual_purchase||0),0)}</td>
-                      {purchaseVisCols.includes('after_turnover') && purchaseVisCols.indexOf('after_turnover') > purchaseVisCols.indexOf('actual_purchase') && <td colSpan={purchaseVisCols.length - purchaseVisCols.indexOf('after_turnover') - 1} style={{fontSize:11,color:'var(--muted2)'}}>
+                      {purchaseVisCols.includes('after_turnover') && purchaseVisCols.indexOf('after_turnover') > purchaseVisCols.indexOf('actual_purchase') && <td colSpan={purchaseVisCols.length - purchaseVisCols.indexOf('after_turnover') - 1} className="text-11 muted2">
                         {(() => {
                           const withPurchase = filteredPurchase.filter(x => x.purchase_qty > 0)
                           const avgTurnover = withPurchase.length > 0
@@ -427,12 +427,12 @@ export default function InsightsPage() {
                         {slowVisCols.map(id => {
                           const col = SLOW_COLS.find(c => c.id === id)
                           if (!col) return <td key={id}></td>
-                          if (col.id === 'barcode') return <td key={col.id} className="mono" style={{fontSize:11,color:'var(--muted2)'}}>{x.barcode || '-'}</td>
+                          if (col.id === 'barcode') return <td key={col.id} className="mono" className="text-11 muted2">{x.barcode || '-'}</td>
                           if (col.id === 'sku') return <td key={col.id} className="mono" style={{fontSize:12}}>{x.sku}</td>
                           if (col.id === 'name') return <td key={col.id}>{x.product_name}</td>
                           if (col.id === 'store') return <td key={col.id}>{x.store || x.warehouse || '-'}</td>
                           if (col.id === 'category') return <td key={col.id}>{x.category || '-'}</td>
-                          if (col.id === 'last_order_date') return <td key={col.id} style={{fontSize:12,color:'var(--muted)'}}>{x.last_order_date}</td>
+                          if (col.id === 'last_order_date') return <td key={col.id} className="text-12 muted">{x.last_order_date}</td>
                           if (col.id === 'days') return <td key={col.id} style={{fontWeight:600,color:(x.days_since_last||x.days_since_last_order||0) >= 90 ? '#ef4444' : (x.days_since_last||x.days_since_last_order||0) >= 30 ? 'var(--warning)' : 'var(--muted)'}}>{(x.days_since_last||x.days_since_last_order||0)}天</td>
                           if (col.id === 'stock') return <td key={col.id}>{(x.stock||x.available_qty||0)}</td>
                           if (col.id === 'level') return <td key={col.id}><span className={`pill ${x.level === '滞销' ? 'danger' : x.level === '冷淡' ? 'warning' : 'info'}`}>{x.level}</span></td>

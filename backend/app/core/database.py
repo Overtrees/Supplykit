@@ -480,6 +480,14 @@ def init_db(path=None):
             owner_id TEXT DEFAULT '',
             created_at TEXT DEFAULT (datetime('now'))
         );
+        CREATE TABLE IF NOT EXISTS daily_stats (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT NOT NULL, channel TEXT DEFAULT 'jd',
+            store TEXT DEFAULT '', sku TEXT DEFAULT '',
+            gmv REAL DEFAULT 0, order_count INTEGER DEFAULT 0,
+            quantity INTEGER DEFAULT 0,
+            UNIQUE(date, channel, store, sku)
+        );
         CREATE INDEX IF NOT EXISTS idx_orders_order_no ON orders(order_no);
         CREATE INDEX IF NOT EXISTS idx_inventory_sku ON inventory(sku);
         CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku);

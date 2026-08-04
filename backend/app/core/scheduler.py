@@ -24,6 +24,51 @@ def _task_inventory_sync():
     except Exception as e:
         print(f"[Scheduler] Inventory sync error: {e}")
 
+def _task_archive_orders():
+    """每天凌晨 1 点归档 90 天前的订单"""
+    try:
+        from app.core.database import get_db, get_conn
+        from datetime import timedelta
+        cutoff = (datetime.utcnow() - timedelta(days=90)).strftime('%Y-%m-%d')
+        db = get_db()
+        old_orders = db.table("orders").select("*").execute().data or []
+        old_orders = [o for o in old_orders if str(o.get('ordered_at',''))[:10] < cutoff]
+        if not old_orders:
+            print(f"[Scheduler] Order archive: no orders before {cutoff}")
+            return
+        # 按天+渠道+店铺+SKU 聚合
+        from collections import defaultdict
+        agg = defaultdict(lambda: {'gmv': 0, 'count': 0, 'qty': 0})
+        for o in old_orders:
+            key = (str(o.get('ordered_at',''))[:10], o.get('channel','jd'), o.get('store',''), o.get('sku',''))
+            agg[key]['gmv'] += float(o.get('total_amount') or 0)
+            agg[key]['count'] += 1
+            agg[key]['qty'] += int(o.get('quantity') or 0)
+        # 写入 daily_stats
+        conn = get_conn()
+        for (date, channel, store, sku), v in agg.items():
+            try:
+                conn.execute(
+                    "INSERT INTO daily_stats (date, channel, store, sku, gmv, order_count, quantity) VALUES (?,?,?,?,?,?,?) "
+                    "ON CONFLICT(date, channel, store, sku) DO UPDATE SET gmv=gmv+?, order_count=order_count+?, quantity=quantity+?",
+                    (date, channel, store, sku, v['gmv'], v['count'], v['qty'], v['gmv'], v['count'], v['qty'])
+                )
+            except: pass
+        conn.commit()
+        # 删除已归档的原始订单
+        ids = [o['id'] for o in old_orders]
+        batch_size = 100
+        for i in range(0, len(ids), batch_size):
+            batch = ids[i:i+batch_size]
+            for id_str in batch:
+                try:
+                    db.table("orders").delete().eq("id", id_str).execute()
+                except: pass
+        print(f"[Scheduler] Order archive: {len(old_orders)} orders → {len(agg)} daily stats rows")
+        conn.close()
+    except Exception as e:
+        print(f"[Scheduler] Order archive error: {e}")
+
 def _task_cleanup_logs():
     """每天清理 30 天前的日志"""
     try:
@@ -83,6 +128,7 @@ def start():
         return
     _started = True
     scheduler.add_job(_task_inventory_sync, IntervalTrigger(minutes=30), id='inventory_sync')
+    scheduler.add_job(_task_archive_orders, CronTrigger(hour=1, minute=0), id='archive_orders')
     scheduler.add_job(_task_cleanup_logs, CronTrigger(hour=3, minute=0), id='cleanup_logs')
     scheduler.add_job(_task_backup, CronTrigger(hour=2, minute=0), id='db_backup')
     scheduler.add_job(_task_daily_rules, CronTrigger(hour=4, minute=0), id='daily_rules')

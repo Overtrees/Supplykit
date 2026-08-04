@@ -1,14 +1,12 @@
 import React from 'react'
 import { IconAlert } from './Icons'
 
-interface Props { children: React.ReactNode }
-interface State { err: Error | null }
+interface ErrorBoundaryProps { children: React.ReactNode }
+interface ErrorBoundaryState { err: Error | null }
 
-interface ErrorBoundaryProps { children: React.ReactNode; fallback?: React.ReactNode }
-interface ErrorBoundaryState { hasError: boolean; error: Error | null }
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState><Props, State> {
-  state: State = { err: null }
-  static getDerivedStateFromError(err: Error) { return { err } }
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  state: ErrorBoundaryState = { err: null }
+  static getDerivedStateFromError(err: Error): ErrorBoundaryState { return { err } }
   render() {
     if (this.state.err) {
       return (
@@ -23,3 +21,5 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     return this.props.children
   }
 }
+
+export default ErrorBoundary

@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.core.dashboard_cache import get_dashboard, invalidate
+from app.core.dashboard_cache import get_dashboard, invalidate, _compute_funnel, _compute_health
 from app.core.database import get_db, DB_PATH
 from app.core.sales_utils import calc_sales, rolling_predict
 import sqlite3
@@ -13,7 +13,42 @@ _stock_risk_cache = {}
 _STOCK_CACHE_TTL = 300  # 5 分钟
 
 @router.get("/summary")
-def dashboard_summary(channel: str = 'jd'):
+def dashboard_summary(channel: str = 'jd', start_date: str = '', end_date: str = ''):
+    if start_date and end_date:
+        # 自定义日期范围：实时计算，不缓存
+        from datetime import datetime as dt
+        from app.core.sales_utils import calc_sales
+        db = get_db()
+        all_orders = db.table("orders").select("*").execute().data or []
+        # 按日期过滤
+        orders = [o for o in all_orders if start_date <= str(o.get('ordered_at',''))[:10] <= end_date]
+        inv = db.table("inventory").select("*").eq("channel", channel).execute().data or []
+        products = db.table("products").select("*").eq("channel", channel).execute().data or []
+        suppliers = db.table("suppliers").select("*").execute().data or []
+        alerts = db.table("alerts").select("*").eq("status", "active").eq("channel", channel).execute().data or []
+        gmv = sum(float(x.get("total_amount") or 0) for x in orders if x.get("order_status") == "已完成")
+        pending = len([x for x in orders if x.get("order_status") == "待发货"])
+        refund = len([x for x in orders if x.get("order_status") == "申请退款"])
+        low_stock = len([x for x in inv if int(x.get("available_qty") or 0) < int(x.get("safety_qty") or 0)])
+        day_count = max(1, (dt.strptime(end_date, "%Y-%m-%d") - dt.strptime(start_date, "%Y-%m-%d")).days + 1)
+        # 趋势（按天聚合）
+        trend = defaultdict(lambda: {"GMV": 0, "订单数": 0})
+        for o in orders:
+            d = str(o.get('ordered_at',''))[:10]
+            trend[d]["GMV"] += float(o.get("total_amount") or 0)
+            if o.get("order_status") == "已完成": trend[d]["订单数"] += 1
+        trend_data = [{"日期": k, "GMV": v["GMV"], "订单数": v["订单数"]} for k, v in sorted(trend.items())]
+        summary = {
+            "gmv": round(gmv, 2), "total_orders": len(orders), "pending_count": pending, "refund_count": refund,
+            "low_stock_count": low_stock, "active_alerts": len(alerts), "total_products": len(products), "total_suppliers": len(suppliers),
+        }
+        return ok({
+            "summary": summary,
+            "periods": {"custom": {"gmv": round(gmv, 2), "orders": len(orders), "days": day_count}},
+            "trend": trend_data,
+            "funnel": _compute_funnel(orders), "health_index": _compute_health(inv),
+            "stores": [],
+        })
     data = get_dashboard(channel=channel)
     return ok(data)
 

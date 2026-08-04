@@ -75,7 +75,7 @@ export default function DashboardPage({ onAlert }) {
   const lowStockAlerts = alertsList.filter(x => x.alert_type !== 'replenish')
   const replenishAlerts = alertsList.filter(x => x.alert_type === 'replenish')
   const criticalAlerts = alertsList.filter(x => x.severity === 'error').length
-  const periodDays = {today:1,week:7,month:30}[periodTab]||30
+  const periodDays = periodTab === 'custom' ? (periodMeta?.days || 30) : ({today:1,week:7,month:30}[periodTab]||30)
   const riskCritical = (stockRisk||[]).filter(x => x.days_to_empty < 3).length
   const riskWarning = (stockRisk||[]).filter(x => x.days_to_empty >= 3 && x.days_to_empty < 7).length
   var outOfStockItems = (inventory||[]).filter(function(item) {
@@ -103,7 +103,7 @@ export default function DashboardPage({ onAlert }) {
     <div className="card-grid" style={{marginBottom:16}}>
       {/* 1. GMV 卡 — 加环比微趋势线 + 日均 */}
       <div className="card" style={{borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16,overflow:'hidden'}}>
-        <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>{periodLabel[periodTab]} GMV</div>
+        <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>{periodTab === 'custom' ? '自定义' : periodLabel[periodTab]} GMV</div>
         <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:4}}>
           <div className="card-value" style={{fontSize:'clamp(18px,9cqi,30px)',fontWeight:700,lineHeight:1.1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
             ¥{Number(periodMeta.gmv||0).toLocaleString()}

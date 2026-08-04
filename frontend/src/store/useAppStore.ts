@@ -45,7 +45,10 @@ export const useAppStore = create((set, get) => ({
   hammerRulesMode: localStorage.getItem('c_replen_mode_' + (localStorage.getItem('c_channel') || 'jd')) || ((localStorage.getItem('c_channel') || 'jd') === 'jd' ? 'bbcc' : 'traditional'),
   setHammerRulesMode: (m) => { localStorage.setItem('c_replen_mode_' + get().channel, m); set({ hammerRulesMode: m }) },
   hammerDashPeriod: localStorage.getItem('c_dash_period_' + (localStorage.getItem('c_channel') || 'jd')) || 'month',
-  setHammerDashPeriod: (p) => { localStorage.setItem('c_dash_period_' + get().channel, p); set({ hammerDashPeriod: p }) },
+  customDateStart: '',
+  customDateEnd: '',
+  setHammerDashPeriod: (p) => { localStorage.setItem('c_dash_period_' + get().channel, p); set({ hammerDashPeriod: p, customDateStart: '', customDateEnd: '' }) },
+  setCustomDate: (start, end) => set({ customDateStart: start, customDateEnd: end, hammerDashPeriod: 'custom' }),
   hammerReplenMode: localStorage.getItem('c_replen_mode_' + (localStorage.getItem('c_channel') || 'jd')) || ((localStorage.getItem('c_channel') || 'jd') === 'jd' ? 'bbcc' : 'traditional'),
   setHammerReplenMode: (m) => { localStorage.setItem('c_replen_mode_' + get().channel, m); set({ hammerReplenMode: m }) },
   hammerCols: {},
@@ -65,9 +68,14 @@ export const useAppStore = create((set, get) => ({
     const s = get().hammerSearch || ''
     const st = get().orderStatus || ''
     const p = page || get().orderPage || 1
+    const ds = get().hammerDashPeriod
+    const cds = get().customDateStart
+    const cde = get().customDateEnd
+    var dashUrl = '/api/dashboard/summary'
+    if (ds === 'custom' && cds && cde) dashUrl += '?start_date=' + cds + '&end_date=' + cde
     try {
       const results = await Promise.allSettled([
-        api.get('/api/dashboard/summary'),
+        api.get(dashUrl),
         api.get('/api/orders?page=' + p + '&page_size=30&search=' + encodeURIComponent(s) + '&status=' + encodeURIComponent(st)),
         api.get('/api/inventory'),
         api.get('/api/quality-logs'),

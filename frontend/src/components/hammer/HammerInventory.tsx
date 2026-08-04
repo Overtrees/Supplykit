@@ -61,19 +61,19 @@ export default function HammerInventory({ channel }: HammerInventoryProps) {
       {/* 功能按钮行 */}
       <div style={{display:'flex',gap:6,marginBottom:hammerPanel?8:0,flexWrap:'wrap'}}>
         <button onClick={() => setHammerPanel(hammerPanel === 'columns' ? null : 'columns')}
-          className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
+          className="btn-ghost hammer-btn" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
           列选择 ({visCols.length}/{INV_COLS[hammerWhType].length})
         </button>
         <button onClick={() => setHammerPanel(hammerPanel === 'search' ? null : 'search')}
-          className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
+          className="btn-ghost hammer-btn" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
           搜索
         </button>
         <button onClick={() => setHammerPanel(hammerPanel === 'wh' ? null : 'wh')}
-          className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
+          className="btn-ghost hammer-btn" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
           仓库 {INV_WH_LABEL[hammerWhType]}
         </button>
         <button onClick={doExport} disabled={exporting}
-          className="clickable btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px',display:'flex',alignItems:'center',gap:4,justifyContent:'center',opacity:exporting?0.5:1}}>
+          className="clickable btn-ghost hammer-btn" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px',display:'flex',alignItems:'center',gap:4,justifyContent:'center',opacity:exporting?0.5:1}}>
           {exporting ? <span style={{display:'inline-block',width:12,height:12,border:'2px solid var(--primary)',borderTopColor:'transparent',borderRadius:'50%',animation:'spin 0.6s linear infinite'}} /> : <IconExport size={13} />} {exporting ? '导出中...' : '导出'}
         </button>
       </div>
@@ -97,7 +97,7 @@ export default function HammerInventory({ channel }: HammerInventoryProps) {
             </div>
           })}
           <div style={{borderTop:'1px solid var(--border)',marginTop:4,paddingTop:4}}>
-            <span onClick={()=>saveCols(INV_COLS[hammerWhType].map(c=>c.id))} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>{t("common.all")}</span>
+            <span onClick={()=>saveCols(INV_COLS[hammerWhType].map(c=>c.id))} className="btn-ghost hammer-btn" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>{t("common.all")}</span>
           </div>
         </div>
       )}
@@ -108,7 +108,7 @@ export default function HammerInventory({ channel }: HammerInventoryProps) {
             placeholder="搜索SKU/商品名..."
             style={{width:'100%',padding:'6px 10px',fontSize:16,border:'1px solid var(--border)',borderRadius:32,outline:'none',boxSizing:'border-box',background:'var(--card)',color:'var(--text)'}} />
           {hammerSearch && <div style={{marginTop:4,textAlign:'right'}}>
-            <span className="clickable btn btn-ghost" onClick={()=>setHammerSearch('')} style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>{t("common.clear")}</span>
+            <span className="clickable btn-ghost hammer-btn" onClick={()=>setHammerSearch('')} style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>{t("common.clear")}</span>
           </div>}
         </div>
       )}

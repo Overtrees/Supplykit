@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react'
-import { t } from "../../locale"
 import { useAppStore } from '../../store/useAppStore'
 import { useToast } from '../../components/Toast'
 import { ORDER_COLS, ORDER_STATUSES, orderColKey, getOrderVis } from './configs'
 import { IconExport } from '../Icons'
+import { t } from '../../locale'
 
 interface HammerOrdersProps { channel: string }
 
@@ -13,9 +13,7 @@ export default function HammerOrders({ channel }: HammerOrdersProps) {
   const [visCols, setVisCols] = useState(() => getOrderVis(channel) || ORDER_COLS.map(c => c.id))
   const [exporting, setExporting] = useState(false)
 
-  useEffect(() => {
-    setVisCols(getOrderVis(channel) || ORDER_COLS.map(c => c.id))
-  }, [channel])
+  useEffect(() => { setVisCols(getOrderVis(channel) || ORDER_COLS.map(c => c.id)) }, [channel])
 
   const saveCols = (cols) => {
     setVisCols(cols)
@@ -32,43 +30,32 @@ export default function HammerOrders({ channel }: HammerOrdersProps) {
       const b = await r.blob()
       const u = URL.createObjectURL(b)
       const a = document.createElement('a')
-      a.href = u
-      a.download = 'orders_' + new Date().toISOString().slice(0,10) + '.xlsx'
+      a.href = u; a.download = 'orders_' + new Date().toISOString().slice(0,10) + '.xlsx'
       document.body.appendChild(a); a.click(); a.remove()
       URL.revokeObjectURL(u)
-      toast.success('订单导出完成')
-    } catch(e) { toast.error('导出失败') }
+      toast.success(t('export.order_success'))
+    } catch(e) { toast.error(t('export.failed')) }
     setExporting(false)
   }
 
   return (
     <div>
-      <div style={{fontSize:11,color:'var(--muted2)',marginBottom:8,textAlign:'center'}}>
-        {channel === 'jd' ? t('channel.jd') : t('channel.other')} · {t('nav.orders')}
-
-      </div>
-      <div style={{display:'flex',gap:6,marginBottom:hammerPanel?8:0,flexWrap:'wrap'}}>
+      <div className="hammer-header">{channel === 'jd' ? t('channel.jd') : t('channel.other')} · {t('nav.orders')}</div>
+      <div className="flex gap-6 flex-wrap" style={{marginBottom:hammerPanel?8:0}}>
         <button onClick={() => setHammerPanel(hammerPanel === 'columns' ? null : 'columns')}
-          className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
-          列选择 ({visCols.length}/{ORDER_COLS.length})
-        </button>
+          className="btn-ghost hammer-btn">{t('common.columns')} ({visCols.length}/{ORDER_COLS.length})</button>
         <button onClick={() => setHammerPanel(hammerPanel === 'search' ? null : 'search')}
-          className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
-          搜索
-        </button>
+          className="btn-ghost hammer-btn">{t('common.search')}</button>
         <button onClick={() => setHammerPanel(hammerPanel === 'filter' ? null : 'filter')}
-          className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
-          筛选{orderStatus ? ' ✓' : ''}
-        </button>
+          className="btn-ghost hammer-btn">{t('common.filter')}{orderStatus ? ' ✓' : ''}</button>
         <button onClick={doExport} disabled={exporting}
-          className="clickable btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px',display:'flex',alignItems:'center',gap:4,justifyContent:'center',opacity:exporting?0.5:1}}>
-          {exporting ? <span style={{display:'inline-block',width:12,height:12,border:'2px solid var(--primary)',borderTopColor:'transparent',borderRadius:'50%',animation:'spin 0.6s linear infinite'}} /> : <IconExport size={13} />} {exporting ? '导出中...' : '导出'}
+          className="clickable btn-ghost hammer-btn" style={{opacity:exporting?0.5:1}}>
+          {exporting ? <span className="inline-block" style={{width:12,height:12,border:'2px solid var(--primary)',borderTopColor:'transparent',borderRadius:'50%',animation:'spin 0.6s linear infinite'}} /> : <IconExport size={13} />} {exporting ? t('common.exporting') : t('common.export')}
         </button>
       </div>
-      {/* 列选择面板 */}
       {hammerPanel === 'columns' && (
-        <div style={{borderTop:'1px solid var(--border)',paddingTop:8,marginTop:0,maxHeight:260,overflowY:'auto'}}>
-          <div style={{fontSize:10,color:'var(--muted2)',marginBottom:4,padding:'0 4px'}}>{t("common.drag_hint")}</div>
+        <div className="hammer-panel hammer-panel-scroll">
+          <div className="muted2 text-10" style={{marginBottom:4,padding:'0 4px'}}>{t('common.drag_hint')}</div>
           {(visCols.map(id=>ORDER_COLS.find(c=>c.id===id)).filter(Boolean).concat(ORDER_COLS.filter(c=>!visCols.includes(c.id)))).map((col,idx)=>{
             const isVis=visCols.includes(col.id)
             return <div key={col.id} draggable={isVis?true:undefined}
@@ -77,34 +64,31 @@ export default function HammerOrders({ channel }: HammerOrdersProps) {
               onDragOver={isVis?e=>{e.preventDefault();e.currentTarget.style.borderTop='2px solid var(--primary)';const from=e.currentTarget.parentNode._dragId;if(from&&from!==col.id){const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(col.id);nxt.splice(toIdx,0,from);saveCols(nxt)}}:undefined}
               onDragLeave={isVis?e=>e.currentTarget.style.borderTop='1px solid transparent':undefined}
               onDrop={isVis?e=>{e.preventDefault();e.currentTarget.style.borderTop='1px solid transparent';const from=e.dataTransfer.getData('text/plain');if(from===col.id)return;const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(col.id);nxt.splice(toIdx,0,from);saveCols(nxt);e.currentTarget.parentNode._dragId=null}:undefined}
-              style={{display:'flex',alignItems:'center',gap:4,padding:'4px 6px',borderRadius:6,cursor:isVis?'grab':'default',fontSize:12,whiteSpace:'nowrap',borderTop:'1px solid transparent',background:isVis?'var(--card)':'transparent',opacity:isVis?1:0.4,userSelect:'none',WebkitUserSelect:'none'}}>
-              <span style={{color:'var(--muted2)',fontSize:12,width:16,flexShrink:0,textAlign:'center',cursor:isVis?'grab':'default'}}>{isVis?'⠿':'○'}</span>
-              <input type="checkbox" checked={isVis} onChange={e=>{const n=e.target.checked?[...visCols,col.id]:visCols.filter(c=>c!==col.id);saveCols(n)}} style={{accentColor:'var(--primary)'}} />
-              <span style={{flex:1}}>{col.label}</span>
-              <span style={{fontSize:9,color:'var(--muted2)'}}>{isVis?'#'+(visCols.indexOf(col.id)+1):''}</span>
+              className={'col-drag' + (isVis ? ' visible' : ' hidden')}>
+              <span className="muted2 text-12" style={{width:16,flexShrink:0,textAlign:'center',cursor:isVis?'grab':'default'}}>{isVis?'⠿':'○'}</span>
+              <input type="checkbox" checked={isVis} onChange={e=>{const n=e.target.checked?[...visCols,col.id]:visCols.filter(c=>c!==col.id);saveCols(n)}} className="accent-primary" />
+              <span className="flex-1 text-12">{col.label}</span>
+              <span className="muted2 text-9">{isVis?'#'+(visCols.indexOf(col.id)+1):''}</span>
             </div>
           })}
-          <div style={{borderTop:'1px solid var(--border)',marginTop:4,paddingTop:4}}>
-            <span onClick={()=>saveCols(ORDER_COLS.map(c=>c.id))} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>{t("common.all")}</span>
+          <div className="border-bottom mt-4" style={{paddingTop:4}}>
+            <span onClick={()=>saveCols(ORDER_COLS.map(c=>c.id))} className="btn-ghost text-10" style={{padding:'2px 8px',cursor:'pointer'}}>{t('common.all')}</span>
           </div>
         </div>
       )}
-      {/* 搜索面板 */}
       {hammerPanel === 'search' && (
-        <div style={{borderTop:'1px solid var(--border)',paddingTop:8}}>
+        <div className="hammer-panel">
           <input id="hm-search-orders" value={hammerSearch} onChange={e=>setHammerSearch(e.target.value)}
-            placeholder="搜索单号/商品/SKU..."
-            style={{width:'100%',padding:'6px 10px',fontSize:16,border:'1px solid var(--border)',borderRadius:32,outline:'none',boxSizing:'border-box',background:'var(--card)',color:'var(--text)'}} />
-          {hammerSearch && <div style={{marginTop:4,textAlign:'right'}}>
-            <span className="clickable btn btn-ghost" onClick={()=>setHammerSearch('')} style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>{t("common.clear")}</span>
+            placeholder="搜索单号/商品/SKU..." className="hammer-input" />
+          {hammerSearch && <div className="text-right mt-8">
+            <span className="clickable btn-ghost text-10" onClick={()=>setHammerSearch('')} style={{padding:'2px 8px',cursor:'pointer'}}>{t('common.clear')}</span>
           </div>}
         </div>
       )}
-      {/* 筛选面板 */}
       {hammerPanel === 'filter' && (
-        <div style={{borderTop:'1px solid var(--border)',paddingTop:8}}>
-          <div style={{fontSize:10,color:'var(--muted2)',marginBottom:4}}>{t("common.order_status")}</div>
-          <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
+        <div className="hammer-panel">
+          <div className="muted2 text-10 mb-4">{t('common.order_status')}</div>
+          <div className="flex flex-wrap gap-4">
             {ORDER_STATUSES.map(s => (
               <span key={s} onClick={() => setOrderFilterLocal('', s)}
                 style={{fontSize:12,padding:'4px 10px',borderRadius:99,cursor:'pointer',
@@ -112,12 +96,12 @@ export default function HammerOrders({ channel }: HammerOrdersProps) {
                   color: (orderStatus === s || (!orderStatus && !s)) ? '#fff' : 'var(--text)',
                   fontWeight: orderStatus === s ? 600 : 400
                 }}>
-                {s || '全部'}
+                {s || t('common.all')}
               </span>
             ))}
           </div>
-          {orderStatus && <div style={{marginTop:4,textAlign:'right'}}>
-            <span onClick={()=>setOrderFilterLocal('','')} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>{t("common.clear_filter")}</span>
+          {orderStatus && <div className="text-right mt-8">
+            <span onClick={()=>setOrderFilterLocal('','')} className="btn-ghost text-10" style={{padding:'2px 8px',cursor:'pointer'}}>{t('common.clear_filter')}</span>
           </div>}
         </div>
       )}

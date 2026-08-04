@@ -42,19 +42,21 @@ export default function HammerOrders({ channel }: HammerOrdersProps) {
     <div>
       <div className="hammer-header">{channel === 'jd' ? t('channel.jd') : t('channel.other')} · {t('nav.orders')}</div>
       <div style={{marginBottom:hammerPanel?8:0}}>
-        <div className="flex gap-4 mb-4">
-          <button onClick={() => setHammerPanel(hammerPanel === 'columns' ? null : 'columns')}
-            className="btn-ghost hammer-btn">{t('common.columns')} ({visCols.length}/{ORDER_COLS.length})</button>
-          <button onClick={() => setHammerPanel(hammerPanel === 'search' ? null : 'search')}
-            className="btn-ghost hammer-btn">{t('common.search')}</button>
-        </div>
-        <div className="flex gap-4">
-          <button onClick={() => setHammerPanel(hammerPanel === 'filter' ? null : 'filter')}
-            className="btn-ghost hammer-btn">{t('common.filter')}{orderStatus ? ' ✓' : ''}</button>
-          <button onClick={doExport} disabled={exporting}
-            className="clickable btn-ghost hammer-btn" style={{opacity:exporting?0.5:1}}>
-            {exporting ? <span className="inline-block" style={{width:12,height:12,border:'2px solid var(--primary)',borderTopColor:'transparent',borderRadius:'50%',animation:'spin 0.6s linear infinite'}} /> : <IconExport size={13} />} {exporting ? t('common.exporting') : t('common.export')}
-          </button>
+        <div className="hammer-row-2x2">
+          <div className="hammer-row">
+            <button onClick={() => setHammerPanel(hammerPanel === 'columns' ? null : 'columns')}
+              className="btn-ghost hammer-btn">{t('common.columns')} ({visCols.length}/{ORDER_COLS.length})</button>
+            <button onClick={() => setHammerPanel(hammerPanel === 'search' ? null : 'search')}
+              className="btn-ghost hammer-btn">{t('common.search')}</button>
+          </div>
+          <div className="hammer-row">
+            <button onClick={() => setHammerPanel(hammerPanel === 'filter' ? null : 'filter')}
+              className="btn-ghost hammer-btn">{t('common.filter')}{orderStatus ? ' ✓' : ''}</button>
+            <button onClick={doExport} disabled={exporting}
+              className="clickable btn-ghost hammer-btn" style={{opacity:exporting?0.5:1}}>
+              {exporting ? <span className="hammer-spinner" /> : <IconExport size={13} />} {exporting ? t('common.exporting') : t('common.export')}
+            </button>
+          </div>
         </div>
       </div>
       {hammerPanel === 'columns' && (
@@ -76,7 +78,7 @@ export default function HammerOrders({ channel }: HammerOrdersProps) {
             </div>
           })}
           <div className="border-bottom mt-4" style={{paddingTop:4}}>
-            <span onClick={()=>saveCols(ORDER_COLS.map(c=>c.id))} className="btn-ghost text-10" style={{padding:'2px 8px',cursor:'pointer'}}>{t('common.all')}</span>
+            <button onClick={()=>saveCols(ORDER_COLS.map(c=>c.id))} className="hammer-clear">{t('common.all')}</button>
           </div>
         </div>
       )}
@@ -85,7 +87,7 @@ export default function HammerOrders({ channel }: HammerOrdersProps) {
           <input id="hm-search-orders" value={hammerSearch} onChange={e=>setHammerSearch(e.target.value)}
             placeholder="搜索单号/商品/SKU..." className="hammer-input" />
           {hammerSearch && <div className="text-right mt-8">
-            <span className="clickable btn-ghost text-10" onClick={()=>setHammerSearch('')} style={{padding:'2px 8px',cursor:'pointer'}}>{t('common.clear')}</span>
+            <button className="hammer-clear" onClick={()=>setHammerSearch('')}>{t('common.clear')}</button>
           </div>}
         </div>
       )}
@@ -105,7 +107,7 @@ export default function HammerOrders({ channel }: HammerOrdersProps) {
             ))}
           </div>
           {orderStatus && <div className="text-right mt-8">
-            <span onClick={()=>setOrderFilterLocal('','')} className="btn-ghost text-10" style={{padding:'2px 8px',cursor:'pointer'}}>{t('common.clear_filter')}</span>
+            <button onClick={()=>setOrderFilterLocal('','')} className="hammer-clear">{t('common.clear_filter')}</button>
           </div>}
         </div>
       )}

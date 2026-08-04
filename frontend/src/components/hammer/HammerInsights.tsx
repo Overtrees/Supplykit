@@ -78,75 +78,66 @@ export default function HammerInsights({ channel }: HammerInsightsProps) {
 
   return (
     <div>
-      <div style={{fontSize:11,color:'var(--muted2)',marginBottom:8,textAlign:'center'}}>
-        {channel === 'jd' ? '京东' : '其他'} · 建议
-      </div>
+      <div className="hammer-header">{channel === 'jd' ? '京东' : '其他'} · 建议</div>
       {/* tab 入口 */}
-      <div style={{display:'flex',gap:4,marginBottom:8,flexWrap:'wrap'}}>
+      <div className="hammer-btn-row" style={{marginBottom:8}}>
         {[['replen','补货建议'],['purchase','采购建议'],['slow','滞销预警']].map(([id,label]) => (
           <span key={id} onClick={() => setHammerInsightsTab(id)}
-            style={{flex:1,fontSize:12,minHeight:32,padding:'4px 6px',borderRadius:99,cursor:'pointer',textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
-              background: hammerInsightsTab === id ? 'var(--primary)' : 'var(--gray)',
-              color: hammerInsightsTab === id ? '#fff' : 'var(--text)',fontWeight: hammerInsightsTab === id ? 600 : 400}}>
+            className={'hammer-tab' + (hammerInsightsTab === id ? ' active' : '')}>
             {label}
           </span>
         ))}
       </div>
       {/* 补货模式行（单独一行） */}
       {hammerInsightsTab === 'replen' && (
-        <div style={{display:'flex',gap:4,marginBottom:6}}>
+        <div className="hammer-btn-row" style={{marginBottom:8}}>
           {channel === 'jd' && (
             <span onClick={() => setHammerReplenMode('bbcc')}
-              style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px',borderRadius:99,cursor:'pointer',textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
-                background: mode==='bbcc'?'var(--primary)':'var(--gray)',color: mode==='bbcc'?'#fff':'var(--text)',fontWeight: mode==='bbcc'?600:400}}>
+              className={'hammer-tab' + (mode==='bbcc' ? ' active' : '')}>
               BBCC
             </span>
           )}
           <span onClick={() => setHammerReplenMode('traditional')}
-            style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px',borderRadius:99,cursor:'pointer',textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
-              background: mode==='traditional'?'var(--primary)':'var(--gray)',color: mode==='traditional'?'#fff':'var(--text)',fontWeight: mode==='traditional'?600:400}}>
+            className={'hammer-tab' + (mode==='traditional' ? ' active' : '')}>
             传统多仓
           </span>
         </div>
       )}
-      {/* 操作行（列选择+搜索+导出，单独一行） */}
-      <div className="flex gap-6">
+      {/* 操作行（搜索+列选择+导出） */}
+      <div className="hammer-row-3">
         <button onClick={() => setHammerPanel(hammerPanel === 'search' ? null : 'search')}
-          className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
-          搜索
-        </button>
+          className="hammer-btn btn-ghost">搜索</button>
         <button onClick={() => setHammerPanel(hammerPanel === 'columns' ? null : 'columns')}
-            className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
+            className="hammer-btn btn-ghost">
             列选择 ({visCols.length}/{cols.length})
           </button>
         <button onClick={() => doExport(
           isSlow ? 'slow' : (isPurchase ? 'purchase' : 'replen')
-        )} disabled={exporting} className="clickable btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px',display:'flex',alignItems:'center',gap:4,justifyContent:'center',opacity:exporting?0.5:1}}>
-          {exporting ? <span style={{display:'inline-block',width:12,height:12,border:'2px solid var(--primary)',borderTopColor:'transparent',borderRadius:'50%',animation:'spin 0.6s linear infinite'}} /> : <IconExport size={13} />} {exporting ? '导出中...' : '导出'}
+        )} disabled={exporting} className="clickable hammer-btn btn-ghost" style={{opacity:exporting?0.5:1}}>
+          {exporting ? <span className="hammer-spinner" /> : <IconExport size={13} />} {exporting ? '导出中...' : '导出'}
         </button>
       </div>
-      {/* 搜索面板 — 建议页 */}
+      {/* 搜索面板 */}
       {hammerPanel === 'search' && (
-        <div style={{borderTop:'1px solid var(--border)',paddingTop:8,marginTop:8}}>
-          <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4,textAlign:'center'}}>
+        <div className="hammer-panel">
+          <div className="hammer-header">
             {hammerInsightsTab === 'replen' ? '补货建议' : hammerInsightsTab === 'purchase' ? '采购建议' : '滞销预警'}
             {isPurchase ? '' : mode === 'bbcc' ? ' (BBCC)' : ' (传统)'} · 搜索
           </div>
           <input id="hm-search-insights" value={hammerData?.[channel]?.['insights_search_' + (isPurchase ? 'purchase' : isSlow ? 'slow' : mode)] || ''}
             onChange={e => setHammerData('insights_search_' + (isPurchase ? 'purchase' : isSlow ? 'slow' : mode), e.target.value)}
-            placeholder="搜索SKU/商品名..."
-            style={{width:'100%',padding:'6px 10px',fontSize:16,border:'1px solid var(--border)',borderRadius:32,outline:'none',boxSizing:'border-box',background:'var(--card)',color:'var(--text)'}} />
+            placeholder="搜索SKU/商品名..." className="hammer-input" />
           {hammerData?.[channel]?.['insights_search_' + (isPurchase ? 'purchase' : isSlow ? 'slow' : mode)] && (
             <div style={{marginTop:4,textAlign:'center'}}>
-              <span className="clickable btn btn-ghost" onClick={() => setHammerData('insights_search_' + (isPurchase ? 'purchase' : isSlow ? 'slow' : mode), '')} style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>{t("common.clear")}</span>
+              <button className="hammer-clear" onClick={() => setHammerData('insights_search_' + (isPurchase ? 'purchase' : isSlow ? 'slow' : mode), '')}>{t("common.clear")}</button>
             </div>
           )}
         </div>
       )}
       {/* 列选择面板 */}
       {hammerPanel === 'columns' && (
-        <div style={{borderTop:'1px solid var(--border)',paddingTop:8,marginTop:8,maxHeight:260,overflowY:'auto'}}>
-          <div style={{fontSize:10,color:'var(--muted2)',marginBottom:4,padding:'0 4px'}}>{t("common.drag_hint")}</div>
+        <div className="hammer-panel hammer-panel-scroll">
+          <div className="muted2 text-10" style={{marginBottom:4,padding:'0 4px'}}>{t("common.drag_hint")}</div>
           {(visCols.map(id=>cols.find(c=>c.id===id)).filter(Boolean).concat(cols.filter(c=>!visCols.includes(c.id)))).map((col,idx)=>{
             const isVis=visCols.includes(col.id)
             return <div key={col.id} draggable={isVis?true:undefined}
@@ -155,16 +146,16 @@ export default function HammerInsights({ channel }: HammerInsightsProps) {
               onDragOver={isVis?e=>{e.preventDefault();e.currentTarget.style.borderTop='2px solid var(--primary)';const from=e.currentTarget.parentNode._dragId;if(from&&from!==col.id){const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(col.id);nxt.splice(toIdx,0,from);saveCols(nxt)}}:undefined}
               onDragLeave={isVis?e=>e.currentTarget.style.borderTop='1px solid transparent':undefined}
               onDrop={isVis?e=>{e.preventDefault();e.currentTarget.style.borderTop='1px solid transparent';const from=e.dataTransfer.getData('text/plain');if(from===col.id)return;const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(col.id);nxt.splice(toIdx,0,from);saveCols(nxt);e.currentTarget.parentNode._dragId=null}:undefined}
-              style={{display:'flex',alignItems:'center',gap:4,padding:'4px 6px',borderRadius:6,cursor:isVis?'grab':'default',fontSize:12,whiteSpace:'nowrap',borderTop:'1px solid transparent',background:isVis?'var(--card)':'transparent',opacity:isVis?1:0.4,userSelect:'none',WebkitUserSelect:'none'}}>
-              <span style={{color:'var(--muted2)',fontSize:12,width:16,flexShrink:0,textAlign:'center',cursor:isVis?'grab':'default'}}>{isVis?'⠿':'○'}</span>
+              className={'col-drag' + (isVis ? ' visible' : ' hidden')}>
+              <span className="muted2 text-12" style={{width:16,flexShrink:0,textAlign:'center',cursor:isVis?'grab':'default'}}>{isVis?'⠿':'○'}</span>
               <input type="checkbox" checked={isVis} onChange={e=>{const n=e.target.checked?[...visCols,col.id]:visCols.filter(c=>c!==col.id);saveCols(n)}} className="accent-primary" />
-              <span className="flex-1">{col.label || '(序号)'}</span>
-              <span className="text-9 muted2">{isVis?'#'+(visCols.indexOf(col.id)+1):''}</span>
+              <span className="flex-1 text-12">{col.label || '(序号)'}</span>
+              <span className="muted2 text-9">{isVis?'#'+(visCols.indexOf(col.id)+1):''}</span>
             </div>
           })}
-          <div style={{borderTop:'1px solid var(--border)',marginTop:4,paddingTop:4,display:'flex',gap:6}}>
-            <span onClick={()=>saveCols(isSlow ? INS_SLOW_COLS.map(c=>c.id) : (isPurchase ? INS_PURCHASE_COLS.map(c=>c.id) : (mode==='bbcc'?insDefVis(INS_BBCC_COLS):insDefVisTrad(INS_TRAD_COLS))))} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>{t("common.default")}</span>
-            <span onClick={()=>saveCols(cols.map(c=>c.id))} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>{t("common.all")}</span>
+          <div className="border-bottom mt-4" style={{paddingTop:4,display:'flex',gap:6}}>
+            <button onClick={()=>saveCols(isSlow ? INS_SLOW_COLS.map(c=>c.id) : (isPurchase ? INS_PURCHASE_COLS.map(c=>c.id) : (mode==='bbcc'?insDefVis(INS_BBCC_COLS):insDefVisTrad(INS_TRAD_COLS))))} className="hammer-clear">{t("common.default")}</button>
+            <button onClick={()=>saveCols(cols.map(c=>c.id))} className="hammer-clear">{t("common.all")}</button>
           </div>
         </div>
       )}

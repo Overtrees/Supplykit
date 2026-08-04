@@ -8,58 +8,51 @@ export default function HammerRules({ channel, onShowHistory }: HammerRulesProps
 
   return (
     <div>
-      <div style={{fontSize:11,color:'var(--muted2)',marginBottom:8,textAlign:'center'}}>
-        {channel === 'jd' ? '京东' : '其他'} · 规则参数
-      </div>
+      <div className="hammer-header">{channel === 'jd' ? '京东' : '其他'} · 规则参数</div>
       {/* tab 入口 */}
-      <div className="flex gap-4">
+      <div className="hammer-btn-row" style={{marginBottom:8}}>
         {[['rules','规则'],['params','补货参数'],['purchase','采购参数']].map(([id,label]) => (
           <span key={id} onClick={() => setHammerRulesTab(id)}
-            style={{flex:1,fontSize:12,minHeight:32,padding:'4px 6px',borderRadius:99,cursor:'pointer',textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
-              background: hammerRulesTab === id ? 'var(--primary)' : 'var(--gray)',
-              color: hammerRulesTab === id ? '#fff' : 'var(--text)',fontWeight: hammerRulesTab === id ? 600 : 400}}>
+            className={'hammer-tab' + (hammerRulesTab === id ? ' active' : '')}>
             {label}
           </span>
         ))}
       </div>
       {/* 规则 tab: 新建 + 搜索 + 变更历史 */}
       {hammerRulesTab === 'rules' && <>
-        <div style={{display:'flex',gap:4,marginTop:8}}>
-          <button onClick={() => { setHammerRulesTab('rules'); bumpHammerRuleNew() }} className="btn btn-primary"
-            style={{flex:1,fontSize:12,minHeight:34,padding:'4px 8px',display:'flex',alignItems:'center',justifyContent:'center',gap:4,boxSizing:'border-box'}}>
+        <div className="hammer-row-3">
+          <button onClick={() => { setHammerRulesTab('rules'); bumpHammerRuleNew() }} className="hammer-btn btn-primary"
+            style={{display:'flex',alignItems:'center',justifyContent:'center',gap:4}}>
             + 新建
           </button>
-          <button onClick={() => setSearchOpen(!searchOpen)} className="btn btn-ghost"
-            style={{flex:1,fontSize:12,minHeight:34,padding:'4px 8px',display:'flex',alignItems:'center',justifyContent:'center',gap:4,boxSizing:'border-box'}}>
+          <button onClick={() => setSearchOpen(!searchOpen)} className="hammer-btn btn-ghost"
+            style={{display:'flex',alignItems:'center',justifyContent:'center',gap:4}}>
             搜索{hammerSearch ? ' ✓' : ''}
           </button>
-          <button onClick={() => { onShowHistory && onShowHistory(channel) }} className="btn btn-ghost"
-            style={{flex:1,fontSize:12,minHeight:34,padding:'4px 8px',display:'flex',alignItems:'center',justifyContent:'center',gap:4,boxSizing:'border-box'}}>
+          <button onClick={() => { onShowHistory && onShowHistory(channel) }} className="hammer-btn btn-ghost"
+            style={{display:'flex',alignItems:'center',justifyContent:'center',gap:4}}>
             变更历史
           </button>
         </div>
-        {searchOpen && <div style={{borderTop:'1px solid var(--border)',paddingTop:8,marginTop:8}}>
+        {searchOpen && <div className="hammer-panel">
           <input value={hammerSearch} onChange={e=>setHammerSearch(e.target.value)}
-            placeholder="搜索规则名称..."
-            style={{width:'100%',padding:'6px 10px',fontSize:16,border:'1px solid var(--border)',borderRadius:32,outline:'none',boxSizing:'border-box',background:'var(--card)',color:'var(--text)'}} />
+            placeholder="搜索规则名称..." className="hammer-input" />
           {hammerSearch && <div style={{marginTop:4,textAlign:'right'}}>
-            <span className="clickable btn btn-ghost" onClick={()=>setHammerSearch('')} style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>清除</span>
+            <button className="hammer-clear" onClick={()=>setHammerSearch('')}>清除</button>
           </div>}
         </div>}
       </>}
       {/* 补货参数 tab: 模式切换 */}
       {hammerRulesTab === 'params' && (
-        <div style={{display:'flex',gap:4,marginTop:8}}>
+        <div className="hammer-btn-row" style={{marginTop:8}}>
           {channel === 'jd' && (
             <span onClick={() => setHammerRulesMode('bbcc')}
-              style={{flex:1,fontSize:12,minHeight:32,padding:'4px 6px',borderRadius:99,cursor:'pointer',textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
-                background: hammerRulesMode==='bbcc'?'var(--primary)':'var(--gray)',color: hammerRulesMode==='bbcc'?'#fff':'var(--text)',fontWeight: hammerRulesMode==='bbcc'?600:400}}>
+              className={'hammer-tab' + (hammerRulesMode==='bbcc' ? ' active' : '')}>
               BBCC 送仓
             </span>
           )}
           <span onClick={() => setHammerRulesMode('traditional')}
-            style={{flex:1,fontSize:12,minHeight:32,padding:'4px 6px',borderRadius:99,cursor:'pointer',textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
-              background: hammerRulesMode==='traditional'?'var(--primary)':'var(--gray)',color: hammerRulesMode==='traditional'?'#fff':'var(--text)',fontWeight: hammerRulesMode==='traditional'?600:400}}>
+            className={'hammer-tab' + (hammerRulesMode==='traditional' ? ' active' : '')}>
             传统多仓
           </span>
         </div>

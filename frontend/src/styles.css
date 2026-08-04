@@ -94,6 +94,20 @@ input,select,button,textarea{font-family:inherit;font-size:16px}input[type="file
 .whitespace-nowrap{white-space:nowrap}
 .text-left{text-align:left}
 
+/* 锤子菜单布局行 */
+.hammer-row-2{display:flex;gap:6px}
+.hammer-row-2 .hammer-btn{flex:1}
+.hammer-row-2x2{display:flex;flex-direction:column;gap:6px}
+.hammer-row-2x2 .hammer-row{display:flex;gap:6px}
+.hammer-row-2x2 .hammer-row .hammer-btn{flex:1}
+.hammer-row-3{display:flex;gap:6px}
+.hammer-row-3 .hammer-btn{flex:1}
+
+/* 锤子通用组件 */
+.hammer-spinner{display:inline-block;width:12px;height:12px;border:2px solid var(--primary);border-top-color:transparent;border-radius:50%;animation:spin 0.6s linear infinite;vertical-align:middle}
+.hammer-clear{font-size:10px;padding:2px 8px;cursor:pointer;color:var(--primary);white-space:nowrap;background:none;border:none;font-family:inherit;font-weight:500}
+.hammer-clear:active{opacity:0.7}
+
 /* 响应式卡片网格 */
 .card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
 

@@ -45,7 +45,7 @@ export default function HammerProducts({ channel }: HammerProductsProps) {
             </div>
           })}
           <div className="border-bottom mt-4" style={{paddingTop:4}}>
-            <span onClick={()=>saveCols(PRODUCT_COLS.map(c=>c.id))} className="btn-ghost text-10" style={{padding:'2px 8px',cursor:'pointer'}}>{t('common.all')}</span>
+            <button onClick={()=>saveCols(PRODUCT_COLS.map(c=>c.id))} className="hammer-clear">{t('common.all')}</button>
           </div>
         </div>
       )}
@@ -54,7 +54,7 @@ export default function HammerProducts({ channel }: HammerProductsProps) {
           <input id="hm-search-prod" value={hammerSearch} onChange={e=>setHammerSearch(e.target.value)}
             placeholder="搜索SKU/商品名..." className="hammer-input" />
           {hammerSearch && <div className="text-right mt-8">
-            <span className="clickable btn-ghost text-10" onClick={()=>setHammerSearch('')} style={{padding:'2px 8px',cursor:'pointer'}}>{t('common.clear')}</span>
+            <button className="hammer-clear" onClick={()=>setHammerSearch('')}>{t('common.clear')}</button>
           </div>}
         </div>
       )}

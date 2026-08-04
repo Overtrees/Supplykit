@@ -45,7 +45,7 @@ export default function HammerSuppliers({ channel }: HammerSuppliersProps) {
             </div>
           })}
           <div className="border-bottom p-4">
-            <span onClick={()=>saveCols(SUPPLIER_COLS.map(c=>c.id))} className="btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>{t('common.all')}</span>
+            <button onClick={()=>saveCols(SUPPLIER_COLS.map(c=>c.id))} className="hammer-clear">{t('common.all')}</button>
           </div>
         </div>
       )}
@@ -54,7 +54,7 @@ export default function HammerSuppliers({ channel }: HammerSuppliersProps) {
           <input id="hm-search-supp" value={hammerSearch} onChange={e=>setHammerSearch(e.target.value)}
             placeholder="搜索供应商名称/编号..." className="hammer-input" />
           {hammerSearch && <div className="text-right mt-8">
-            <span className="clickable btn-ghost" onClick={()=>setHammerSearch('')} style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>{t('common.clear')}</span>
+            <button className="hammer-clear" onClick={()=>setHammerSearch('')}>{t('common.clear')}</button>
           </div>}
         </div>
       )}

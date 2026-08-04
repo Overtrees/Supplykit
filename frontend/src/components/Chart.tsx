@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState }
+import { useEffect, useRef, useState } from 'react'
 
 interface ChartProps {
   option: Record<string, any>
   height?: number
-} from 'react'
+}
 // 按需引入 ECharts 组件，减少打包体积
 import * as echarts from 'echarts/core'
 import { BarChart, LineChart } from 'echarts/charts'

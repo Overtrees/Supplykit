@@ -64,7 +64,7 @@ function RecycleBin({ onClose }) {
   }, [])
   var [orders, setOrders] = useState([])
   var [loading, setLoading] = useState(true)
-  var API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
+  var API = import.meta.einv.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
 
   useEffect(function() {
     setLoading(true)

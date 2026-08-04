@@ -26,7 +26,7 @@ export default function HammerOrders({ channel }: HammerOrdersProps) {
   const doExport = async () => {
     setExporting(true)
     try {
-      const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
+      const API = import.meta.einv.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
       const r = await fetch(API + '/api/insights/export-orders?channel=' + channel)
       if (!r.ok) throw new Error('HTTP ' + r.status)
       const b = await r.blob()

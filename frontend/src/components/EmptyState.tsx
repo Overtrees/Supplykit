@@ -1,5 +1,6 @@
 import React from 'react'
 import { IconEmpty, IconPackage, IconClipboard, IconTag, IconFactory, IconAlert } from './Icons'
+import { t } from "../locale"
 
 const ICON_MAP = {
   'package': IconPackage,

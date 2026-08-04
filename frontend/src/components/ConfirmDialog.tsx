@@ -1,4 +1,5 @@
 import React from 'react'
+import { t } from "../locale"
 
 interface ConfirmDialogProps {
   open: boolean

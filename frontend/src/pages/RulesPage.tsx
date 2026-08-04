@@ -3,6 +3,7 @@ import { api, clearCache, clearInflight } from '../api/client'
 import { useToast } from '../components/Toast'
 import { useAppStore } from '../store/useAppStore'
 import { IconPackage, IconTag, IconFactory, IconClipboard, IconScale, IconSave, IconLoading, IconAlert } from '../components/Icons'
+import { t } from "../locale"
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
 const EVENTS = [
@@ -130,7 +131,7 @@ export default function RulesPage() {
 
         {/* 名称 + t("rules.severity") + 补货模式 */}
         <div style={{display:'flex',gap:12,alignItems:'flex-end',marginBottom:14,flexWrap:'wrap'}}>
-          <label style={{flex:1,minWidth:140,fontSize:12}}>t("rules.name")<input value={f.name} onChange={e=>setF({...f,name:e.target.value})} style={IS} placeholder='例：低库存预警'/></label>
+          <label style={{flex:1,minWidth:140,fontSize:12}}>{t("rules.name")}<input value={f.name} onChange={e=>setF({...f,name:e.target.value})} style={IS} placeholder='例：低库存预警'/></label>
           <label style={{fontSize:12}}>级别
             <div style={{display:'flex',gap:4,marginTop:4}}>
               {[{v:'warning',t:'警告',c:'var(--warning)'},{v:'error',t:'t("rules.severity_error")',c:'var(--danger)'},{v:'info',t:'提示',c:'var(--primary)'}].map(({v,t,c}) =>
@@ -199,7 +200,7 @@ export default function RulesPage() {
 
         <div style={{marginTop:16,display:'flex',gap:10}}>
           <button onClick={save} className="btn btn-primary" style={{flex:1,display:'inline-flex',alignItems:'center',gap:4,justifyContent:'center',minHeight:40}}><IconSave size={14} /> t("common.save")</button>
-          <button onClick={cancelEdit} className="btn btn-ghost" style={{flex:1,background:'var(--warning)',color:'#fff',minHeight:40}}>t("common.cancel")</button>
+          <button onClick={cancelEdit} className="btn btn-ghost" style={{flex:1,background:'var(--warning)',color:'#fff',minHeight:40}}>{t("common.cancel")}</button>
         </div>
       </div>}
 
@@ -231,7 +232,7 @@ export default function RulesPage() {
         </div>
         </div>
       </div>})}
-      {rules.length===0 && <div className='small muted' style={{textAlign:'center',padding:40}}>t("rules.empty")</div>}
+      {rules.length===0 && <div className='small muted' style={{textAlign:'center',padding:40}}>{t("rules.empty")}</div>}
     </>}
 
     {/* ── 补货参数 ── */}

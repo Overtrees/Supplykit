@@ -3,6 +3,7 @@ import { useAppStore } from '../store/useAppStore'
 import EmptyState from '../components/EmptyState'
 import { useToast } from '../components/Toast'
 import ConfirmDialog from '../components/ConfirmDialog'
+import { t } from "../locale"
 
 const COLS = [
   {id:'date',label:'下单日期'},{id:'order_no',label:'t("nav.orders")号'},{id:'barcode',label:'69码'},{id:'store',label:'店铺'},{id:'warehouse',label:'仓库'},
@@ -64,12 +65,12 @@ export default function OrdersPage() {
     </div>}
 
     <div className="card">
-    <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>订单 <span className="small muted" style={{fontWeight:400}}>t("common.total") {orderTotal || 0} t("common.items")</span></div>
+    <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>订单 <span className="small muted" style={{fontWeight:400}}>{t("common.total")} {orderTotal || 0} t("common.items")</span></div>
     {orderLoading || !dataLoaded ? <OrderSkeleton />
     : orders.length === 0
       ? <EmptyState icon='clipboard' title={s?'t("order.empty_matched")':'t("order.empty")'} desc={s?'换个关键词试试':''} />
       : <div style={{overflowX:"auto"}}>
-        <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>t("common.showing") {visCols.length}/{COLS.length} t("common.columns")</div>
+        <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>{t("common.showing")} {visCols.length}/{COLS.length} t("common.columns")</div>
       <table><colgroup>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>
       <thead><tr>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<th key={col.id}>{col.label}</th>:null})}</tr></thead>
       <tbody>

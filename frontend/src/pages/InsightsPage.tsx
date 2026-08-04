@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react'
 import { api } from '../api/client'
 import { useAppStore } from '../store/useAppStore'
 import { IconTrendUp, IconTrendDown, IconTrendFlat, IconUndo } from '../components/Icons'
+import { t } from "../locale"
 
 // 备注中 emoji 转 SVG 图标
 const EMOJI_MAP = {
@@ -234,7 +235,7 @@ export default function InsightsPage() {
               {[1,2,3,4,5].map(i => <Skeleton key={i} height={36} style={{ marginBottom: 4 }} />)}
             </div>
           ) : !Array.isArray(replen) || replen.length === 0 ? (
-            <div className="muted" style={{ padding: 12, textAlign: 'center' }}>t("insights.no_replenish")</div>
+            <div className="muted" style={{ padding: 12, textAlign: 'center' }}>{t("insights.no_replenish")}</div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4,display:'flex',gap:8,alignItems:'center'}}>
@@ -297,7 +298,7 @@ export default function InsightsPage() {
                         if (col.id === 'note') return <td key={col.id} className="col-name" style={{color:'var(--muted2)',fontSize:12}}>{renderNote(x.note)}</td>
                         // 标记操作
                         if (col.id === 'action') return <td key={col.id}>{isOrdered
-                          ? <span onClick={()=>toggleOrdered(x.sku, x.store, x.product_name, x.suggested_qty || x.b_suggested)} style={{cursor:'pointer',fontSize:16,color:'var(--success)',display:'inline-flex',alignItems:'center',gap:2}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{display:'inline',verticalAlign:'middle'}}><polyline points="4 12 10 18 20 6"/></svg><span style={{fontSize:9,color:'var(--muted2)'}}>t("undo.undo")</span></span>
+                          ? <span onClick={()=>toggleOrdered(x.sku, x.store, x.product_name, x.suggested_qty || x.b_suggested)} style={{cursor:'pointer',fontSize:16,color:'var(--success)',display:'inline-flex',alignItems:'center',gap:2}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{display:'inline',verticalAlign:'middle'}}><polyline points="4 12 10 18 20 6"/></svg><span style={{fontSize:9,color:'var(--muted2)'}}>{t("undo.undo")}</span></span>
                           : <span onClick={()=>{
                             if ((x.suggested_qty > 0 || x.b_suggested > 0) && x.combined_turnover > 90 && !window.confirm(`补后综合周转${x.combined_turnover}天，已超90天考核红线，仍标记操作？`)) return
                             toggleOrdered(x.sku, x.store, x.product_name, x.suggested_qty || x.b_suggested)
@@ -346,7 +347,7 @@ export default function InsightsPage() {
               {[1,2,3,4].map(i => <Skeleton key={i} height={36} style={{ marginBottom: 4 }} />)}
             </div>
           ) : (purchase.length === 0 ? (
-            <div className="muted" style={{ padding: 12, textAlign: 'center' }}>t("insights.no_purchase")</div>
+            <div className="muted" style={{ padding: 12, textAlign: 'center' }}>{t("insights.no_purchase")}</div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {purchaseVisCols.length}/{PURCHASE_COLS.length} 列 · 点击"列"按钮切换{insightSearch ? ` · 搜索 "${insightSearch}"` : ''}</div>
@@ -412,7 +413,7 @@ export default function InsightsPage() {
               {[1,2,3].map(i => <Skeleton key={i} height={36} style={{ marginBottom: 4 }} />)}
             </div>
           ) : (slowMoving.length === 0 ? (
-            <div className="muted" style={{ padding: 12, textAlign: 'center' }}>t("common.empty")</div>
+            <div className="muted" style={{ padding: 12, textAlign: 'center' }}>{t("common.empty")}</div>
           ) : (
             <>
               <div style={{ overflowX: 'auto' }}>

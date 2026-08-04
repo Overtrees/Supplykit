@@ -24,7 +24,9 @@ const WH_COLS = {
 const COL_KEY='c_cols_inventory'
 const getVis=(wt)=>{try{return JSON.parse(localStorage.getItem(COL_KEY+'_'+wt)||'null')}catch{return null}}
 
-export default function InventoryPage({ highlightSku }) {
+interface InventoryPageProps { highlightSku?: string }
+
+export default function InventoryPage({ highlightSku }: InventoryPageProps) {
   const toast = useToast()
   const [inventory, setInventory] = useState([])
   const [loading, setLoading] = useState(true)

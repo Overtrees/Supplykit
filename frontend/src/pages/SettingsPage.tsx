@@ -102,16 +102,16 @@ function RecycleBin({ onClose }) {
     })}</div> : <>
       <div style={{fontSize:13,fontWeight:600,color:'var(--muted2)',textTransform:'uppercase',letterSpacing:0.3,padding:'0 4px 6px 4px',marginBottom:0}}>{t("recycle.deleted_rules")}</div>
       <div style={{background:'var(--card)',borderRadius:32,overflow:'hidden'}}>
-      {rules.length === 0 ? <div className="small muted" style={{padding:'20px',textAlign:'center',fontSize:13}}>{t("recycle.empty_rules")}</div> : rules.map(function(r) {
+      {rules.length === 0 ? <div className="small muted" style={{padding:'12px',textAlign:'center',fontSize:13}}>{t("recycle.empty_rules")}</div> : rules.map(function(r) {
         return <div key={r.id} onClick={function(){restore('rules', r.id)}} className="clickable" style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 16px',borderBottom:'1px solid var(--border)'}}>
           <span style={{fontSize:14,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{r.name}</span>
           <span style={{fontSize:12,fontWeight:600,color:'#fff',background:'var(--primary)',padding:'4px 12px',borderRadius:99,flexShrink:0}}>{t("common.restore")}</span>
         </div>
       })}
       </div>
-      <div style={{fontSize:13,fontWeight:600,color:'var(--muted2)',textTransform:'uppercase',letterSpacing:0.3,padding:'0 4px 6px 4px',marginTop:16,marginBottom:0}}>{t("recycle.deleted_orders")}</div>
+      <div style={{fontSize:13,fontWeight:600,color:'var(--muted2)',textTransform:'uppercase',letterSpacing:0.3,padding:'0 4px 6px 4px',marginTop:12,marginBottom:0}}>{t("recycle.deleted_orders")}</div>
       <div style={{background:'var(--card)',borderRadius:32,overflow:'hidden'}}>
-      {orders.length === 0 ? <div className="small muted" style={{padding:'20px',textAlign:'center',fontSize:13}}>{t("recycle.empty_orders")}</div> : orders.map(function(o) {
+      {orders.length === 0 ? <div className="small muted" style={{padding:'12px',textAlign:'center',fontSize:13}}>{t("recycle.empty_orders")}</div> : orders.map(function(o) {
         return <div key={o.id} onClick={function(){restore('orders', o.id)}} className="clickable" style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 16px',borderBottom:'1px solid var(--border)'}}>
           <span style={{fontSize:14,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{o.order_no} - {o.product_name}</span>
           <span style={{fontSize:12,fontWeight:600,color:'#fff',background:'var(--primary)',padding:'4px 12px',borderRadius:99,flexShrink:0}}>{t("common.restore")}</span>

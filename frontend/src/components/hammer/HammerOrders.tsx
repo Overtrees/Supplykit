@@ -41,17 +41,21 @@ export default function HammerOrders({ channel }: HammerOrdersProps) {
   return (
     <div>
       <div className="hammer-header">{channel === 'jd' ? t('channel.jd') : t('channel.other')} · {t('nav.orders')}</div>
-      <div className="flex gap-6 flex-wrap" style={{marginBottom:hammerPanel?8:0}}>
-        <button onClick={() => setHammerPanel(hammerPanel === 'columns' ? null : 'columns')}
-          className="btn-ghost hammer-btn">{t('common.columns')} ({visCols.length}/{ORDER_COLS.length})</button>
-        <button onClick={() => setHammerPanel(hammerPanel === 'search' ? null : 'search')}
-          className="btn-ghost hammer-btn">{t('common.search')}</button>
-        <button onClick={() => setHammerPanel(hammerPanel === 'filter' ? null : 'filter')}
-          className="btn-ghost hammer-btn">{t('common.filter')}{orderStatus ? ' ✓' : ''}</button>
-        <button onClick={doExport} disabled={exporting}
-          className="clickable btn-ghost hammer-btn" style={{opacity:exporting?0.5:1}}>
-          {exporting ? <span className="inline-block" style={{width:12,height:12,border:'2px solid var(--primary)',borderTopColor:'transparent',borderRadius:'50%',animation:'spin 0.6s linear infinite'}} /> : <IconExport size={13} />} {exporting ? t('common.exporting') : t('common.export')}
-        </button>
+      <div style={{marginBottom:hammerPanel?8:0}}>
+        <div className="flex gap-4 mb-4">
+          <button onClick={() => setHammerPanel(hammerPanel === 'columns' ? null : 'columns')}
+            className="btn-ghost hammer-btn">{t('common.columns')} ({visCols.length}/{ORDER_COLS.length})</button>
+          <button onClick={() => setHammerPanel(hammerPanel === 'search' ? null : 'search')}
+            className="btn-ghost hammer-btn">{t('common.search')}</button>
+        </div>
+        <div className="flex gap-4">
+          <button onClick={() => setHammerPanel(hammerPanel === 'filter' ? null : 'filter')}
+            className="btn-ghost hammer-btn">{t('common.filter')}{orderStatus ? ' ✓' : ''}</button>
+          <button onClick={doExport} disabled={exporting}
+            className="clickable btn-ghost hammer-btn" style={{opacity:exporting?0.5:1}}>
+            {exporting ? <span className="inline-block" style={{width:12,height:12,border:'2px solid var(--primary)',borderTopColor:'transparent',borderRadius:'50%',animation:'spin 0.6s linear infinite'}} /> : <IconExport size={13} />} {exporting ? t('common.exporting') : t('common.export')}
+          </button>
+        </div>
       </div>
       {hammerPanel === 'columns' && (
         <div className="hammer-panel hammer-panel-scroll">

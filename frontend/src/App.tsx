@@ -17,8 +17,6 @@ import Sidebar from './components/Sidebar'
 import useKeyboard from './hooks/useKeyboard'
 import { useToast } from './components/Toast'
 import { t } from "./locale"
-import { t } from "./locale"
-import { t } from "./locale"
 import { IconStatusOnline, IconStatusWarning, IconStatusOffline, IconExport } from './components/Icons'
 import { api } from './api/client'
 import './version'

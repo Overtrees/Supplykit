@@ -150,7 +150,7 @@ export default function App() {
   useEffect(() => {
     if (!showHammerMenu) return
     const handler = (e) => {
-      if (hammerMenuRef.current && !hammerMenuRef.current.contains(e.target) && !e.target.closest('.hammer-btn') && !e.target.closest('.history-sheet')) {
+      if (hammerMenuRef.current && !hammerMenuRef.current.contains(e.target) && !e.target.closest('.hammer-icon-btn') && !e.target.closest('.history-sheet')) {
         closeHammerMenu()
       }
     }
@@ -239,7 +239,7 @@ export default function App() {
                     <option value='other'>其他渠道</option>
                   </select>
                 </span>
-                <button className="hammer-btn" onClick={toggleHammerMenu}>
+                <button className="hammer-icon-btn" onClick={toggleHammerMenu}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M15 12a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v4a4 4 0 0 0 4 4h5a4 4 0 0 0 4-4v-4Z"/>
                     <path d="M12 12h9"/>
@@ -263,7 +263,7 @@ export default function App() {
                 </button>
               </div>
               <div style={{display:'flex',alignItems:'center',gap:8}}>
-                <button className="hammer-btn" onClick={toggleHammerMenu}>
+                <button className="hammer-icon-btn" onClick={toggleHammerMenu}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M15 12a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v4a4 4 0 0 0 4 4h5a4 4 0 0 0 4-4v-4Z"/>
                     <path d="M12 12h9"/>

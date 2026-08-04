@@ -5,7 +5,7 @@ import { SUPPLIER_COLS, suppColKey, getSuppVis } from './configs'
 interface HammerSuppliersProps { channel: string }
 
 export default function HammerSuppliers({ channel }: HammerSuppliersProps) {
-  const { hammerPanel, setHammerPanel, setHammerCols } = useAppStore()
+  const { hammerPanel, setHammerPanel, hammerSearch, setHammerSearch, setHammerCols } = useAppStore()
   const [visCols, setVisCols] = useState(() => getSuppVis(channel) || SUPPLIER_COLS.map(c => c.id))
 
   useEffect(() => {
@@ -27,6 +27,10 @@ export default function HammerSuppliers({ channel }: HammerSuppliersProps) {
         <button onClick={() => setHammerPanel(hammerPanel === 'columns' ? null : 'columns')}
           className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
           列选择 ({visCols.length}/{SUPPLIER_COLS.length})
+        </button>
+        <button onClick={() => { setHammerPanel(hammerPanel === 'search' ? null : 'search'); if (hammerPanel !== 'search') setTimeout(() => document.getElementById('hm-search-supp')?.focus(), 100) }}
+          className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
+          搜索
         </button>
       </div>
       {hammerPanel === 'columns' && (
@@ -50,6 +54,16 @@ export default function HammerSuppliers({ channel }: HammerSuppliersProps) {
           <div style={{borderTop:'1px solid var(--border)',marginTop:4,paddingTop:4}}>
             <span onClick={()=>saveCols(SUPPLIER_COLS.map(c=>c.id))} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>全部</span>
           </div>
+        </div>
+      )}
+      {hammerPanel === 'search' && (
+        <div style={{borderTop:'1px solid var(--border)',paddingTop:8,marginTop:0}}>
+          <input id="hm-search-supp" value={hammerSearch} onChange={e=>setHammerSearch(e.target.value)}
+            placeholder="搜索供应商名称/编号..."
+            style={{width:'100%',padding:'6px 10px',fontSize:16,border:'1px solid var(--border)',borderRadius:32,outline:'none',boxSizing:'border-box',background:'var(--card)',color:'var(--text)'}} />
+          {hammerSearch && <div style={{marginTop:4,textAlign:'right'}}>
+            <span className="clickable btn btn-ghost" onClick={()=>setHammerSearch('')} style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>清除</span>
+          </div>}
         </div>
       )}
     </div>

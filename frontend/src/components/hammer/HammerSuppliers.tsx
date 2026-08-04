@@ -22,7 +22,8 @@ export default function HammerSuppliers({ channel }: HammerSuppliersProps) {
   return (
     <div>
       <div style={{fontSize:11,color:'var(--muted2)',marginBottom:8,textAlign:'center'}}>
-        {channel === 'jd' ? 't('channel.jd') : t('channel.other')} · {t('nav.suppliers')}
+        {channel === 'jd' ? t('channel.jd') : t('channel.other')} · {t('nav.suppliers')
+
       </div>
       <div style={{display:'flex',gap:6,marginBottom:hammerPanel?8:0}}>
         <button onClick={() => setHammerPanel(hammerPanel === 'columns' ? null : 'columns')}

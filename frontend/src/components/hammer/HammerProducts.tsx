@@ -19,7 +19,8 @@ export default function HammerProducts({ channel }: HammerProductsProps) {
 
   return (
     <div>
-      <div className="hammer-header">{channel === 'jd' ? 't('channel.jd') : t('channel.other')} · {t('nav.products')}</div>
+      <div className="hammer-header">{channel === 'jd' ? t('channel.jd') : t('channel.other')} · {t('nav.products')
+</div>
       <div className="hammer-btn-row" style={{marginBottom:hammerPanel?8:0}}>
         <button onClick={() => setHammerPanel(hammerPanel === 'columns' ? null : 'columns')}
           className="btn-ghost hammer-btn">{t("common.columns")} ({visCols.length}/{PRODUCT_COLS.length})</button>

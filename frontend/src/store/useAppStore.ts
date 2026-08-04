@@ -48,7 +48,7 @@ export const useAppStore = create((set, get) => ({
   customDateStart: '',
   customDateEnd: '',
   setHammerDashPeriod: (p) => { localStorage.setItem('c_dash_period_' + get().channel, p); set({ hammerDashPeriod: p, customDateStart: '', customDateEnd: '' }) },
-  setCustomDate: (start, end) => set({ customDateStart: start, customDateEnd: end, hammerDashPeriod: 'custom' }),
+  setCustomDate: (start, end) => { set({ customDateStart: start, customDateEnd: end, hammerDashPeriod: 'custom' }); get().loadAll() },
   hammerReplenMode: localStorage.getItem('c_replen_mode_' + (localStorage.getItem('c_channel') || 'jd')) || ((localStorage.getItem('c_channel') || 'jd') === 'jd' ? 'bbcc' : 'traditional'),
   setHammerReplenMode: (m) => { localStorage.setItem('c_replen_mode_' + get().channel, m); set({ hammerReplenMode: m }) },
   hammerCols: {},

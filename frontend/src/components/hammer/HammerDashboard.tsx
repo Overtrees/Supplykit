@@ -1,6 +1,8 @@
 import React, { useState } from "react"
 import { useAppStore } from "../../store/useAppStore"
-export default function HammerDashboard({ channel }) {
+interface HammerDashboardProps { channel: string }
+
+export default function HammerDashboard({ channel }: HammerDashboardProps) {
   const { hammerDashPeriod, setHammerDashPeriod, setCustomDate, customDateStart, customDateEnd, dashboard } = useAppStore()
   const periodLabel = { today:'今日', week:'本周', month:'本月', custom:'自定义' }
   const periodMeta = dashboard?.periods?.[hammerDashPeriod] || {}

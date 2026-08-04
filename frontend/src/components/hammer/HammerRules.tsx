@@ -1,6 +1,8 @@
 import React, { useState } from "react"
 import { useAppStore } from "../../store/useAppStore"
-export default function HammerRules({ channel, onShowHistory }) {
+interface HammerRulesProps { channel: string; onShowHistory?: (ch: string) => void }
+
+export default function HammerRules({ channel, onShowHistory }: HammerRulesProps) {
   const { hammerRulesTab, setHammerRulesTab, bumpHammerRuleNew, hammerRulesMode, setHammerRulesMode, hammerSearch, setHammerSearch } = useAppStore()
   const [searchOpen, setSearchOpen] = useState(false)
 

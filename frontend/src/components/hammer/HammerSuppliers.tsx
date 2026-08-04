@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react'
 import { useAppStore } from '../../store/useAppStore'
 import { SUPPLIER_COLS, suppColKey, getSuppVis } from './configs'
 
-export default function HammerSuppliers({ channel }) {
+interface HammerSuppliersProps { channel: string }
+
+export default function HammerSuppliers({ channel }: HammerSuppliersProps) {
   const { hammerPanel, setHammerPanel, setHammerCols } = useAppStore()
   const [visCols, setVisCols] = useState(() => getSuppVis(channel) || SUPPLIER_COLS.map(c => c.id))
 

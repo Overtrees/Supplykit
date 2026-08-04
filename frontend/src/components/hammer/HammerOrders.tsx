@@ -4,7 +4,9 @@ import { useToast } from '../../components/Toast'
 import { ORDER_COLS, ORDER_STATUSES, orderColKey, getOrderVis } from './configs'
 import { IconExport } from '../Icons'
 
-export default function HammerOrders({ channel }) {
+interface HammerOrdersProps { channel: string }
+
+export default function HammerOrders({ channel }: HammerOrdersProps) {
   const toast = useToast()
   const { hammerPanel, setHammerPanel, hammerSearch, setHammerSearch, setHammerCols, setOrderFilterLocal, orderStatus } = useAppStore()
   const [visCols, setVisCols] = useState(() => getOrderVis(channel) || ORDER_COLS.map(c => c.id))

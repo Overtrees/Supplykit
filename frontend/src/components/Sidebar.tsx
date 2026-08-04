@@ -2,7 +2,13 @@ import React, { useEffect, useRef, useCallback } from 'react'
 import { NAV } from '../App'
 import { NAV_ICONS } from './Icons'
 
-export default function Sidebar({ page, onClose, onNavigate, lowStock, errCount, apiStatus, open, menuClosing, onBackdrop }) {
+interface SidebarProps {
+  page: string; onClose: () => void; onNavigate: (id: string) => void
+  lowStock: number; errCount: number; apiStatus: string
+  open: boolean; menuClosing: boolean; onBackdrop: () => void
+}
+
+export default function Sidebar({ page, onClose, onNavigate, lowStock, errCount, apiStatus, open, menuClosing, onBackdrop }: SidebarProps) {
   const ref = useRef(null)
 
   useEffect(() => {

@@ -1,6 +1,8 @@
 import React from "react"
 import { useAppStore } from "../../store/useAppStore"
-export default function HammerCleansing({ channel }) {
+interface HammerCleansingProps { channel: string }
+
+export default function HammerCleansing({ channel }: HammerCleansingProps) {
   const { hammerPanel, setHammerPanel, hammerCleansingChannel, setHammerCleansingChannel } = useAppStore()
   return (
     <div>

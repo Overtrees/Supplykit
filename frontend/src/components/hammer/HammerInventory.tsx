@@ -4,7 +4,9 @@ import { useToast } from '../../components/Toast'
 import { INV_COLS, INV_COL_KEY, getInvVis, INV_WH_LABEL } from './configs'
 import { IconExport } from '../Icons'
 
-export default function HammerInventory({ channel }) {
+interface HammerInventoryProps { channel: string }
+
+export default function HammerInventory({ channel }: HammerInventoryProps) {
   const toast = useToast()
   const { hammerPanel, setHammerPanel, hammerSearch, setHammerSearch, setHammerCols, hammerWhType, setHammerWhType } = useAppStore()
   const [visCols, setVisCols] = useState(() => getInvVis(hammerWhType) || INV_COLS[hammerWhType].map(c => c.id))

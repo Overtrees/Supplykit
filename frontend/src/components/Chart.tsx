@@ -1,4 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState }
+
+interface ChartProps {
+  option: Record<string, any>
+  height?: number
+} from 'react'
 // 按需引入 ECharts 组件，减少打包体积
 import * as echarts from 'echarts/core'
 import { BarChart, LineChart } from 'echarts/charts'
@@ -7,10 +12,10 @@ import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/compon
 
 echarts.use([BarChart, LineChart, CanvasRenderer, GridComponent, TooltipComponent, LegendComponent])
 
-export default function Chart({ option, height = 260 }) {
-  const ref = useRef(null)
-  const inst = useRef(null)
-  const [theme, setTheme] = useState('light')
+export default function Chart({ option, height = 260 }: ChartProps) {
+  const ref = useRef<HTMLDivElement>(null)
+  const inst = useRef<echarts.ECharts | null>(null)
+  const [theme, setTheme] = useState<'light' | 'dark'>('light')
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)')

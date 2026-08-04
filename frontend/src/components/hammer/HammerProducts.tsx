@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react'
 import { useAppStore } from '../../store/useAppStore'
 import { PRODUCT_COLS, prodColKey, getProdVis } from './configs'
 
-export default function HammerProducts({ channel }) {
+interface HammerProductsProps { channel: string }
+
+export default function HammerProducts({ channel }: HammerProductsProps) {
   const { hammerPanel, setHammerPanel, hammerSearch, setHammerSearch, setHammerCols } = useAppStore()
   const [visCols, setVisCols] = useState(() => getProdVis(channel) || PRODUCT_COLS.map(c => c.id))
 

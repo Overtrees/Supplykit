@@ -89,13 +89,13 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
 
   return <div className='card'>
     <div className='section-title' style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
-      <span>进销存 <span className='small muted'>{t("common.total")} {inventory.length} {t("ommon.items")}</span></span>
+      <span>进销存 <span className='small muted'>{t("common.total")} {inventory.length} {t("common.items")}</span></span>
     </div>
     {loading ? <div>{[1,2,3,4].map(i=><div key={i} className='skeleton' style={{height:36,marginBottom:4}}/>)}</div>
     : fl.length === 0
-      ? <EmptyState icon='package' title={s?'{t("nv.empty_matched")}':'{t("ommon.empty")}'} desc={s?'换个关键词试试':'通过清洗导入数据'} />
+      ? <EmptyState icon='package' title={s?'{t("nv.empty_matched")}':'{t("common.empty")}'} desc={s?'换个关键词试试':'通过清洗导入数据'} />
       : <div style={{overflowX:'auto'}}>
-        <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>{t("common.showing")} {visCols.length}/{WH_COLS[whType].length} {t("ommon.columns")}</div>
+        <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>{t("common.showing")} {visCols.length}/{WH_COLS[whType].length} {t("common.columns")}</div>
       <table><colgroup>{visCols.map(id=>{const col=WH_COLS[whType].find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>
         <thead><tr>{visCols.map(id=>{const col=WH_COLS[whType].find(c=>c.id===id);if(!col)return null;let el;if(col.id==='month_in')el=<th key={col.id}>{col.label}<br/><span className='small' style={{fontWeight:400}}>{monthRange}</span></th>;else if(col.id==='month_out')el=<th key={col.id}>{col.label}<br/><span className='small' style={{fontWeight:400}}>{monthRange}</span></th>;else el=<th key={col.id}>{col.label}</th>;return el})}</tr></thead>
       <tbody>{fl.map(x => {

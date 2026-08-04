@@ -104,7 +104,7 @@ export default function RulesPage() {
     var timer = setTimeout(async function() {
       await fetch(API+'/api/rules/'+id+'/permanent-delete', {method:'POST'})
     }, 5000)
-    toast.add({type:'success', title:'已{t("ommon.delete")}', duration:5000, action: {label:'{t("ndo.undo")}', handler: async function() {
+    toast.add({type:'success', title:'已{t("common.delete")}', duration:5000, action: {label:'{t("ndo.undo")}', handler: async function() {
       clearTimeout(timer)
       await fetch(API+'/api/rules/'+id+'/restore', {method:'POST'})
       load(globalChannel)
@@ -199,7 +199,7 @@ export default function RulesPage() {
         </div>
 
         <div style={{marginTop:16,display:'flex',gap:10}}>
-          <button onClick={save} className="btn btn-primary" style={{flex:1,display:'inline-flex',alignItems:'center',gap:4,justifyContent:'center',minHeight:40}}><IconSave size={14} /> {t("ommon.save")}</button>
+          <button onClick={save} className="btn btn-primary" style={{flex:1,display:'inline-flex',alignItems:'center',gap:4,justifyContent:'center',minHeight:40}}><IconSave size={14} /> {t("common.save")}</button>
           <button onClick={cancelEdit} className="btn btn-ghost" style={{flex:1,background:'var(--warning)',color:'#fff',minHeight:40}}>{t("common.cancel")}</button>
         </div>
       </div>}

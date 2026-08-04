@@ -213,7 +213,7 @@ export default function CleansingPage() {
         </select>
       </div>
       <label className="btn btn-primary">
-        {bs?'识别中...':'{t("leansing.select_file")}'}
+        {bs?'识别中...':'{t("cleansing.select_file")}'}
         <input type="file" accept=".csv,.xlsx" style={{display:'none'}} onChange={e=>{const fi=e.target.files[0];if(fi)detect(fi)}} />
       </label>
       <div className="small muted" style={{marginTop:8}}>CSV / Excel · 中文列名自动匹配</div>

@@ -79,7 +79,7 @@ input,select,button,textarea{font-family:inherit;font-size:16px}input[type="file
 .hammer-panel{border-top:1px solid var(--border);padding-top:8px;margin-top:8px}
 .hammer-panel-scroll{max-height:260px;overflow-y:auto}
 .hammer-input{width:100%;padding:6px 10px;font-size:16px;border:1px solid var(--border);border-radius:var(--radius-lg);outline:none;box-sizing:border-box;background:var(--card);color:var(--text);-webkit-appearance:none;appearance:none}
-.col-drag{display:flex;align-items:center;gap:8px;padding:6px var(--space-sm);border-radius:8px;font-size:12px;white-space:nowrap;border-top:1px solid transparent;user-select:none;-webkit-user-select:none;margin-bottom:4px}
+.col-drag{display:flex;align-items:center;gap:8px;padding:6px var(--space-sm);border-radius:32px;font-size:12px;white-space:nowrap;border-top:1px solid transparent;user-select:none;-webkit-user-select:none;margin-bottom:4px}
 .col-drag.visible{background:var(--card);opacity:1;cursor:grab}
 .col-drag.hidden{background:transparent;opacity:0.4;cursor:default}
 .cols-group-title{font-size:10px;font-weight:600;color:var(--muted2);padding:4px 2px 2px;margin-top:4px;border-bottom:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:center}

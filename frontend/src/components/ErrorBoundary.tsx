@@ -4,7 +4,9 @@ import { IconAlert } from './Icons'
 interface Props { children: React.ReactNode }
 interface State { err: Error | null }
 
-export default class ErrorBoundary extends React.Component<Props, State> {
+interface ErrorBoundaryProps { children: React.ReactNode; fallback?: React.ReactNode }
+interface ErrorBoundaryState { hasError: boolean; error: Error | null }
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState><Props, State> {
   state: State = { err: null }
   static getDerivedStateFromError(err: Error) { return { err } }
   render() {

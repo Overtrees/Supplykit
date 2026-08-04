@@ -1,6 +1,8 @@
 import React from "react"
 
-const HistorySheet = React.memo(({ show, loading, data, onClose }) => {
+interface HistorySheetProps { show: boolean; loading: boolean; data: any[]; onClose: () => void }
+
+const HistorySheet = React.memo(({ show, loading, data, onClose }: HistorySheetProps) => {
   if (!show) return null
   return <>
     <div onPointerDown={(e) => { e.stopPropagation(); onClose() }} className="history-sheet" style={{position:'fixed',inset:0,zIndex:4000,background:'transparent'}} />

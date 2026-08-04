@@ -6,7 +6,7 @@ import ConfirmDialog from '../components/ConfirmDialog'
 import { t } from "../locale"
 
 const COLS = [
-  {id:'date',label:'下单日期'},{id:'order_no',label: t("nav.orders") + '号'},{id:'barcode',label:'69码'},{id:'store',label:'店铺'},{id:'warehouse',label:'仓库'},
+  {id:'date',label:'下单日期'},{id:'order_no',label:'订单号'},{id:'barcode',label:'69码'},{id:'store',label:'店铺'},{id:'warehouse',label:'仓库'},
   {id:'product',label:'商品'},{id:'amount',label:'金额'},{id:'status',label:'状态'},
   {id:'paid_at',label:'入库日期'},
 ]

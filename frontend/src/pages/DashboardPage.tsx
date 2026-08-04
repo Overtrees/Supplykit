@@ -251,7 +251,7 @@ export default function DashboardPage({ onAlert }) {
     </div>
 
     <div className="mid-chart-grid">
-      <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title">订单阶段转化</div><Chart option={funnelOption} height={200} /></div>
+      <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title">订单阶段分布</div><Chart option={funnelOption} height={200} /></div>
       <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title">店铺 GMV</div><Chart option={storeOption} height={170} /></div>
     </div>
 

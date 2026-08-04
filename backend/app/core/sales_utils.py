@@ -51,26 +51,6 @@ def calc_sales(orders, cutoff_days, source='', wh_name=None, sku_barcode_map=Non
             daily_by_sku[key][dt] = daily_by_sku[key].get(dt, 0) + qty
 
     result = {}
-        if source and o.get('data_source', '') != source:
-            continue
-        if wh_name and o.get('warehouse', '') != wh_name:
-            continue
-        sku = o.get('sku', '')
-        if not sku:
-            continue
-        # 生成 key：有 barcode 时用 sku|barcode，否则降级为 sku
-        if sku_barcode_map and sku_barcode_map.get(sku):
-            key = f"{sku}|{sku_barcode_map[sku]}"
-        else:
-            key = sku
-        dt = str(o.get('ordered_at', ''))[:10]
-        qty = int(o.get('quantity', 0) or 0)
-        if dt >= cutoff:
-            if key not in daily_by_sku:
-                daily_by_sku[key] = {}
-            daily_by_sku[key][dt] = daily_by_sku[key].get(dt, 0) + qty
-
-    result = {}
     for key, daily in daily_by_sku.items():
         n = len(daily)
         total = sum(daily.values())

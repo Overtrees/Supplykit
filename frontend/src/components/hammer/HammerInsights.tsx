@@ -103,14 +103,16 @@ export default function HammerInsights({ channel }: HammerInsightsProps) {
           </span>
         </div>
       )}
-      {/* 操作行（搜索+列选择+导出） */}
-      <div className="hammer-row-3">
-        <button onClick={() => setHammerPanel(hammerPanel === 'search' ? null : 'search')}
-          className="hammer-btn btn-ghost">搜索</button>
-        <button onClick={() => setHammerPanel(hammerPanel === 'columns' ? null : 'columns')}
-            className="hammer-btn btn-ghost">
-            列选择 ({visCols.length}/{cols.length})
-          </button>
+      {/* 操作行：搜索+列选择一行，导出单独一行 */}
+      <div style={{display:'flex',flexDirection:'column',gap:6}}>
+        <div className="hammer-row-2">
+          <button onClick={() => setHammerPanel(hammerPanel === 'search' ? null : 'search')}
+            className="hammer-btn btn-ghost">搜索</button>
+          <button onClick={() => setHammerPanel(hammerPanel === 'columns' ? null : 'columns')}
+              className="hammer-btn btn-ghost">
+              列选择 ({visCols.length}/{cols.length})
+            </button>
+        </div>
         <button onClick={() => doExport(
           isSlow ? 'slow' : (isPurchase ? 'purchase' : 'replen')
         )} disabled={exporting} className="clickable hammer-btn btn-ghost" style={{opacity:exporting?0.5:1}}>

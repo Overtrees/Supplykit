@@ -68,7 +68,7 @@ instance.interceptors.response.use(
 )
 
 // 导出带缓存的 get
-const apiGet = async (url, config = {}) => {
+const apiGet = async <T = any>(url: string, config: Record<string, any> = {}): Promise<{ data: T; status: number; statusText: string; headers: any; config: any }> => {
   const key = cacheKey('get', url, config.params)
   
   // 1) 缓存命中

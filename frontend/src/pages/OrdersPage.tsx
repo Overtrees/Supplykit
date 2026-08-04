@@ -6,7 +6,7 @@ import ConfirmDialog from '../components/ConfirmDialog'
 import { t } from "../locale"
 
 const COLS = [
-  {id:'date',label:'下单日期'},{id:'order_no',label:'{t("nav.orders")}号'},{id:'barcode',label:'69码'},{id:'store',label:'店铺'},{id:'warehouse',label:'仓库'},
+  {id:'date',label:'下单日期'},{id:'order_no',label: t("nav.orders") + '号'},{id:'barcode',label:'69码'},{id:'store',label:'店铺'},{id:'warehouse',label:'仓库'},
   {id:'product',label:'商品'},{id:'amount',label:'金额'},{id:'status',label:'状态'},
   {id:'paid_at',label:'入库日期'},
 ]
@@ -49,7 +49,7 @@ export default function OrdersPage() {
         var timer = setTimeout(async function() {
           await fetch(`${API}/api/orders/${id}/permanent-delete`, {method:'POST'})
         }, 5000)
-        toast.add({type:'success', title:'{t("undo.deleted")}', duration:5000, action: {label:'{t("undo.undo")}', handler: async function() {
+        toast.add({type:'success', title:'{t("undo.deleted")}', duration:5000, action: {label: t("undo.undo"), handler: async function() {
           clearTimeout(timer)
           await fetch(`${API}/api/orders/${id}/restore`, {method:'POST'})
           useAppStore.getState().loadAll()

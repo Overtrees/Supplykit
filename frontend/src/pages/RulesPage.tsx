@@ -104,7 +104,7 @@ export default function RulesPage() {
     var timer = setTimeout(async function() {
       await fetch(API+'/api/rules/'+id+'/permanent-delete', {method:'POST'})
     }, 5000)
-    toast.add({type:'success', title:'已{t("common.delete")}', duration:5000, action: {label:'{t("undo.undo")}', handler: async function() {
+    toast.add({type:'success', title:'已{t("common.delete")}', duration:5000, action: {label: t("undo.undo"), handler: async function() {
       clearTimeout(timer)
       await fetch(API+'/api/rules/'+id+'/restore', {method:'POST'})
       load(globalChannel)
@@ -204,7 +204,7 @@ export default function RulesPage() {
         </div>
       </div>}
 
-      {filteredRrules.map(rule => {
+      {filteredRules.map(rule => {
         const condInfo = pc(rule.condition_json||'{}')
         const whLbl = WHS.find(w=>w.v===condInfo.warehouse)?.l||'全部'
         const modeLbl = MODES.find(m=>m.v===(rule.mode||''))?.l||'全部'

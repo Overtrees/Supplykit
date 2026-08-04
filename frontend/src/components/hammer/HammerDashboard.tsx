@@ -1,11 +1,9 @@
 import React, { useState } from "react"
-import { t } from "../../locale"
 import { useAppStore } from "../../store/useAppStore"
-interface HammerDashboardProps { channel: string }
-
-export default function HammerDashboard({ channel }: HammerDashboardProps) {
+import { t } from "../../locale"
+export default function HammerDashboard({ channel }) {
   const { hammerDashPeriod, setHammerDashPeriod, setCustomDate, customDateStart, customDateEnd, dashboard } = useAppStore()
-  const periodLabel = { today:'今日', week:'本周', month:'本月', custom:'自定义' }
+  const periodLabel = { today: t('period.today'), week: t('period.week'), month: t('period.month'), custom: t('period.custom') }
   const periodMeta = dashboard?.periods?.[hammerDashPeriod] || {}
   const [showCustom, setShowCustom] = useState(false)
   const [startVal, setStartVal] = useState(customDateStart || '')
@@ -17,10 +15,10 @@ export default function HammerDashboard({ channel }: HammerDashboardProps) {
   return (
     <div>
       <div className="hammer-header">{channel === 'jd' ? t('channel.jd') : t('channel.other')} · {t('nav.dash')}</div>
-      <div className="flex flex-center gap-6 muted2" style={{fontSize:10,marginBottom:4,flexWrap:'wrap'}}>
-        聚合时间维度
+      <div className="flex items-center gap-6 muted2 text-10 mb-4 flex-wrap">
+        {t('dash.period_label')}
         {hammerDashPeriod === 'custom' && customDateStart && customDateEnd &&
-          <span className="font-600" style={{marginLeft:'auto',fontSize:11,color:'var(--primary)'}}>{customDateStart.slice(5)}/{customDateEnd.slice(5)}</span>}
+          <span className="font-600 text-11" style={{marginLeft:'auto',color:'var(--primary)'}}>{customDateStart.slice(5)}/{customDateEnd.slice(5)}</span>}
         {periodMeta.date && <span style={{marginLeft:'auto'}}>{periodMeta.date}</span>}
       </div>
       <div className="flex gap-4">
@@ -34,18 +32,18 @@ export default function HammerDashboard({ channel }: HammerDashboardProps) {
           </span>
         ))}
       </div>
-      {showCustom && <div className="hammer-panel" style={{overflow:'hidden'}}>
+      {showCustom && <div className="hammer-panel overflow-hidden">
         <div className="mb-8">
-          <div className="muted2" style={{fontSize:10,marginBottom:3,padding:'0 2px'}}>{t('common.start_date')}</div>
-          <input type="date" value={startVal} onChange={e=>setStartVal(e.target.value)} className="hammer-input" style={{fontSize:14,padding:'6px 10px'}} />
+          <div className="muted2 text-10 mb-3" style={{padding:'0 2px'}}>{t('common.start_date')}</div>
+          <input type="date" value={startVal} onChange={e=>setStartVal(e.target.value)} className="hammer-input text-14" style={{padding:'6px 10px'}} />
         </div>
         <div className="mb-8">
-          <div className="muted2" style={{fontSize:10,marginBottom:3,padding:'0 2px'}}>{t('common.end_date')}</div>
-          <input type="date" value={endVal} onChange={e=>setEndVal(e.target.value)} className="hammer-input" style={{fontSize:14,padding:'6px 10px'}} />
+          <div className="muted2 text-10 mb-3" style={{padding:'0 2px'}}>{t('common.end_date')}</div>
+          <input type="date" value={endVal} onChange={e=>setEndVal(e.target.value)} className="hammer-input text-14" style={{padding:'6px 10px'}} />
         </div>
         <button onClick={() => {
           if (startVal && endVal && startVal <= endVal) { setCustomDate(startVal, endVal); setShowCustom(false) }
-        }} className="btn btn-primary w-full" style={{fontSize:12,minHeight:32,padding:'4px 8px'}}>{t('common.confirm')}</button>
+        }} className="btn btn-primary w-full text-12" style={{minHeight:32,padding:'4px 8px'}}>{t('common.confirm')}</button>
       </div>}
     </div>
   )

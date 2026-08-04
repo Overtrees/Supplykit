@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { t } from "../../locale"
 import { useAppStore } from '../../store/useAppStore'
 import { PRODUCT_COLS, prodColKey, getProdVis } from './configs'
+import { t } from '../../locale'
 
 interface HammerProductsProps { channel: string }
 
@@ -19,17 +19,16 @@ export default function HammerProducts({ channel }: HammerProductsProps) {
 
   return (
     <div>
-      <div className="hammer-header">{channel === 'jd' ? t('channel.jd') : t('channel.other')} · {t('nav.products')}
-</div>
+      <div className="hammer-header">{channel === 'jd' ? t('channel.jd') : t('channel.other')} · {t('nav.products')}</div>
       <div className="hammer-btn-row" style={{marginBottom:hammerPanel?8:0}}>
         <button onClick={() => setHammerPanel(hammerPanel === 'columns' ? null : 'columns')}
-          className="btn-ghost hammer-btn">{t("common.columns")} ({visCols.length}/{PRODUCT_COLS.length})</button>
+          className="btn-ghost hammer-btn">{t('common.columns')} ({visCols.length}/{PRODUCT_COLS.length})</button>
         <button onClick={() => { setHammerPanel(hammerPanel === 'search' ? null : 'search'); if (hammerPanel !== 'search') setTimeout(() => document.getElementById('hm-search-prod')?.focus(), 100) }}
-          className="btn-ghost hammer-btn">{t("common.search")}</button>
+          className="btn-ghost hammer-btn">{t('common.search')}</button>
       </div>
       {hammerPanel === 'columns' && (
         <div className="hammer-panel hammer-panel-scroll">
-          <div className="muted2" style={{fontSize:10,marginBottom:4,padding:'0 4px'}}>{t("common.drag_hint")}</div>
+          <div className="muted2 text-10" style={{marginBottom:4,padding:'0 4px'}}>{t('common.drag_hint')}</div>
           {(visCols.map(id=>PRODUCT_COLS.find(c=>c.id===id)).filter(Boolean).concat(PRODUCT_COLS.filter(c=>!visCols.includes(c.id)))).map((col,idx)=>{
             const isVis=visCols.includes(col.id)
             return <div key={col.id} draggable={isVis?true:undefined}
@@ -39,14 +38,14 @@ export default function HammerProducts({ channel }: HammerProductsProps) {
               onDragLeave={isVis?e=>e.currentTarget.style.borderTop='1px solid transparent':undefined}
               onDrop={isVis?e=>{e.preventDefault();e.currentTarget.style.borderTop='1px solid transparent';const from=e.dataTransfer.getData('text/plain');if(from===col.id)return;const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(col.id);nxt.splice(toIdx,0,from);saveCols(nxt);e.currentTarget.parentNode._dragId=null}:undefined}
               className={'col-drag' + (isVis ? ' visible' : ' hidden')}>
-              <span className="muted2" style={{fontSize:12,width:16,flexShrink:0,textAlign:'center',cursor:isVis?'grab':'default'}}>{isVis?'⠿':'○'}</span>
-              <input type="checkbox" checked={isVis} onChange={e=>{const n=e.target.checked?[...visCols,col.id]:visCols.filter(c=>c!==col.id);saveCols(n)}} style={{accentColor:'var(--primary)'}} />
-              <span className="flex-1">{col.label}</span>
-              <span className="muted2" style={{fontSize:9}}>{isVis?'#'+(visCols.indexOf(col.id)+1):''}</span>
+              <span className="muted2 text-12" style={{width:16,flexShrink:0,textAlign:'center',cursor:isVis?'grab':'default'}}>{isVis?'⠿':'○'}</span>
+              <input type="checkbox" checked={isVis} onChange={e=>{const n=e.target.checked?[...visCols,col.id]:visCols.filter(c=>c!==col.id);saveCols(n)}} className="accent-primary" />
+              <span className="flex-1 text-12">{col.label}</span>
+              <span className="muted2 text-9">{isVis?'#'+(visCols.indexOf(col.id)+1):''}</span>
             </div>
           })}
-          <div style={{borderTop:'1px solid var(--border)',marginTop:4,paddingTop:4}}>
-            <span onClick={()=>saveCols(PRODUCT_COLS.map(c=>c.id))} className="btn btn-ghost" style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>{t("common.all")}</span>
+          <div className="border-bottom mt-4" style={{paddingTop:4}}>
+            <span onClick={()=>saveCols(PRODUCT_COLS.map(c=>c.id))} className="btn-ghost text-10" style={{padding:'2px 8px',cursor:'pointer'}}>{t('common.all')}</span>
           </div>
         </div>
       )}
@@ -55,7 +54,7 @@ export default function HammerProducts({ channel }: HammerProductsProps) {
           <input id="hm-search-prod" value={hammerSearch} onChange={e=>setHammerSearch(e.target.value)}
             placeholder="搜索SKU/商品名..." className="hammer-input" />
           {hammerSearch && <div className="text-right mt-8">
-            <span className="clickable btn btn-ghost" onClick={()=>setHammerSearch('')} style={{fontSize:10,padding:'2px 8px',cursor:'pointer'}}>{t("common.clear")}</span>
+            <span className="clickable btn-ghost text-10" onClick={()=>setHammerSearch('')} style={{padding:'2px 8px',cursor:'pointer'}}>{t('common.clear')}</span>
           </div>}
         </div>
       )}

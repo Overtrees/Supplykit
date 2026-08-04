@@ -134,7 +134,16 @@ const en: Record<string, string> = {
 type Locale = 'zh' | 'en'
 const locales: Record<Locale, Record<string, string>> = { zh, en }
 
-let currentLocale: Locale = (localStorage.getItem('c_locale') as Locale) || 'zh'
+function detectLocale(): Locale {
+  const saved = localStorage.getItem('c_locale') as Locale | null
+  if (saved === 'zh' || saved === 'en') return saved
+  // 跟随系统语言
+  const lang = (navigator.language || navigator.languages?.[0] || '').toLowerCase()
+  if (lang.startsWith('zh') || lang.startsWith('yue') || lang.startsWith('wuu')) return 'zh'
+  return 'en'
+}
+
+let currentLocale: Locale = detectLocale()
 
 export function t(key: string, params?: Record<string, string | number>): string {
   const text = locales[currentLocale]?.[key] || locales['zh'][key] || key

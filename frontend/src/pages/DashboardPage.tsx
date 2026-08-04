@@ -51,7 +51,7 @@ export default function DashboardPage({ onAlert }) {
     grid: { containLabel: true, top: 8, bottom: 16 }
   }}, [dashboard, periodTab])
 
-  const funnelOption = useMemo(() => {
+  const barOption = useMemo(() => {
     const f = dashboard?.period_funnel?.[periodTab] || dashboard?.funnel || []
     const names = f.map(x => x.name)
     const values = f.map(x => x.value)

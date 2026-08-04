@@ -154,6 +154,21 @@ def _rebuild(channel='jd'):
             "orders": len(so),
             "low_stock": len([x for x in si if int(x.get("available_qty") or 0) < int(x.get("safety_qty") or 0)]),
         })
+
+    # 周期维度 stores（今日/本周/本月）
+    from datetime import timedelta
+    today = datetime.utcnow().date()
+    period_stores = {}
+    for pname, pdays in [('today', 1), ('week', 7), ('month', 30)]:
+        cutoff = today - timedelta(days=pdays - 1)
+        porders = [o for o in orders if o.get('order_date') and datetime.strptime(str(o['order_date'])[:10], '%Y-%m-%d').date() >= cutoff]
+        period_stores[pname] = []
+        for s in store_names:
+            so = [x for x in porders if x.get("store") == s]
+            period_stores[pname].append({
+                "name": s,
+                "gmv": sum(float(x.get("total_amount") or 0) for x in so if x.get("order_status") == "已完成"),
+            })
     
     status_dist = defaultdict(int)
     for x in orders:
@@ -176,6 +191,7 @@ def _rebuild(channel='jd'):
         },
         "trend": trend,
         "stores": store_rows,
+        "period_stores": period_stores,
         "status_distribution": [{"name": k, "value": v} for k, v in sorted(status_dist.items())],
         "category_distribution": [{"name": k, "value": v} for k, v in sorted(cat_dist.items(), key=lambda x: -x[1])],
         # ① 总览新增

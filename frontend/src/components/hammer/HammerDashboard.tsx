@@ -16,7 +16,7 @@ export default function HammerDashboard({ channel }: HammerDashboardProps) {
 
   return (
     <div>
-      <div className="hammer-header">{channel === 'jd' ? 't('channel.jd') : t('channel.other')} · ' + t('nav.dash') + '</div>
+      <div className="hammer-header">{channel === 'jd' ? t('channel.jd') : t('channel.other')} · {t('nav.dash')}</div>
       <div className="flex flex-center gap-6 muted2" style={{fontSize:10,marginBottom:4,flexWrap:'wrap'}}>
         聚合时间维度
         {hammerDashPeriod === 'custom' && customDateStart && customDateEnd &&

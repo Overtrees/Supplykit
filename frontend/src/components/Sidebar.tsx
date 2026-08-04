@@ -1,7 +1,5 @@
 import React, { useEffect, useRef, useCallback } from 'react'
-import { t } from "../../locale"
-import { t } from "../../locale"
-import { t } from "../../locale"
+import { t } from '../locale'
 import { NAV } from '../App'
 import { NAV_ICONS } from './Icons'
 

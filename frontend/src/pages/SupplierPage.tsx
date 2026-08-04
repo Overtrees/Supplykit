@@ -19,7 +19,7 @@ useEffect(()=>{api.get('/api/suppliers').then(r=>{const d=r.data?.items||r.data|
 useEffect(() => { if (hammerCols?.suppliers) setVisCols(hammerCols.suppliers) }, [hammerCols])
 if(ld)return<div className='card'><div className='section-title'><span>供应商管理</span></div><Skeleton/></div>
 const s = hammerSearch || ''
-const fl=s?list.filter(x=>(x.supplier_name||x.code||'').includes(s)||(x.contact_person||'').includes(s)):list
+const fl=s?list.filter(x=>(x.supplier_name||x.name||'').includes(s)||(x.supplier_code||x.code||'').includes(s)||(x.contact_person||'').includes(s)||(x.contact_phone||x.phone||'').includes(s)):list
 return<div className='card'><div className='section-title' style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
   <span>供应商管理 <span className='small muted'>共 {list.length} 个</span></span>
 </div>

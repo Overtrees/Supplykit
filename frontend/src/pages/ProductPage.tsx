@@ -29,10 +29,10 @@ const s = hammerSearch || ''
 const fl=s?list.filter(x=>(x.sku||'').includes(s)||(x.product_name||'').includes(s)||(x.store||'').includes(s)):list
 return<div className='card' style={{containerType:'inline-size'}}>
 <div className='section-title' style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
-  <span>商品管理 <span className='small muted'>{t("common.total")} {list.length} t("common.items")</span></span>
+  <span>商品管理 <span className='small muted'>{t("common.total")} {list.length} {t("ommon.items")}</span></span>
 </div>
-{fl.length===0?<EmptyState icon='tag' title={s?'t("product.empty_matched")':'t("product.empty")'} desc={s?'换个关键词试试':'通过清洗页导入商品数据'}/>:<div style={{overflowX:"auto"}}>
-<div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>{t("common.showing")} {visCols.length}/{COLS.length} t("common.columns")</div>
+{fl.length===0?<EmptyState icon='tag' title={s?'{t("roduct.empty_matched")}':'{t("roduct.empty")}'} desc={s?'换个关键词试试':'通过清洗页导入商品数据'}/>:<div style={{overflowX:"auto"}}>
+<div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>{t("common.showing")} {visCols.length}/{COLS.length} {t("ommon.columns")}</div>
 <table><colgroup>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>
 <thead><tr>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<th key={col.id}>{col.label}</th>:null})}</tr></thead>
 <tbody>{fl.map(x=><tr key={x.id}>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return <td key={col.id} className="small muted" style={{fontSize:11}}>-</td>;

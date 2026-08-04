@@ -17,10 +17,10 @@ const EMOJI_MAP = {
 // ── 列配置 ──────────────────────────────────────────────────────────────
 const BBCC_COLS = [
   {id:'seq',label:''},{id:'sku',label:'SKU'},{id:'barcode',label:'69码'},{id:'name',label:'商品'},{id:'warehouse',label:'仓库'},
-  {id:'b_stock',label:'t("inv.warehouse_b")可用库存'},{id:'b_turn',label:'B仓周转'},{id:'c_stock',label:'t("inv.warehouse_c")总和可用'},
+  {id:'b_stock',label:'{t("nv.warehouse_b")}可用库存'},{id:'b_turn',label:'B仓周转'},{id:'c_stock',label:'{t("nv.warehouse_c")}总和可用'},
   {id:'transit',label:'B-C调拨在途'},{id:'sales',label:'C仓日销'},{id:'c_turn',label:'C仓周转'},
   {id:'transit_turn',label:'B→C调拨周转'},{id:'suggest',label:'C仓建议补'},{id:'b_suggest',label:'B仓需补'},
-  {id:'cur_turn',label:'当前综转'},{id:'after_turn',label:'补后综转'},{id:'note',label:'备注'},{id:'action',label:'t("insights.mark_action")（用于B仓统计入库批次）'},
+  {id:'cur_turn',label:'当前综转'},{id:'after_turn',label:'补后综转'},{id:'note',label:'备注'},{id:'action',label:'{t("nsights.mark_action")}（用于B仓统计入库批次）'},
 ]
 const TRAD_COLS = [
   {id:'seq',label:''},{id:'sku',label:'SKU'},{id:'barcode',label:'69码'},{id:'name',label:'商品'},{id:'store',label:'仓库'},
@@ -134,13 +134,13 @@ export default function InsightsPage() {
       else setVisCols(replenMode==='bbcc'?defVis(BBCC_COLS):defVisTrad(TRAD_COLS))
     }
   }, [hammerCols, replenMode])
-  // t("insights.purchase")列同步
+  // {t("nsights.purchase")}列同步
   useEffect(() => {
     const saved = hammerCols?.['insights_' + globalChannel + '_purchase']
     if (saved) setPurchaseVisCols(saved)
     else setPurchaseVisCols(PURCHASE_COLS.map(c => c.id))
   }, [hammerCols, globalChannel])
-  // t("insights.slow")列同步
+  // {t("nsights.slow")}列同步
   useEffect(() => {
     const saved = hammerCols?.['insights_' + globalChannel + '_slow']
     if (saved) setSlowVisCols(saved)
@@ -221,7 +221,7 @@ export default function InsightsPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-      {/* t("nav.insights") */}
+      {/* {t("av.insights")} */}
       {tab === 'replen' && (
         <div className="card">
           <div className="section-title" style={{display:'flex',flexWrap:'wrap',gap:6}}>
@@ -373,7 +373,7 @@ export default function InsightsPage() {
                         if (col.id === 'daily_sales') return <td key={col.id} style={{fontSize:12,fontWeight:600,whiteSpace:'nowrap'}}>{x.daily_sales}<span style={{fontSize:10,fontWeight:400,color:'var(--muted2)'}}> /{x.daily_sales_14||0}/{x.daily_sales_28||0}</span></td>
                         if (col.id === 'actual_purchase') return <td key={col.id} style={{fontWeight:700,color:x.actual_purchase > 0 ? 'var(--success)' : 'var(--muted2)'}}>{x.actual_purchase > 0 ? '+'+x.actual_purchase : (x.actual_purchase === 0 ? '0' : '-')}</td>
                         if (col.id === 'after_turnover') return <td key={col.id} style={{fontWeight:600,color: x.actual_purchase > 0 ? (x.target_turnover > 0 && x.after_turnover > x.target_turnover ? '#ef4444' : 'var(--text)') : 'var(--muted2)'}}>{x.actual_purchase > 0 ? x.after_turnover+'天' : '-'}</td>
-                        if (col.id === 'note') return <td key={col.id} className="col-name" style={{color:'var(--muted2)',fontSize:12}}>{renderNote(x.note) || 't("insights.no_purchase_needed")'}</td>
+                        if (col.id === 'note') return <td key={col.id} className="col-name" style={{color:'var(--muted2)',fontSize:12}}>{renderNote(x.note) || '{t("nsights.no_purchase_needed")}'}</td>
                         if (col.id === 'timing') return <td key={col.id}><span className={`pill ${timing==='建议'?'warning':'info'}`}>{timing}</span></td>
                         return <td key={col.id}></td>
                       })}

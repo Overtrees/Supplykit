@@ -73,7 +73,7 @@ input,select,button,textarea{font-family:inherit;font-size:16px}input[type="file
 .hammer-header{font-size:11px;color:var(--muted2);margin-bottom:8px;text-align:center}
 .hammer-btn-row{display:flex;gap:6px;flex-wrap:wrap}
 .hammer-btn{flex:1;font-size:var(--font-sm);min-height:var(--h-btn);padding:2px var(--space-sm);border-radius:var(--radius-full);border:none;display:inline-flex;align-items:center;justify-content:center;gap:4px;box-sizing:border-box;cursor:pointer;font-family:inherit;font-weight:400;transition:all 0.15s;white-space:nowrap}
-.hammer-tab{flex:1;font-size:12px;min-height:var(--h-btn);padding:2px 6px;border-radius:99px;cursor:pointer;text-align:center;display:flex;align-items:center;justify-content:center;box-sizing:border-box}
+.hammer-tab{flex:1;font-size:12px;min-height:var(--h-btn);padding:2px var(--space-sm);border-radius:99px;border:none;cursor:pointer;text-align:center;display:flex;align-items:center;justify-content:center;box-sizing:border-box;font-family:inherit;font-weight:400;white-space:nowrap;transition:all 0.15s}
 .hammer-tab.active{background:var(--primary);color:#fff;font-weight:600}
 .hammer-tab:not(.active){background:var(--gray);color:var(--text);font-weight:400}
 .hammer-panel{border-top:1px solid var(--border);padding-top:8px;margin-top:8px}

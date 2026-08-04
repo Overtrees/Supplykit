@@ -1,3 +1,26 @@
+
+// 类型定义
+interface OrderItem {
+  id: number; order_no: string; sku: string; barcode?: string; product_name: string
+  store: string; warehouse?: string; quantity: number; unit_price: number
+  total_amount: number; order_status: string; ordered_at: string; paid_at?: string; platform?: string
+  deleted_at?: string | null
+}
+
+interface AppState {
+  channel: string; channelVersion: number; dataLoaded: boolean
+  dashboard: any; orders: OrderItem[]; orderTotal: number; orderPage: number
+  inventory: any[]; qualityLogs: any[]; alerts: any[]; stockRisk: any[]
+  loading: boolean; orderLoading: boolean; orderSearch: string; orderStatus: string
+  wsStatus: string; ws: WebSocket | null; importLogs: any[]
+  hammerPanel: string | null; hammerSearch: string; hammerData: Record<string, any>
+  hammerCols: Record<string, string[]> | null
+  hammerDashPeriod: string; hammerInsightsTab: string; hammerReplenMode: string
+  hammerRulesTab: string; hammerRuleNewVersion: number; hammerRulesMode: string
+  hammerWhType: string
+  customDateStart: string; customDateEnd: string
+}
+
 import { create } from 'zustand'
 import { api, clearCache, clearInflight } from '../api/client'
 

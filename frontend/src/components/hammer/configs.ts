@@ -1,5 +1,12 @@
 // 共享列配置和工具函数
-export const PRODUCT_COLS = [
+export interface ColumnDef {
+  id: string
+  label: string
+}
+
+export type WarehouseType = 'own' | 'platform' | 'platform_b'
+
+export const PRODUCT_COLS: ColumnDef[] = [
   {id:'barcode',label:'69码'},{id:'channel',label:'平台'},{id:'sku',label:'SKU'},{id:'name',label:'名称'},
   {id:'store',label:'店铺'},{id:'cat',label:'分类'},{id:'price',label:'单价'},{id:'box',label:'箱规'},
   {id:'unit',label:'单位'},{id:'weight',label:'箱重/KG'},{id:'volume',label:'体积/方'},{id:'status',label:'状态'},

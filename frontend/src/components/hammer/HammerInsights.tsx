@@ -110,7 +110,7 @@ export default function HammerInsights({ channel }: HammerInsightsProps) {
         </div>
       )}
       {/* 操作行（列选择+搜索+导出，单独一行） */}
-      <div style={{display:'flex',gap:6}}>
+      <div className="flex gap-6">
         <button onClick={() => setHammerPanel(hammerPanel === 'search' ? null : 'search')}
           className="btn btn-ghost" style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px'}}>
           搜索
@@ -157,9 +157,9 @@ export default function HammerInsights({ channel }: HammerInsightsProps) {
               onDrop={isVis?e=>{e.preventDefault();e.currentTarget.style.borderTop='1px solid transparent';const from=e.dataTransfer.getData('text/plain');if(from===col.id)return;const nxt=visCols.filter(c=>c!==from);const toIdx=nxt.indexOf(col.id);nxt.splice(toIdx,0,from);saveCols(nxt);e.currentTarget.parentNode._dragId=null}:undefined}
               style={{display:'flex',alignItems:'center',gap:4,padding:'4px 6px',borderRadius:6,cursor:isVis?'grab':'default',fontSize:12,whiteSpace:'nowrap',borderTop:'1px solid transparent',background:isVis?'var(--card)':'transparent',opacity:isVis?1:0.4,userSelect:'none',WebkitUserSelect:'none'}}>
               <span style={{color:'var(--muted2)',fontSize:12,width:16,flexShrink:0,textAlign:'center',cursor:isVis?'grab':'default'}}>{isVis?'⠿':'○'}</span>
-              <input type="checkbox" checked={isVis} onChange={e=>{const n=e.target.checked?[...visCols,col.id]:visCols.filter(c=>c!==col.id);saveCols(n)}} style={{accentColor:'var(--primary)'}} />
-              <span style={{flex:1}}>{col.label || '(序号)'}</span>
-              <span style={{fontSize:9,color:'var(--muted2)'}}>{isVis?'#'+(visCols.indexOf(col.id)+1):''}</span>
+              <input type="checkbox" checked={isVis} onChange={e=>{const n=e.target.checked?[...visCols,col.id]:visCols.filter(c=>c!==col.id);saveCols(n)}} className="accent-primary" />
+              <span className="flex-1">{col.label || '(序号)'}</span>
+              <span className="text-9 muted2">{isVis?'#'+(visCols.indexOf(col.id)+1):''}</span>
             </div>
           })}
           <div style={{borderTop:'1px solid var(--border)',marginTop:4,paddingTop:4,display:'flex',gap:6}}>

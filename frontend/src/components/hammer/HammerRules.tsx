@@ -12,7 +12,7 @@ export default function HammerRules({ channel, onShowHistory }: HammerRulesProps
         {channel === 'jd' ? '京东' : '其他'} · 规则参数
       </div>
       {/* tab 入口 */}
-      <div style={{display:'flex',gap:4}}>
+      <div className="flex gap-4">
         {[['rules','规则'],['params','补货参数'],['purchase','采购参数']].map(([id,label]) => (
           <span key={id} onClick={() => setHammerRulesTab(id)}
             style={{flex:1,fontSize:12,minHeight:32,padding:'4px 6px',borderRadius:99,cursor:'pointer',textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',

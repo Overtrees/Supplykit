@@ -46,7 +46,7 @@ const HistorySheet = React.memo(({ show, loading, data, onClose }: HistorySheetP
               const modeInfo = h.mode ? (h.mode === 'bbcc' ? 'BBCC' : '传统') : ''
               return <div key={h.id || i} style={{padding:'10px 12px',background:'var(--card)',borderRadius:16,fontSize:12}}>
                 <div style={{display:'flex',justifyContent:'space-between',gap:6,marginBottom:4}}>
-                  <span style={{fontWeight:600,fontSize:11}}>
+                  <span className="font-600 text-11">
                     {key}{modeInfo ? ` (${modeInfo})` : ''}
                     <span style={{fontWeight:400,fontSize:10,color:'var(--muted2)',marginLeft:4}}>{h.channel === 'jd' ? '京东' : '其他'}</span>
                   </span>
@@ -54,7 +54,7 @@ const HistorySheet = React.memo(({ show, loading, data, onClose }: HistorySheetP
                 </div>
                 <div style={{fontSize:11,color:'var(--muted2)',display:'flex',gap:4,flexWrap:'wrap'}}>
                   <span style={{color:'var(--danger)',textDecoration:'line-through'}}>{h.old_value || '(空)'}</span>
-                  <span style={{color:'var(--muted2)'}}>→</span>
+                  <span className="muted2">→</span>
                   <span style={{color:'var(--success)'}}>{h.new_value || '(空)'}</span>
                 </div>
               </div>

@@ -9,7 +9,7 @@ export default function HammerCleansing({ channel }: HammerCleansingProps) {
       <div style={{fontSize:11,color:'var(--muted2)',marginBottom:8,textAlign:'center'}}>
         {channel === 'jd' ? '京东' : '其他'} · 清洗导入
       </div>
-      <div style={{display:'flex',gap:4}}>
+      <div className="flex gap-4">
         {[['jd','京东'],['other','其他渠道']].map(([id,label]) => (
           <span key={id} onClick={() => setHammerCleansingChannel(id)}
             style={{flex:1,fontSize:12,minHeight:32,padding:'4px 8px',borderRadius:99,cursor:'pointer',textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',

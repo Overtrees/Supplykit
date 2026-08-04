@@ -33,7 +33,7 @@ const MODES = [{l:'全部',v:''},{l:'BBCC',v:'bbcc'},{l:'传统多仓',v:'tradit
 const fieldLbl = v => {const f=LF.find(x=>x.v===v);return f?f.l:v}
 const opLbl = v => {const o=OPS.find(x=>x.v===v);return o?o.l:v}
 const sevCls = s => s==='error'?'danger':s==='info'?'info':'warning'
-const sevLbl = s => s==='error'?'严重':s==='info'?'提示':'警告'
+const sevLbl = s => s==='error'?'严重':s==='info'?'t("rules.severity_info")':'t("rules.severity_warning")'
 
 const pc = j => {
   try {
@@ -77,7 +77,7 @@ export default function RulesPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, hammerRulesMode])
-  // 锤子菜单"新建规则"触发
+  // 锤子菜单"t("rules.new")"触发
   useEffect(() => {
     if (hammerRuleNewVersion > 0) resetForm()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -103,7 +103,7 @@ export default function RulesPage() {
     var timer = setTimeout(async function() {
       await fetch(API+'/api/rules/'+id+'/permanent-delete', {method:'POST'})
     }, 5000)
-    toast.add({type:'success', title:'已删除', duration:5000, action: {label:'撤销', handler: async function() {
+    toast.add({type:'success', title:'已t("common.delete")', duration:5000, action: {label:'t("undo.undo")', handler: async function() {
       clearTimeout(timer)
       await fetch(API+'/api/rules/'+id+'/restore', {method:'POST'})
       load(globalChannel)
@@ -126,14 +126,14 @@ export default function RulesPage() {
     {/* ── 规则列表 ── */}
     {tab==='rules' && <>
       {editing !== null && <div style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:32,padding:16,marginBottom:16}}>
-        <div style={{fontWeight:600,marginBottom:12}}>{editing.id?'编辑规则':'新建规则'}</div>
+        <div style={{fontWeight:600,marginBottom:12}}>{editing.id?'t("rules.edit")':'t("rules.new_btn")规则'}</div>
 
-        {/* 名称 + 级别 + 补货模式 */}
+        {/* 名称 + t("rules.severity") + 补货模式 */}
         <div style={{display:'flex',gap:12,alignItems:'flex-end',marginBottom:14,flexWrap:'wrap'}}>
-          <label style={{flex:1,minWidth:140,fontSize:12}}>规则名称<input value={f.name} onChange={e=>setF({...f,name:e.target.value})} style={IS} placeholder='例：低库存预警'/></label>
+          <label style={{flex:1,minWidth:140,fontSize:12}}>t("rules.name")<input value={f.name} onChange={e=>setF({...f,name:e.target.value})} style={IS} placeholder='例：低库存预警'/></label>
           <label style={{fontSize:12}}>级别
             <div style={{display:'flex',gap:4,marginTop:4}}>
-              {[{v:'warning',t:'警告',c:'var(--warning)'},{v:'error',t:'紧急',c:'var(--danger)'},{v:'info',t:'提示',c:'var(--primary)'}].map(({v,t,c}) =>
+              {[{v:'warning',t:'警告',c:'var(--warning)'},{v:'error',t:'t("rules.severity_error")',c:'var(--danger)'},{v:'info',t:'提示',c:'var(--primary)'}].map(({v,t,c}) =>
                 <span key={v} onClick={()=>setF({...f,severity:v})} className="clickable" style={{padding:'5px 12px',borderRadius:32,fontSize:13,fontWeight:600,cursor:'pointer',background:f.severity===v?c:'transparent',color:f.severity===v?'#fff':'var(--muted)',border:'1px solid',borderColor:f.severity===v?c:'var(--border)',display:'flex',alignItems:'center',gap:3}}>{t}</span>
               )}
             </div>
@@ -198,8 +198,8 @@ export default function RulesPage() {
         </div>
 
         <div style={{marginTop:16,display:'flex',gap:10}}>
-          <button onClick={save} className="btn btn-primary" style={{flex:1,display:'inline-flex',alignItems:'center',gap:4,justifyContent:'center',minHeight:40}}><IconSave size={14} /> 保存</button>
-          <button onClick={cancelEdit} className="btn btn-ghost" style={{flex:1,background:'var(--warning)',color:'#fff',minHeight:40}}>取消</button>
+          <button onClick={save} className="btn btn-primary" style={{flex:1,display:'inline-flex',alignItems:'center',gap:4,justifyContent:'center',minHeight:40}}><IconSave size={14} /> t("common.save")</button>
+          <button onClick={cancelEdit} className="btn btn-ghost" style={{flex:1,background:'var(--warning)',color:'#fff',minHeight:40}}>t("common.cancel")</button>
         </div>
       </div>}
 
@@ -231,7 +231,7 @@ export default function RulesPage() {
         </div>
         </div>
       </div>})}
-      {rules.length===0 && <div className='small muted' style={{textAlign:'center',padding:40}}>暂无规则</div>}
+      {rules.length===0 && <div className='small muted' style={{textAlign:'center',padding:40}}>t("rules.empty")</div>}
     </>}
 
     {/* ── 补货参数 ── */}

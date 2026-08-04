@@ -13,7 +13,7 @@ const LEVEL_LABEL = { warning: '警告', error: '严重', info: '提示' }
 
 export default function QualityPage() {
   const { qualityLogs, channelVersion } = useAppStore()
-  if (qualityLogs.length === 0) return <div className="card" key={channelVersion}><div className="section-title">数据异常</div><div className="small muted" style={{padding:24,textAlign:'center'}}>暂无异常</div></div>
+  if (qualityLogs.length === 0) return <div className="card" key={channelVersion}><div className="section-title">t("nav.quality")</div><div className="small muted" style={{padding:24,textAlign:'center'}}>t("quality.empty")</div></div>
 
   // 按日期分组
   const groups = {}

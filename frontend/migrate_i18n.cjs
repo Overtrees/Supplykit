@@ -1,4 +1,4 @@
-// 第四阶段迁移脚本
+// 第五阶段迁移脚本
 const fs = require('fs');
 
 function migrate(file, replacements) {
@@ -15,98 +15,158 @@ function migrate(file, replacements) {
   return count;
 }
 
-console.log('第四阶段迁移开始...');
+console.log('第五阶段迁移开始...');
 
-// 1. DashboardPage 看板
-migrate('src/pages/DashboardPage.tsx', [
-  ['本月 GMV', 't("period.month") + " " + t("dash.gmv")'],
-  ['今日 GMV', 't("period.today") + " " + t("dash.gmv")'],
-  ['本周 GMV', 't("period.week") + " " + t("dash.gmv")'],
-  ['自定义 GMV', 't("period.custom") + " " + t("dash.gmv")'],
-  ['待处理', 't("dash.pending")'],
-  ['库存健康度', 't("dash.health")'],
-  ['濒临断货 TOP 10', 't("dash.risk")'],
-  ['订单阶段分布', 't("dash.funnel")'],
-  ['店铺 GMV', 't("dash.store_gmv")'],
-  ['低库存告警', 't("dash.low_stock")'],
-  ['补货告警', 't("dash.replenish_alert")'],
-  ['暂无告警', 't("dash.no_alerts")'],
-  ['最短', 't("dash.min_days")'],
-  ['天断货', 't("dash.days_out")'],
-  ['紧急', 't("dash.critical")'],
-  ['预警', 't("dash.warning")'],
-  ['库存充足', 't("dash.stock_ok")'],
-  ['警告', 't("dash.alert_warning")'],
-  ['超储', 't("dash.alert_overstock")'],
-  ['补货', 't("dash.replenish")'],
-  ['分', 't("dash.score_unit")'],
-  ['健康', 't("dash.healthy")'],
-  ['偏低', 't("dash.low")'],
-  ['缺货', 't("dash.out_of_stock")'],
-  ['SKU', 't("dash.sku")'],
-  ['自有', 't("dash.own")'],
-]);
-console.log('1. DashboardPage done');
-
-// 2. locale.ts 补充看板键
-let loc = fs.readFileSync('src/locale.ts', 'utf8');
-const zhDash = `\n  'dash.no_alerts': '暂无告警',
-  'dash.min_days': '最短',
-  'dash.days_out': '天断货',
-  'dash.critical': '紧急',
-  'dash.warning': '预警',
-  'dash.stock_ok': '库存充足',
-  'dash.alert_warning': '警告',
-  'dash.alert_overstock': '超储',
-  'dash.replenish': '补货',
-  'dash.score_unit': '分',
-  'dash.healthy': '健康',
-  'dash.low': '偏低',
-  'dash.out_of_stock': '缺货',
-  'dash.sku': 'SKU',
-  'dash.own': '自有',`;
-loc = loc.replace("'inv.empty_matched': '无匹配库存',", "'inv.empty_matched': '无匹配库存'," + zhDash);
-const enDash = `\n  'dash.no_alerts': 'No alerts',
-  'dash.min_days': 'Min',
-  'dash.days_out': 'days to stockout',
-  'dash.critical': 'Critical',
-  'dash.warning': 'Warning',
-  'dash.stock_ok': 'Stock OK',
-  'dash.alert_warning': 'Warning',
-  'dash.alert_overstock': 'Overstock',
-  'dash.replenish': 'Replenish',
-  'dash.score_unit': 'pts',
-  'dash.healthy': 'Healthy',
-  'dash.low': 'Low',
-  'dash.out_of_stock': 'Out of stock',
-  'dash.sku': 'SKU',
-  'dash.own': 'Own',`;
-loc = loc.replace("'inv.empty_matched': 'No matching inventory',", "'inv.empty_matched': 'No matching inventory'," + enDash);
-fs.writeFileSync('src/locale.ts', loc);
-console.log('2. locale.ts 补充键 done');
-
-// 3. 通用组件
-migrate('src/components/EmptyState.tsx', [
+// 1. InsightsPage
+migrate('src/pages/InsightsPage.tsx', [
+  ['补货建议', 't("nav.insights")'],
+  ['采购建议', 't("insights.purchase")'],
+  ['滞销预警', 't("insights.slow")'],
+  ['库存健康，暂无补货建议', 't("insights.no_replenish")'],
+  ['暂无采购建议', 't("insights.no_purchase")'],
   ['暂无数据', 't("common.empty")'],
+  ['导出成功', 't("export.success")'],
+  ['导出失败', 't("export.failed")'],
+  ['B仓', 't("inv.warehouse_b")'],
+  ['C仓', 't("inv.warehouse_c")'],
+  ['自有仓', 't("inv.own")'],
+  ['标记操作', 't("insights.mark_action")'],
+  ['撤销', 't("undo.undo")'],
+  ['已标记', 't("insights.marked")'],
+  ['无需采购', 't("insights.no_purchase_needed")'],
+  ['暂无匹配', 't("insights.no_match")'],
 ]);
-console.log('3. EmptyState done');
+console.log('1. InsightsPage done');
 
-// 4. ErrorBoundary
-migrate('src/components/ErrorBoundary.tsx', [
-  ['组件渲染错误', 't("error.component_render")'],
-  ['重试', 't("common.retry")'],
+// 2. RulesPage
+migrate('src/pages/RulesPage.tsx', [
+  ['规则搭建', 't("nav.rules")'],
+  ['暂无规则', 't("rules.empty")'],
+  ['新建规则', 't("rules.new")'],
+  ['编辑规则', 't("rules.edit")'],
+  ['规则名称', 't("rules.name")'],
+  ['级别', 't("rules.severity")'],
+  ['警告', 't("rules.severity_warning")'],
+  ['紧急', 't("rules.severity_error")'],
+  ['提示', 't("rules.severity_info")'],
+  ['删除', 't("common.delete")'],
+  ['保存', 't("common.save")'],
+  ['取消', 't("common.cancel")'],
+  ['已删除', 't("undo.deleted")'],
+  ['撤销', 't("undo.undo")'],
+  ['搜索规则名称...', 't("rules.search_placeholder")'],
+  ['变更历史', 't("rules.history")'],
+  ['新建', 't("rules.new_btn")'],
 ]);
-console.log('4. ErrorBoundary done');
+console.log('2. RulesPage done');
 
-// 5. locale.ts 补充通用键
-loc = fs.readFileSync('src/locale.ts', 'utf8');
-const zhCommon = `\n  'common.retry': '重试',
-  'error.component_render': '组件渲染错误',`;
-loc = loc.replace("'inv.empty_matched': '无匹配库存',", "'inv.empty_matched': '无匹配库存'," + zhCommon);
-const enCommon = `\n  'common.retry': 'Retry',
-  'error.component_render': 'Component Render Error',`;
-loc = loc.replace("'inv.empty_matched': 'No matching inventory',", "'inv.empty_matched': 'No matching inventory'," + enCommon);
+// 3. QualityPage
+migrate('src/pages/QualityPage.tsx', [
+  ['数据异常', 't("nav.quality")'],
+  ['暂无异常', 't("quality.empty")'],
+  ['异常类型', 't("quality.type")'],
+  ['相关SKU', 't("quality.related_sku")'],
+  ['描述', 't("quality.description")'],
+  ['时间', 't("quality.time")'],
+]);
+console.log('3. QualityPage done');
+
+// 4. CleansingPage (部分关键文案)
+migrate('src/pages/CleansingPage.tsx', [
+  ['数据清洗及导入', 't("nav.cleansing")'],
+  ['暂无记录', 't("cleansing.empty")'],
+  ['导入失败', 't("cleansing.import_failed")'],
+  ['导入成功', 't("cleansing.import_success")'],
+  ['正在导入...', 't("cleansing.importing")'],
+  ['选择文件', 't("cleansing.select_file")'],
+  ['开始导入', 't("cleansing.start_import")'],
+]);
+console.log('4. CleansingPage done');
+
+// 5. ConfirmDialog
+migrate('src/components/ConfirmDialog.tsx', [
+  ['确认', 't("common.confirm")'],
+  ['取消', 't("common.cancel")'],
+]);
+console.log('5. ConfirmDialog done');
+
+// 6. locale.ts 补充键
+let loc = fs.readFileSync('src/locale.ts', 'utf8');
+const zhKeys = `\n  'insights.purchase': '采购建议',
+  'insights.slow': '滞销预警',
+  'insights.no_replenish': '库存健康，暂无补货建议',
+  'insights.no_purchase': '暂无采购建议',
+  'insights.mark_action': '标记操作',
+  'insights.marked': '已标记',
+  'insights.no_purchase_needed': '无需采购',
+  'insights.no_match': '暂无匹配',
+  'insights.bbcc': 'BBCC送仓',
+  'insights.traditional': '传统多仓',
+  'export.success': '导出成功',
+  'rules.empty': '暂无规则',
+  'rules.new': '新建规则',
+  'rules.edit': '编辑规则',
+  'rules.name': '规则名称',
+  'rules.severity': '级别',
+  'rules.severity_warning': '警告',
+  'rules.severity_error': '紧急',
+  'rules.severity_info': '提示',
+  'rules.search_placeholder': '搜索规则名称...',
+  'rules.history': '变更历史',
+  'rules.new_btn': '新建',
+  'common.save': '保存',
+  'quality.empty': '暂无异常',
+  'quality.type': '异常类型',
+  'quality.related_sku': '相关SKU',
+  'quality.description': '描述',
+  'quality.time': '时间',
+  'cleansing.empty': '暂无记录',
+  'cleansing.import_failed': '导入失败',
+  'cleansing.import_success': '导入成功',
+  'cleansing.importing': '正在导入...',
+  'cleansing.select_file': '选择文件',
+  'cleansing.start_import': '开始导入',
+  'inv.warehouse_b': 'B仓',
+  'inv.warehouse_c': 'C仓',`;
+loc = loc.replace("'inv.empty_matched': '无匹配库存',", "'inv.empty_matched': '无匹配库存'," + zhKeys);
+const enKeys = `\n  'insights.purchase': 'Purchase',
+  'insights.slow': 'Slow Moving',
+  'insights.no_replenish': 'Stock healthy, no replenishment needed',
+  'insights.no_purchase': 'No purchase suggestions',
+  'insights.mark_action': 'Mark Action',
+  'insights.marked': 'Marked',
+  'insights.no_purchase_needed': 'No purchase needed',
+  'insights.no_match': 'No match',
+  'insights.bbcc': 'BBCC',
+  'insights.traditional': 'Traditional',
+  'export.success': 'Export successful',
+  'rules.empty': 'No rules',
+  'rules.new': 'New Rule',
+  'rules.edit': 'Edit Rule',
+  'rules.name': 'Rule Name',
+  'rules.severity': 'Severity',
+  'rules.severity_warning': 'Warning',
+  'rules.severity_error': 'Error',
+  'rules.severity_info': 'Info',
+  'rules.search_placeholder': 'Search rule name...',
+  'rules.history': 'History',
+  'rules.new_btn': 'New',
+  'common.save': 'Save',
+  'quality.empty': 'No quality logs',
+  'quality.type': 'Type',
+  'quality.related_sku': 'Related SKU',
+  'quality.description': 'Description',
+  'quality.time': 'Time',
+  'cleansing.empty': 'No records',
+  'cleansing.import_failed': 'Import failed',
+  'cleansing.import_success': 'Import successful',
+  'cleansing.importing': 'Importing...',
+  'cleansing.select_file': 'Select File',
+  'cleansing.start_import': 'Start Import',
+  'inv.warehouse_b': 'Warehouse B',
+  'inv.warehouse_c': 'Warehouse C',`;
+loc = loc.replace("'inv.empty_matched': 'No matching inventory',", "'inv.empty_matched': 'No matching inventory'," + enKeys);
 fs.writeFileSync('src/locale.ts', loc);
-console.log('5. locale.ts 补充通用键 done');
+console.log('6. locale.ts 补充键 done');
 
-console.log('第四阶段迁移完成!');
+console.log('第五阶段迁移完成!');

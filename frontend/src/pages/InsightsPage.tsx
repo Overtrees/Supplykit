@@ -16,10 +16,10 @@ const EMOJI_MAP = {
 // ── 列配置 ──────────────────────────────────────────────────────────────
 const BBCC_COLS = [
   {id:'seq',label:''},{id:'sku',label:'SKU'},{id:'barcode',label:'69码'},{id:'name',label:'商品'},{id:'warehouse',label:'仓库'},
-  {id:'b_stock',label:'B仓可用库存'},{id:'b_turn',label:'B仓周转'},{id:'c_stock',label:'C仓总和可用'},
+  {id:'b_stock',label:'t("inv.warehouse_b")可用库存'},{id:'b_turn',label:'B仓周转'},{id:'c_stock',label:'t("inv.warehouse_c")总和可用'},
   {id:'transit',label:'B-C调拨在途'},{id:'sales',label:'C仓日销'},{id:'c_turn',label:'C仓周转'},
   {id:'transit_turn',label:'B→C调拨周转'},{id:'suggest',label:'C仓建议补'},{id:'b_suggest',label:'B仓需补'},
-  {id:'cur_turn',label:'当前综转'},{id:'after_turn',label:'补后综转'},{id:'note',label:'备注'},{id:'action',label:'标记操作（用于B仓统计入库批次）'},
+  {id:'cur_turn',label:'当前综转'},{id:'after_turn',label:'补后综转'},{id:'note',label:'备注'},{id:'action',label:'t("insights.mark_action")（用于B仓统计入库批次）'},
 ]
 const TRAD_COLS = [
   {id:'seq',label:''},{id:'sku',label:'SKU'},{id:'barcode',label:'69码'},{id:'name',label:'商品'},{id:'store',label:'仓库'},
@@ -133,13 +133,13 @@ export default function InsightsPage() {
       else setVisCols(replenMode==='bbcc'?defVis(BBCC_COLS):defVisTrad(TRAD_COLS))
     }
   }, [hammerCols, replenMode])
-  // 采购建议列同步
+  // t("insights.purchase")列同步
   useEffect(() => {
     const saved = hammerCols?.['insights_' + globalChannel + '_purchase']
     if (saved) setPurchaseVisCols(saved)
     else setPurchaseVisCols(PURCHASE_COLS.map(c => c.id))
   }, [hammerCols, globalChannel])
-  // 滞销预警列同步
+  // t("insights.slow")列同步
   useEffect(() => {
     const saved = hammerCols?.['insights_' + globalChannel + '_slow']
     if (saved) setSlowVisCols(saved)
@@ -220,7 +220,7 @@ export default function InsightsPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-      {/* 补货建议 */}
+      {/* t("nav.insights") */}
       {tab === 'replen' && (
         <div className="card">
           <div className="section-title" style={{display:'flex',flexWrap:'wrap',gap:6}}>
@@ -234,7 +234,7 @@ export default function InsightsPage() {
               {[1,2,3,4,5].map(i => <Skeleton key={i} height={36} style={{ marginBottom: 4 }} />)}
             </div>
           ) : !Array.isArray(replen) || replen.length === 0 ? (
-            <div className="muted" style={{ padding: 12, textAlign: 'center' }}>库存健康，暂无补货建议</div>
+            <div className="muted" style={{ padding: 12, textAlign: 'center' }}>t("insights.no_replenish")</div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4,display:'flex',gap:8,alignItems:'center'}}>
@@ -297,7 +297,7 @@ export default function InsightsPage() {
                         if (col.id === 'note') return <td key={col.id} className="col-name" style={{color:'var(--muted2)',fontSize:12}}>{renderNote(x.note)}</td>
                         // 标记操作
                         if (col.id === 'action') return <td key={col.id}>{isOrdered
-                          ? <span onClick={()=>toggleOrdered(x.sku, x.store, x.product_name, x.suggested_qty || x.b_suggested)} style={{cursor:'pointer',fontSize:16,color:'var(--success)',display:'inline-flex',alignItems:'center',gap:2}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{display:'inline',verticalAlign:'middle'}}><polyline points="4 12 10 18 20 6"/></svg><span style={{fontSize:9,color:'var(--muted2)'}}>撤销</span></span>
+                          ? <span onClick={()=>toggleOrdered(x.sku, x.store, x.product_name, x.suggested_qty || x.b_suggested)} style={{cursor:'pointer',fontSize:16,color:'var(--success)',display:'inline-flex',alignItems:'center',gap:2}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{display:'inline',verticalAlign:'middle'}}><polyline points="4 12 10 18 20 6"/></svg><span style={{fontSize:9,color:'var(--muted2)'}}>t("undo.undo")</span></span>
                           : <span onClick={()=>{
                             if ((x.suggested_qty > 0 || x.b_suggested > 0) && x.combined_turnover > 90 && !window.confirm(`补后综合周转${x.combined_turnover}天，已超90天考核红线，仍标记操作？`)) return
                             toggleOrdered(x.sku, x.store, x.product_name, x.suggested_qty || x.b_suggested)
@@ -346,7 +346,7 @@ export default function InsightsPage() {
               {[1,2,3,4].map(i => <Skeleton key={i} height={36} style={{ marginBottom: 4 }} />)}
             </div>
           ) : (purchase.length === 0 ? (
-            <div className="muted" style={{ padding: 12, textAlign: 'center' }}>暂无采购建议</div>
+            <div className="muted" style={{ padding: 12, textAlign: 'center' }}>t("insights.no_purchase")</div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {purchaseVisCols.length}/{PURCHASE_COLS.length} 列 · 点击"列"按钮切换{insightSearch ? ` · 搜索 "${insightSearch}"` : ''}</div>
@@ -372,7 +372,7 @@ export default function InsightsPage() {
                         if (col.id === 'daily_sales') return <td key={col.id} style={{fontSize:12,fontWeight:600,whiteSpace:'nowrap'}}>{x.daily_sales}<span style={{fontSize:10,fontWeight:400,color:'var(--muted2)'}}> /{x.daily_sales_14||0}/{x.daily_sales_28||0}</span></td>
                         if (col.id === 'actual_purchase') return <td key={col.id} style={{fontWeight:700,color:x.actual_purchase > 0 ? 'var(--success)' : 'var(--muted2)'}}>{x.actual_purchase > 0 ? '+'+x.actual_purchase : (x.actual_purchase === 0 ? '0' : '-')}</td>
                         if (col.id === 'after_turnover') return <td key={col.id} style={{fontWeight:600,color: x.actual_purchase > 0 ? (x.target_turnover > 0 && x.after_turnover > x.target_turnover ? '#ef4444' : 'var(--text)') : 'var(--muted2)'}}>{x.actual_purchase > 0 ? x.after_turnover+'天' : '-'}</td>
-                        if (col.id === 'note') return <td key={col.id} className="col-name" style={{color:'var(--muted2)',fontSize:12}}>{renderNote(x.note) || '无需采购'}</td>
+                        if (col.id === 'note') return <td key={col.id} className="col-name" style={{color:'var(--muted2)',fontSize:12}}>{renderNote(x.note) || 't("insights.no_purchase_needed")'}</td>
                         if (col.id === 'timing') return <td key={col.id}><span className={`pill ${timing==='建议'?'warning':'info'}`}>{timing}</span></td>
                         return <td key={col.id}></td>
                       })}
@@ -412,7 +412,7 @@ export default function InsightsPage() {
               {[1,2,3].map(i => <Skeleton key={i} height={36} style={{ marginBottom: 4 }} />)}
             </div>
           ) : (slowMoving.length === 0 ? (
-            <div className="muted" style={{ padding: 12, textAlign: 'center' }}>暂无数据</div>
+            <div className="muted" style={{ padding: 12, textAlign: 'center' }}>t("common.empty")</div>
           ) : (
             <>
               <div style={{ overflowX: 'auto' }}>

@@ -89,20 +89,17 @@ export default function HammerInsights({ channel }: HammerInsightsProps) {
           </span>
         ))}
       </div>
-      {/* 补货模式行 — 3 列网格对齐上方 tab */}
+      {/* 补货模式行（单独一行） */}
       {hammerInsightsTab === 'replen' && (
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:4,marginBottom:8}}>
-          {channel === 'jd' ? (
+        <div className="hammer-btn-row" style={{marginBottom:8}}>
+          {channel === 'jd' && (
             <span onClick={() => setHammerReplenMode('bbcc')}
-              className={'hammer-tab' + (mode==='bbcc' ? ' active' : '')}
-              style={{gridColumn:1}}>
+              className={'hammer-tab' + (mode==='bbcc' ? ' active' : '')}>
               BBCC
             </span>
-          ) : <div />}
-          <div />
+          )}
           <span onClick={() => setHammerReplenMode('traditional')}
-            className={'hammer-tab' + (mode==='traditional' ? ' active' : '')}
-            style={{gridColumn:3}}>
+            className={'hammer-tab' + (mode==='traditional' ? ' active' : '')}>
             传统多仓
           </span>
         </div>

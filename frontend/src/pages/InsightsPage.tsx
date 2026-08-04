@@ -68,7 +68,7 @@ function renderNote(text) {
   return parts.length === 1 ? parts[0] : parts
 }
 
-const API = import.meta.einv.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
+const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
 
 const pillStyle = (cond, yes = 'danger', no = 'info') => ({
   display: 'inline-block', padding: '2px 8px', borderRadius: 99,

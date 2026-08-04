@@ -42,7 +42,7 @@ export default function OrdersPage() {
     var id = confirmDel
     setConfirmDel(null)
     try {
-      const API = import.meta.einv.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
+      const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
       const r = await fetch(`${API}/api/orders/${id}`, {method:'DELETE'})
       if (r.ok) {
         useAppStore.getState().loadAll()

@@ -51,7 +51,7 @@ export default function HammerInsights({ channel }: HammerInsightsProps) {
   const doExport = async (type) => {
     setExporting(true)
     try {
-      const API = import.meta.einv.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
+      const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
       let url = ''
       let filename = ''
       if (type === 'slow') {

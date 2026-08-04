@@ -74,7 +74,7 @@ export default function App() {
     setShowHistory(true)
     setHistLoading(true)
     try {
-      const API = import.meta.einv.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
+      const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
       const r = await fetch(API + '/api/replenishment-config/history?channel=' + (ch||channel) + '&limit=50')
       const d = await r.json()
       setHistory(d.data || [])

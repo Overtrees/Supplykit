@@ -24,8 +24,8 @@ interface AppState {
 import { create } from 'zustand'
 import { api, clearCache, clearInflight } from '../api/client'
 
-const POLL_MS = Number(import.meta.einv.VITE_POLL_INTERVAL_MS || 30000)
-const WS_URL = import.meta.einv.VITE_WS_URL || 'wss://overtrees.pythonanywhere.com/ws/events'
+const POLL_MS = Number(import.meta.env.VITE_POLL_INTERVAL_MS || 30000)
+const WS_URL = import.meta.env.VITE_WS_URL || 'wss://overtrees.pythonanywhere.com/ws/events'
 
 export const useAppStore = create((set, get) => ({
   channel: localStorage.getItem('c_channel') || 'jd',

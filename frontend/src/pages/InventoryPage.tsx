@@ -6,7 +6,7 @@ import ConfirmDialog from '../components/ConfirmDialog'
 import { useAppStore } from '../store/useAppStore'
 import { t } from "../locale"
 
-const API = import.meta.einv.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
+const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
 const WH_COLS = {
   own: [
     {id:'warehouse',label:'仓库'},{id:'sku',label:'SKU'},{id:'barcode',label:'69码'},{id:'name',label:'商品'},

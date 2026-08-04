@@ -45,6 +45,35 @@ input,select,button,textarea{font-family:inherit;font-size:16px}input[type="file
 .icon-muted{color:var(--muted2);flex-shrink:0}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* 通用工具类 */
+.flex{display:flex}.flex-center{align-items:center}.flex-between{display:flex;justify-content:space-between;align-items:center}
+.flex-1{flex:1}.flex-shrink-0{flex-shrink:0}.gap-4{gap:4px}.gap-6{gap:6px}.gap-8{gap:8px}
+.w-full{width:100%}.text-center{text-align:center}.text-right{text-align:right}
+.nowrap{white-space:nowrap}.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.font-600{font-weight:600}.font-700{font-weight:700}
+.text-12{font-size:12px}.text-13{font-size:13px}.text-14{font-size:14px}.text-15{font-size:15px}
+.muted{color:var(--muted)}.muted2{color:var(--muted2)}
+.mb-4{margin-bottom:4px}.mb-8{margin-bottom:8px}.mb-12{margin-bottom:12px}.mt-8{margin-top:8px}.mt-12{margin-top:12px}
+.p-8{padding:8px}.p-12{padding:12px}.p-16{padding:16px}
+.rounded-12{border-radius:12px}.rounded-16{border-radius:16px}.rounded-32{border-radius:32px}.rounded-99{border-radius:99px}
+.border-bottom{border-bottom:1px solid var(--border)}
+.bg-card{background:var(--card)}.bg-bg{background:var(--bg)}
+.overflow-auto{overflow:auto}.overflow-hidden{overflow:hidden}
+
+/* 锤子菜单通用 */
+.hammer-header{font-size:11px;color:var(--muted2);margin-bottom:8px;text-align:center}
+.hammer-btn-row{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.hammer-btn{flex:1;font-size:12px;min-height:32px;padding:4px 8px}
+.hammer-tab{flex:1;font-size:12px;min-height:32px;padding:4px 6px;border-radius:99px;cursor:pointer;text-align:center;display:flex;align-items:center;justify-content:center;box-sizing:border-box}
+.hammer-tab.active{background:var(--primary);color:#fff;font-weight:600}
+.hammer-tab:not(.active){background:var(--gray);color:var(--text);font-weight:400}
+.hammer-panel{border-top:1px solid var(--border);padding-top:8px;margin-top:8px}
+.hammer-panel-scroll{max-height:260px;overflow-y:auto}
+.hammer-input{width:100%;padding:6px 10px;font-size:16px;border:1px solid var(--border);border-radius:32px;outline:none;box-sizing:border-box;background:var(--card);color:var(--text)}
+.col-drag{display:flex;align-items:center;gap:4px;padding:4px 6px;border-radius:6px;font-size:12px;white-space:nowrap;border-top:1px solid transparent;user-select:none;-webkit-user-select:none}
+.col-drag.visible{background:var(--card);opacity:1;cursor:grab}
+.col-drag.hidden{background:transparent;opacity:0.4;cursor:default}
 .overflow-x-auto{overflow-x:auto;-webkit-overflow-scrolling:touch}
 
 /* 响应式卡片网格 */

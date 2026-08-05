@@ -105,9 +105,9 @@ export default function ComponentName({ prop1, prop2 }: { prop1: string; prop2?:
 **CSS 变量（魔法数字抽取）**
 ```css
 --radius-sm: 12px;   --radius-md: 16px;   --radius-lg: 32px;   --radius-full: 99px;
---space-xs: 4px;     --space-sm: 8px;     --space-md: 12px;    --space-lg: 16px;    --space-xl: 20px;
+--space-xs: 4px;     --space-sm: 10px;    --space-md: 12px;    --space-lg: 16px;    --space-xl: 20px;
 --font-xs: 11px;     --font-sm: 12px;     --font-md: 14px;     --font-lg: 16px;
---h-btn: 32px;       --h-btn-lg: 36px;    --h-btn-xl: 48px;
+--h-btn: 30px;       --h-btn-lg: 36px;    --h-btn-xl: 48px;
 ```
 
 **CSS 工具类（50+ 个）**
@@ -121,10 +121,13 @@ export default function ComponentName({ prop1, prop2 }: { prop1: string; prop2?:
 | 圆角 | `.rounded-12/16/32/99` | 圆角 |
 | 通用 | `.w-full` `.truncate` `.nowrap` `.border-none` `.cursor-pointer` | 常用 |
 | 锤子菜单 | `.hammer-header` `.hammer-btn` `.hammer-tab` `.hammer-panel` `.hammer-input` `.col-drag` | 菜单组件 |
+| 锤子布局 | `.hammer-row-2` `.hammer-row-2x2` `.hammer-row-3` | 标准行布局 |
+| 锤子通用 | `.hammer-spinner` `.hammer-clear` `.hammer-icon-btn` | 动画/清除/触发按钮 |
+| 列选择器 | `.cols-group-title` `.cols-top-bar` | 分组标题/顶部操作栏 |
 
 **圆角统一**
 - 卡片/弹窗/面板：`var(--radius-lg)` = `32px`
-- 搜索框/输入框：`var(--radius-lg)` = `32px`
+- 搜索框/输入框：`var(--radius-lg)` = `16px`
 - 胶囊按钮：`var(--radius-full)` = `99px`
 - 骨架屏：`8px`
 - 列拖拽行：`6px`
@@ -132,8 +135,9 @@ export default function ComponentName({ prop1, prop2 }: { prop1: string; prop2?:
 **按钮统一**
 - 锤子菜单按钮：`btn-ghost hammer-btn`（不用 `btn` 类）
 - `btn` 类有 `padding: 8px 20px` 和 `min-height: 36px`，比锤子按钮大
-- 锤子按钮标准：`min-height: 32px`，`padding: 4px 8px`，`white-space: nowrap`
-- 2 个按钮一排用 `hammer-btn-row`，4 个按钮用 2×2 布局
+- 锤子按钮标准：`min-height: var(--h-btn)`（30px），`padding: 2px var(--space-sm)`（10px），`white-space: nowrap`
+- 2 个按钮一排用 `hammer-btn-row`，4 个按钮用 2×2 布局（`hammer-row-2x2`）
+- 3 种标准行布局：A型（`hammer-row-2` 2按钮均分）、B型（`hammer-row-2x2` 2行×2按钮）、C型（`hammer-row-3` 3按钮均分）
 
 **玻璃态变量**
 ```css
@@ -203,13 +207,13 @@ cd backend && python -m pytest tests/ -v
 cd frontend && npm test
 ```
 
-12 个测试用例（Vitest + React Testing Library）：
+15 个测试用例（Vitest + React Testing Library）：
 
 | 文件 | 测试内容 | 数量 |
 |------|---------|------|
 | `configs.test.ts` | 列配置完整性验证（商品/订单/进销存/BBCC/传统等） | 8 |
 | `Toast.test.tsx` | Toast 显示/自动消失/撤销按钮 | 3 |
-| `utils.test.ts` | 默认列选择/仓库标签/订单状态 | 3 |
+| `utils.test.ts` | 默认列选择/仓库标签/订单状态 | 4 |
 
 ---
 
@@ -254,7 +258,7 @@ import { t } from '../locale'
 
 ```bash
 # 检查 t() 是否在字符串中（错误用法）
-grep -rn "'{t(" src/
+grep -rn "'{t(\"" src/
 grep -rn "'t(" src/
 
 # 检查所有 t() 键是否在 locale.ts 中存在
@@ -335,9 +339,35 @@ grep -rn "import.meta\.einv" src/
 
 1. **`height:26px` 语法错误** → 数字值不带 px，字符串值要加引号
 2. **JSX 花括号不匹配** → 修改 JSX 后运行括号检查
-3. **`import os` 缺失** → 后端新增 `os.getenv()` 调用时记得加 `import os`
-4. **`borderRadius:32` 跟 `borderRadius: 32` 不一致** → sed 替换时注意空格
+3. **`t()` 被引号包裹** → `'{t("key")}'` 显示原文，`'{t("key")}'` 改为 `{t("key")}`
+4. **CSS class 同名冲突** → 两个不同用途的类撞名时属性互相污染（如 `.hammer-btn` 48px 污染菜单按钮）
 5. **`backdrop-filter` 只写了标准属性** → 必须同时写 `-webkit-backdrop-filter` 兼容 Safari
+
+### 10.5 提交前核对清单
+
+```bash
+# 1. 检查 t() 引号包裹
+grep -rn "'{t(\"" src/
+grep -rn "'t(" src/
+
+# 2. 检查 CSS class 同名冲突
+grep -o '\.[a-zA-Z][a-zA-Z0-9_-]*{' src/*.css | sed 's/{//' | sort | uniq -c | sort -rn | head -10
+
+# 3. 检查未提交文件
+git status --short
+
+# 4. 检查括号平衡
+find src -name '*.tsx' | while read f; do
+  node -e "const fs=require('fs');const s=fs.readFileSync('$f','utf8');const po=(s.match(/\(/g)||[]).length,pc=(s.match(/\)/g)||[]).length;const bo=(s.match(/\{/g)||[]).length,bc=(s.match(/\}/g)||[]).length;if(po!==pc||bo!==bc)console.log('FAIL: $f')" 2>/dev/null
+done
+
+# 5. 检查 height/borderRadius 不带 px 单位
+grep -rn "height:[0-9]\+px" src/ --include='*.tsx'
+grep -rn "borderRadius:[0-9]\+px" src/ --include='*.tsx'
+
+# 6. 检查 import.meta.env 拼写
+grep -rn "import.meta\.einv" src/
+```
 
 ---
 

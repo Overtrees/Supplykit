@@ -49,7 +49,7 @@ export default function OrdersPage() {
         var timer = setTimeout(async function() {
           await fetch(`${API}/api/orders/${id}/permanent-delete`, {method:'POST'})
         }, 5000)
-        toast.add({type:'success', title:'{t("undo.deleted")}', duration:5000, action: {label: t("undo.undo"), handler: async function() {
+        toast.add({type:'success', title:t("undo.deleted"), duration:5000, action: {label: t("undo.undo"), handler: async function() {
           clearTimeout(timer)
           await fetch(`${API}/api/orders/${id}/restore`, {method:'POST'})
           useAppStore.getState().loadAll()
@@ -68,7 +68,7 @@ export default function OrdersPage() {
     <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>订单 <span className="small muted" style={{fontWeight:400}}>{t("common.total")} {orderTotal || 0} {t("common.items")}</span></div>
     {orderLoading || !dataLoaded ? <OrderSkeleton />
     : orders.length === 0
-      ? <EmptyState icon='clipboard' title={s?'{t("order.empty_matched")}':'{t("order.empty")}'} desc={s?'换个关键词试试':''} />
+      ? <EmptyState icon='clipboard' title={s?t("order.empty_matched"):t("order.empty")} desc={s?'换个关键词试试':''} />
       : <div style={{overflowX:"auto"}}>
         <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>{t("common.showing")} {visCols.length}/{COLS.length} {t("common.columns")}</div>
       <table><colgroup>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>

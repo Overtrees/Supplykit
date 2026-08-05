@@ -12,7 +12,7 @@ interface ConfirmDialogProps {
   danger?: boolean
 }
 
-export default function ConfirmDialog({ open, title, desc, confirmLabel = '{t("common.confirm")}', cancelLabel = '{t("common.cancel")}', onConfirm, onCancel, danger }: ConfirmDialogProps) {
+export default function ConfirmDialog({ open, title, desc, confirmLabel = t("common.confirm"), cancelLabel = t("common.cancel"), onConfirm, onCancel, danger }: ConfirmDialogProps) {
   if (!open) return null
 
   return <>

@@ -194,21 +194,40 @@ UptimeRobot 每 5 分钟 ping `https://overtrees.pythonanywhere.com/api/insights
 
 ---
 
-## 七、测试规范
+## 七、测试规范（严格标准）
 
-### 7.1 后端测试
+### 7.0 核心原则：测试先于代码
+
+```
+改代码前 → 先写测试 → 确认测试失败 → 改代码 → 确认测试通过
+```
+
+所有功能修改、bug 修复、重构，必须遵循此流程。
+
+### 7.1 测试覆盖要求
+
+| 变更类型 | 必须覆盖的测试 | 最低要求 |
+|---------|-------------|---------|
+| 新增功能 | 单元测试 + 集成测试 | 核心路径 100% 覆盖 |
+| Bug 修复 | 先写复现测试 → 再修 bug | 修复后测试通过 |
+| 重构 | 已有测试全部通过 | 新增测试覆盖重构逻辑 |
+| 国际化 | 无 | 手动验证即可 |
+
+### 7.2 后端测试
 
 ```bash
 cd backend && python -m pytest tests/ -v
 ```
 
-### 7.2 前端测试
+当前 80+ 个测试用例。新增后端路由或修改现有路由时，必须添加对应测试。
+
+### 7.3 前端测试
 
 ```bash
 cd frontend && npm test
 ```
 
-15 个测试用例（Vitest + React Testing Library）：
+当前 15 个测试用例（Vitest + React Testing Library）：
 
 | 文件 | 测试内容 | 数量 |
 |------|---------|------|
@@ -216,163 +235,141 @@ cd frontend && npm test
 | `Toast.test.tsx` | Toast 显示/自动消失/撤销按钮 | 3 |
 | `utils.test.ts` | 默认列选择/仓库标签/订单状态 | 4 |
 
+新增前端组件或修改现有组件逻辑时，必须添加对应测试。
+
+### 7.4 测试验收标准
+
+```
+✅ 通过：新功能/修复有对应测试覆盖，且测试全部通过
+⚠️ 警告：功能正常但无测试覆盖（需在 commit 中说明原因）
+❌ 不通过：功能正常但有测试失败
+```
+
 ---
 
-## 八、国际化规范
+## 八、提交前自动化检查（严格标准）
 
-项目使用自建轻量级 i18n 方案，无外部依赖，中英双语，自动检测系统语言。
+### 8.1 必须配置的自动化检查
 
-### 8.1 翻译键命名
-
-```
-模块.具体描述
-├── app.name              # 应用名称
-├── nav.dash              # 导航
-├── common.search         # 通用
-├── dash.funnel           # 看板
-└── rules.new             # 规则
-```
-
-### 8.2 使用方式
-
-```tsx
-import { t } from '../locale'
-
-// 正确：在 JSX 表达式中使用
-<div>{t('common.search')}</div>
-
-// 错误：在字符串中使用
-<div>'{t("common.search")}'</div>  // ❌
-
-// 正确：字符串拼接
-<EmptyState title={t('order.empty')} />
-```
-
-### 8.3 添加新翻译
-
-1. 在 `locale.ts` 的 `zh` 和 `en` 对象中添加键值对
-2. 在代码中使用 `t('key')` 调用
-3. 保持中英文键名一致
-4. 所有用户可见文本必须使用 `t('key')` 调用
-
-### 8.4 国际化检查
+以下检查必须在每次提交前自动运行，**不允许手动跳过**：
 
 ```bash
-# 检查 t() 是否在字符串中（错误用法）
-grep -rn "'{t(\"" src/
-grep -rn "'t(" src/
-
-# 检查所有 t() 键是否在 locale.ts 中存在
-grep -rn "t(\"" src/ | grep -oP 't\("[a-z_]+\.[a-z_]+"\)' | sort -u | while read k; do
-  key=$(echo "$k" | sed 's/t("//;s/")//')
-  if ! grep -q "'$key'" src/locale.ts; then
-    echo "MISSING: $key"
-  fi
+# 1. 括号匹配检查（防止 JSX 语法错误）
+find src -name '*.tsx' -o -name '*.ts' | while read f; do
+  node -e "const fs=require('fs');const s=fs.readFileSync('$f','utf8');const po=(s.match(/\(/g)||[]).length,pc=(s.match(/\)/g)||[]).length;const bo=(s.match(/\{/g)||[]).length,bc=(s.match(/\}/g)||[]).length;if(po!==pc||bo!==bc){console.log('❌ 括号不匹配: $f');process.exit(1)}" 2>/dev/null
 done
+
+# 2. import.meta.env 拼写检查
+grep -rn "import.meta\.einv" src/ && echo "❌ import.meta.env 被误改" && exit 1
+
+# 3. t() 引号包裹检查
+grep -rn "'{t(\"" src/ && echo "❌ t() 在字符串中" && exit 1
+
+# 4. height/borderRadius 不带 px 单位
+grep -rn "height:[0-9]\+px\|borderRadius:[0-9]\+px" src/ --include='*.tsx' && echo "❌ 数字值带 px 单位" && exit 1
+
+# 5. 重复导入检查
+grep -rn "import.*from.*locale" src/ | sort | uniq -d && echo "❌ 重复导入" && exit 1
+
+echo "✅ 全部检查通过"
+```
+
+### 8.2 建议配置的自动化检查
+
+```bash
+# 6. 前端测试
+cd frontend && npm test || exit 1
+
+# 7. 后端测试
+cd backend && python -m pytest tests/ -v || exit 1
+
+# 8. TypeScript 类型检查
+cd frontend && npx tsc --noEmit || exit 1
+```
+
+### 8.3 提交前核对清单
+
+```bash
+# 一键执行全部检查
+echo "=== 1. 括号匹配 ==="
+find src -name '*.tsx' -o -name '*.ts' | while read f; do
+  node -e "const fs=require('fs');const s=fs.readFileSync('$f','utf8');const po=(s.match(/\(/g)||[]).length,pc=(s.match(/\)/g)||[]).length;const bo=(s.match(/\{/g)||[]).length,bc=(s.match(/\}/g)||[]).length;if(po!==pc||bo!==bc)console.log('FAIL: $f')" 2>/dev/null
+done
+
+echo "=== 2. import.meta.env ==="
+grep -rn "import.meta\.einv" src/ && echo "❌" || echo "✅"
+
+echo "=== 3. t() 在字符串中 ==="
+grep -rn "'{t(\"" src/ && echo "❌" || echo "✅"
+
+echo "=== 4. height/borderRadius 单位 ==="
+grep -rn "height:[0-9]\+px\|borderRadius:[0-9]\+px" src/ --include='*.tsx' && echo "❌" || echo "✅"
+
+echo "=== 5. 重复导入 ==="
+grep -rn "import.*from.*locale" src/ | sort | uniq -d && echo "❌" || echo "✅"
+
+echo "=== 6. 未提交文件 ==="
+git status --short
 ```
 
 ---
 
-| 位置 | 触发方式 | 内容 |
-|------|---------|------|
-| API 请求日志（main.py） | 默认开启 | `[API] GET /api/xxx 123ms 200`，>500ms 标 warning |
-| 数据库查询（database.py） | 环境变量 `DB_LOG=1` | `[DB] query orders → 28 rows` |
-| 日销计算（insights.py） | 环境变量 `SALES_LOG=1` | `[SALES] cutoff=28d wh=None → 5 SKU有销量` |
-| 前端 API 调用（client.ts） | DevTools Verbose | `[API] GET /api/xxx → 200` |
+## 九、代码审查（严格标准）
+
+### 9.1 审查流程
+
+```
+提交 PR → 至少 1 人审查 → 通过 → 合并到 main
+```
+
+### 9.2 审查 checklist
+
+| 审查项 | 必须通过 |
+|--------|---------|
+| 功能正确性 | 功能按预期工作 |
+| 测试覆盖 | 新功能/修复有对应测试 |
+| 国际化 | 所有新增文本使用 `t()` |
+| 样式 | 使用 CSS 类而非内联样式 |
+| 类型 | 新增 Props 有接口定义 |
+| 兼容性 | 深色/浅色模式正常 |
+| 构建 | `npm run build` 通过 |
+| 测试 | `npm test` + `pytest` 通过 |
+
+### 9.3 单人项目替代方案
+
+当前项目为单人开发，没有审查者。替代方案：
+
+```
+改代码前 → 写好测试 → 自审查（对照 9.2 checklist）
+         → 提交前跑自动化检查
+         → 提交后等 Cloudflare 构建通过
+         → 构建失败则立即修复
+```
 
 ---
 
-## 九、版本控制
+## 十、国际化规范
 
-### 9.1 Commit 格式
+---
+
+
+## 十一、版本控制
+
+### 12.1 Commit 格式
 
 ```
 <type>: <description>
 feat: 新功能 | fix: Bug | refactor: 重构 | docs: 文档 | test: 测试 | style: 样式 | chore: 杂项
 ```
 
-### 9.2 分支策略
+### 12.2 分支策略
 
 - `main` 分支直接部署到生产环境
 - 推送到 `main` 自动触发 Cloudflare Pages 构建
 
 ---
 
-## 十、提交前代码检查清单
-
-### 10.1 JSX 内联样式常见错误
-
-| 错误写法 | 正确写法 | 报错 |
-|---------|---------|------|
-| `height:26px` | `height:26` 或 `height:'26px'` | `Syntax error "p"` |
-| `borderRadius:32px` | `borderRadius:32` 或 `borderRadius:'32px'` | 同上 |
-| `padding:'0 2px'` | 字符串值正确，注意引号 | 无 |
-| `color:''` | 空字符串会被 React 忽略，回退到 CSS 类 | 无 |
-
-### 10.2 构建前检查
-
-```bash
-# 1. height 语法错误
-grep -rn "height:[0-9]\+px" src/pages/ src/components/ --include='*.tsx'
-
-# 2. borderRadius 带单位
-grep -rn "borderRadius:[0-9]\+px" src/pages/ src/components/ --include='*.tsx'
-
-# 3. 括号匹配
-find src -name '*.tsx' | while read f; do
-  node -e "const fs=require('fs');const s=fs.readFileSync('$f','utf8');const po=(s.match(/\(/g)||[]).length,pc=(s.match(/\)/g)||[]).length;const bo=(s.match(/\{/g)||[]).length,bc=(s.match(/\}/g)||[]).length;if(po!==pc||bo!==bc)console.log('FAIL: $f')" 2>/dev/null
-done
-
-# 4. import.meta.env 完整性
-grep -rn "import.meta\.einv" src/
-```
-
-### 10.3 常见报错及原因
-
-| 构建错误 | 最常见原因 | 检查方法 |
-|---------|-----------|---------|
-| `Syntax error "p"` | `height:26px` 等无效 JS 语法 | `grep "height:[0-9]\+px" src/` |
-| `The character "}" is not valid inside a JSX element` | 多余花括号 | 括号匹配检查 |
-| `Cannot find module` | 导入路径错误 | 检查相对路径 `../` 层级 |
-| 页面空白无报错 | `import.meta.env` 被 sed 误改 | `grep "import.meta.einv" src/` |
-
-### 10.4 最常踩的 5 个坑
-
-1. **`height:26px` 语法错误** → 数字值不带 px，字符串值要加引号
-2. **JSX 花括号不匹配** → 修改 JSX 后运行括号检查
-3. **`t()` 被引号包裹** → `'{t("key")}'` 显示原文，`'{t("key")}'` 改为 `{t("key")}`
-4. **CSS class 同名冲突** → 两个不同用途的类撞名时属性互相污染（如 `.hammer-btn` 48px 污染菜单按钮）
-5. **`backdrop-filter` 只写了标准属性** → 必须同时写 `-webkit-backdrop-filter` 兼容 Safari
-
-### 10.5 提交前核对清单
-
-```bash
-# 1. 检查 t() 引号包裹
-grep -rn "'{t(\"" src/
-grep -rn "'t(" src/
-
-# 2. 检查 CSS class 同名冲突
-grep -o '\.[a-zA-Z][a-zA-Z0-9_-]*{' src/*.css | sed 's/{//' | sort | uniq -c | sort -rn | head -10
-
-# 3. 检查未提交文件
-git status --short
-
-# 4. 检查括号平衡
-find src -name '*.tsx' | while read f; do
-  node -e "const fs=require('fs');const s=fs.readFileSync('$f','utf8');const po=(s.match(/\(/g)||[]).length,pc=(s.match(/\)/g)||[]).length;const bo=(s.match(/\{/g)||[]).length,bc=(s.match(/\}/g)||[]).length;if(po!==pc||bo!==bc)console.log('FAIL: $f')" 2>/dev/null
-done
-
-# 5. 检查 height/borderRadius 不带 px 单位
-grep -rn "height:[0-9]\+px" src/ --include='*.tsx'
-grep -rn "borderRadius:[0-9]\+px" src/ --include='*.tsx'
-
-# 6. 检查 import.meta.env 拼写
-grep -rn "import.meta\.einv" src/
-```
-
----
-
-## 十一、常见问题
+## 十二、常见问题
 
 | 问题 | 原因 | 解决 |
 |------|------|------|

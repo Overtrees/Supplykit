@@ -25,6 +25,7 @@ SupplyKit 是**电商供应链数据清洗与补货决策看板**，定位为 ER
 | 前端部署 | Cloudflare Pages | — |
 | 后端部署 | PythonAnywhere | — |
 | 定时任务 | APScheduler | — |
+| 国际化 | 自建 i18n（无外部依赖） | — |
 
 ---
 
@@ -185,7 +186,60 @@ cd frontend && npm test
 
 ---
 
-## 八、调试日志
+## 八、国际化规范
+
+项目使用自建轻量级 i18n 方案，无外部依赖，中英双语，自动检测系统语言。
+
+### 8.1 翻译键命名
+
+```
+模块.具体描述
+├── app.name              # 应用名称
+├── nav.dash              # 导航
+├── common.search         # 通用
+├── dash.funnel           # 看板
+└── rules.new             # 规则
+```
+
+### 8.2 使用方式
+
+```tsx
+import { t } from '../locale'
+
+// 正确：在 JSX 表达式中使用
+<div>{t('common.search')}</div>
+
+// 错误：在字符串中使用
+<div>'{t("common.search")}'</div>  // ❌
+
+// 正确：字符串拼接
+<EmptyState title={t('order.empty')} />
+```
+
+### 8.3 添加新翻译
+
+1. 在 `locale.ts` 的 `zh` 和 `en` 对象中添加键值对
+2. 在代码中使用 `t('key')` 调用
+3. 保持中英文键名一致
+4. 所有用户可见文本必须使用 `t('key')` 调用
+
+### 8.4 国际化检查
+
+```bash
+# 检查 t() 是否在字符串中（错误用法）
+grep -rn "'{t(" src/
+grep -rn "'t(" src/
+
+# 检查所有 t() 键是否在 locale.ts 中存在
+grep -rn "t(\"" src/ | grep -oP 't\("[a-z_]+\.[a-z_]+"\)' | sort -u | while read k; do
+  key=$(echo "$k" | sed 's/t("//;s/")//')
+  if ! grep -q "'$key'" src/locale.ts; then
+    echo "MISSING: $key"
+  fi
+done
+```
+
+---
 
 | 位置 | 触发方式 | 内容 |
 |------|---------|------|

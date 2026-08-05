@@ -35,8 +35,11 @@ SupplyKit 是**电商供应链数据清洗与补货决策看板**，定位为 ER
 Supplykit/
 ├── frontend/                    # 前端
 │   ├── src/
-│   │   ├── App.tsx              # 主入口
+│   │   ├── App.tsx              # 主入口（391 行，从 1098 拆分）
 │   │   ├── main.tsx             # 挂载点
+│   │   ├── locale.ts            # 国际化翻译（150+ 键，中英双语）
+│   │   ├── types.ts             # 全局类型定义
+│   │   ├── theme.ts             # 主题配置（深色/浅色模式）
 │   │   ├── version.ts           # 版本信息
 │   │   ├── api/
 │   │   │   └── client.ts        # API 客户端（缓存+在途去重+console.debug日志）
@@ -61,11 +64,13 @@ Supplykit/
 │   ├── app/
 │   │   ├── main.py              # API 请求日志中间件（>500ms 标 warning）
 │   │   ├── core/
-│   │   │   ├── database.py      # SQLiteDB（DB_LOG 环境变量控制日志）
-│   │   │   ├── dashboard_cache.py
-│   │   │   ├── rules.py
-│   │   │   └── scheduler.py
-│   │   └── api/routes/          # 路由模块
+│   │   │   ├── database.py      # SQLite ORM + TableRef（DB_LOG 环境变量控制日志）
+│   │   │   ├── dashboard_cache.py  # 看板内存缓存 15s
+│   │   │   ├── replenishment_cache.py  # 补货建议持久化缓存 5min
+│   │   │   ├── sales_utils.py   # 日销计算（三窗口 3σ 剔除 + 趋势加权）
+│   │   │   ├── rules.py         # 规则引擎
+│   │   │   └── scheduler.py     # APScheduler 定时任务
+│   │   └── api/routes/          # 19 个路由模块
 │   └── tests/                   # 80+ 个后端测试
 │
 └── docs/
@@ -81,6 +86,8 @@ Supplykit/
 - **组件 Props 接口**：`interface XxxProps { ... }`
 - **避免 `any` 类型**：优先使用具体类型或泛型
 - **Store 状态有接口定义**：`AppState` / `AppActions`
+- **全文件覆盖 100%**：31 个 TS 文件均已添加类型定义
+- 核心类型：`ColumnDef`、`WarehouseType`、`ToastItem`、`OrderItem`、`ChartProps` 等
 
 ### 4.2 React 组件
 
@@ -95,37 +102,49 @@ export default function ComponentName({ prop1, prop2 }: { prop1: string; prop2?:
 
 ### 4.3 CSS 规范
 
+**CSS 变量（魔法数字抽取）**
+```css
+--radius-sm: 12px;   --radius-md: 16px;   --radius-lg: 32px;   --radius-full: 99px;
+--space-xs: 4px;     --space-sm: 8px;     --space-md: 12px;    --space-lg: 16px;    --space-xl: 20px;
+--font-xs: 11px;     --font-sm: 12px;     --font-md: 14px;     --font-lg: 16px;
+--h-btn: 32px;       --h-btn-lg: 36px;    --h-btn-xl: 48px;
+```
+
+**CSS 工具类（50+ 个）**
+
+| 类别 | 类名 | 说明 |
+|------|------|------|
+| 布局 | `.flex` `.flex-center` `.flex-between` `.flex-1` `.flex-col` `.flex-wrap` | Flex 布局 |
+| 间距 | `.gap-4/6/8` `.mb-4/8/12/16` `.mt-8/12` `.p-4/8/12/16` | 边距 |
+| 文字 | `.text-10/11/12/13/14/15/16` `.font-400/500/600/700` | 字号/字重 |
+| 颜色 | `.muted` `.muted2` `.bg-card` `.bg-bg` | 文字/背景色 |
+| 圆角 | `.rounded-12/16/32/99` | 圆角 |
+| 通用 | `.w-full` `.truncate` `.nowrap` `.border-none` `.cursor-pointer` | 常用 |
+| 锤子菜单 | `.hammer-header` `.hammer-btn` `.hammer-tab` `.hammer-panel` `.hammer-input` `.col-drag` | 菜单组件 |
+
 **圆角统一**
-- 全局 `.card` 圆角 `32px`
-- 搜索框/下拉框/输入框圆角 `32px`
-- 胶囊按钮 `border-radius: 99px`
-- 骨架屏 `border-radius: 8px`（保持小圆角）
-- 特殊卡片（GMV/库存健康度/待处理）通过 `borderRadius` 属性覆盖
+- 卡片/弹窗/面板：`var(--radius-lg)` = `32px`
+- 搜索框/输入框：`var(--radius-lg)` = `32px`
+- 胶囊按钮：`var(--radius-full)` = `99px`
+- 骨架屏：`8px`
+- 列拖拽行：`6px`
+
+**按钮统一**
+- 锤子菜单按钮：`btn-ghost hammer-btn`（不用 `btn` 类）
+- `btn` 类有 `padding: 8px 20px` 和 `min-height: 36px`，比锤子按钮大
+- 锤子按钮标准：`min-height: 32px`，`padding: 4px 8px`，`white-space: nowrap`
+- 2 个按钮一排用 `hammer-btn-row`，4 个按钮用 2×2 布局
 
 **玻璃态变量**
 ```css
---glass-bg: rgba(255,255,255,0.5);         /* 浅色模式 */
+--glass-bg: rgba(255,255,255,0.5);
 --glass-blur: 40px;
 --glass-border: rgba(255,255,255,0.6);
-/* 深色模式自动切换 */
 ```
 
 **横屏适配**
 - `@media(orientation:landscape) and (max-height:550px)` 触发
-- 适配内容包括：header 缩小、容器 padding 优化、卡片网格 4 列、dashboard-body flex 自适应布局
-- `env(safe-area-inset-left/right)` 适配横屏安全区
-
-**CSS 变量**：使用 `var(--text)` / `var(--muted)` / `var(--primary)` 等，避免硬编码颜色
-- `--text`: 正文色（浅色 `#0f172a`，深色 `#f1f5f9`）
-- `--muted`: 辅助文字色
-- `--primary`: 主色（选中态文字用 `#007AFF` iOS 蓝）
-- `--sidebar`: 侧边栏背景
-- `--glass-bg/blur/border`: 玻璃态
-
-**按钮统一**
-- 通用按钮：`btn-ghost` 类（半透明背景 + 玻璃态模糊）
-- 选中态：`rgba(128,128,128,0.2)` 灰色背景 + `#007AFF` 蓝色文字 + 加粗
-- 胶囊切换器：外容器 `display:flex; gap:6; background:var(--glass-bg); border-radius:99; padding:6`
+- header 缩小、容器 padding 优化、卡片网格 4 列
 
 ---
 
@@ -183,6 +202,14 @@ cd backend && python -m pytest tests/ -v
 ```bash
 cd frontend && npm test
 ```
+
+12 个测试用例（Vitest + React Testing Library）：
+
+| 文件 | 测试内容 | 数量 |
+|------|---------|------|
+| `configs.test.ts` | 列配置完整性验证（商品/订单/进销存/BBCC/传统等） | 8 |
+| `Toast.test.tsx` | Toast 显示/自动消失/撤销按钮 | 3 |
+| `utils.test.ts` | 默认列选择/仓库标签/订单状态 | 3 |
 
 ---
 

@@ -369,7 +369,59 @@ feat: 新功能 | fix: Bug | refactor: 重构 | docs: 文档 | test: 测试 | st
 
 ---
 
-## 十二、常见问题
+## 十二、提交前核对清单（手动备用）
+
+> 自动化检查尚未完全实现时，手动执行以下命令作为替代。
+
+### 12.1 JSX 内联样式常见错误
+
+| 错误写法 | 正确写法 | 报错 |
+|---------|---------|------|
+| `height:26px` | `height:26` 或 `height:'26px'` | `Syntax error "p"` |
+| `borderRadius:32px` | `borderRadius:32` 或 `borderRadius:'32px'` | 同上 |
+| `padding:'0 2px'` | 字符串值正确，注意引号 | 无 |
+| `color:''` | 空字符串会被 React 忽略，回退到 CSS 类 | 无 |
+
+### 12.2 手动检查命令
+
+```bash
+# 1. 检查 t() 引号包裹
+grep -rn "'{t(\"" src/
+grep -rn "'t(" src/
+
+# 2. 检查 CSS class 同名冲突
+grep -o '\.[a-zA-Z][a-zA-Z0-9_-]*{' src/*.css | sed 's/{//' | sort | uniq -c | sort -rn | head -10
+
+# 3. 检查未提交文件
+git status --short
+
+# 4. 检查括号平衡
+find src -name '*.tsx' | while read f; do
+  node -e "const fs=require('fs');const s=fs.readFileSync('$f','utf8');const po=(s.match(/\(/g)||[]).length,pc=(s.match(/\)/g)||[]).length;const bo=(s.match(/\{/g)||[]).length,bc=(s.match(/\}/g)||[]).length;if(po!==pc||bo!==bc)console.log('FAIL: $f')" 2>/dev/null
+done
+
+# 5. 检查 height/borderRadius 不带 px 单位
+grep -rn "height:[0-9]\+px" src/ --include='*.tsx'
+grep -rn "borderRadius:[0-9]\+px" src/ --include='*.tsx'
+
+# 6. 检查 import.meta.env 拼写
+grep -rn "import.meta\.einv" src/
+
+# 7. 检查重复导入
+grep -rn "import.*from.*locale" src/ | sort | uniq -d
+```
+
+### 12.3 最常踩的 5 个坑
+
+1. **`height:26px` 语法错误** → 数字值不带 px，字符串值要加引号
+2. **JSX 花括号不匹配** → 修改 JSX 后运行括号检查
+3. **`t()` 被引号包裹** → `'{t("key")}'` 显示原文，改为 `{t("key")}`
+4. **CSS class 同名冲突** → 两个不同用途的类撞名时属性互相污染
+5. **`backdrop-filter` 只写了标准属性** → 必须同时写 `-webkit-backdrop-filter` 兼容 Safari
+
+---
+
+## 十三、常见问题
 
 | 问题 | 原因 | 解决 |
 |------|------|------|

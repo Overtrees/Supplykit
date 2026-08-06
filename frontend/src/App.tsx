@@ -79,9 +79,9 @@ export default function App() {
             clearInterval(poll); localStorage.removeItem('c_seed_task')
             toast.success('种子数据填充完成，即将刷新')
             setTimeout(() => window.location.reload(), 1500)
-          } else if (d.data?.status === 'error') {
+          } else if (d.data?.status === 'error' || d.data?.status === 'not_found') {
             clearInterval(poll); localStorage.removeItem('c_seed_task')
-            toast.error('种子数据填充失败')
+            if (d.data?.status === 'error') toast.error('种子数据填充失败')
           }
         } catch {}
       }, 5000)

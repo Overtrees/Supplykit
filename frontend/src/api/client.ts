@@ -13,7 +13,7 @@ function cacheKey(method, url, params) {
 // 底层 axios 实例
 const instance = axios.create({
   baseURL: BASE,
-  timeout: 20000,
+  timeout: 120000,
 })
 
 // 请求拦截器：自动注入全局 channel 参数
@@ -103,7 +103,7 @@ function invalidateCache() {
 export const api = {
   get: apiGet,
   post: async (url, data, config) => {
-    const merged = {timeout: 30000, ...config}
+    const merged = {timeout: 120000, ...config}
     const r = await instance.post(url, data, merged)
     invalidateCache()
     return r

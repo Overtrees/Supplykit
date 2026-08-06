@@ -114,6 +114,13 @@ def _seed_fill_async():
         from app.core.replenishment_cache import invalidate_cache
         invalidate_cache(db)
     except: pass
+    # 预热看板缓存（避免首次请求超时）
+    try:
+        import requests
+        base = os.getenv("API_BASE_URL", "https://overtrees.pythonanywhere.com")
+        for ch in ['jd','other']:
+            requests.get(f"{base}/api/dashboard/summary?channel={ch}", timeout=120)
+    except: pass
 
     return {"steps": steps}
 

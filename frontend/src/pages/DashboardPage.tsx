@@ -220,7 +220,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
             {healthData.out_of_stock > 0 && outOfStockItems.length > 0 && <div style={{marginTop:4}}>
               {outOfStockItems.map((x,i) => (
                 <div key={i} style={{fontSize:9,color:'var(--muted2)',lineHeight:1.5,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-                  {x.product_name || x.sku} <span style={{fontSize:8,color:'var(--muted)',background:'var(--bg)',padding:'0 4px',borderRadius:4}}>{healthTab === 'own' ? '自有' : healthTab === 'bc' ? 'BC' : healthTab === 'platform' ? 'C仓' : '平台'}</span>
+                  {x.product_name || x.sku} <span style={{fontSize:8,color:'var(--muted)',background:'var(--bg)',padding:'0 4px',borderRadius:4}}>{healthTab === 'own' ? '自有' : channel === 'jd' ? (healthTab === 'bc' ? 'BC' : 'C仓') : '平台'}</span>
                 </div>
               ))}
             </div>}

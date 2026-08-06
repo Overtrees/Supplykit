@@ -222,7 +222,7 @@ export default function App() {
   })
   useEffect(() => { startPolling(); return () => stopAll() }, [])
   // channel 切换时自动加载数据
-  useEffect(() => { const s = useAppStore.getState(); if (!s.dataLoaded) s.loadAll().catch(() => {}) }, [channel])
+  useEffect(() => { useAppStore.getState().loadAll().catch(() => {}) }, [channel, page])
 
   // 同步 html/body 背景色 + browser chrome 色
   useEffect(() => {

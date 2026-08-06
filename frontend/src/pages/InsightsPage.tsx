@@ -363,7 +363,7 @@ export default function InsightsPage() {
           ) : (purchase.length === 0 ? (
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>{t("insights.no_purchase")}</div>
           ) : (
-            <div style={{overflow:"auto",maxHeight:"80vh"}}>
+            <div style={{overflow:"visible"}}>
               
               <table>
                 <colgroup>{purchaseVisCols.map(id => {const col = PURCHASE_COLS.find(c => c.id === id); return col ? <col key={col.id} /> : null})}</colgroup>
@@ -430,7 +430,7 @@ export default function InsightsPage() {
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>{t("common.empty")}</div>
           ) : (
             <>
-              <div style={{overflow:"auto",maxHeight:"80vh"}}>
+              <div style={{overflow:"visible"}}>
                 <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {slowVisCols.length}/{SLOW_COLS.length} 列 · 点击"列"按钮切换{insightSearch ? ` · 搜索 "${insightSearch}"` : ''}</div>
                 <table>
                   <colgroup>{slowVisCols.map(id => {const col = SLOW_COLS.find(c => c.id === id); return col ? <col key={col.id} /> : null})}</colgroup>

@@ -45,6 +45,7 @@ export const INV_COLS = {
 export const INV_COL_KEY = 'c_cols_inventory'
 export const getInvVis = (wt, ch) => { try { return JSON.parse(localStorage.getItem(INV_COL_KEY + '_' + ch + '_' + wt) || 'null') } catch{return null} }
 export const invColKey = (wt, ch) => INV_COL_KEY + '_' + ch + '_' + wt
+export const INV_WH_LABEL = { own:'自有仓', platform:'平台仓', platform_b:'B仓' }
 
 export const INS_BBCC_COLS = [
   {id:'seq',label:''},{id:'sku',label:'SKU'},{id:'barcode',label:'69码'},{id:'name',label:'商品'},{id:'warehouse',label:'仓库'},

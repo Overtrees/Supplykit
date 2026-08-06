@@ -186,7 +186,7 @@ export default function CleansingPage() {
   return <div className="card">
     <div className="step-indicator">
       {['上传文件','字段映射','预览确认','完成'].map((l,i) => <span key={i} className={'step'+(s===i?' active':'')+(s>i?' done':'')}>{s>i?<IconCheck size={12} style={{display:'inline',verticalAlign:'middle',marginRight:2}} />:''}{l}</span>)}
-      {bs && (bs.includes('%') ? <div className="step" className="w-full">
+      {bs && (bs.includes('%') ? <div className="step w-full">
         <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:4,color:'var(--primary)'}}>
           <span><IconLoading size={12} style={{display:'inline',verticalAlign:'middle',marginRight:4}} />{bs.split('%')[0]}%</span><span>{bs.split('(')[1]?.replace(')','')||''}</span>
         </div>
@@ -302,7 +302,7 @@ export default function CleansingPage() {
             <table><thead><tr style={{position:"sticky",top:0,background:"var(--card)",zIndex:1}}>{cols.map(col => (
               <th key={col.src} style={{minWidth:80,whiteSpace:'nowrap',verticalAlign:'top'}}>
                 {col.label}
-                <div className="small muted" className="text-9 font-400">← {col.src}</div>
+                <div className="small muted text-9 font-400">← {col.src}</div>
               </th>
             ))}</tr></thead>
             <tbody>{pv.preview.map((r,i) => (

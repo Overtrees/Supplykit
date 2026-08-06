@@ -11,7 +11,9 @@ cat_names = ['酱油','酱料','调味汁','食用油','醋','料酒','蚝油','
              '老抽','生抽','陈醋','香醋','白醋','米醋','花椒油','藤椒油','辣椒油','芥末油',
              '番茄酱','甜辣酱','沙拉酱','芝麻酱','花生酱','豆瓣酱','豆豉','腐乳','糟卤','鱼露',
              '咖喱块','咖喱粉','五香粉','孜然粉','花椒粉','辣椒粉','胡椒粉','十三香','卤料包','炖肉料',
-             '鸡精','味精','白糖','冰糖','红糖','麦芽糖','蜂蜜','料酒','黄酒','米酒']
+             '鸡精','味精','白糖','冰糖','红糖','麦芽糖','蜂蜜','料酒','黄酒','米酒',
+             '薯片','虾条','爆米花','坚果','瓜子','花生','饼干','威化','巧克力','糖果',
+             '洗衣液','洗洁精','洗手液','消毒液','纸巾','湿巾','垃圾袋','保鲜膜','保鲜袋','收纳盒']
 store_names = ['京东自营','京东旗舰店','广州调味食材专营店','华南食品旗舰店','上海调味品专营店']
 WH = [('北京仓','platform'),('上海仓','platform'),('集货仓','own'),('成都仓','platform'),('武汉仓','platform'),('沈阳仓','platform'),('西安仓','platform'),('郑州仓','platform'),('三方仓','own'),('京东B仓','platform_b')]
 SUP = [
@@ -32,9 +34,14 @@ def make_skus(sfx, count=1000, shared=None):
     for i in range(1, count + 1):
         c = cat_names[(i-1)%len(cat_names)]
         s = store_names[(i-1)%len(store_names)]
-        p = round(random.uniform(5.8, 99.9), 1)
+        # 价格分布：80% 正常品 5.8-99.9，10% 低价引流品 1.9-5.0，10% 高毛利品 100-299
+        price_type = random.choices(['normal','low','high'],[80,10,10])[0]
+        if price_type == 'low': p = round(random.uniform(1.9, 5.0), 1)
+        elif price_type == 'high': p = round(random.uniform(100, 299), 1)
+        else: p = round(random.uniform(5.8, 99.9), 1)
+        unit = '包' if c in ['薯片','虾条','爆米花','坚果','瓜子','花生','饼干','威化','巧克力','糖果','纸巾','湿巾','垃圾袋','保鲜膜','保鲜袋'] else ('瓶' if c in ['洗衣液','洗洁精','洗手液','消毒液'] else '瓶')
         sku = shared[i-1] if shared and i <= len(shared) else f'SKU-{i:04d}{sfx}'
-        r.append({'sku':sku,'name':f'调味品{c}{i}','store':s,'cat':c,'price':p,'box':random.choice([6,12,24]),'unit':'瓶','barcode':f'690{i:010d}','weight':round(random.uniform(5,25),1),'volume':round(random.uniform(0.02,0.12),3),'status':'active'})
+        r.append({'sku':sku,'name':f'{c}{i}','store':s,'cat':c,'price':p,'box':random.choice([6,12,24]),'unit':unit,'barcode':f'690{i:010d}','weight':round(random.uniform(5,25),1),'volume':round(random.uniform(0.02,0.12),3),'status':'active'})
     return r
 
 @router.post("/fill")
@@ -64,7 +71,7 @@ def seed_fill(db=get_db()):
             db.table("suppliers").upsert({'supplier_code':s['code'],'supplier_name':s['name'],'contact_person':s['contact'],'contact_phone':s['phone'],'score':s['score'],'channel':ch}, conflict_col='supplier_code')
 
     orders = []
-    for ch,label,skus,base in [('jd','jd',jd_s,400),('other','other',ot_s,200)]:
+    for ch,label,skus,base in [('jd','jd',jd_s,1100),('other','other',ot_s,550)]:
         promo = {'618':list(range(5,20)),'月末':list(range(45,55))}
         for d in range(60):
             dt = today - timedelta(days=d)
@@ -73,7 +80,10 @@ def seed_fill(db=get_db()):
             for _ in range(cnt):
                 sk = random.choice(skus)
                 q = random.randint(1,20) if is_promo else random.randint(1,8)
-                st = random.choices(['已完成','已发货','待发货','待确认','申请退款'],[60,15,12,8,5])[0]
+                st = random.choices(['已完成','已发货','待发货','待确认','申请退款'],[45,18,15,10,7])[0]
+                # 3% 退货订单
+                if random.random() < 0.03:
+                    st = '已退货'
                 orders.append({'order_no':f'{label.upper()}-{ch}{d:03d}-{len(orders):03d}','store':sk['store'],'warehouse':random.choice(WH)[0],'sku':sk['sku'],'product_name':sk['name'],'barcode':sk['barcode'],'quantity':q,'unit_price':sk['price'],'total_amount':round(q*sk['price'],2),'order_status':st,'ordered_at':dt.strftime('%Y-%m-%d'),'paid_at':(dt+timedelta(hours=random.randint(1,48))).strftime('%Y-%m-%d'),'channel':ch,'platform':'京东' if label=='jd' else '天猫'})
     db.table("orders").insert(orders).execute()
 
@@ -87,7 +97,7 @@ def seed_fill(db=get_db()):
                 else:
                     wh_name = wn
                 q = random.randint(0,30) if random.random()<0.08 else random.randint(50,800)
-                inv.append({'sku':sk['sku'],'product_name':sk['name'],'barcode':sk['barcode'],'warehouse':wh_name,'warehouse_type':wt,'available_qty':q,'in_transit_qty':random.randint(0,200),'safety_qty':100,'beginning_stock':q+random.randint(50,200),'month_inbound':random.randint(100,500),'month_outbound':random.randint(80,450),'turnover_days':round(random.uniform(5,45),1),'weight':sk['weight'],'volume':sk['volume'],'channel':'jd' if skus is jd_s else 'other'})
+                inv.append({'sku':sk['sku'],'product_name':sk['name'],'barcode':sk['barcode'],'warehouse':wh_name,'warehouse_type':wt,'available_qty':q,'in_transit_qty':random.randint(0,200),'safety_qty':random.randint(30,200),'beginning_stock':q+random.randint(50,200),'month_inbound':random.randint(100,500),'month_outbound':random.randint(80,450),'turnover_days':round(random.uniform(5,45),1),'weight':sk['weight'],'volume':sk['volume'],'channel':'jd' if skus is jd_s else 'other'})
     db.table("inventory").insert(inv).execute()
 
     # 触发规则引擎生成告警

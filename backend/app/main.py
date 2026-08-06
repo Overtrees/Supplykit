@@ -43,6 +43,7 @@ from app.api.routes.inventory import router as inventory_router
 from app.api.routes.quality_logs import router as quality_router
 from app.api.routes.ws import router as ws_router
 from app.api.routes.alerts import router as alerts_router
+from app.api.routes.health import router as health_router
 from app.api.routes.events import router as events_router
 from app.api.routes.sync_tasks import router as sync_tasks_router
 from app.api.routes.cleansing import router as cleansing_router
@@ -96,6 +97,7 @@ app.include_router(orders_router)
 app.include_router(inventory_router)
 app.include_router(quality_router)
 app.include_router(alerts_router)
+app.include_router(health_router)
 app.include_router(events_router)
 
 # ─── 健康检查 ───────────────────────────────────────────────────────────────

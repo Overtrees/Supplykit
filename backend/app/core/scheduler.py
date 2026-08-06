@@ -1,9 +1,11 @@
 """APScheduler 定时任务"""
+import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.triggers.cron import CronTrigger
 from datetime import datetime
 
+logger = logging.getLogger("scheduler")
 scheduler = BackgroundScheduler(daemon=True)
 _started = False
 
@@ -20,11 +22,11 @@ def _task_inventory_sync():
                 auto_adjust_inventory(o, 'cleansing', db);
                 count += 1
             } catch(Exception) {
-                console.log("Inventory sync error for order", o);
+                console.log("logger.error("Inventory sync error" for order", o);
             }
-        print(f"[Scheduler] Inventory sync: {count}/{len(orders)}")
+        logger.info(f"Inventory sync: {count}/{len(orders)}")
     except Exception as e:
-        print(f"[Scheduler] Inventory sync error: {e}")
+        logger.info(f"logger.error("Inventory sync error": {e}")
 
 def _task_build_sales_snapshot():
     """每天凌晨 3:30 构建日销快照"""
@@ -33,9 +35,9 @@ def _task_build_sales_snapshot():
         from app.core.sales_utils import build_daily_sales_snapshot
         db = get_db()
         count = build_daily_sales_snapshot(db)
-        print(f"[Scheduler] Sales snapshot: {count} rows")
+        logger.info(f"Sales snapshot: {count} rows")
     except Exception as e:
-        print(f"[Scheduler] Sales snapshot error: {e}")
+        logger.info(f"Sales snapshot error: {e}")
 
 def _task_archive_orders():
     """每天凌晨 1 点归档 90 天前的订单"""
@@ -47,7 +49,7 @@ def _task_archive_orders():
         old_orders = db.table("orders").select("*").execute().data or []
         old_orders = [o for o in old_orders if str(o.get('ordered_at',''))[:10] < cutoff]
         if not old_orders:
-            print(f"[Scheduler] Order archive: no orders before {cutoff}")
+            logger.info(f"Order archive: no orders before {cutoff}")
             return
         # 按天+渠道+店铺+SKU 聚合
         from collections import defaultdict
@@ -66,7 +68,7 @@ def _task_archive_orders():
                     "ON CONFLICT(date, channel, store, sku) DO UPDATE SET gmv=gmv+?, order_count=order_count+?, quantity=quantity+?",
                     (date, channel, store, sku, v['gmv'], v['count'], v['qty'], v['gmv'], v['count'], v['qty'])
                 )
-            except Exception as e: print(f"[Scheduler] {e}")
+            except Exception as e: logger.info(f"{e}")
         conn.commit()
         # 删除已归档的原始订单
         ids = [o['id'] for o in old_orders]
@@ -76,11 +78,11 @@ def _task_archive_orders():
             for id_str in batch:
                 try:
                     db.table("orders").delete().eq("id", id_str).execute()
-                except Exception as e: print(f"[Scheduler] {e}")
-        print(f"[Scheduler] Order archive: {len(old_orders)} orders → {len(agg)} daily stats rows")
+                except Exception as e: logger.info(f"{e}")
+        logger.info(f"Order archive: {len(old_orders)} orders → {len(agg)} daily stats rows")
         conn.close()
     except Exception as e:
-        print(f"[Scheduler] Order archive error: {e}")
+        logger.info(f"Order archive error: {e}")
 
 def _task_cleanup_logs():
     """每天清理 30 天前的日志"""
@@ -99,10 +101,10 @@ def _task_cleanup_logs():
                     for id_str in ids:
                         try:
                             db.table(table).delete().eq("id", id_str).execute()
-                        except Exception as e: print(f"[Scheduler] {e}")
-            print(f"[Scheduler] {table}: {before} → kept latest")
+                        except Exception as e: logger.info(f"{e}")
+            logger.info(f"{table}: {before} → kept latest")
     except Exception as e:
-        print(f"[Scheduler] Cleanup error: {e}")
+        logger.info(f"Cleanup error: {e}")
 
 def _task_backup():
     """每天凌晨 2 点备份数据库"""
@@ -110,11 +112,11 @@ def _task_backup():
         from app.core.database import backup_db
         path = backup_db()
         if path:
-            print(f"[Scheduler] Backup: {path}")
+            logger.info(f"Backup: {path}")
         else:
-            print("[Scheduler] Backup failed")
+            logger.error("Backup failed")
     except Exception as e:
-        print(f"[Scheduler] Backup error: {e}")
+        logger.info(f"Backup error: {e}")
 
 def _task_daily_rules():
     """每天执行定时规则（滞销识别等）"""
@@ -131,9 +133,9 @@ def _task_daily_rules():
                 'days_since_last': item['days_since_last'],
                 'stock': item['stock'],
             })
-        print(f"[Scheduler] Daily rules: checked {len(results)} items")
+        logger.info(f"Daily rules: checked {len(results)} items")
     except Exception as e:
-        print(f"[Scheduler] Daily rules error: {e}")
+        logger.info(f"Daily rules error: {e}")
 
 def start():
     global _started
@@ -147,7 +149,7 @@ def start():
     scheduler.add_job(_task_backup, CronTrigger(hour=2, minute=0), id='db_backup')
     scheduler.add_job(_task_daily_rules, CronTrigger(hour=4, minute=0), id='daily_rules')
     scheduler.start()
-    print(f"[Scheduler] Started at {datetime.utcnow().isoformat()}")
+    logger.info(f"Started at {datetime.utcnow().isoformat()}")
 
 def get_status():
     jobs = scheduler.get_jobs()

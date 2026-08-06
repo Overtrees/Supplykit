@@ -20,7 +20,7 @@ export const getSuppVis = (ch) => { try { return JSON.parse(localStorage.getItem
 
 export const ORDER_COLS = [
   {id:'date',label:'下单日期'},{id:'order_no',label:'订单号'},{id:'barcode',label:'69码'},{id:'store',label:'店铺'},
-  {id:'warehouse',label:'仓库'},{id:'product',label:'商品'},{id:'amount',label:'金额'},{id:'status',label:'状态'},
+  {id:'warehouse',label:'仓库'},{id:'product',label:'商品'},{id:'quantity',label:'数量'},{id:'unit_price',label:'单价'},{id:'amount',label:'金额'},{id:'status',label:'状态'},
   {id:'paid_at',label:'入库日期'},
 ]
 export const ORDER_STATUSES = ['','已完成','待发货','已发货','待确认','申请退款']
@@ -30,16 +30,16 @@ export const getOrderVis = (ch) => { try { return JSON.parse(localStorage.getIte
 export const INV_COLS = {
   own: [
     {id:'warehouse',label:'仓库'},{id:'sku',label:'SKU'},{id:'barcode',label:'69码'},{id:'name',label:'商品'},
-    {id:'begin',label:'期初库存'},{id:'transit',label:'在途'},{id:'month_in',label:'当月采购入库'},
-    {id:'month_out',label:'当月出库'},{id:'avail',label:'可用'},{id:'turnover',label:'在库周转'},
+    {id:'price',label:'单价'},{id:'begin',label:'期初库存'},{id:'transit',label:'在途'},{id:'month_in',label:'当月采购入库'},
+    {id:'month_out',label:'当月出库'},{id:'avail',label:'可用'},{id:'turnover',label:'在库周转'},{id:'stock_amount',label:'在库金额'},
   ],
   platform: [
     {id:'channel',label:'平台'},{id:'warehouse',label:'仓库'},{id:'sku',label:'SKU'},{id:'barcode',label:'69码'},
-    {id:'name',label:'商品'},{id:'transit',label:'在途'},{id:'avail',label:'可用'},
+    {id:'name',label:'商品'},{id:'price',label:'单价'},{id:'transit',label:'在途'},{id:'avail',label:'可用'},{id:'stock_amount',label:'在库金额'},
   ],
   platform_b: [
     {id:'channel',label:'平台'},{id:'warehouse',label:'仓库'},{id:'sku',label:'SKU'},{id:'barcode',label:'69码'},
-    {id:'name',label:'商品'},{id:'transit',label:'供应商-B仓'},{id:'c_transit',label:'B-C调拨在途'},{id:'avail',label:'可用'},
+    {id:'name',label:'商品'},{id:'price',label:'单价'},{id:'transit',label:'供应商-B仓'},{id:'c_transit',label:'B-C调拨在途'},{id:'avail',label:'可用'},{id:'stock_amount',label:'在库金额'},
   ],
 }
 export const INV_COL_KEY = 'c_cols_inventory'

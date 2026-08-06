@@ -21,13 +21,13 @@ export default function HammerDashboard({ channel }) {
           <span className="font-600 text-11" style={{marginLeft:'auto',color:'var(--primary)'}}>{customDateStart.slice(5)}/{customDateEnd.slice(5)}</span>}
         {periodMeta.date && <span style={{marginLeft:'auto'}}>{periodMeta.date}</span>}
       </div>
-      <div className="flex gap-4">
+      <div className="hammer-segmented">
         {['today','week','month','custom'].map(k => (
           <span key={k} onClick={() => {
             if (k === 'custom') setShowCustom(!showCustom)
             else { setShowCustom(false); setHammerDashPeriod(k) }
           }}
-            className={'hammer-tab' + ((k === 'custom' ? hammerDashPeriod === 'custom' : hammerDashPeriod === k) ? ' active' : '')}>
+            className={'hammer-segment' + ((k === 'custom' ? hammerDashPeriod === 'custom' : hammerDashPeriod === k) ? ' active' : '')}>
             {periodLabel[k]}
           </span>
         ))}

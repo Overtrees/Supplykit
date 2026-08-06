@@ -96,6 +96,12 @@ input,select,button,textarea{font-family:inherit;font-size:16px}input[type="file
 .rounded-6{border-radius:6px}.rounded-8{border-radius:8px}
 .border-none{border:none}.bg-transparent{background:transparent}
 .whitespace-nowrap{white-space:nowrap}
+.seed-status{display:inline-block;width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.seed-status-pending{background:var(--warning)}
+.seed-status-running{background:var(--primary);animation:pulse 1.5s ease-in-out infinite}
+.seed-status-done{background:var(--success)}
+.seed-status-error{background:var(--danger)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
 .text-left{text-align:left}
 
 /* 分段控件（锤子菜单 tab） */

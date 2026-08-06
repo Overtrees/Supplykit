@@ -249,7 +249,7 @@ export default function InsightsPage() {
               </div>
               <table>
                 <colgroup>{visCols.map(id => {const col = currentCols.find(c => c.id === id); return col ? <col key={col.id} /> : null})}</colgroup>
-                <thead><tr>{visCols.map(id => {const col = currentCols.find(c => c.id === id); return col ? <th key={col.id} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{col.label}</th> : null})}</tr></thead>
+                <thead><tr style={{position:'sticky',top:0,background:'var(--card)',zIndex:1}}>{visCols.map(id => {const col = currentCols.find(c => c.id === id); return col ? <th key={col.id} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{col.label}</th> : null})}</tr></thead>
                 <tbody>
                   {Array.isArray(filteredReplen) && filteredReplen.slice(0, replenLimit).map((x, i) => {
                     const isOrdered = orderedKeys.includes(x.sku+'|'+x.store)

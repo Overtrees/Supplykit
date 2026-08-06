@@ -83,7 +83,7 @@ export const useAppStore = create((set, get) => ({
     localStorage.setItem('c_hammer_data', JSON.stringify(hd))
     set({ hammerData: hd })
   },
-  setChannel: (ch) => { localStorage.setItem('c_channel', ch); clearCache(); clearInflight(); set({ channel: ch, dataLoaded: false, loading: true, hammerWhType: localStorage.getItem('c_wh_type_' + ch) || 'own', hammerDashPeriod: localStorage.getItem('c_dash_period_' + ch) || 'month', hammerReplenMode: localStorage.getItem('c_replen_mode_' + ch) || (ch === 'jd' ? 'bbcc' : 'traditional'), hammerRulesMode: localStorage.getItem('c_replen_mode_' + ch) || (ch === 'jd' ? 'bbcc' : 'traditional') }) },
+  setChannel: (ch) => { localStorage.setItem('c_channel', ch); clearCache(); clearInflight(); set({ channel: ch, dataLoaded: false, loading: true, hammerWhType: localStorage.getItem('c_wh_type_' + ch) || 'own', hammerDashPeriod: localStorage.getItem('c_dash_period_' + ch) || 'month', hammerReplenMode: localStorage.getItem('c_replen_mode_' + ch) || (ch === 'jd' ? 'bbcc' : 'traditional'), hammerRulesMode: localStorage.getItem('c_replen_mode_' + ch) || (ch === 'jd' ? 'bbcc' : 'traditional') }); get().loadAll() },
 
   async loadAll(page) {
     set({ loading: true, orderLoading: true })

@@ -221,6 +221,8 @@ export default function App() {
     'esc': () => { if (showMenu) closeEditorMenu() },
   })
   useEffect(() => { startPolling(); return () => stopAll() }, [])
+  // channel 切换时自动加载数据
+  useEffect(() => { const s = useAppStore.getState(); if (!s.dataLoaded) s.loadAll().catch(() => {}) }, [channel])
 
   // 同步 html/body 背景色 + browser chrome 色
   useEffect(() => {

@@ -192,15 +192,31 @@ export default function SettingsPage() {
     setConfirm(null)
     setSeeding(true)
     try {
-      const r = await fetch('https://overtrees.pythonanywhere.com/api/seed/fill', {method:'POST'})
+      const r = await fetch(API + '/api/seed/fill', {method:'POST'})
       const d = await r.json()
       if (d.ok) {
-        clearCache(); clearInflight()
-        toast.success('种子数据已填充，即将刷新')
-        setTimeout(() => window.location.reload(), 1500)
+        toast.success('种子数据填充任务已提交，请稍候...')
+        const taskId = d.data?.task_id
+        if (taskId) {
+          const poll = setInterval(async () => {
+            try {
+              const sr = await fetch(API + '/api/seed/fill/status?task_id=' + taskId)
+              const sd = await sr.json()
+              if (sd.data?.status === 'done') {
+                clearInterval(poll)
+                clearCache(); clearInflight()
+                toast.success('种子数据填充完成，即将刷新')
+                setTimeout(() => window.location.reload(), 1500)
+              } else if (sd.data?.status === 'error') {
+                clearInterval(poll)
+                toast.error('填充失败: ' + (sd.data?.error || '未知错误'))
+                setSeeding(false)
+              }
+            } catch { clearInterval(poll); setSeeding(false) }
+          }, 3000)
+        }
       } else toast.error('填充失败')
     } catch { toast.error('填充失败') }
-    setSeeding(false)
   }
 
   const doReset = async () => {

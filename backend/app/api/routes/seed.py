@@ -1,9 +1,9 @@
 from fastapi import APIRouter
-from app.core.database import get_db, get_conn, DB_PATH
+from app.core.database import get_db, get_conn, DB_PATH, submit_task, get_task
 from app.core.response import ok
 from app.core.dashboard_cache import invalidate
 from datetime import datetime, timedelta
-import random, sqlite3
+import random, sqlite3, uuid
 
 router = APIRouter(prefix="/api/seed", tags=["seed"])
 
@@ -45,7 +45,21 @@ def make_skus(sfx, count=1000, shared=None):
     return r
 
 @router.post("/fill")
-def seed_fill(db=get_db()):
+def seed_fill():
+    """异步填充种子数据"""
+    task_id = 'seed_fill_' + uuid.uuid4().hex[:8]
+    submit_task(task_id, _seed_fill_async)
+    return ok({"task_id": task_id, "message": "种子数据填充已开始"})
+
+@router.get("/fill/status")
+def seed_fill_status(task_id: str = 'seed_fill'):
+    """查询种子填充状态"""
+    t = get_task(task_id)
+    if not t: return ok({"status": "not_found"})
+    return ok({"status": t['status'], "result": t.get('result'), "error": t.get('error')})
+
+def _seed_fill_async():
+    db = get_db()
     today = datetime.utcnow()
     conn = get_conn()
     for t in ['orders','inventory','products','suppliers','alerts','quality_logs','events','purchase_orders','replenishment_config_history','cleansing_templates','custom_fields']:

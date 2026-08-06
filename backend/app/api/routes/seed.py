@@ -128,13 +128,14 @@ def _update_steps(steps):
 def _seed_products_suppliers(db, skus_data):
     for skus,ch in [(skus_data['jd'],'jd'),(skus_data['other'],'other')]:
         for p in skus:
-            db.table("products").upsert({'sku':p['sku'],'product_name':p['name'],'store':p['store'],'category':p['cat'],'price':p['price'],'box_qty':p['box'],'unit':p['unit'],'barcode':p['barcode'],'weight':p['weight'],'volume':p['volume'],'status':p['status'],'channel':ch}, conflict_col='sku')
+            db.table("products").upsert({'sku':p['sku'],'product_name':p['name'],'store':p['store'],'category':p['cat'],'price':p['price'],'box_qty':p['box'],'barcode':p['barcode'],'weight':p['weight'],'volume':p['volume'],'status':p['status'],'channel':ch}, conflict_col='sku')
     for s in SUP:
         for ch in ['jd','other']:
             db.table("suppliers").upsert({'supplier_code':s['code'],'supplier_name':s['name'],'contact_person':s['contact'],'contact_phone':s['phone'],'score':s['score'],'channel':ch}, conflict_col='supplier_code')
 
 def _seed_orders(db, today, skus_data):
     jd_s, ot_s = skus_data['jd'], skus_data['other']
+    orders = []
     for ch,label,skus,base in [('jd','jd',jd_s,1100),('other','other',ot_s,550)]:
         promo = {'618':list(range(5,20)),'月末':list(range(45,55))}
         for d in range(60):
@@ -146,10 +147,15 @@ def _seed_orders(db, today, skus_data):
                 q = random.randint(1,20) if is_promo else random.randint(1,8)
                 st = random.choices(['已完成','已发货','待发货','待确认','申请退款'],[45,18,15,10,7])[0]
                 if random.random() < 0.03: st = '已退货'
-                orders.append({'order_no':f'{label.upper()}-{ch}{d:03d}-{len(orders):03d}','store':sk['store'],'warehouse':random.choice(WH)[0],'sku':sk['sku'],'product_name':sk['name'],'barcode':sk['barcode'],'quantity':q,'unit_price':sk['price'],'total_amount':round(q*sk['price'],2),'order_status':st,'ordered_at':dt.strftime('%Y-%m-%d'),'paid_at':(dt+timedelta(hours=random.randint(1,48))).strftime('%Y-%m-%d'),'channel':ch,'platform':'京东' if label=='jd' else '天猫'})
-    db.table("orders").insert(orders).execute()
+                orders.append({'order_no':f'{label.upper()}-{ch}{d:03d}-{len(orders):03d}','store':sk['store'],'warehouse':random.choice(WH)[0],'sku':sk['sku'],'product_name':sk['name'],'quantity':q,'unit_price':sk['price'],'total_amount':round(q*sk['price'],2),'order_status':st,'ordered_at':dt.strftime('%Y-%m-%d'),'channel':ch,'platform':'京东' if label=='jd' else '天猫'})
+    # 分批写入，避免 SQLite 变量数超限
+    batch_size = 50
+    for i in range(0, len(orders), batch_size):
+        db.table("orders").insert(orders[i:i+batch_size]).execute()
 
 def _seed_inventory(db, skus_data):
+    jd_s, ot_s = skus_data["jd"], skus_data["other"]
+    inv = []
     jd_s, ot_s = skus_data['jd'], skus_data['other']
     for skus in [jd_s,ot_s]:
         for sk in skus:
@@ -157,10 +163,12 @@ def _seed_inventory(db, skus_data):
                 if wt == 'own': wh_name = '集货仓' if skus is jd_s else '三方仓'
                 else: wh_name = wn
                 q = random.randint(0,30) if random.random()<0.08 else random.randint(50,800)
-                inv.append({'sku':sk['sku'],'product_name':sk['name'],'barcode':sk['barcode'],'warehouse':wh_name,'warehouse_type':wt,'available_qty':q,'in_transit_qty':random.randint(0,200),'safety_qty':random.randint(30,200),'beginning_stock':q+random.randint(50,200),'month_inbound':random.randint(100,500),'month_outbound':random.randint(80,450),'turnover_days':round(random.uniform(5,45),1),'weight':sk['weight'],'volume':sk['volume'],'channel':'jd' if skus is jd_s else 'other'})
+                inv.append({'sku':sk['sku'],'product_name':sk['name'],'warehouse':wh_name,'warehouse_type':wt,'available_qty':q,'in_transit_qty':random.randint(0,200),'safety_qty':random.randint(30,200),'channel':'jd' if skus is jd_s else 'other'})
     db.table("inventory").insert(inv).execute()
 
 def _seed_rules(db, skus_data):
+    jd_s, ot_s = skus_data["jd"], skus_data["other"]
+    inv = []
     from app.core.rules import evaluate
     jd_s, ot_s = skus_data['jd'], skus_data['other']
     for skus in [jd_s,ot_s]:

@@ -90,6 +90,9 @@ export default function InsightsPage() {
   const [replenLoading, setReplenLoading] = useState(true)
   const [purchaseLoading, setPurchaseLoading] = useState(true)
   const [slowLoading, setSlowLoading] = useState(true)
+  const [replenLimit, setReplenLimit] = useState(50)
+  const [purchaseLimit, setPurchaseLimit] = useState(50)
+  const [slowLimit, setSlowLimit] = useState(50)
 
   const { channel: globalChannel, hammerInsightsTab: tab, hammerReplenMode, setHammerReplenMode, hammerCols, hammerData } = useAppStore()
   const replenMode = (globalChannel !== 'jd' && hammerReplenMode === 'bbcc') ? 'traditional' : hammerReplenMode
@@ -246,7 +249,7 @@ export default function InsightsPage() {
                 <colgroup>{visCols.map(id => {const col = currentCols.find(c => c.id === id); return col ? <col key={col.id} /> : null})}</colgroup>
                 <thead><tr>{visCols.map(id => {const col = currentCols.find(c => c.id === id); return col ? <th key={col.id} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{col.label}</th> : null})}</tr></thead>
                 <tbody>
-                  {Array.isArray(filteredReplen) && filteredReplen.map((x, i) => {
+                  {Array.isArray(filteredReplen) && filteredReplen.slice(0, replenLimit).map((x, i) => {
                     const isOrdered = orderedKeys.includes(x.sku+'|'+x.store)
                     const rowStyle = isOrdered ? {opacity:0.55,background:'var(--bg)'} : {}
                     return (
@@ -309,6 +312,11 @@ export default function InsightsPage() {
                   )})}
                 </tbody>
               </table>
+              {Array.isArray(filteredReplen) && filteredReplen.length > replenLimit && (
+                <div className="text-center mt-8">
+                  <span onClick={() => setReplenLimit(replenLimit + 50)} className="btn btn-ghost" style={{fontSize:12,padding:'6px 16px',cursor:'pointer'}}>加载更多 ({filteredReplen.length - replenLimit} 条)</span>
+                </div>
+              )}
             </div>
           )}
           {/* 已下单明细（仅BBCC模式） */}

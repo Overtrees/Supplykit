@@ -222,6 +222,7 @@ def _rebuild(channel='jd'):
 
 
 _cache_by_channel = {}
+_stock_risk_cache = {}
 _cache_version = 0
 
 def _check_db_version():

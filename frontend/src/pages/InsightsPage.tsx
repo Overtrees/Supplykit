@@ -366,11 +366,11 @@ export default function InsightsPage() {
           ) : (purchase.length === 0 ? (
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>{t("insights.no_purchase")}</div>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
+            <div style={{overflow:"auto",maxHeight:"60vh"}}>
               <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {purchaseVisCols.length}/{PURCHASE_COLS.length} 列 · 点击"列"按钮切换{insightSearch ? ` · 搜索 "${insightSearch}"` : ''}</div>
               <table>
                 <colgroup>{purchaseVisCols.map(id => {const col = PURCHASE_COLS.find(c => c.id === id); return col ? <col key={col.id} /> : null})}</colgroup>
-                <thead><tr>{purchaseVisCols.map(id => {const col = PURCHASE_COLS.find(c => c.id === id); return col ? <th key={col.id} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{col.label}</th> : null})}</tr></thead>
+                <thead><tr style={{position:"sticky",top:0,background:"var(--card)",zIndex:1}}>{purchaseVisCols.map(id => {const col = PURCHASE_COLS.find(c => c.id === id); return col ? <th key={col.id} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{col.label}</th> : null})}</tr></thead>
                 <tbody>
                   {filteredPurchase.slice(0, purchaseLimit).map((x, i) => {
                     const timing = !x.purchase_qty || x.purchase_qty <= 0 ? '充足' : (x.after_turnover && (x.target_turnover || 15) > 0 && x.after_turnover <= (x.target_turnover || 15) ? '建议' : '充足')
@@ -433,11 +433,11 @@ export default function InsightsPage() {
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>{t("common.empty")}</div>
           ) : (
             <>
-              <div style={{ overflowX: 'auto' }}>
+              <div style={{overflow:"auto",maxHeight:"60vh"}}>
                 <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {slowVisCols.length}/{SLOW_COLS.length} 列 · 点击"列"按钮切换{insightSearch ? ` · 搜索 "${insightSearch}"` : ''}</div>
                 <table>
                   <colgroup>{slowVisCols.map(id => {const col = SLOW_COLS.find(c => c.id === id); return col ? <col key={col.id} /> : null})}</colgroup>
-                  <thead><tr>{slowVisCols.map(id => {const col = SLOW_COLS.find(c => c.id === id); return col ? <th key={col.id} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{col.label}</th> : null})}</tr></thead>
+                  <thead><tr style={{position:"sticky",top:0,background:"var(--card)",zIndex:1}}>{slowVisCols.map(id => {const col = SLOW_COLS.find(c => c.id === id); return col ? <th key={col.id} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{col.label}</th> : null})}</tr></thead>
                   <tbody>
                     {filteredSlow.filter(x => x.level !== '正常').map((x, i) => (
                       <tr key={i}>

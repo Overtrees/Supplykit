@@ -6,10 +6,10 @@ router = APIRouter(prefix="/api/inventory", tags=["inventory"])
 
 
 @router.get("")
-def list_inventory(db = get_db(), store: str = '', warehouse_type: str = '',
+def list_inventory(db = get_db(), channel: str = 'jd', store: str = '', warehouse_type: str = '',
                    page: int = 0, page_size: int = 0):
-    """库存列表 — 支持分页、店铺过滤、仓库类型过滤"""
-    q = db.table("inventory").select("*")
+    """库存列表 — 支持分页、渠道过滤、店铺过滤、仓库类型过滤"""
+    q = db.table("inventory").select("*").eq("channel", channel)
     if store:
         q = q.eq("store", store)
     if warehouse_type:

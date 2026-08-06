@@ -242,10 +242,10 @@ export default function InsightsPage() {
           ) : !Array.isArray(replen) || replen.length === 0 ? (
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>{t("insights.no_replenish")}</div>
           ) : (
-            <div style={{overflowY:'auto',overflowX:'hidden',maxHeight:'calc(100vh - 180px)'}}>
-              <div style={{overflowX:"auto"}}><table>
+            <div style={{overflow:'auto',maxHeight:'calc(100vh - 180px)'}}>
+              <table>
                 <colgroup>{visCols.map(id => {const col = currentCols.find(c => c.id === id); return col ? <col key={col.id} /> : null})}</colgroup>
-                <thead><tr>{visCols.map(id => {const col = currentCols.find(c => c.id === id); return col ? <th style={{position:'sticky',top:0,background:'var(--card)',zIndex:1,whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}} key={col.id}>{col.label}</th> : null})}</tr></thead>
+                <thead style={{position:'sticky',top:0,background:'var(--card)',zIndex:1}}><tr>{visCols.map(id => {const col = currentCols.find(c => c.id === id); return col ? <th style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}} key={col.id}>{col.label}</th> : null})}</tr></thead>
                 <tbody>
                   {Array.isArray(filteredReplen) && filteredReplen.slice(0, replenLimit).map((x, i) => {
                     const isOrdered = orderedKeys.includes(x.sku+'|'+x.store)
@@ -309,7 +309,7 @@ export default function InsightsPage() {
                     </tr>
                   )})}
                 </tbody>
-              </table></div>
+              </table>
               {Array.isArray(filteredReplen) && filteredReplen.length > replenLimit && (
                 <div className="text-center mt-8" ref={function(el) {
                   if (el && !el._observer) {
@@ -412,7 +412,7 @@ export default function InsightsPage() {
                     </>}
                   </tr>
                 </tfoot>
-              </table></div>
+              </table>
               {filteredPurchase.length > purchaseLimit && (
                 <div className="text-center mt-8" ref={function(el) {
                   if (el && !el._observer) {
@@ -470,7 +470,7 @@ export default function InsightsPage() {
                       </tr>
                     ))}
                   </tbody>
-                </table></div>
+                </table>
               </div>
               {slowMoving.filter(x => x.level === '正常').length > 0 && (
                 <div className="small muted" style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)' }}>

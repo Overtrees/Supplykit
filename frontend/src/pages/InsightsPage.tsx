@@ -426,8 +426,8 @@ export default function InsightsPage() {
                 </div>
               )}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       )}
 
       {/* 滞销预警 */}

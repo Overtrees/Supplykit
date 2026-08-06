@@ -352,8 +352,9 @@ export default function InsightsPage() {
       {/* 采购建议 */}
       {tab === 'purchase' && (
         <div className="card">
-          <div className="section-title" style={{display:'flex',flexWrap:'wrap',gap:6}}>
+          <div className="section-title" style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
             <span>采购建议</span>
+            <span className="muted2" style={{fontSize:11,fontWeight:400}}>显示 {purchaseVisCols.length}/{PURCHASE_COLS.length} 列 · 已加载 {Math.min(purchaseLimit, filteredPurchase.length)}/{filteredPurchase.length} 条{insightSearch ? ` · "${insightSearch}"` : ''}</span>
           </div>
           {purchaseLoading ? (
             <div>
@@ -363,7 +364,7 @@ export default function InsightsPage() {
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>{t("insights.no_purchase")}</div>
           ) : (
             <div style={{overflow:"auto",maxHeight:"80vh"}}>
-              <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {purchaseVisCols.length}/{PURCHASE_COLS.length} 列 · 点击"列"按钮切换{insightSearch ? ` · 搜索 "${insightSearch}"` : ''}</div>
+              
               <table>
                 <colgroup>{purchaseVisCols.map(id => {const col = PURCHASE_COLS.find(c => c.id === id); return col ? <col key={col.id} /> : null})}</colgroup>
                 <thead><tr style={{position:"sticky",top:0,background:"var(--card)",zIndex:1}}>{purchaseVisCols.map(id => {const col = PURCHASE_COLS.find(c => c.id === id); return col ? <th key={col.id} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{col.label}</th> : null})}</tr></thead>

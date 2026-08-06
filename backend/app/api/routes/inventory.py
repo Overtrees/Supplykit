@@ -10,6 +10,8 @@ def list_inventory(db = get_db(), channel: str = 'jd', store: str = '', warehous
                    page: int = 0, page_size: int = 0):
     """库存列表 — 支持分页、渠道过滤、店铺过滤、仓库类型过滤"""
     q = db.table("inventory").select("*").eq("channel", channel)
+    # 联表查询商品价格
+    products = {p['sku']: p for p in (db.table("products").select("*").eq("channel", channel).execute().data or [])}
     if store:
         q = q.eq("store", store)
     if warehouse_type:
@@ -25,6 +27,10 @@ def list_inventory(db = get_db(), channel: str = 'jd', store: str = '', warehous
         total = cr.count if hasattr(cr, 'count') else len(cr.data or [])
         q = q.order("id", desc=True).limit(page_size).offset((page - 1) * page_size)
         data = q.execute().data or []
+        # 注入商品价格
+        for item in data:
+            p = products.get(item.get('sku', ''))
+            if p: item['price'] = p.get('price', 0)
         return ok({
             'items': data,
             'total': total,
@@ -33,7 +39,11 @@ def list_inventory(db = get_db(), channel: str = 'jd', store: str = '', warehous
             'total_pages': max(1, (total + page_size - 1) // page_size),
         })
 
-    return q.order("id", desc=True).execute().data
+    data = q.order("id", desc=True).execute().data or []
+    for item in data:
+        p = products.get(item.get('sku', ''))
+        if p: item['price'] = p.get('price', 0)
+    return data
 
 
 @router.post("")

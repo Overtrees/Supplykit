@@ -76,26 +76,32 @@ def _seed_fill_async():
     conn = get_conn()
     steps = []
 
+    # 先统一生成 SKU，确保各步骤数据一致
+    jd_s = make_skus('-J', 1000)
+    shared_skus = [s['sku'] for s in jd_s[:200]]
+    ot_s = make_skus('-O', 1000, shared=shared_skus + [None] * 800)
+    skus_data = {'jd': jd_s, 'other': ot_s}
+
     # 步骤1: 清空旧数据
     steps.append(_run_step('清空旧数据', lambda: [
         conn.execute(f'DELETE FROM "{t}"') for t in ['orders','inventory','products','suppliers','alerts','quality_logs','events','purchase_orders','replenishment_config_history','cleansing_templates','custom_fields'] and conn.commit()
     ]))
     _update_steps(steps)
 
-    # 步骤2: 生成 SKU 并写入商品/供应商
-    steps.append(_run_step('生成商品/供应商', lambda: _seed_products_suppliers(db)))
+    # 步骤2: 写入商品/供应商
+    steps.append(_run_step('写入商品/供应商', lambda: _seed_products_suppliers(db, skus_data)))
     _update_steps(steps)
 
     # 步骤3: 生成订单
-    steps.append(_run_step('生成订单', lambda: _seed_orders(db, today)))
+    steps.append(_run_step('生成订单', lambda: _seed_orders(db, today, skus_data)))
     _update_steps(steps)
 
     # 步骤4: 生成库存
-    steps.append(_run_step('生成库存', lambda: _seed_inventory(db)))
+    steps.append(_run_step('生成库存', lambda: _seed_inventory(db, skus_data)))
     _update_steps(steps)
 
     # 步骤5: 触发规则引擎
-    steps.append(_run_step('触发规则引擎', lambda: _seed_rules(db)))
+    steps.append(_run_step('触发规则引擎', lambda: _seed_rules(db, skus_data)))
     _update_steps(steps)
 
     # 步骤6: 写入补货参数和规则
@@ -111,6 +117,9 @@ def _seed_fill_async():
 
     return {"steps": steps}
 
+def _seed_products_suppliers(db, skus_data):
+    for skus,ch in [(skus_data['jd'],'jd'),(skus_data['other'],'other')]:
+
 def _update_steps(steps):
     global _current_task_id
     if _current_task_id:
@@ -118,22 +127,16 @@ def _update_steps(steps):
             t = _task_results.get(_current_task_id)
             if t: t['steps'] = list(steps)
 
-def _seed_products_suppliers(db):
-    jd_s = make_skus('-J', 1000)
-    shared_skus = [s['sku'] for s in jd_s[:200]]
-    ot_s = make_skus('-O', 1000, shared=shared_skus + [None] * 800)
-    for skus,ch in [(jd_s,'jd'),(ot_s,'other')]:
+def _seed_products_suppliers(db, skus_data):
+    for skus,ch in [(skus_data['jd'],'jd'),(skus_data['other'],'other')]:
         for p in skus:
             db.table("products").upsert({'sku':p['sku'],'product_name':p['name'],'store':p['store'],'category':p['cat'],'price':p['price'],'box_qty':p['box'],'unit':p['unit'],'barcode':p['barcode'],'weight':p['weight'],'volume':p['volume'],'status':p['status'],'channel':ch}, conflict_col='sku')
     for s in SUP:
         for ch in ['jd','other']:
             db.table("suppliers").upsert({'supplier_code':s['code'],'supplier_name':s['name'],'contact_person':s['contact'],'contact_phone':s['phone'],'score':s['score'],'channel':ch}, conflict_col='supplier_code')
 
-def _seed_orders(db, today):
-    jd_s = make_skus('-J', 1000)
-    shared_skus = [s['sku'] for s in jd_s[:200]]
-    ot_s = make_skus('-O', 1000, shared=shared_skus + [None] * 800)
-    orders = []
+def _seed_orders(db, today, skus_data):
+    jd_s, ot_s = skus_data['jd'], skus_data['other']
     for ch,label,skus,base in [('jd','jd',jd_s,1100),('other','other',ot_s,550)]:
         promo = {'618':list(range(5,20)),'月末':list(range(45,55))}
         for d in range(60):
@@ -148,11 +151,8 @@ def _seed_orders(db, today):
                 orders.append({'order_no':f'{label.upper()}-{ch}{d:03d}-{len(orders):03d}','store':sk['store'],'warehouse':random.choice(WH)[0],'sku':sk['sku'],'product_name':sk['name'],'barcode':sk['barcode'],'quantity':q,'unit_price':sk['price'],'total_amount':round(q*sk['price'],2),'order_status':st,'ordered_at':dt.strftime('%Y-%m-%d'),'paid_at':(dt+timedelta(hours=random.randint(1,48))).strftime('%Y-%m-%d'),'channel':ch,'platform':'京东' if label=='jd' else '天猫'})
     db.table("orders").insert(orders).execute()
 
-def _seed_inventory(db):
-    jd_s = make_skus('-J', 1000)
-    shared_skus = [s['sku'] for s in jd_s[:200]]
-    ot_s = make_skus('-O', 1000, shared=shared_skus + [None] * 800)
-    inv = []
+def _seed_inventory(db, skus_data):
+    jd_s, ot_s = skus_data['jd'], skus_data['other']
     for skus in [jd_s,ot_s]:
         for sk in skus:
             for wn,wt in WH:
@@ -162,12 +162,9 @@ def _seed_inventory(db):
                 inv.append({'sku':sk['sku'],'product_name':sk['name'],'barcode':sk['barcode'],'warehouse':wh_name,'warehouse_type':wt,'available_qty':q,'in_transit_qty':random.randint(0,200),'safety_qty':random.randint(30,200),'beginning_stock':q+random.randint(50,200),'month_inbound':random.randint(100,500),'month_outbound':random.randint(80,450),'turnover_days':round(random.uniform(5,45),1),'weight':sk['weight'],'volume':sk['volume'],'channel':'jd' if skus is jd_s else 'other'})
     db.table("inventory").insert(inv).execute()
 
-def _seed_rules(db):
+def _seed_rules(db, skus_data):
     from app.core.rules import evaluate
-    jd_s = make_skus('-J', 1000)
-    shared_skus = [s['sku'] for s in jd_s[:200]]
-    ot_s = make_skus('-O', 1000, shared=shared_skus + [None] * 800)
-    inv = []
+    jd_s, ot_s = skus_data['jd'], skus_data['other']
     for skus in [jd_s,ot_s]:
         for sk in skus:
             for wn,wt in WH:

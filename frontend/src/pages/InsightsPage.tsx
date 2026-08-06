@@ -91,8 +91,6 @@ export default function InsightsPage() {
   const [purchaseLoading, setPurchaseLoading] = useState(true)
   const [slowLoading, setSlowLoading] = useState(true)
   const [replenLimit, setReplenLimit] = useState(50)
-  // 搜索时重置分页
-  useEffect(function() { setReplenLimit(50) }, [insightSearch])
   const [purchaseLimit, setPurchaseLimit] = useState(50)
   const [slowLimit, setSlowLimit] = useState(50)
 
@@ -115,6 +113,8 @@ export default function InsightsPage() {
   // 搜索：按 tab 和模式隔离
   const searchKey = tab === 'purchase' ? 'insights_search_purchase' : (tab === 'slow' ? 'insights_search_slow' : 'insights_search_' + replenMode)
   const insightSearch = hammerData?.[globalChannel]?.[searchKey] || ''
+  // 搜索时重置分页
+  useEffect(function() { setReplenLimit(50); setPurchaseLimit(50); setSlowLimit(50) }, [insightSearch])
   const filterBySearch = (items) => {
     if (!insightSearch) return items
     const q = insightSearch.toLowerCase()
@@ -372,7 +372,7 @@ export default function InsightsPage() {
                 <colgroup>{purchaseVisCols.map(id => {const col = PURCHASE_COLS.find(c => c.id === id); return col ? <col key={col.id} /> : null})}</colgroup>
                 <thead><tr>{purchaseVisCols.map(id => {const col = PURCHASE_COLS.find(c => c.id === id); return col ? <th key={col.id} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{col.label}</th> : null})}</tr></thead>
                 <tbody>
-                  {filteredPurchase.map((x, i) => {
+                  {filteredPurchase.slice(0, purchaseLimit).map((x, i) => {
                     const timing = !x.purchase_qty || x.purchase_qty <= 0 ? '充足' : (x.after_turnover && (x.target_turnover || 15) > 0 && x.after_turnover <= (x.target_turnover || 15) ? '建议' : '充足')
                     return (
                     <tr key={i}>

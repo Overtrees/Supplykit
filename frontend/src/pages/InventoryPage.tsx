@@ -31,11 +31,12 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
   const toast = useToast()
   const [inventory, setInventory] = useState([])
   const [loading, setLoading] = useState(true)
-  const [visCols, setVisCols] = useState(() => {const wt='own';return getVis(wt, globalChannel)||WH_COLS[wt].map(c=>c.id)})
+  const [visCols, setVisCols] = useState([])
   const [confirmDel, setConfirmDel] = useState(null)
   const [monthRange, setMonthRange] = useState('')
   const { channel: globalChannel, hammerWhType, hammerCols, hammerSearch } = useAppStore()
   const whType = hammerWhType
+  useEffect(() => { if (visCols.length === 0) setVisCols(getVis('own', globalChannel) || WH_COLS['own'].map(c=>c.id)) }, [globalChannel])
 
   useEffect(() => {
     const saved = hammerCols?.['inventory_'+whType]

@@ -59,6 +59,33 @@ def seed_fill(db=get_db()):
         invalidate_cache(db)
     except: pass
 
+    # 写入补货参数（真实业务配置）
+    conn.execute("DELETE FROM replenishment_config")
+    for ch in ['jd','other']:
+        configs = [
+            ('lead_time_days', '10'), ('safety_multiplier', '1.5'), ('max_turnover_days', '17'),
+            ('turnover_warning_15', '15'), ('turnover_warning_90', '90'),
+            ('purchase_lead_days', '14'), ('purchase_safety_days', '3'), ('moq', '50'),
+            ('b_to_c_days', '3'), ('c_safety_days', '0'), ('active_factor', '1.0'),
+            ('target_turnover', '15'), ('_cache_version', '0'),
+        ]
+        for k,v in configs:
+            conn.execute("INSERT OR REPLACE INTO replenishment_config(key,value,channel) VALUES(?,?,?)", (k,v,ch))
+    conn.commit()
+
+    # 重建内置规则（按渠道）
+    conn.execute("DELETE FROM rules")
+    rules = [
+        ("低库存预警", "inventory.changed", '{"left":"inv.available_qty","op":"<","right":"inv.safety_qty"}', "low_stock", "低库存预警: {product_name}", "可用 {avail} < 安全线 {safety}", "warning", 1),
+        ("紧急补货", "inventory.changed", '{"left":"inv.available_qty","op":"<=","right":"max(1,inv.safety_qty*0.3)"}', "replenish", "紧急补货: {product_name}", "可用 {avail}，低于安全线 30%", "error", 1),
+        ("超卖保护", "order.created", '{"left":"order.quantity","op":">","right":"inv.available_qty"}', "oversell", "超卖告警: {sku}", "订单数量超过可用库存", "error", 1),
+        ("滞销识别", "scheduled.daily", '{"left":"inv.days_since_last","op":">","right":"30"}', "slow_moving", "滞销: {product_name}", "{days} 天无销售", "warning", 1),
+    ]
+    for ch in ['jd','other']:
+        for r in rules:
+            conn.execute("INSERT INTO rules(name,event,condition_json,alert_type,alert_title,alert_desc,severity,is_active,channel) VALUES(?,?,?,?,?,?,?,?,?)", r + (ch,))
+    conn.commit()
+
     jd_s = make_skus('-J', 1000)
     # 共享 200 个 SKU 给 other 渠道
     shared_skus = [s['sku'] for s in jd_s[:200]]

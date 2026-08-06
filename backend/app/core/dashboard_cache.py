@@ -13,6 +13,25 @@ _cache_by_channel = {}
 _stock_risk_cache = {}
 _cache_version = 0
 
+def _compute_funnel(orders):
+    """Order conversion funnel."""
+    total = len(orders)
+    statuses = {"待确认": 0, "待发货": 0, "已发货": 0, "已完成": 0, "申请退款": 0}
+    for x in orders:
+        s = x.get("order_status") or "未知"
+        if s in statuses: statuses[s] += 1
+        else: statuses["未知"] = statuses.get("未知", 0) + 1
+    stages = [("总订单", total, 100.0)]
+    for name in ["待确认", "待发货", "已发货", "已完成"]:
+        v = statuses.get(name, 0)
+        stages.append((name, v, round(v / total * 100, 1) if total else 0))
+    result = []
+    for i, (name, count, pct) in enumerate(stages):
+        prev = stages[i - 1][1] if i > 0 else total
+        conv = round(min(count / prev * 100, 100), 1) if prev else 0
+        result.append({"name": name, "value": count, "percentage": pct, "conversion": conv})
+    return result
+
 def _compute_health(inv):
     """Inventory health index."""
     def _score(items):

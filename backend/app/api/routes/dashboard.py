@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.core.dashboard_cache import get_dashboard, invalidate, _compute_funnel, _compute_health
+from app.core.dashboard_cache import get_cached_dashboard as get_dashboard, invalidate, _compute_health
 from app.core.database import get_db, DB_PATH
 from app.core.sales_utils import calc_sales, rolling_predict
 import sqlite3

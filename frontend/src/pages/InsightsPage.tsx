@@ -242,8 +242,8 @@ export default function InsightsPage() {
           ) : !Array.isArray(replen) || replen.length === 0 ? (
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>{t("insights.no_replenish")}</div>
           ) : (
-            <div style={{overflow:'hidden auto',maxHeight:'calc(100vh - 180px)'}}>
-              <table>
+            <div style={{overflow-y:'auto',overflow-x:'hidden',maxHeight:'calc(100vh - 180px)'}}>
+              <div style={{overflowX:"auto"}}><table>
                 <colgroup>{visCols.map(id => {const col = currentCols.find(c => c.id === id); return col ? <col key={col.id} /> : null})}</colgroup>
                 <thead><tr style={{position:'sticky',top:0,background:'var(--card)',zIndex:1}}>{visCols.map(id => {const col = currentCols.find(c => c.id === id); return col ? <th key={col.id} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{col.label}</th> : null})}</tr></thead>
                 <tbody>
@@ -309,7 +309,7 @@ export default function InsightsPage() {
                     </tr>
                   )})}
                 </tbody>
-              </table>
+              </table></div>
               {Array.isArray(filteredReplen) && filteredReplen.length > replenLimit && (
                 <div className="text-center mt-8" ref={function(el) {
                   if (el && !el._observer) {
@@ -363,9 +363,9 @@ export default function InsightsPage() {
           ) : (purchase.length === 0 ? (
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>{t("insights.no_purchase")}</div>
           ) : (
-            <div style={{overflow:"hidden auto",maxHeight:"calc(100vh - 180px)"}}>
+            <div style={{overflow-y:"auto",overflow-x:"hidden",maxHeight:"calc(100vh - 180px)"}}>
               
-              <table>
+              <div style={{overflowX:"auto"}}><table>
                 <colgroup>{purchaseVisCols.map(id => {const col = PURCHASE_COLS.find(c => c.id === id); return col ? <col key={col.id} /> : null})}</colgroup>
                 <thead><tr style={{position:"sticky",top:0,background:"var(--card)",zIndex:1}}>{purchaseVisCols.map(id => {const col = PURCHASE_COLS.find(c => c.id === id); return col ? <th key={col.id} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{col.label}</th> : null})}</tr></thead>
                 <tbody>
@@ -412,7 +412,7 @@ export default function InsightsPage() {
                     </>}
                   </tr>
                 </tfoot>
-              </table>
+              </table></div>
               {filteredPurchase.length > purchaseLimit && (
                 <div className="text-center mt-8" ref={function(el) {
                   if (el && !el._observer) {
@@ -445,9 +445,9 @@ export default function InsightsPage() {
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>{t("common.empty")}</div>
           ) : (
             <>
-              <div style={{overflow:"hidden auto",maxHeight:"calc(100vh - 180px)"}}>
+              <div style={{overflow-y:"auto",overflow-x:"hidden",maxHeight:"calc(100vh - 180px)"}}>
                 <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {slowVisCols.length}/{SLOW_COLS.length} 列 · 点击"列"按钮切换{insightSearch ? ` · 搜索 "${insightSearch}"` : ''}</div>
-                <table>
+                <div style={{overflowX:"auto"}}><table>
                   <colgroup>{slowVisCols.map(id => {const col = SLOW_COLS.find(c => c.id === id); return col ? <col key={col.id} /> : null})}</colgroup>
                   <thead><tr style={{position:"sticky",top:0,background:"var(--card)",zIndex:1}}>{slowVisCols.map(id => {const col = SLOW_COLS.find(c => c.id === id); return col ? <th key={col.id} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{col.label}</th> : null})}</tr></thead>
                   <tbody>
@@ -470,7 +470,7 @@ export default function InsightsPage() {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </table></div>
               </div>
               {slowMoving.filter(x => x.level === '正常').length > 0 && (
                 <div className="small muted" style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)' }}>

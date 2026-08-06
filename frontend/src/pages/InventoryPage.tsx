@@ -95,9 +95,9 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
     {loading ? <div>{[1,2,3,4].map(i=><div key={i} className='skeleton' style={{height:36,marginBottom:4}}/>)}</div>
     : fl.length === 0
       ? <EmptyState icon='package' title={s?t("inv.empty_matched"):t("common.empty")} desc={s?'换个关键词试试':'通过清洗导入数据'} />
-      : <div style={{overflow:'hidden auto',maxHeight:'calc(100vh - 180px)'}}>
+      : <div style={{overflow-y:'auto',overflow-x:'hidden',maxHeight:'calc(100vh - 180px)'}}>
         <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>{t("common.showing")} {visCols.length}/{WH_COLS[whType].length} {t("common.columns")}</div>
-      <table><colgroup>{visCols.map(id=>{const col=WH_COLS[whType].find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>
+      <div style={{overflowX:"auto"}}><table><colgroup>{visCols.map(id=>{const col=WH_COLS[whType].find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>
         <thead><tr style={{position:"sticky",top:0,background:"var(--card)",zIndex:1}}>{visCols.map(id=>{const col=WH_COLS[whType].find(c=>c.id===id);if(!col)return null;let el;if(col.id==='month_in')el=<th key={col.id}>{col.label}<br/><span className='small' style={{fontWeight:400}}>{monthRange}</span></th>;else if(col.id==='month_out')el=<th key={col.id}>{col.label}<br/><span className='small' style={{fontWeight:400}}>{monthRange}</span></th>;else el=<th key={col.id}>{col.label}</th>;return el})}</tr></thead>
       <tbody>{fl.map(x => {
         const isHL = highlightSku && x.sku === highlightSku
@@ -122,7 +122,7 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
           })}
         </tr>
       </tfoot>}
-              </table>
+              </table></div>
     </div>}
     <ConfirmDialog open={!!confirmDel} title='删除库存记录' desc='删除后不可恢复' confirmLabel='删除' onConfirm={delInv} onCancel={()=>setConfirmDel(null)} />
   </div>

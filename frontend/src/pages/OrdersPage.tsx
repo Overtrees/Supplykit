@@ -69,9 +69,9 @@ export default function OrdersPage() {
     {orderLoading || !dataLoaded ? <OrderSkeleton />
     : orders.length === 0
       ? <EmptyState icon='clipboard' title={s?t("order.empty_matched"):t("order.empty")} desc={s?'换个关键词试试':''} />
-      : <div style={{overflow:"hidden auto",maxHeight:"calc(100vh - 180px)"}}>
+      : <div style={{overflow-y:"auto",overflow-x:"hidden",maxHeight:"calc(100vh - 180px)"}}>
         <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>{t("common.showing")} {visCols.length}/{COLS.length} {t("common.columns")}</div>
-      <table><colgroup>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>
+      <div style={{overflowX:"auto"}}><table><colgroup>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>
       <thead><tr style={{position:"sticky",top:0,background:"var(--card)",zIndex:1}}>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<th key={col.id}>{col.label}</th>:null})}</tr></thead>
       <tbody>
         {orders.map(x => {
@@ -91,7 +91,7 @@ export default function OrdersPage() {
             return <td key={col.id} className="small muted" style={{fontSize:11}}>-</td>
           })}</tr>
         })}
-      </tbody></table>
+      </tbody></table></div>
     </div>}
     </div>  {/* end card */}
     <ConfirmDialog open={!!confirmDel} title='删除订单' desc='删除后不可恢复' confirmLabel='删除' onConfirm={delOrder} onCancel={()=>setConfirmDel(null)} />

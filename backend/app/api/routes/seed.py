@@ -9,7 +9,7 @@ router = APIRouter(prefix="/api/seed", tags=["seed"])
 
 cat_names = ['酱油','酱料','调味汁','食用油','醋','料酒','蚝油','芝麻油','辣椒酱','拌面酱']
 store_names = ['京东自营','京东旗舰店','广州调味食材专营店','华南食品旗舰店']
-WH = [('北京仓','platform'),('上海仓','platform'),('广州仓','own'),('成都仓','platform'),('武汉仓','platform'),('沈阳仓','platform'),('西安仓','platform'),('郑州仓','platform'),('天津仓','own'),('京东B仓','platform_b')]
+WH = [('北京仓','platform'),('上海仓','platform'),('集货仓','own'),('成都仓','platform'),('武汉仓','platform'),('沈阳仓','platform'),('西安仓','platform'),('郑州仓','platform'),('三方仓','own'),('京东B仓','platform_b')]
 SUP = [
     {'code':'SUP-001','name':'广州海天调味品有限公司','contact':'张伟','phone':'13800138001','score':5},
     {'code':'SUP-002','name':'上海太太乐食品有限公司','contact':'李娜','phone':'13800138002','score':4},
@@ -69,8 +69,13 @@ def seed_fill(db=get_db()):
     for skus in [jd_s,ot_s]:
         for sk in skus:
             for wn,wt in WH:
+                # 按渠道区分自有仓名称
+                if wt == 'own':
+                    wh_name = '集货仓' if skus is jd_s else '三方仓'
+                else:
+                    wh_name = wn
                 q = random.randint(0,30) if random.random()<0.08 else random.randint(50,800)
-                inv.append({'sku':sk['sku'],'product_name':sk['name'],'barcode':sk['barcode'],'warehouse':wn,'warehouse_type':wt,'available_qty':q,'in_transit_qty':random.randint(0,200),'safety_qty':100,'beginning_stock':q+random.randint(50,200),'month_inbound':random.randint(100,500),'month_outbound':random.randint(80,450),'turnover_days':round(random.uniform(5,45),1),'weight':sk['weight'],'volume':sk['volume'],'channel':'jd' if skus is jd_s else 'other'})
+                inv.append({'sku':sk['sku'],'product_name':sk['name'],'barcode':sk['barcode'],'warehouse':wh_name,'warehouse_type':wt,'available_qty':q,'in_transit_qty':random.randint(0,200),'safety_qty':100,'beginning_stock':q+random.randint(50,200),'month_inbound':random.randint(100,500),'month_outbound':random.randint(80,450),'turnover_days':round(random.uniform(5,45),1),'weight':sk['weight'],'volume':sk['volume'],'channel':'jd' if skus is jd_s else 'other'})
     db.table("inventory").insert(inv).execute()
 
     # 触发规则引擎生成告警
@@ -78,7 +83,7 @@ def seed_fill(db=get_db()):
         from app.core.rules import evaluate
         for item in inv:
             try:
-                evaluate('inventory.changed', {'inv': item, 'db': db, 'sku': item['sku']})
+                evaluate('inventory.changed', {'inv': item, 'db': db, 'sku': item['sku'], 'channel': item.get('channel', 'jd')})
             except: pass
     except: pass
 

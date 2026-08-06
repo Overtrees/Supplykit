@@ -18,6 +18,7 @@ def _action_create_alert(ctx):
         "source": "rules_engine",
         "related_sku": ctx.get('sku',''),
         "status": "active",
+        "channel": ctx.get('channel', 'jd'),
     }).execute()
     # 同时记录事件到 events 表
     try:

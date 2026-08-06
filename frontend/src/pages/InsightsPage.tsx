@@ -242,7 +242,7 @@ export default function InsightsPage() {
           ) : !Array.isArray(replen) || replen.length === 0 ? (
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>{t("insights.no_replenish")}</div>
           ) : (
-            <div style={{overflow:'auto',maxHeight:'calc(100vh - 280px)'}}>
+            <div style={{overflow:'auto',maxHeight:'calc(100vh - 180px)'}}>
               <table>
                 <colgroup>{visCols.map(id => {const col = currentCols.find(c => c.id === id); return col ? <col key={col.id} /> : null})}</colgroup>
                 <thead><tr style={{position:'sticky',top:0,background:'var(--card)',zIndex:1}}>{visCols.map(id => {const col = currentCols.find(c => c.id === id); return col ? <th key={col.id} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{col.label}</th> : null})}</tr></thead>
@@ -363,7 +363,7 @@ export default function InsightsPage() {
           ) : (purchase.length === 0 ? (
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>{t("insights.no_purchase")}</div>
           ) : (
-            <div style={{overflow:"auto",maxHeight:"calc(100vh - 280px)"}}>
+            <div style={{overflow:"auto",maxHeight:"calc(100vh - 180px)"}}>
               
               <table>
                 <colgroup>{purchaseVisCols.map(id => {const col = PURCHASE_COLS.find(c => c.id === id); return col ? <col key={col.id} /> : null})}</colgroup>
@@ -430,7 +430,7 @@ export default function InsightsPage() {
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>{t("common.empty")}</div>
           ) : (
             <>
-              <div style={{overflow:"auto",maxHeight:"calc(100vh - 280px)"}}>
+              <div style={{overflow:"auto",maxHeight:"calc(100vh - 180px)"}}>
                 <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {slowVisCols.length}/{SLOW_COLS.length} 列 · 点击"列"按钮切换{insightSearch ? ` · 搜索 "${insightSearch}"` : ''}</div>
                 <table>
                   <colgroup>{slowVisCols.map(id => {const col = SLOW_COLS.find(c => c.id === id); return col ? <col key={col.id} /> : null})}</colgroup>

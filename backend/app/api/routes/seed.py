@@ -7,8 +7,12 @@ import random, sqlite3
 
 router = APIRouter(prefix="/api/seed", tags=["seed"])
 
-cat_names = ['酱油','酱料','调味汁','食用油','醋','料酒','蚝油','芝麻油','辣椒酱','拌面酱']
-store_names = ['京东自营','京东旗舰店','广州调味食材专营店','华南食品旗舰店']
+cat_names = ['酱油','酱料','调味汁','食用油','醋','料酒','蚝油','芝麻油','辣椒酱','拌面酱',
+             '老抽','生抽','陈醋','香醋','白醋','米醋','花椒油','藤椒油','辣椒油','芥末油',
+             '番茄酱','甜辣酱','沙拉酱','芝麻酱','花生酱','豆瓣酱','豆豉','腐乳','糟卤','鱼露',
+             '咖喱块','咖喱粉','五香粉','孜然粉','花椒粉','辣椒粉','胡椒粉','十三香','卤料包','炖肉料',
+             '鸡精','味精','白糖','冰糖','红糖','麦芽糖','蜂蜜','料酒','黄酒','米酒']
+store_names = ['京东自营','京东旗舰店','广州调味食材专营店','华南食品旗舰店','上海调味品专营店']
 WH = [('北京仓','platform'),('上海仓','platform'),('集货仓','own'),('成都仓','platform'),('武汉仓','platform'),('沈阳仓','platform'),('西安仓','platform'),('郑州仓','platform'),('三方仓','own'),('京东B仓','platform_b')]
 SUP = [
     {'code':'SUP-001','name':'广州海天调味品有限公司','contact':'张伟','phone':'13800138001','score':5},
@@ -16,15 +20,21 @@ SUP = [
     {'code':'SUP-003','name':'佛山海天味业有限公司','contact':'王强','phone':'13800138003','score':5},
     {'code':'SUP-004','name':'成都红九九食品有限公司','contact':'赵敏','phone':'13800138004','score':3},
     {'code':'SUP-005','name':'北京王致和食品有限公司','contact':'孙丽','phone':'13800138005','score':4},
+    {'code':'SUP-006','name':'广东美味鲜调味食品有限公司','contact':'周杰','phone':'13800138006','score':5},
+    {'code':'SUP-007','name':'山东欣和调味品有限公司','contact':'吴磊','phone':'13800138007','score':4},
+    {'code':'SUP-008','name':'湖南加加食品有限公司','contact':'郑爽','phone':'13800138008','score':3},
+    {'code':'SUP-009','name':'福建安记食品有限公司','contact':'陈静','phone':'13800138009','score':4},
+    {'code':'SUP-010','name':'重庆涪陵榨菜集团','contact':'林峰','phone':'13800138010','score':5},
 ]
 
-def make_skus(sfx):
+def make_skus(sfx, count=1000, shared=None):
     r = []
-    for i in range(1, 81):
+    for i in range(1, count + 1):
         c = cat_names[(i-1)%len(cat_names)]
         s = store_names[(i-1)%len(store_names)]
-        p = round(random.uniform(5.8, 39.9), 1)
-        r.append({'sku':f'SKU-{i:03d}{sfx}','name':f'调味品{c}{i}','store':s,'cat':c,'price':p,'box':random.choice([6,12,24]),'unit':'瓶','barcode':f'690{i:010d}','weight':round(random.uniform(5,25),1),'volume':round(random.uniform(0.02,0.12),3),'status':'active'})
+        p = round(random.uniform(5.8, 99.9), 1)
+        sku = shared[i-1] if shared and i <= len(shared) else f'SKU-{i:04d}{sfx}'
+        r.append({'sku':sku,'name':f'调味品{c}{i}','store':s,'cat':c,'price':p,'box':random.choice([6,12,24]),'unit':'瓶','barcode':f'690{i:010d}','weight':round(random.uniform(5,25),1),'volume':round(random.uniform(0.02,0.12),3),'status':'active'})
     return r
 
 @router.post("/fill")
@@ -42,8 +52,10 @@ def seed_fill(db=get_db()):
         invalidate_cache(db)
     except: pass
 
-    jd_s = make_skus('')
-    ot_s = make_skus('-O')
+    jd_s = make_skus('-J', 1000)
+    # 共享 200 个 SKU 给 other 渠道
+    shared_skus = [s['sku'] for s in jd_s[:200]]
+    ot_s = make_skus('-O', 1000, shared=shared_skus + [None] * 800)
     for skus,ch in [(jd_s,'jd'),(ot_s,'other')]:
         for p in skus:
             db.table("products").upsert({'sku':p['sku'],'product_name':p['name'],'store':p['store'],'category':p['cat'],'price':p['price'],'box_qty':p['box'],'unit':p['unit'],'barcode':p['barcode'],'weight':p['weight'],'volume':p['volume'],'status':p['status'],'channel':ch}, conflict_col='sku')
@@ -52,7 +64,7 @@ def seed_fill(db=get_db()):
             db.table("suppliers").upsert({'supplier_code':s['code'],'supplier_name':s['name'],'contact_person':s['contact'],'contact_phone':s['phone'],'score':s['score'],'channel':ch}, conflict_col='supplier_code')
 
     orders = []
-    for ch,label,skus,base in [('jd','jd',jd_s,4),('other','other',ot_s,2)]:
+    for ch,label,skus,base in [('jd','jd',jd_s,400),('other','other',ot_s,200)]:
         promo = {'618':list(range(5,20)),'月末':list(range(45,55))}
         for d in range(60):
             dt = today - timedelta(days=d)

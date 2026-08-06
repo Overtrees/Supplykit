@@ -82,7 +82,7 @@ export default function OrdersPage() {
             if(col.id==='warehouse')return <td key={col.id} className="col-store">{x.warehouse||'-'}</td>
             if(col.id==='product')return <td key={col.id} className="col-name">{x.product_name}</td>
             if(col.id==='amount')return <td key={col.id} className="col-price">¥{Number(x.total_amount).toLocaleString()}</td>
-            if(col.id==='status')return <td key={col.id}><span className={`pill ${x.order_status==='已完成'?'success':x.order_status==='待发货'?'warning':x.order_status==='已发货'?'info':x.order_status==='申请退款'?'danger':''}`}>{x.order_status}</span></td>
+            if(col.id==='status')return <td key={col.id}><span className={`pill ${x.order_status==='已完成'?'success':x.order_status==='待发货'?'warning':x.order_status==='已发货'?'info':x.order_status==='申请退款'?'danger':'info'}`}>{x.order_status}</span></td>
             if(col.id==='date')return <td key={col.id} className="col-date">{x.ordered_at}</td>
             if(col.id==='paid_at')return <td key={col.id} className="col-date">{x.paid_at||'-'}</td>
 

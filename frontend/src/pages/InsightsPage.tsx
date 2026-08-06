@@ -91,6 +91,8 @@ export default function InsightsPage() {
   const [purchaseLoading, setPurchaseLoading] = useState(true)
   const [slowLoading, setSlowLoading] = useState(true)
   const [replenLimit, setReplenLimit] = useState(50)
+  // 搜索时重置分页
+  useEffect(function() { setReplenLimit(50) }, [insightSearch])
   const [purchaseLimit, setPurchaseLimit] = useState(50)
   const [slowLimit, setSlowLimit] = useState(50)
 
@@ -242,7 +244,7 @@ export default function InsightsPage() {
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4,display:'flex',gap:8,alignItems:'center'}}>
-                <span>显示 {visCols.length}/{currentCols.length} 列 · 点击"列"按钮切换{insightSearch ? ` · 搜索 "${insightSearch}"` : ''}</span>
+                <span>显示 {visCols.length}/{currentCols.length} 列 · 点击"列"按钮切换 · 已加载 {Math.min(replenLimit, filteredReplen.length)}/{filteredReplen.length} 条{insightSearch ? ` · 搜索 "${insightSearch}"` : ''}</span>
                 {replenMode==='bbcc' && orderedKeys.length > 0 && <span className="pill success" style={{fontSize:10}}>已下单 {orderedKeys.length} 项</span>}
               </div>
               <table>
@@ -313,8 +315,15 @@ export default function InsightsPage() {
                 </tbody>
               </table>
               {Array.isArray(filteredReplen) && filteredReplen.length > replenLimit && (
-                <div className="text-center mt-8">
-                  <span onClick={() => setReplenLimit(replenLimit + 50)} className="btn btn-ghost" style={{fontSize:12,padding:'6px 16px',cursor:'pointer'}}>加载更多 ({filteredReplen.length - replenLimit} 条)</span>
+                <div className="text-center mt-8" ref={function(el) {
+                  if (el && !el._observer) {
+                    el._observer = new IntersectionObserver(function(entries) {
+                      if (entries[0].isIntersecting) setReplenLimit(function(prev) { return prev + 50 })
+                    }, {rootMargin: '200px'})
+                    el._observer.observe(el)
+                  }
+                }}>
+                  <span className="btn btn-ghost" style={{fontSize:12,padding:'6px 16px',cursor:'pointer'}}>加载中... ({replenLimit}/{filteredReplen.length})</span>
                 </div>
               )}
             </div>

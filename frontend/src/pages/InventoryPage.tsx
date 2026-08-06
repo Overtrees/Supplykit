@@ -106,13 +106,19 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
       </tbody>
       {totalTurnover != null && <tfoot>
         <tr style={{fontWeight:700,borderTop:'2px solid var(--border)'}}>
-          <td colSpan={5} style={{textAlign:'right',fontSize:12}}>合计</td>
-          <td>{inventory.reduce((s,x)=>s+(x.price||0),0)>0?'¥'+inventory.reduce((s,x)=>s+(x.price||0),0).toFixed(1):''}</td>
-          <td>{inventory.reduce((s,x)=>s+(x.month_inbound||0),0)}</td>
-          <td>{inventory.reduce((s,x)=>s+(x.month_outbound||0),0)}</td>
-          <td>{inventory.reduce((s,x)=>s+(x.available_qty||0),0)}</td>
-          <td style={{fontSize:13}}>{totalTurnover} 天</td>
-          <td>¥{inventory.reduce((s,x)=>s+((x.available_qty||0)*(x.price||0)),0).toLocaleString()}</td>
+          {visCols.map(function(id){
+            var col=WH_COLS[whType].find(function(c){return c.id===id});
+            if(!col)return null;
+            if(col.id==='begin')return React.createElement('td',{key:col.id,style:{textAlign:'right',fontSize:12}},inventory.reduce(function(s,x){return s+(x.beginning_stock||0)},0));
+            if(col.id==='month_in')return React.createElement('td',{key:col.id,className:'col-qty'},inventory.reduce(function(s,x){return s+(x.month_inbound||0)},0));
+            if(col.id==='month_out')return React.createElement('td',{key:col.id,className:'col-qty',style:{fontWeight:600}},inventory.reduce(function(s,x){return s+(x.month_outbound||0)},0));
+            if(col.id==='avail')return React.createElement('td',{key:col.id,className:'col-qty',style:{fontWeight:600}},inventory.reduce(function(s,x){return s+(x.available_qty||0)},0));
+            if(col.id==='turnover')return React.createElement('td',{key:col.id,style:{fontSize:13,fontWeight:700}},totalTurnover+' 天');
+            if(col.id==='price')return React.createElement('td',{key:col.id,className:'col-price',style:{fontSize:12}},'');
+            if(col.id==='stock_amount')return React.createElement('td',{key:col.id,className:'col-price',style:{fontWeight:600,fontSize:12}},'¥'+inventory.reduce(function(s,x){return s+((x.available_qty||0)*(x.price||0))},0).toLocaleString());
+            if(id===visCols[0])return React.createElement('td',{key:col.id,colSpan:1,style:{textAlign:'right',fontSize:12,color:'var(--text)'}},'合计');
+            return React.createElement('td',{key:col.id});
+          })}
         </tr>
       </tfoot>}
               </table>

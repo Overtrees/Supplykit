@@ -298,8 +298,8 @@ export default function CleansingPage() {
           if (cols.length === 0) return <div className="small muted" style={{padding:20,textAlign:'center'}}>没有已映射的字段，请返回并设置字段映射</div>
           return <div style={{marginBottom:12}}>
             <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>← 左右滑动查看 · 仅显示已映射的 {cols.length} 列 →</div>
-            <div style={{overflowX:"auto"}}>
-            <table><thead><tr>{cols.map(col => (
+            <div style={{overflow:"auto",maxHeight:"calc(100vh - 180px)"}}>
+            <table><thead><tr style={{position:"sticky",top:0,background:"var(--card)",zIndex:1}}>{cols.map(col => (
               <th key={col.src} style={{minWidth:80,whiteSpace:'nowrap',verticalAlign:'top'}}>
                 {col.label}
                 <div className="small muted" className="text-9 font-400">← {col.src}</div>

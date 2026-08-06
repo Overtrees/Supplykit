@@ -69,10 +69,10 @@ export default function OrdersPage() {
     {orderLoading || !dataLoaded ? <OrderSkeleton />
     : orders.length === 0
       ? <EmptyState icon='clipboard' title={s?t("order.empty_matched"):t("order.empty")} desc={s?'换个关键词试试':''} />
-      : <div style={{overflowX:"auto"}}>
+      : <div style={{overflow:"auto",maxHeight:"calc(100vh - 180px)"}}>
         <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>{t("common.showing")} {visCols.length}/{COLS.length} {t("common.columns")}</div>
       <table><colgroup>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>
-      <thead><tr>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<th key={col.id}>{col.label}</th>:null})}</tr></thead>
+      <thead><tr style={{position:"sticky",top:0,background:"var(--card)",zIndex:1}}>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<th key={col.id}>{col.label}</th>:null})}</tr></thead>
       <tbody>
         {orders.map(x => {
           return <tr key={x.id}>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return null;

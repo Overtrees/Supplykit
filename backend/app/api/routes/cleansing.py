@@ -294,9 +294,20 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
     data_list = product_to_insert if is_product else (inv_to_insert if is_inv else (inbound_to_insert if is_inbound else (outbound_to_insert if is_outbound else orders_to_insert)))
     if data_list:
         try:
-            # 逐条 upsert 避免 UNIQUE 冲突（数据库已有相同 order_no+sku 时覆盖更新）
-            for item in data_list:
-                db.table(insert_table).upsert(item)
+            # 批量 upsert（使用 executemany + ON CONFLICT）
+            if data_list:
+                cols = list(data_list[0].keys())
+                col_names = ", ".join(f'"{c}"' for c in cols)
+                placeholders = ", ".join(["?"] * len(cols))
+                # 构造 ON CONFLICT 更新子句（排除主键列）
+                update_set = ", ".join([f'"{c}" = excluded."{c}"' for c in cols if c != 'id'])
+                conflict_col = 'order_no, sku' if not is_inv else 'id'
+                sql = f'INSERT INTO "{insert_table}" ({col_names}) VALUES ({placeholders}) ON CONFLICT({conflict_col}) DO UPDATE SET {update_set}'
+                params_list = [[row.get(c) for c in cols] for row in data_list]
+                conn = get_conn()
+                conn.executemany(sql, params_list)
+                conn.commit()
+                conn.close()
             # 超卖检查：写入的订单量 > 该 SKU 全仓可用库存
             if not is_inv:
                 oversell_by_sku = {}

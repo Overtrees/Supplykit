@@ -195,12 +195,26 @@ export default function SettingsPage() {
       const r = await fetch(API + '/api/seed/fill', {method:'POST'})
       const d = await r.json()
       if (d.ok) {
-        clearCache(); clearInflight()
-        toast.success('种子数据填充中，约 2-3 分钟完成，请稍候...')
-        setTimeout(() => window.location.reload(), 180000)
+        toast.success('种子数据填充中，约 2-3 分钟完成...')
+        const taskId = d.data?.task_id
+        // 轮询检测完成状态
+        const poll = setInterval(async () => {
+          try {
+            const sr = await fetch(API + '/api/seed/fill/status?task_id=' + taskId)
+            const sd = await sr.json()
+            if (sd.data?.status === 'done' || sd.data?.status === 'error') {
+              clearInterval(poll); clearTimeout(fallback)
+              clearCache(); clearInflight()
+              if (sd.data?.status === 'done') toast.success('填充完成，即将刷新')
+              else toast.error('填充失败: ' + (sd.data?.error || ''))
+              setTimeout(() => window.location.reload(), 1500)
+            }
+          } catch {}
+        }, 3000)
+        // 后备：3 分钟后无论完成与否都刷新
+        const fallback = setTimeout(() => { clearInterval(poll); window.location.reload() }, 180000)
       } else toast.error('填充失败')
     } catch { toast.error('填充失败') }
-    setSeeding(false)
   }
 
   const doReset = async () => {

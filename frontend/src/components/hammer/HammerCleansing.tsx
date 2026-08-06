@@ -7,10 +7,10 @@ export default function HammerCleansing({ channel }: HammerCleansingProps) {
   return (
     <div>
       <div className="hammer-header">{channel === 'jd' ? '京东' : '其他'} · 清洗导入</div>
-      <div className="ios-segmented">
+      <div className="hammer-segmented">
         {[['jd','京东'],['other','其他渠道']].map(([id,label]) => (
           <span key={id} onClick={() => setHammerCleansingChannel(id)}
-            className={'ios-segment' + (hammerCleansingChannel === id ? ' active' : '')}>
+            className={'hammer-segment' + (hammerCleansingChannel === id ? ' active' : '')}>
             {label}
           </span>
         ))}

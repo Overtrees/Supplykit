@@ -10,10 +10,10 @@ export default function HammerRules({ channel, onShowHistory }: HammerRulesProps
     <div>
       <div className="hammer-header">{channel === 'jd' ? '京东' : '其他'} · 规则参数</div>
       {/* tab 入口 */}
-      <div className="ios-segmented" style={{marginBottom:8}}>
+      <div className="hammer-segmented" style={{marginBottom:8}}>
         {[['rules','规则'],['params','补货参数'],['purchase','采购参数']].map(([id,label]) => (
           <span key={id} onClick={() => setHammerRulesTab(id)}
-            className={'ios-segment' + (hammerRulesTab === id ? ' active' : '')}>
+            className={'hammer-segment' + (hammerRulesTab === id ? ' active' : '')}>
             {label}
           </span>
         ))}

@@ -189,6 +189,10 @@ export default function SettingsPage() {
   const [resetting, setResetting] = useState(false)
 
   const doSeed = async () => {
+    if (seeding || localStorage.getItem('c_seed_task')) {
+      toast.error('已有填充任务进行中，请等待完成')
+      return
+    }
     setConfirm(null)
     setSeeding(true)
     try {

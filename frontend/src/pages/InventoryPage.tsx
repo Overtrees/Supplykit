@@ -10,16 +10,16 @@ const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhe
 const WH_COLS = {
   own: [
     {id:'warehouse',label:'仓库'},{id:'sku',label:'SKU'},{id:'barcode',label:'69码'},{id:'name',label:'商品'},
-    {id:'begin',label:'期初库存'},{id:'transit',label:'在途'},{id:'month_in',label:'当月采购入库'},
-    {id:'month_out',label:'当月出库'},{id:'avail',label:'可用'},{id:'turnover',label:'在库周转'},
+    {id:'price',label:'单价'},{id:'begin',label:'期初库存'},{id:'transit',label:'在途'},{id:'month_in',label:'当月采购入库'},
+    {id:'month_out',label:'当月出库'},{id:'avail',label:'可用'},{id:'turnover',label:'在库周转'},{id:'stock_amount',label:'在库金额'},
   ],
   platform: [
     {id:'channel',label:'平台'},{id:'warehouse',label:'仓库'},{id:'sku',label:'SKU'},{id:'barcode',label:'69码'},{id:'name',label:'商品'},
-    {id:'transit',label:'在途'},{id:'avail',label:'可用'},
+    {id:'price',label:'单价'},{id:'transit',label:'在途'},{id:'avail',label:'可用'},{id:'stock_amount',label:'在库金额'},
   ],
   platform_b: [
     {id:'channel',label:'平台'},{id:'warehouse',label:'仓库'},{id:'sku',label:'SKU'},{id:'barcode',label:'69码'},{id:'name',label:'商品'},
-    {id:'transit',label:'供应商-B仓'},{id:'c_transit',label:'B-C调拨在途'},{id:'avail',label:'可用'},
+    {id:'price',label:'单价'},{id:'transit',label:'供应商-B仓'},{id:'c_transit',label:'B-C调拨在途'},{id:'avail',label:'可用'},{id:'stock_amount',label:'在库金额'},
   ],
 }
 const COL_KEY='c_cols_inventory'

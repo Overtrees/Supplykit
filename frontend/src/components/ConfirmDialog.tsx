@@ -32,15 +32,11 @@ export default function ConfirmDialog({ open, title, desc, confirmLabel = t("com
       pointerEvents:'none',
     }}>
       {/* 面板本体 */}
-      <div onClick={e => e.stopPropagation()} style={{
+      <div onClick={e => e.stopPropagation()} className="material-regular" style={{
         width:'100%',maxWidth:600,
-        background:'var(--glass-bg)',
-        backdropFilter:'blur(40px) saturate(2.5) brightness(1.15)',
-        WebkitBackdropFilter:'blur(40px) saturate(2.5) brightness(1.15)',
-        border:'0.5px solid var(--glass-border)',
         borderRadius:32,
         padding:'18px 14px calc(14px + env(safe-area-inset-bottom))',
-        boxShadow:'0 -8px 24px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.25)',
+        boxShadow:'var(--shadow-sheet), inset 0 1px 0 rgba(255,255,255,0.25)',
         pointerEvents:'auto',
       }}>
         {/* 标题 */}

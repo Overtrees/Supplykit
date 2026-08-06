@@ -229,10 +229,10 @@ export default function InsightsPage() {
       {/* {t("nav.insights")} */}
       {tab === 'replen' && (
         <div className="card">
-          <div className="section-title" style={{display:'flex',flexWrap:'wrap',gap:6}}>
-            <span>
-              补货建议{replen.length > 0 && <span className="small muted" style={{ marginLeft: 8 }}></span>}
-            </span>
+          <div className="section-title" style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
+            <span>补货建议</span>
+            <span className="muted2" style={{fontSize:11,fontWeight:400}}>已加载 {Math.min(replenLimit, filteredReplen.length)}/{filteredReplen.length} 条 · 显示 {visCols.length}/{currentCols.length} 列{insightSearch ? ` · "${insightSearch}"` : ''}</span>
+            {replenMode==='bbcc' && orderedKeys.length > 0 && <span className="pill success" style={{fontSize:10}}>已下单 {orderedKeys.length} 项</span>}
           </div>
           {replenLoading ? (
             <div>
@@ -243,10 +243,6 @@ export default function InsightsPage() {
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>{t("insights.no_replenish")}</div>
           ) : (
             <div style={{overflow:'auto',maxHeight:'60vh'}}>
-              <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4,display:'flex',gap:8,alignItems:'center'}}>
-                <span>已加载 {Math.min(replenLimit, filteredReplen.length)}/{filteredReplen.length} 条 · 显示 {visCols.length}/{currentCols.length} 列{insightSearch ? ` · "${insightSearch}"` : ''}</span>
-                {replenMode==='bbcc' && orderedKeys.length > 0 && <span className="pill success" style={{fontSize:10}}>已下单 {orderedKeys.length} 项</span>}
-              </div>
               <table>
                 <colgroup>{visCols.map(id => {const col = currentCols.find(c => c.id === id); return col ? <col key={col.id} /> : null})}</colgroup>
                 <thead><tr style={{position:'sticky',top:0,background:'var(--card)',zIndex:1}}>{visCols.map(id => {const col = currentCols.find(c => c.id === id); return col ? <th key={col.id} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{col.label}</th> : null})}</tr></thead>

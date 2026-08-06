@@ -338,7 +338,7 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                     from app.core.rules import evaluate
                     for item in data_list:
                         try:
-                            evaluate('inventory.changed', {'inv': item, 'db': db, 'sku': item.get('sku','')})
+                            evaluate('inventory.changed', {'inv': item, 'db': db, 'sku': item.get('sku',''), 'channel': channel})
                         except Exception as e: print(f"[Cleansing] {e}")
                 except Exception as e: print(f"[Cleansing] {e}")
             try:

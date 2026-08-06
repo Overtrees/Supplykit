@@ -116,8 +116,6 @@ def _rebuild(channel='jd'):
             result.append({"name": name, "value": count, "percentage": pct, "conversion": conv})
         period_funnel[pname] = result
     
-    conn.close()
-    
     return {
         "summary": {
             "gmv": round(gmv, 2), "pending_count": pending, "refund_count": refund,
@@ -144,7 +142,6 @@ def check_db_version():
     try:
         conn = get_conn()
         v = conn.execute("SELECT value FROM replenishment_config WHERE key='_cache_version'").fetchone()
-        conn.close()
         return int(v[0]) if v else 0
     except: return 0
 
@@ -158,7 +155,6 @@ def invalidate():
         conn = get_conn()
         conn.execute("INSERT OR REPLACE INTO replenishment_config(key,value) VALUES('_cache_version',?)", (str(_cache_version),))
         conn.commit()
-        conn.close()
     except: pass
 
 def get_stock_risk(channel='jd'):
@@ -176,5 +172,4 @@ def get_stock_risk(channel='jd'):
                 items.append({"sku": r[0], "product_name": r[1], "available_qty": q, "safety_qty": s, "warehouse_type": r[4]})
         items.sort(key=lambda x: x['available_qty'] / max(x['safety_qty'], 1))
         _stock_risk_cache[channel] = {'data': items[:10], 'ts': now}
-        conn.close()
     return _stock_risk_cache[channel]['data']

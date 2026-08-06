@@ -1,5 +1,23 @@
 import os, sys, subprocess
 
+# Sentry（可选，通过 SENTRY_DSN 环境变量启用）
+if os.getenv("SENTRY_DSN"):
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.fastapi import FastApiIntegration
+        from sentry_sdk.integrations.logging import LoggingIntegration
+        sentry_sdk.init(
+            dsn=os.getenv("SENTRY_DSN"),
+            environment=os.getenv("SENTRY_ENV", "production"),
+            integrations=[
+                FastApiIntegration(),
+                LoggingIntegration(level=logging.INFO, event_level=logging.ERROR),
+            ],
+            traces_sample_rate=0.1,
+        )
+    except ImportError:
+        pass
+
 # ─── 自动修复：确保依赖已安装 ───
 _req = os.path.expanduser("~/Supplykit/backend/requirements.txt")
 _app_dir = os.path.dirname(__file__)

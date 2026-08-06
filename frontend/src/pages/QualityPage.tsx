@@ -38,6 +38,6 @@ export default function QualityPage() {
         </tr>)}
       </tbody></table></div>
       </div>
-    </div>)}
+    </div> )}
   </div>
 }

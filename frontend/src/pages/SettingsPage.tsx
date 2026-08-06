@@ -204,7 +204,7 @@ export default function SettingsPage() {
         localStorage.setItem('c_seed_task', taskId)
         toast.success('种子数据填充任务已提交')
         // 3 分钟后后备刷新
-        setTimeout(() => { localStorage.removeItem('c_seed_task'); window.location.reload() }, 180000)
+        setTimeout(() => { localStorage.removeItem('c_seed_task'); window.location.reload() }, 600000)
       } else toast.error('填充失败')
     } catch { toast.error('填充失败') }
     setSeeding(false)

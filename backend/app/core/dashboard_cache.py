@@ -32,6 +32,23 @@ def _compute_funnel(orders):
         result.append({"name": name, "value": count, "percentage": pct, "conversion": conv})
     return result
 
+def _compute_period_trends(conn, ch, today):
+    """Compute period trends (today/week/month) using SQL."""
+    from datetime import timedelta
+    periods = {}
+    for pname, pdays in [('today', 1), ('week', 7), ('month', 30)]:
+        cutoff = (today - timedelta(days=pdays - 1)).isoformat()
+        rows = conn.execute("SELECT ordered_at, SUM(total_amount) as g, COUNT(*) as cnt FROM orders WHERE channel=? AND ordered_at>=? AND order_status='已完成' GROUP BY ordered_at", (ch, cutoff)).fetchall()
+        daily = {}
+        for r in rows:
+            date_str = r[0][5:] if r[0] else '未知'
+            if date_str not in daily: daily[date_str] = {"gmv": 0, "orders": 0}
+            daily[date_str]["gmv"] += r[1]
+            daily[date_str]["orders"] += r[2]
+        periods[pname] = {"gmv": sum(v["gmv"] for v in daily.values()), "orders": sum(v["orders"] for v in daily.values())}
+        periods[pname + "_trend"] = [{"日期": k, "GMV": round(v["gmv"], 2), "订单数": v["orders"]} for k, v in sorted(daily.items())]
+    return periods
+
 def _compute_health(inv):
     """Inventory health index."""
     def _score(items):
@@ -116,12 +133,15 @@ def _rebuild(channel='jd'):
             result.append({"name": name, "value": count, "percentage": pct, "conversion": conv})
         period_funnel[pname] = result
     
+    periods = _compute_period_trends(conn, ch, today)
+    
     return {
         "summary": {
             "gmv": round(gmv, 2), "pending_count": pending, "refund_count": refund,
             "low_stock_count": low_stock, "total_orders": total_orders,
             "total_products": product_count, "total_suppliers": supplier_count, "active_alerts": alert_count,
         },
+        "periods": periods,
         "trend": trend, "stores": stores, "period_stores": period_stores,
         "period_funnel": period_funnel,
         "status_distribution": status_dist, "category_distribution": cat_dist,

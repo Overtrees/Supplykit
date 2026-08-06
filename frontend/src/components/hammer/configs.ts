@@ -70,7 +70,7 @@ export const INS_SLOW_COLS = [
   {id:'last_order_date',label:'最近下单'},{id:'days',label:'天数'},{id:'stock',label:'库存'},{id:'level',label:'状态'},
 ]
 
-export const insColKey = (m) => 'c_cols_insights_' + m
-export const getInsVis = (m) => { try { return JSON.parse(localStorage.getItem(insColKey(m)) || 'null') } catch{return null} }
+export const insColKey = (m, ch) => 'c_cols_insights_' + ch + '_' + m
+export const getInsVis = (m, ch) => { try { return JSON.parse(localStorage.getItem(insColKey(m, ch)) || 'null') } catch{return null} }
 export function insDefVis(cols) { return cols.map(c=>c.id).filter((_,i)=>[0,1,2,3,4,8,11,12,15].includes(i)) }
 export function insDefVisTrad(cols) { return cols.map(c=>c.id).filter((_,i)=>[0,1,2,3,4,5,6,10,11].includes(i)) }

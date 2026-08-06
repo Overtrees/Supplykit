@@ -28,8 +28,8 @@ const TRAD_COLS = [
   {id:'safety',label:'安全线'},{id:'turn',label:'在库周转'},{id:'after_turn',label:'补后周转'},
   {id:'suggest',label:'建议补'},{id:'note',label:'备注'},
 ]
-const colKey = m => 'c_cols_' + m
-function getVis(m) {try{return JSON.parse(localStorage.getItem(colKey(m))||'null')}catch{return null}}
+const colKey = (m, ch) => 'c_cols_' + ch + '_' + m
+function getVis(m, ch) {try{return JSON.parse(localStorage.getItem(colKey(m, ch))||'null')}catch{return null}}
 function defVis(cols){return cols.map(c=>c.id).filter((_,i)=>[0,1,2,3,4,8,11,12,15].includes(i))} // 默认9列(BBCC)
 function defVisTrad(cols){return cols.map(c=>c.id).filter((_,i)=>[0,1,2,3,4,5,6,10,11].includes(i))} // 默认9列(TRAD)
 const PURCHASE_COLS = [
@@ -98,7 +98,7 @@ export default function InsightsPage() {
   const replenMode = (globalChannel !== 'jd' && hammerReplenMode === 'bbcc') ? 'traditional' : hammerReplenMode
   const currentCols = replenMode === 'bbcc' ? BBCC_COLS : TRAD_COLS
   const [visCols, setVisCols] = useState(() => {
-    var saved = getVis(replenMode)
+    var saved = getVis(replenMode, globalChannel)
     var defaultCols = replenMode==='bbcc'?defVis(BBCC_COLS):defVisTrad(TRAD_COLS)
     if (saved) {
       // 过滤掉已不存在的列ID（如旧版 combined_turn → cur_turn）
@@ -134,7 +134,7 @@ export default function InsightsPage() {
       var filtered = saved.filter(function(id) { return validIds.includes(id) })
       setVisCols(filtered.length > 0 ? filtered : (replenMode==='bbcc'?defVis(BBCC_COLS):defVisTrad(TRAD_COLS)))
     } else {
-      const ls = getVis(replenMode)
+      const ls = getVis(replenMode, globalChannel)
       if (ls) setVisCols(ls)
       else setVisCols(replenMode==='bbcc'?defVis(BBCC_COLS):defVisTrad(TRAD_COLS))
     }

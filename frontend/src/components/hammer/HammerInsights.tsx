@@ -15,7 +15,7 @@ export default function HammerInsights({ channel }: HammerInsightsProps) {
   const [visCols, setVisCols] = useState(() => {
     if (isSlow) return INS_SLOW_COLS.map(c => c.id)
     if (isPurchase) return INS_PURCHASE_COLS.map(c => c.id)
-    return getInsVis(mode) || (mode==='bbcc'?insDefVis(INS_BBCC_COLS):insDefVisTrad(INS_TRAD_COLS))
+    return getInsVis(mode, channel) || (mode==='bbcc'?insDefVis(INS_BBCC_COLS):insDefVisTrad(INS_TRAD_COLS))
   })
   const [exporting, setExporting] = useState(false)
 
@@ -29,7 +29,7 @@ export default function HammerInsights({ channel }: HammerInsightsProps) {
       const cols = saved || INS_PURCHASE_COLS.map(c => c.id)
       setVisCols(cols); setHammerCols('insights_' + channel + '_purchase', cols)
     } else {
-      const saved = getInsVis(mode) || (mode==='bbcc'?insDefVis(INS_BBCC_COLS):insDefVisTrad(INS_TRAD_COLS))
+      const saved = getInsVis(mode, channel) || (mode==='bbcc'?insDefVis(INS_BBCC_COLS):insDefVisTrad(INS_TRAD_COLS))
       setVisCols(saved); setHammerCols('insights_' + mode, saved)
     }
   }, [mode, hammerInsightsTab, channel])
@@ -43,7 +43,7 @@ export default function HammerInsights({ channel }: HammerInsightsProps) {
       localStorage.setItem('c_cols_' + channel + '_purchase', JSON.stringify(c))
       setHammerCols('insights_' + channel + '_purchase', c)
     } else {
-      localStorage.setItem(insColKey(mode), JSON.stringify(c))
+      localStorage.setItem(insColKey(mode, channel), JSON.stringify(c))
       setHammerCols('insights_' + mode, c)
     }
   }

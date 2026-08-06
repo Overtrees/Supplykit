@@ -84,19 +84,23 @@ class QueryBuilder:
         self._select_cols = cols
         return self
 
+    def _quote_col(self, col):
+        """转义列名中的双引号，防止 SQL 注入"""
+        return '"' + col.replace('"', '""') + '"'
+
     def eq(self, col, val):
-        self._where.append(f'"{col}" = ?')
+        self._where.append(f'{self._quote_col(col)} = ?')
         self._params.append(val)
         return self
 
     def neq(self, col, val):
-        self._where.append(f'"{col}" != ?')
+        self._where.append(f'{self._quote_col(col)} != ?')
         self._params.append(val)
         return self
 
     def like(self, col, pattern):
-        self._where.append(f'"{col}" LIKE ?')
-        self._params.append(pattern.replace("%", "%"))
+        self._where.append(f'{self._quote_col(col)} LIKE ?')
+        self._params.append(pattern)
         return self
 
     def in_(self, col, vals):
@@ -104,13 +108,13 @@ class QueryBuilder:
             self._where.append("1=0")
             return self
         placeholders = ",".join(["?"] * len(vals))
-        self._where.append(f'"{col}" IN ({placeholders})')
+        self._where.append(f'{self._quote_col(col)} IN ({placeholders})')
         self._params.extend(vals)
         return self
 
     def ilike(self, col, pattern):
-        self._where.append(f'LOWER("{col}") LIKE ?')
-        self._params.append(pattern.replace("%", "%").lower())
+        self._where.append(f'LOWER({self._quote_col(col)}) LIKE ?')
+        self._params.append(pattern.lower())
         return self
 
     def single(self):
@@ -127,17 +131,17 @@ class QueryBuilder:
         return new_qb
 
     def gte(self, col, val):
-        self._where.append(f'"{col}" >= ?')
+        self._where.append(f'{self._quote_col(col)} >= ?')
         self._params.append(val)
         return self
 
     def lte(self, col, val):
-        self._where.append(f'"{col}" <= ?')
+        self._where.append(f'{self._quote_col(col)} <= ?')
         self._params.append(val)
         return self
 
     def order(self, col, desc=False):
-        self._order = f'ORDER BY "{col}" {"DESC" if desc else "ASC"}'
+        self._order = f'ORDER BY {self._quote_col(col)} {"DESC" if desc else "ASC"}'
         return self
 
     def limit(self, n):

@@ -244,7 +244,7 @@ export default function InsightsPage() {
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4,display:'flex',gap:8,alignItems:'center'}}>
-                <span>显示 {visCols.length}/{currentCols.length} 列 · 点击"列"按钮切换 · 已加载 {Math.min(replenLimit, filteredReplen.length)}/{filteredReplen.length} 条{insightSearch ? ` · 搜索 "${insightSearch}"` : ''}</span>
+                <span>已加载 {Math.min(replenLimit, filteredReplen.length)}/{filteredReplen.length} 条 · 显示 {visCols.length}/{currentCols.length} 列{insightSearch ? ` · "${insightSearch}"` : ''}</span>
                 {replenMode==='bbcc' && orderedKeys.length > 0 && <span className="pill success" style={{fontSize:10}}>已下单 {orderedKeys.length} 项</span>}
               </div>
               <table>

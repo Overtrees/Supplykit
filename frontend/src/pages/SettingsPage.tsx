@@ -134,6 +134,8 @@ export default function SettingsPage() {
   const [confirm, setConfirm] = useState(null) // {type:'fill'|'reset'}
   const [refreshing, setRefreshing] = useState(false)
 
+  const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
+
   const checkConnection = async () => {
     setRefreshing(true)
     const start = performance.now()

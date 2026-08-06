@@ -80,26 +80,25 @@ export default function HammerInsights({ channel }: HammerInsightsProps) {
     <div>
       <div className="hammer-header">{channel === 'jd' ? '京东' : '其他'} · 建议</div>
       {/* tab 入口 */}
-      <div className="hammer-btn-row" style={{marginBottom:8,flexWrap:'nowrap',gap:4}}>
+      <div className="ios-segmented" style={{marginBottom:4}}>
         {[['replen','补货建议'],['purchase','采购建议'],['slow','滞销预警']].map(([id,label]) => (
           <span key={id} onClick={() => setHammerInsightsTab(id)}
-            className={'hammer-tab' + (hammerInsightsTab === id ? ' active' : '')}
-            style={{fontSize:11,padding:'2px 4px'}}>
+            className={'ios-segment' + (hammerInsightsTab === id ? ' active' : '')}>
             {label}
           </span>
         ))}
       </div>
       {/* 补货模式行（单独一行） */}
       {hammerInsightsTab === 'replen' && (
-        <div className="hammer-btn-row" style={{marginBottom:8}}>
+        <div className="ios-segmented" style={{marginBottom:8}}>
           {channel === 'jd' && (
             <span onClick={() => setHammerReplenMode('bbcc')}
-              className={'hammer-tab' + (mode==='bbcc' ? ' active' : '')}>
+              className={'ios-segment' + (mode==='bbcc' ? ' active' : '')}>
               BBCC
             </span>
           )}
           <span onClick={() => setHammerReplenMode('traditional')}
-            className={'hammer-tab' + (mode==='traditional' ? ' active' : '')}>
+            className={'ios-segment' + (mode==='traditional' ? ' active' : '')}>
             传统多仓
           </span>
         </div>

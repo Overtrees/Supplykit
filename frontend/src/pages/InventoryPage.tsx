@@ -23,7 +23,7 @@ const WH_COLS = {
   ],
 }
 const COL_KEY='c_cols_inventory'
-const getVis=(wt)=>{try{return JSON.parse(localStorage.getItem(COL_KEY+'_'+wt)||'null')}catch{return null}}
+const getVis=(wt,ch)=>{try{return JSON.parse(localStorage.getItem(COL_KEY+'_'+ch+'_'+wt)||'null')}catch{return null}}
 
 interface InventoryPageProps { highlightSku?: string }
 
@@ -31,7 +31,7 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
   const toast = useToast()
   const [inventory, setInventory] = useState([])
   const [loading, setLoading] = useState(true)
-  const [visCols, setVisCols] = useState(() => {const wt='own';return getVis(wt)||WH_COLS[wt].map(c=>c.id)})
+  const [visCols, setVisCols] = useState(() => {const wt='own';return getVis(wt, globalChannel)||WH_COLS[wt].map(c=>c.id)})
   const [confirmDel, setConfirmDel] = useState(null)
   const [monthRange, setMonthRange] = useState('')
   const { channel: globalChannel, hammerWhType, hammerCols, hammerSearch } = useAppStore()
@@ -41,7 +41,7 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
     const saved = hammerCols?.['inventory_'+whType]
     if (saved) setVisCols(saved)
     else {
-      const ls = getVis(whType)
+      const ls = getVis(whType, globalChannel)
       if (ls) setVisCols(ls)
       else setVisCols(WH_COLS[whType].map(c => c.id))
     }

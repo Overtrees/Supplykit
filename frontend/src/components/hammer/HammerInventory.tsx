@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { t } from "../../locale"
 import { useAppStore } from '../../store/useAppStore'
 import { useToast } from '../../components/Toast'
-import { INV_COLS, INV_COL_KEY, getInvVis, INV_WH_LABEL } from './configs'
+import { INV_COLS, INV_COL_KEY, getInvVis, invColKey, INV_WH_LABEL } from './configs'
 import { IconExport } from '../Icons'
 
 interface HammerInventoryProps { channel: string }
@@ -10,24 +10,24 @@ interface HammerInventoryProps { channel: string }
 export default function HammerInventory({ channel }: HammerInventoryProps) {
   const toast = useToast()
   const { hammerPanel, setHammerPanel, hammerSearch, setHammerSearch, setHammerCols, hammerWhType, setHammerWhType } = useAppStore()
-  const [visCols, setVisCols] = useState(() => getInvVis(hammerWhType) || INV_COLS[hammerWhType].map(c => c.id))
+  const [visCols, setVisCols] = useState(() => getInvVis(hammerWhType, channel) || INV_COLS[hammerWhType].map(c => c.id))
   const [exporting, setExporting] = useState(false)
 
   useEffect(() => {
-    const saved = getInvVis(hammerWhType) || INV_COLS[hammerWhType].map(c => c.id)
+    const saved = getInvVis(hammerWhType, channel) || INV_COLS[hammerWhType].map(c => c.id)
     setVisCols(saved)
     setHammerCols('inventory_' + hammerWhType, saved)
   }, [hammerWhType])
 
   const saveCols = (cols) => {
     setVisCols(cols)
-    localStorage.setItem(INV_COL_KEY + '_' + hammerWhType, JSON.stringify(cols))
+    localStorage.setItem(invColKey(hammerWhType, channel), JSON.stringify(cols))
     setHammerCols('inventory_' + hammerWhType, cols)
   }
 
   const switchWh = (v) => {
     setHammerWhType(v)
-    const saved = getInvVis(v) || INV_COLS[v].map(c => c.id)
+    const saved = getInvVis(v, channel) || INV_COLS[v].map(c => c.id)
     setVisCols(saved)
     setHammerCols('inventory_' + v, saved)
   }

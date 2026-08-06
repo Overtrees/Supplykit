@@ -65,25 +65,48 @@ export default function App() {
   const { inventory, qualityLogs, startPolling, stopAll, wsStatus, channel, setChannel, hammerData, setHammerPanel } = useAppStore()
   const toast = useToast()
   const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
-  // 全局种子填充任务轮询
+  // 全局后台任务轮询（跨页面、挂后台均有效）
   useEffect(() => {
-    const taskId = localStorage.getItem('c_seed_task')
-    if (!taskId) return
-    const poll = setInterval(async () => {
-      try {
-        const r = await fetch(API + '/api/seed/fill/status?task_id=' + taskId)
-        const d = await r.json()
-        if (d.data?.status === 'done') {
-          clearInterval(poll); localStorage.removeItem('c_seed_task')
-          toast.success('种子数据填充完成，即将刷新')
-          setTimeout(() => window.location.reload(), 1500)
-        } else if (d.data?.status === 'error') {
-          clearInterval(poll); localStorage.removeItem('c_seed_task')
-          toast.error('种子数据填充失败')
-        }
-      } catch {}
-    }, 5000)
-    return () => clearInterval(poll)
+    const polls = []
+    // 种子填充任务
+    const seedTask = localStorage.getItem('c_seed_task')
+    if (seedTask) {
+      const poll = setInterval(async () => {
+        try {
+          const r = await fetch(API + '/api/seed/fill/status?task_id=' + seedTask)
+          const d = await r.json()
+          if (d.data?.status === 'done') {
+            clearInterval(poll); localStorage.removeItem('c_seed_task')
+            toast.success('种子数据填充完成，即将刷新')
+            setTimeout(() => window.location.reload(), 1500)
+          } else if (d.data?.status === 'error') {
+            clearInterval(poll); localStorage.removeItem('c_seed_task')
+            toast.error('种子数据填充失败')
+          }
+        } catch {}
+      }, 5000)
+      polls.push(poll)
+    }
+    // 清洗导入任务
+    const cleansingTask = JSON.parse(localStorage.getItem('c_cleansing_task') || 'null')
+    if (cleansingTask && cleansingTask.task_id) {
+      const poll = setInterval(async () => {
+        try {
+          const r = await fetch(API + '/api/cleansing/task/' + cleansingTask.task_id)
+          const d = await r.json()
+          if (d.status === 'done') {
+            clearInterval(poll); localStorage.removeItem('c_cleansing_task')
+            toast.success('数据清洗完成，即将刷新')
+            setTimeout(() => window.location.reload(), 1500)
+          } else if (d.status === 'error') {
+            clearInterval(poll); localStorage.removeItem('c_cleansing_task')
+            toast.error('数据清洗失败')
+          }
+        } catch {}
+      }, 5000)
+      polls.push(poll)
+    }
+    return () => polls.forEach(p => clearInterval(p))
   }, [])
   const [apiStatus, setApiStatus] = useState('checking')
   const [showHistory, setShowHistory] = useState(false)

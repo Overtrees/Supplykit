@@ -144,18 +144,26 @@ export default function CleansingPage() {
       if (!d.ok) { toast.error(d.error||'提交失败'); setBs(''); execLock.current = false; return }
       const totalRows = d.total_rows || '?'
       let finished = false
-      const poll = setInterval(async () => {
-        if (finished) return
-        try {
-          const sr = await api.get('/api/cleansing/task/'+d.task_id)
-          const sd = sr.data
-          if (sd.status === 'done') {
-            finished = true; clearInterval(poll); setRes(sd.result); setS(3); setBs('')
-            toast.success('清洗完成')
-          } else if (sd.status === 'error') { finished = true; clearInterval(poll); toast.error('失败: '+sd.error); setBs('') }
-          else if (sd.progress !== undefined) { setBs(`清洗中... ${sd.progress}% (${Math.round(sd.progress/100*totalRows)}/${totalRows}条)`) }
-        } catch { finished = true; clearInterval(poll); setBs('') }
-      }, 1000)
+      // 本地轮询（页面内）
+        const poll = setInterval(async () => {
+          if (finished) return
+          try {
+            const sr = await api.get('/api/cleansing/task/'+d.task_id)
+            const sd = sr.data
+            if (sd.status === 'done') {
+              finished = true; clearInterval(poll); localStorage.removeItem('c_cleansing_task')
+              setRes(sd.result); setS(3); setBs(''); toast.success('清洗完成')
+            } else if (sd.status === 'error') {
+              finished = true; clearInterval(poll); localStorage.removeItem('c_cleansing_task')
+              toast.error('失败: '+sd.error); setBs('')
+            } else if (sd.progress !== undefined) {
+              setBs(`清洗中... ${sd.progress}% (${Math.round(sd.progress/100*totalRows)}/${totalRows}条)`)
+              localStorage.setItem('c_cleansing_task', JSON.stringify({task_id: d.task_id, progress: sd.progress}))
+            }
+          } catch { finished = true; clearInterval(poll); setBs('') }
+        }, 1000)
+        // 全局轮询（跨页面）：存 task_id 到 localStorage
+        localStorage.setItem('c_cleansing_task', JSON.stringify({task_id: d.task_id, progress: 0}))
     } catch(e) { toast.error('请求异常: '+e.message); setBs('') }
     } finally { execLock.current = false }
   }

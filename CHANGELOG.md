@@ -1,5 +1,43 @@
 # SupplyKit 更新日志
 
+## 2026-08-06 种子数据重构 + CSS 系统 + 全局任务轮询
+
+### 种子数据
+- 分步执行（6 步独立 try-catch），失败跳过继续，断点续传
+- 异步 + APScheduler 后台运行，前端 SeedProgress 组件显示步骤进度
+- 品类拓展到 70 种（调味品+零食+日化），价格分层，退货场景
+- 供应商 10 家，SKU 1000/渠道（200 共享），订单量 ~10 万条
+- 补货参数按渠道写入，规则按渠道隔离
+
+### 全局任务轮询
+- 种子填充和清洗导入任务存 localStorage → App.tsx 全局轮询
+- 跨页面/挂后台/关闭后重开均有效，完成时自动刷新
+- 防重复提交 + 无效任务 ID 自动清理
+
+### CSS 系统
+- 引入 iOS 18 风格多级毛玻璃（4 级 blur + 4 级材料背景）
+- 阴影系统（card/sheet/alert/control）
+- 高光渐变（card::before），文字层级（text-secondary/tertiary）
+- 分段控件（hammer-segmented + hammer-segment）
+- 材料类（material-thin/regular/thick），header 按钮改用毛玻璃
+- 表格嵌套容器（外上下内左右，互不干扰）
+
+### 新增列
+- 订单页：数量列、单价列
+- 进销存页：单价列、在库金额列（含页脚合计）
+- 库存 API 联表查询商品价格
+
+### 列配置渠道隔离
+- 进销存/建议页/锤子数据/已下单/健康度 tab 全部按渠道隔离
+
+### 修复
+- SettingsPage 缺少 API 变量导致连接检测失败
+- 构建失败（overflow-y/x 语法、重复 className、esbuild 正则歧义）
+- 种子填充 NOT NULL 约束失败、`_stock_risk_cache` 未初始化
+- 缺货列表标签区分 B/C 仓/自有/平台
+- 健康卡维度切换（自有/BC/C仓）
+- 页面滚动偏移 + 水平滑动不可用
+
 ## P0 Bug 修复（Code Review）
 | 问题 | 修复 |
 |------|------|

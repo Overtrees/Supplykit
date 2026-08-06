@@ -242,7 +242,7 @@ export default function InsightsPage() {
           ) : !Array.isArray(replen) || replen.length === 0 ? (
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>{t("insights.no_replenish")}</div>
           ) : (
-            <div style={{overflow:'auto',maxHeight:'60vh'}}>
+            <div style={{overflow:'auto',maxHeight:'calc(100vh - 280px)'}}>
               <table>
                 <colgroup>{visCols.map(id => {const col = currentCols.find(c => c.id === id); return col ? <col key={col.id} /> : null})}</colgroup>
                 <thead><tr style={{position:'sticky',top:0,background:'var(--card)',zIndex:1}}>{visCols.map(id => {const col = currentCols.find(c => c.id === id); return col ? <th key={col.id} style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}}>{col.label}</th> : null})}</tr></thead>

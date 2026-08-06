@@ -2,6 +2,7 @@
 from fastapi import APIRouter, HTTPException
 from app.core.database import get_db
 from app.core.response import ok, fail
+from app.core.schemas import RuleCreate, RuleUpdate
 import json
 
 router = APIRouter(prefix="/api/rules", tags=["rules"])
@@ -11,30 +12,35 @@ def list_rules(channel: str = 'jd', db = get_db()):
     return db.table("rules").select("*").eq("channel", channel).order("id").execute().data
 
 @router.post("")
-def create_rule(data: dict, db = get_db()):
+def create_rule(data: RuleCreate, db = get_db()):
     payload = {
-        "name": data.get("name",""), "event": data.get("event",""),
-        "condition_json": json.dumps(data.get("condition",{})),
-        "alert_type": data.get("alert_type",""), 
-        "alert_title": data.get("alert_title",""),
-        "alert_desc": data.get("alert_desc",""),
-        "severity": data.get("severity","warning"),
-        "channel": data.get("channel", "jd"),
-        "is_active": 1 if data.get("is_active",True) else 0,
+        "name": data.name, "event": data.event,
+        "condition_json": json.dumps(data.condition),
+        "alert_type": data.alert_type,
+        "alert_title": data.alert_title,
+        "alert_desc": data.alert_desc,
+        "severity": data.severity,
+        "channel": data.channel,
+        "is_active": 1 if data.is_active else 0,
     }
     db.table("rules").insert(payload).execute()
-    return ok({"message": f"规则已创建"})
+    return ok({"message": "规则已创建"})
 
 @router.put("/{rule_id}")
-def update_rule(rule_id: int, data: dict, db = get_db()):
+def update_rule(rule_id: int, data: RuleUpdate, db = get_db()):
     if not db.table("rules").select("id").eq("id", rule_id).execute().data:
         raise HTTPException(status_code=404, detail="规则不存在")
     update = {}
-    for k in ["name","event","alert_type","alert_title","alert_desc","severity"]:
-        if k in data: update[k] = data[k]
-    if "condition" in data: update["condition_json"] = json.dumps(data["condition"])
-    if "is_active" in data: update["is_active"] = 1 if data["is_active"] else 0
-    db.table("rules").update(update).eq("id", rule_id).execute()
+    if data.name is not None: update["name"] = data.name
+    if data.event is not None: update["event"] = data.event
+    if data.alert_type is not None: update["alert_type"] = data.alert_type
+    if data.alert_title is not None: update["alert_title"] = data.alert_title
+    if data.alert_desc is not None: update["alert_desc"] = data.alert_desc
+    if data.severity is not None: update["severity"] = data.severity
+    if data.condition is not None: update["condition_json"] = json.dumps(data.condition)
+    if data.is_active is not None: update["is_active"] = 1 if data.is_active else 0
+    if update:
+        db.table("rules").update(update).eq("id", rule_id).execute()
     return ok({"message": "已更新"})
 
 @router.delete("/{rule_id}")

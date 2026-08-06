@@ -376,7 +376,7 @@ export default function InsightsPage() {
                       {purchaseVisCols.map(id => {
                         const col = PURCHASE_COLS.find(c => c.id === id)
                         if (!col) return <td key={id}></td>
-                        if (col.id === 'barcode') return <td key={col.id} className="mono" className="text-11 muted2">{x.barcode || '-'}</td>
+                        if (col.id === 'barcode') return <td key={col.id} className="mono text-11 muted2">{x.barcode || '-'}</td>
                         if (col.id === 'sku') return <td key={col.id} className="mono" style={{fontSize:12}}>{x.sku}</td>
                         if (col.id === 'name') return <td key={col.id} className="col-name">{x.product_name}</td>
                         if (col.id === 'warehouse') return <td key={col.id} className="col-store">{x.warehouse || x.store || '-'}</td>
@@ -413,6 +413,18 @@ export default function InsightsPage() {
                   </tr>
                 </tfoot>
               </table>
+              {filteredPurchase.length > purchaseLimit && (
+                <div className="text-center mt-8" ref={function(el) {
+                  if (el && !el._observer) {
+                    el._observer = new IntersectionObserver(function(entries) {
+                      if (entries[0].isIntersecting) setPurchaseLimit(function(prev) { return prev + 50 })
+                    }, {rootMargin: '200px'})
+                    el._observer.observe(el)
+                  }
+                }}>
+                  <span className="btn btn-ghost" style={{fontSize:12,padding:'6px 16px',cursor:'pointer'}}>加载中... ({purchaseLimit}/{filteredPurchase.length})</span>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -421,7 +433,10 @@ export default function InsightsPage() {
       {/* 滞销预警 */}
       {tab === 'slow' && (
         <div className="card">
-          <div className="section-title">滞销预警 <span className="small muted">· 超过 14 天未下单的商品</span></div>
+          <div className="section-title" style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
+            <span>滞销预警</span>
+            <span className="muted2" style={{fontSize:11,fontWeight:400}}>显示 {slowVisCols.length}/{SLOW_COLS.length} 列 · 共 {filteredSlow.length} 条{insightSearch ? ` · "${insightSearch}"` : ''}</span>
+          </div>
           {slowLoading ? (
             <div>
               {[1,2,3].map(i => <Skeleton key={i} height={36} style={{ marginBottom: 4 }} />)}
@@ -441,7 +456,7 @@ export default function InsightsPage() {
                         {slowVisCols.map(id => {
                           const col = SLOW_COLS.find(c => c.id === id)
                           if (!col) return <td key={id}></td>
-                          if (col.id === 'barcode') return <td key={col.id} className="mono" className="text-11 muted2">{x.barcode || '-'}</td>
+                          if (col.id === 'barcode') return <td key={col.id} className="mono text-11 muted2">{x.barcode || '-'}</td>
                           if (col.id === 'sku') return <td key={col.id} className="mono" style={{fontSize:12}}>{x.sku}</td>
                           if (col.id === 'name') return <td key={col.id}>{x.product_name}</td>
                           if (col.id === 'store') return <td key={col.id}>{x.store || x.warehouse || '-'}</td>

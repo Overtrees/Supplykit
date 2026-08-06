@@ -40,7 +40,7 @@ def make_skus(sfx, count=1000, shared=None):
         elif price_type == 'high': p = round(random.uniform(100, 299), 1)
         else: p = round(random.uniform(5.8, 99.9), 1)
         unit = '包' if c in ['薯片','虾条','爆米花','坚果','瓜子','花生','饼干','威化','巧克力','糖果','纸巾','湿巾','垃圾袋','保鲜膜','保鲜袋'] else ('瓶' if c in ['洗衣液','洗洁精','洗手液','消毒液'] else '瓶')
-        sku = shared[i-1] if shared and i <= len(shared) else f'SKU-{i:04d}{sfx}'
+        sku = shared[i-1] if shared and i <= len(shared) and shared[i-1] is not None else f'SKU-{i:04d}{sfx}'
         r.append({'sku':sku,'name':f'{c}{i}','store':s,'cat':c,'price':p,'box':random.choice([6,12,24]),'unit':unit,'barcode':f'690{i:010d}','weight':round(random.uniform(5,25),1),'volume':round(random.uniform(0.02,0.12),3),'status':'active'})
     return r
 

@@ -63,6 +63,28 @@ export default function App() {
   const [page, setPage] = useState('dash')
   const [highlightSku, setHighlightSku] = useState('')
   const { inventory, qualityLogs, startPolling, stopAll, wsStatus, channel, setChannel, hammerData, setHammerPanel } = useAppStore()
+  const toast = useToast()
+  const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
+  // 全局种子填充任务轮询
+  useEffect(() => {
+    const taskId = localStorage.getItem('c_seed_task')
+    if (!taskId) return
+    const poll = setInterval(async () => {
+      try {
+        const r = await fetch(API + '/api/seed/fill/status?task_id=' + taskId)
+        const d = await r.json()
+        if (d.data?.status === 'done') {
+          clearInterval(poll); localStorage.removeItem('c_seed_task')
+          toast.success('种子数据填充完成，即将刷新')
+          setTimeout(() => window.location.reload(), 1500)
+        } else if (d.data?.status === 'error') {
+          clearInterval(poll); localStorage.removeItem('c_seed_task')
+          toast.error('种子数据填充失败')
+        }
+      } catch {}
+    }, 5000)
+    return () => clearInterval(poll)
+  }, [])
   const [apiStatus, setApiStatus] = useState('checking')
   const [showHistory, setShowHistory] = useState(false)
   const [history, setHistory] = useState([])

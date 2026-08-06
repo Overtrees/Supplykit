@@ -100,7 +100,7 @@ input,select,button,textarea{font-family:inherit;font-size:16px}input[type="file
 
 /* 分段控件（锤子菜单 tab） */
 .hammer-segmented{display:flex;gap:0;background:var(--bg-segmented,var(--gray));border-radius:var(--radius-full);padding:2px;overflow:hidden}
-.hammer-segment{flex:1;font-size:12px;min-height:28px;padding:2px 8px;border-radius:99px;border:none;cursor:pointer;text-align:center;display:flex;align-items:center;justify-content:center;box-sizing:border-box;transition:all 0.2s;background:transparent;color:var(--segment-inactive-text,var(--muted2));font-weight:400}
+.hammer-segment{flex:1;font-size:12px;min-height:28px;padding:2px 8px;border-radius:99px;border:none;cursor:pointer;text-align:center;display:flex;align-items:center;justify-content:center;box-sizing:border-box;transition:all 0.2s;background:transparent;color:var(--segment-inactive-text,var(--muted2));font-weight:400;white-space:nowrap}
 .hammer-segment.active{background:var(--segment-active-bg,var(--card));color:var(--segment-active-text,var(--text));font-weight:600;box-shadow:var(--segment-active-shadow,var(--shadow-control))}
 
 /* 材料层级 */

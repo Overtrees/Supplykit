@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { IconCheck, IconLoading, IconUndo } from './Icons'
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
 
@@ -22,8 +23,8 @@ export default function SeedProgress() {
   if (tasks.length === 0) return null
 
   return (
-    <div className="card" style={{marginTop:12}}>
-      <div className="section-title text-12">后台任务进度</div>
+    <div className="card mt-12">
+      <div className="section-title text-12">后台任务</div>
       {tasks.map(t => (
         <TaskItem key={t.type + t.id} task={t} />
       ))}
@@ -60,18 +61,22 @@ function TaskItem({ task }) {
 
   return (
     <div className="flex items-center gap-8" style={{padding:'8px 0',borderBottom:'1px solid var(--border)'}}>
-      <span className={'seed-status seed-status-' + status} />
+      <span className={'seed-status seed-status-' + status}>
+        {status === 'running' && <IconLoading size={10} />}
+      </span>
       <div className="flex-1">
         <div className="text-12 font-600">{task.label}</div>
-        <div className="text-11 muted2">
-          {status === 'done' ? '✅ 完成，即将刷新...' :
-           status === 'error' ? '❌ 失败: ' + message :
-           status === 'running' ? (task.type === 'cleansing' ? '⏳ 清洗中... ' + progress + '%' : '⏳ 正在填充（约 3-5 分钟）...') :
-           '⏳ 等待执行...'}
+        <div className="text-11 text-secondary">
+          {status === 'done' ? <span className="flex items-center gap-4"><IconCheck size={12} /> 完成，即将刷新</span> :
+           status === 'error' ? <span className="flex items-center gap-4"><IconUndo size={12} /> 失败: {message}</span> :
+           status === 'running' ? (task.type === 'cleansing' ? '清洗中 ' + progress + '%' : '正在填充...') :
+           '等待执行'}
         </div>
       </div>
-      <button onClick={() => { localStorage.removeItem(task.type === 'seed' ? 'c_seed_task' : 'c_cleansing_task'); window.location.reload() }}
-        className="btn btn-ghost text-10" style={{padding:'2px 8px'}}>取消</button>
+      {status !== 'done' && (
+        <button onClick={() => { localStorage.removeItem(task.type === 'seed' ? 'c_seed_task' : 'c_cleansing_task'); window.location.reload() }}
+          className="btn btn-ghost text-10" style={{padding:'2px 8px'}}>取消</button>
+      )}
     </div>
   )
 }

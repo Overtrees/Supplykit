@@ -11,7 +11,7 @@ interface DashboardPageProps { onAlert?: (sku: string) => void }
 export default function DashboardPage({ onAlert }: DashboardPageProps) {
   const { dashboard, inventory, qualityLogs, alerts, stockRisk, channel, loading, hammerDashPeriod: periodTab } = useAppStore()
   const [healthTab, setHealthTab] = useState(() => localStorage.getItem('health_tab_' + channel) || (channel === 'jd' ? 'own' : 'platform'))
-  const [bcMenuOpen, setBcMenuOpen] = useState(false)
+  const [alertSheet, setAlertSheet] = useState(null)
   const [showAllLowStock, setShowAllLowStock] = useState(false)
   const [showAllReplenish, setShowAllReplenish] = useState(false)
   const [chLoading, setChLoading] = useState(false)
@@ -170,8 +170,6 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
         {(()=>{
           var healthData = dashboard?.health_index?.[healthTab]||{}
           var isJd = channel === 'jd'
-          var bcActive = healthTab === 'bc' || healthTab === 'platform'
-          var bcLabel = healthTab === 'platform' ? 'C仓' : 'BC'
           return <>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
               <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>库存{t("dash.healthy")}度</div>
@@ -179,29 +177,15 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
                 <span onClick={function(){localStorage.setItem('health_tab_' + channel,'own');setHealthTab('own')}}
                   className="clickable"
                   style={{fontSize:9,padding:'2px 6px',borderRadius:99,cursor:'pointer',fontWeight:healthTab==='own'?600:400,background:healthTab==='own'?'var(--card)':'transparent',color:healthTab==='own'?'var(--text)':'var(--muted2)',whiteSpace:'nowrap'}}>自有</span>
-                {isJd && <span onClick={function(){
-              if (healthTab === 'bc' || healthTab === 'platform') {
-                setBcMenuOpen(!bcMenuOpen)
-              } else {
-                localStorage.setItem('health_tab_' + channel,'bc');setHealthTab('bc')
-              }
-            }}
-              className="clickable"
-              style={{fontSize:9,padding:'2px 6px',borderRadius:99,cursor:'pointer',fontWeight:bcActive?600:400,background:bcActive?'var(--card)':'transparent',color:bcActive?'var(--text)':'var(--muted2)',display:'flex',alignItems:'center',gap:1,whiteSpace:'nowrap'}}>
-              {bcLabel}{bcActive && <svg width="6" height="6" viewBox="0 0 8 8" fill="none" style={{transform:'rotate('+(bcMenuOpen?'180':'0')+'deg)',transition:'transform 0.15s'}}><path d="M2 3l2 2 2-2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>}
-            </span>}
+                {isJd && <span onClick={function(){localStorage.setItem('health_tab_' + channel,'bc');setHealthTab('bc')}}
+                  className="clickable"
+                  style={{fontSize:9,padding:'2px 6px',borderRadius:99,cursor:'pointer',fontWeight:healthTab==='bc'?600:400,background:healthTab==='bc'?'var(--card)':'transparent',color:healthTab==='bc'?'var(--text)':'var(--muted2)',whiteSpace:'nowrap'}}>BC</span>}
+                {isJd && <span onClick={function(){localStorage.setItem('health_tab_' + channel,'platform');setHealthTab('platform')}}
+                  className="clickable"
+                  style={{fontSize:9,padding:'2px 6px',borderRadius:99,cursor:'pointer',fontWeight:healthTab==='platform'?600:400,background:healthTab==='platform'?'var(--card)':'transparent',color:healthTab==='platform'?'var(--text)':'var(--muted2)',whiteSpace:'nowrap'}}>C仓</span>}
                 {!isJd && <span onClick={function(){localStorage.setItem('health_tab_' + channel,'platform');setHealthTab('platform')}}
                   className="clickable"
                   style={{fontSize:10,padding:'2px 8px',borderRadius:99,cursor:'pointer',fontWeight:healthTab==='platform'?600:400,background:healthTab==='platform'?'var(--card)':'transparent',color:healthTab==='platform'?'var(--text)':'var(--muted2)'}}>平台</span>}
-                {bcMenuOpen && <div onClick={function(){setBcMenuOpen(false)}} style={{position:'fixed',inset:0,zIndex:9}} />}
-                {bcMenuOpen && <div style={{position:'absolute',top:'calc(100% + 4px)',right:0,background:'var(--card)',borderRadius:12,border:'0.5px solid var(--border)',boxShadow:'0 4px 12px rgba(0,0,0,0.1)',overflow:'hidden',minWidth:64,zIndex:10}}>
-                  {healthTab === 'bc'
-                    ? <div onClick={function(){localStorage.setItem('health_tab_' + channel,'platform');setHealthTab('platform');setBcMenuOpen(false)}}
-                        className="clickable" style={{padding:'6px 12px',fontSize:11,color:'var(--text)',cursor:'pointer',whiteSpace:'nowrap'}}>C仓</div>
-                    : <div onClick={function(){localStorage.setItem('health_tab_' + channel,'bc');setHealthTab('bc');setBcMenuOpen(false)}}
-                        className="clickable" style={{padding:'6px 12px',fontSize:11,color:'var(--text)',cursor:'pointer',whiteSpace:'nowrap'}}>BC</div>
-                  }
-                </div>}
               </div>
             </div>
             <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:4}}>

@@ -129,13 +129,14 @@ def _rebuild(channel='jd'):
     }
 
 def get_cached_dashboard(channel):
-    global _cache_by_channel, _cache_version
+    global _cache_by_channel, _cache_version, _cache_dirty
     now = time.time()
     stale = check_db_version()
     cached = _cache_by_channel.get(channel)
     if cached is None or _cache_dirty or stale or (now - cached['ts']) > _CACHE_TTL:
         data = _rebuild(channel)
         _cache_by_channel[channel] = {'data': data, 'ts': now}
+        _cache_dirty = False
     return _cache_by_channel[channel]['data']
 
 def check_db_version():

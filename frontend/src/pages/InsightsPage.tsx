@@ -173,7 +173,7 @@ export default function InsightsPage() {
       setOrderedKeys(items.map(x => x.sku + "|" + x.store))
       setOrderedItems(items)
     } catch(e) {
-      try { const fallback = JSON.parse(localStorage.getItem('c_ordered') || '[]'); setOrderedKeys(fallback) } catch { setOrderedKeys([]) }
+      try { const fallback = JSON.parse(localStorage.getItem('c_ordered_' + globalChannel) || '[]'); setOrderedKeys(fallback) } catch { setOrderedKeys([]) }
     }
   }
 

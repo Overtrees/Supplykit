@@ -54,7 +54,7 @@ export const useAppStore = create((set, get) => ({
   setHammerPanel: (panel) => set({ hammerPanel: panel }),
   hammerSearch: '',
   setHammerSearch: (text) => set({ hammerSearch: text }),
-  hammerData: JSON.parse(localStorage.getItem('c_hammer_data') || '{}'),
+  hammerData: JSON.parse(localStorage.getItem('c_hammer_data_' + (localStorage.getItem('c_channel') || 'jd')) || '{}'),
   hammerWhType: localStorage.getItem('c_wh_type_' + (localStorage.getItem('c_channel') || 'jd')) || 'own',
   setHammerWhType: (v) => { localStorage.setItem('c_wh_type_' + get().channel, v); set({ hammerWhType: v }) },
   hammerInsightsTab: 'replen',

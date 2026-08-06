@@ -104,9 +104,9 @@ input,select,button,textarea{font-family:inherit;font-size:16px}input[type="file
 .hammer-segment.active{background:var(--segment-active-bg,var(--card));color:var(--segment-active-text,var(--text));font-weight:600;box-shadow:var(--segment-active-shadow,var(--shadow-control))}
 
 /* 材料层级 */
-.hammer-material-thin{background:var(--bg-thin);backdrop-filter:var(--blur-thin);-webkit-backdrop-filter:var(--blur-thin);border:0.5px solid var(--border-light)}
-.hammer-material-regular{background:var(--bg-regular);backdrop-filter:var(--blur-regular);-webkit-backdrop-filter:var(--blur-regular);border:0.5px solid var(--border-medium)}
-.hammer-material-thick{background:var(--bg-thick);backdrop-filter:var(--blur-thick);-webkit-backdrop-filter:var(--blur-thick);border:0.5px solid var(--border-strong)}
+.material-thin{background:var(--bg-thin);backdrop-filter:var(--blur-thin);-webkit-backdrop-filter:var(--blur-thin);border:0.5px solid var(--border-light)}
+.material-regular{background:var(--bg-regular);backdrop-filter:var(--blur-regular);-webkit-backdrop-filter:var(--blur-regular);border:0.5px solid var(--border-medium)}
+.material-thick{background:var(--bg-thick);backdrop-filter:var(--blur-thick);-webkit-backdrop-filter:var(--blur-thick);border:0.5px solid var(--border-strong)}
 
 /* 锤子菜单布局行 */
 .hammer-row-2{display:flex;gap:8px}

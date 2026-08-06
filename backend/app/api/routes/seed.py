@@ -84,8 +84,8 @@ def _seed_fill_async():
 
     # 步骤1: 清空旧数据
     steps.append(_run_step('清空旧数据', lambda: [
-        conn.execute(f'DELETE FROM "{t}"') for t in ['orders','inventory','products','suppliers','alerts','quality_logs','events','purchase_orders','replenishment_config_history','cleansing_templates','custom_fields'] and conn.commit()
-    ]))
+        conn.execute(f'DELETE FROM "{t}"') for t in ['orders','inventory','products','suppliers','alerts','quality_logs','events','purchase_orders','replenishment_config_history','cleansing_templates','custom_fields']
+    ] and conn.commit()))
     _update_steps(steps)
 
     # 步骤2: 写入商品/供应商

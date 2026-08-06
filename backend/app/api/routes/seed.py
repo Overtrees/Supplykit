@@ -100,12 +100,12 @@ def _seed_fill_async():
     steps.append(_run_step('生成库存', lambda: _seed_inventory(db, skus_data)))
     _update_steps(steps)
 
-    # 步骤5: 触发规则引擎
-    steps.append(_run_step('触发规则引擎', lambda: _seed_rules(db, skus_data)))
+    # 步骤5: 写入补货参数和规则
+    steps.append(_run_step('写入补货参数/规则', lambda: _seed_config(db, conn)))
     _update_steps(steps)
 
-    # 步骤6: 写入补货参数和规则
-    steps.append(_run_step('写入补货参数/规则', lambda: _seed_config(db, conn)))
+    # 步骤6: 触发规则引擎
+    steps.append(_run_step('触发规则引擎', lambda: _seed_rules(db, skus_data)))
     _update_steps(steps)
 
     # 刷新缓存

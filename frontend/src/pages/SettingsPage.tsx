@@ -4,7 +4,6 @@ import { useAppStore } from '../store/useAppStore'
 import { clearCache, clearInflight } from '../api/client'
 import { useToast } from '../components/Toast'
 import { t } from "../locale"
-import { t } from "../locale"
 import ConfirmDialog from '../components/ConfirmDialog'
 
 const VERSION = '1.0.0'
@@ -64,7 +63,6 @@ function RecycleBin({ onClose }) {
   }, [])
   var [orders, setOrders] = useState([])
   var [loading, setLoading] = useState(true)
-  var API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
 
   useEffect(function() {
     setLoading(true)
@@ -134,7 +132,6 @@ export default function SettingsPage() {
   const [confirm, setConfirm] = useState(null) // {type:'fill'|'reset'}
   const [refreshing, setRefreshing] = useState(false)
 
-  const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
 
   const checkConnection = async () => {
     setRefreshing(true)

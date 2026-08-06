@@ -117,8 +117,6 @@ def _seed_fill_async():
 
     return {"steps": steps}
 
-def _seed_products_suppliers(db, skus_data):
-    for skus,ch in [(skus_data['jd'],'jd'),(skus_data['other'],'other')]:
 
 def _update_steps(steps):
     global _current_task_id

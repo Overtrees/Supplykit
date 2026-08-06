@@ -31,7 +31,7 @@ _task_results = {}
 _task_lock = threading.Lock()
 
 def submit_task(task_id: str, fn, *args, **kwargs):
-    """提交一个后台任务"""
+    """提交一个后台任务（使用 APScheduler 运行，避免 daemon 线程被 kill）"""
     with _task_lock:
         _task_results[task_id] = {"status": "pending", "result": None, "error": None}
     def _run():
@@ -46,8 +46,9 @@ def submit_task(task_id: str, fn, *args, **kwargs):
             with _task_lock:
                 _task_results[task_id]["status"] = "error"
                 _task_results[task_id]["error"] = str(e)
-    t = threading.Thread(target=_run, daemon=True)
-    t.start()
+    # 使用 APScheduler 运行，避免 daemon 线程被 WSGI 请求结束 kill
+    from app.core.scheduler import scheduler as sched
+    sched.add_job(_run, 'date', run_date=datetime.utcnow(), id=task_id, replace_existing=True)
     return task_id
 
 def get_task(task_id: str):

@@ -428,7 +428,8 @@ export default function InsightsPage() {
             </div>
           </div>
         ))}
-      )}
+      </div>
+    )}
 
       {/* 滞销预警 */}
       {tab === 'slow' && (
@@ -472,6 +473,7 @@ export default function InsightsPage() {
                   </tbody>
                 </table>
               </div>
+            </div>
               {slowMoving.filter(x => x.level === '正常').length > 0 && (
                 <div className="small muted" style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
                   另有 {slowMoving.filter(x => x.level === '正常').length} 个商品最近 14 天内有过订单（正常销售中）

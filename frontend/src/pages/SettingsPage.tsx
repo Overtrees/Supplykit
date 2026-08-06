@@ -138,7 +138,7 @@ export default function SettingsPage() {
     setRefreshing(true)
     const start = performance.now()
     try {
-      const r = await fetch('https://overtrees.pythonanywhere.com/api/insights/ping')
+      const r = await fetch(API + '/api/insights/ping')
       const ms = Math.round(performance.now() - start)
       const d = await r.json()
       setStatus(d.ok ? '正常' : '异常')

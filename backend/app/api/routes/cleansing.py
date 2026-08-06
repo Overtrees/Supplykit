@@ -186,7 +186,7 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                     if not db.table("quality_logs").select("id").eq("log_type","duplicate_sku").eq("message",f'SKU {sku_val} 已存在，跳过重复'[:100]).eq("source","cleansing").execute().data:
                         db.table("quality_logs").insert({"log_type":"duplicate_sku","level":"warning",
                                 "field_name":"sku","message":f'SKU {sku_val} 已存在，跳过重复',"source":"cleansing"}).execute()
-                except: pass
+                except Exception as e: print(f"[Cleansing] {e}")
                 failed += 1; continue
             if sku_val in sku_seen:
                 failed += 1; continue
@@ -207,7 +207,7 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                     if not db.table("quality_logs").select("id").eq("log_type","duplicate_order").eq("message",f'订单{order_no}商品{sku_key}已存在，跳过重复'[:100]).eq("source","cleansing").execute().data:
                         db.table("quality_logs").insert({"log_type":"duplicate_order","level":"warning",
                                 "field_name":"order_no","message":f'订单{order_no}商品{sku_key}已存在，跳过重复',"source":"cleansing"}).execute()
-                except: pass
+                except Exception as e: print(f"[Cleansing] {e}")
                 failed += 1; continue
 
         # 记录行错误（不影响继续处理，只是标记）
@@ -227,7 +227,7 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                         "field_name": e['field_name'], "message": e['error_message'],
                         "source": "cleansing",
                     }).execute()
-            except: pass
+            except Exception as e: print(f"[Cleansing] {e}")
 
         # ─── 写入目标 ──────────────────────────────────────────────
         if is_inv:
@@ -315,12 +315,12 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                                 "severity":"error","source":"cleansing",
                                 "related_sku":sku,
                             }, conflict_col='alert_type')
-                    except: pass
+                    except Exception as e: print(f"[Cleansing] {e}")
             # 触发事件
             try:
                 from app.core.replenishment_cache import invalidate_cache
                 invalidate_cache(db)
-            except: pass
+            except Exception as e: print(f"[Cleansing] {e}")
             # 库存导入后触发规则引擎评估
             if is_inv:
                 try:
@@ -328,8 +328,8 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                     for item in data_list:
                         try:
                             evaluate('inventory.changed', {'inv': item, 'db': db, 'sku': item.get('sku','')})
-                        except: pass
-                except: pass
+                        except Exception as e: print(f"[Cleansing] {e}")
+                except Exception as e: print(f"[Cleansing] {e}")
             try:
                 from app.core.events import bus
                 bus.emit('data.cleaned', {
@@ -371,7 +371,7 @@ def get_cleansing_errors(file: str = '', db = get_db()):
         errs = db.table("cleansing_errors").select("*").order("id", desc=True).limit(200).execute().data
     for e in errs:
         try: e['raw_data'] = json.loads(e.get('raw_data','{}'))
-        except: pass
+        except Exception as e: print(f"[Cleansing] {e}")
     return {'ok': True, 'errors': errs, 'total': len(errs)}
 
 @router.post('/execute')

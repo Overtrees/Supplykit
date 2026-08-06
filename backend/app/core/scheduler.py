@@ -16,10 +16,12 @@ def _task_inventory_sync():
         orders = db.table("orders").select("*").order("id", desc=True).limit(100).execute().data
         count = 0
         for o in orders:
-            try:
-                auto_adjust_inventory(o, 'cleansing', db)
+            try {
+                auto_adjust_inventory(o, 'cleansing', db);
                 count += 1
-            except: pass
+            } catch(Exception) {
+                console.log("Inventory sync error for order", o);
+            }
         print(f"[Scheduler] Inventory sync: {count}/{len(orders)}")
     except Exception as e:
         print(f"[Scheduler] Inventory sync error: {e}")
@@ -64,7 +66,7 @@ def _task_archive_orders():
                     "ON CONFLICT(date, channel, store, sku) DO UPDATE SET gmv=gmv+?, order_count=order_count+?, quantity=quantity+?",
                     (date, channel, store, sku, v['gmv'], v['count'], v['qty'], v['gmv'], v['count'], v['qty'])
                 )
-            except: pass
+            except Exception as e: print(f"[Scheduler] {e}")
         conn.commit()
         # 删除已归档的原始订单
         ids = [o['id'] for o in old_orders]
@@ -74,7 +76,7 @@ def _task_archive_orders():
             for id_str in batch:
                 try:
                     db.table("orders").delete().eq("id", id_str).execute()
-                except: pass
+                except Exception as e: print(f"[Scheduler] {e}")
         print(f"[Scheduler] Order archive: {len(old_orders)} orders → {len(agg)} daily stats rows")
         conn.close()
     except Exception as e:
@@ -97,7 +99,7 @@ def _task_cleanup_logs():
                     for id_str in ids:
                         try:
                             db.table(table).delete().eq("id", id_str).execute()
-                        except: pass
+                        except Exception as e: print(f"[Scheduler] {e}")
             print(f"[Scheduler] {table}: {before} → kept latest")
     except Exception as e:
         print(f"[Scheduler] Cleanup error: {e}")

@@ -84,7 +84,7 @@ export default function App() {
   const checkApi = useCallback(async() => {
     try {
       const ctrl = new AbortController(); setTimeout(() => ctrl.abort(), 5000)
-      const r = await fetch('https://overtrees.pythonanywhere.com/api/insights/ping', {signal: ctrl.signal})
+      const r = await fetch(API + '/api/insights/ping', {signal: ctrl.signal})
       const d = await r.json()
       setApiStatus(d.ok ? 'ok' : 'slow')
     } catch { setApiStatus('error') }
@@ -366,7 +366,7 @@ export default function App() {
           <button onClick={async function(){
             localStorage.setItem('c_welcome_seen','1');setShowWelcome(false)
             try {
-              var r = await fetch('https://overtrees.pythonanywhere.com/api/seed/fill', {method:'POST'})
+              var r = await fetch(API + '/api/seed/fill', {method:'POST'})
               var d = await r.json()
               if (d.ok) { clearCache(); clearInflight(); setTimeout(function(){window.location.reload()}, 1500) }
             } catch(e) {}

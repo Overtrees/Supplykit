@@ -81,6 +81,7 @@ from app.api.routes.auth import router as auth_router
 from app.core.events import register_core_handlers
 from app.core.database import init_db, backup_db
 from app.core.scheduler import start as start_scheduler, get_status as scheduler_status
+from app.core.auth import verify_token
 
 init_db()
 
@@ -141,7 +142,44 @@ if bak:
 register_core_handlers()
 start_scheduler()
 
+# 初始化 JWT SECRET（持久化到数据库，跨重启 token 有效）
+if not os.getenv("JWT_SECRET"):
+    try:
+        _cj = _sqlite3.connect(_DB_PATH)
+        _rj = _cj.execute("SELECT value FROM replenishment_config WHERE key='jwt_secret'").fetchone()
+        if _rj and _rj[0]:
+            os.environ["JWT_SECRET"] = _rj[0]
+        else:
+            import hashlib as _hl
+            _secret = _hl.sha256(os.urandom(64)).hexdigest()[:48]
+            _cj.execute("INSERT OR REPLACE INTO replenishment_config(key,value,channel) VALUES('jwt_secret',?,'jd')", (_secret,))
+            _cj.commit()
+            os.environ["JWT_SECRET"] = _secret
+        _cj.close()
+    except Exception:
+        pass
+
 app = FastAPI(title="Supplykit", openapi_url="/api/docs.json", docs_url="/api/docs")
+
+# API 鉴权中间件：保护所有 /api/* 路由（除 /api/auth 和 /api/health）
+@app.middleware("http")
+async def auth_middleware(request, next):
+    path = request.url.path
+    # 公开接口放行
+    if path.startswith("/api/auth") or path == "/api/health" or path.startswith("/api/docs"):
+        return await next(request)
+    # 业务接口强制鉴权
+    if path.startswith("/api/"):
+        auth = request.headers.get("Authorization", "")
+        if not auth.startswith("Bearer "):
+            return JSONResponse({"detail": "未登录，请先登录"}, status_code=401)
+        user = verify_token(auth[7:])
+        if not user:
+            return JSONResponse({"detail": "Token 无效或已过期"}, status_code=401)
+        # demo 账号只读
+        if request.method in ("POST", "PUT", "DELETE", "PATCH") and user == "demo":
+            return JSONResponse({"detail": "演示账号仅可查看，不可修改数据"}, status_code=403)
+    return await next(request)
 origins = [x.strip() for x in os.getenv("CORS_ORIGINS", "*").split(",") if x.strip()]
 app.add_middleware(
     CORSMiddleware,

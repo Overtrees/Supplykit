@@ -4,6 +4,14 @@ from typing import Optional
 
 # 环境变量配置
 SECRET = os.getenv("JWT_SECRET", "")
+
+
+def _get_secret():
+    """动态获取 SECRET（main.py 启动后可能已设置持久化的密钥）"""
+    s = os.getenv("JWT_SECRET", "")
+    if s:
+        return s
+    return SECRET
 USERNAME = os.getenv("APP_USERNAME", "admin")
 # 密码 sha256 哈希（如未设环境变量，默认空字符串不允许登录）
 PASSWORD_HASH = os.getenv("APP_PASSWORD_HASH", "")
@@ -30,7 +38,7 @@ def hash_password(password: str) -> str:
 
 def create_token(username: str, expire_hours: int = 720) -> str:
     """生成 HS256 JWT，默认 30 天过期"""
-    secret = SECRET or (os.urandom(32).hex() if not SECRET else SECRET)
+    secret = _get_secret() or os.urandom(32).hex()
     header = _b64(json.dumps({"alg": "HS256", "typ": "JWT"}).encode())
     payload = _b64(json.dumps({
         "sub": username, "iat": int(time.time()),
@@ -43,7 +51,7 @@ def create_token(username: str, expire_hours: int = 720) -> str:
 def verify_token(token: str) -> Optional[str]:
     """验证 JWT，返回 username 或 None"""
     try:
-        secret = SECRET
+        secret = _get_secret()
         if not secret:
             return None
         parts = token.split('.')

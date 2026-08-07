@@ -31,6 +31,8 @@ const LF = [
   {l:'可用+在途+锁定',v:'inv.available_qty + inv.in_transit_qty + inv.locked_qty'},
   {l:'安全线-可用(缺口)',v:'inv.safety_qty - inv.available_qty'},
   {l:'可用/安全线(比例)',v:'inv.available_qty / inv.safety_qty'},
+  {l:'日销(定时任务提供)',v:'daily_sales'},
+  {l:'可撑天数(可用/日销)',v:'inv.available_qty / daily_sales'},
   {l:'距上次销售(天)',v:'inv.days_since_last'},{l:'库存量',v:'inv.stock'},{l:'仓库类型',v:'inv.warehouse_type'},
   {l:'订单数量',v:'order.quantity'},{l:'订单金额',v:'order.total_amount'},
   {l:'订单数量×单价',v:'order.quantity * order.unit_price'},{l:'单价',v:'order.unit_price'}]

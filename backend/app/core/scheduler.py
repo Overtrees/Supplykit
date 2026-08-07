@@ -167,20 +167,33 @@ def _task_disk_cleanup():
         logger.info(f"Disk cleanup error: {e}")
 
 def _task_daily_rules():
-    """每天执行定时规则（滞销识别等）"""
+    """每天执行定时规则（滞销识别等，注入日销支持可撑天数类规则）"""
     try:
-        from app.core.database import get_db
+        from app.core.database import get_db, get_conn
         from app.api.routes.insights import detect_slow_moving_products
         from app.core.rules import evaluate
         db = get_db()
         results = detect_slow_moving_products(db, create_alerts=True)
+        # 预加载各 SKU 28 天日销（供 daily_sales / 可撑天数类规则）
+        from datetime import datetime as _dt, timedelta as _td
+        _cutoff = (_dt.utcnow() - _td(days=28)).isoformat()
+        _conn = get_conn()
+        _sales = {}
+        try:
+            _rows = _conn.execute("SELECT sku, SUM(order_count) FROM daily_sales_snapshot WHERE date>=? GROUP BY sku", (_cutoff,)).fetchall()
+            for r in _rows:
+                _sales[r[0]] = round((r[1] or 0) / 28, 2)
+        except Exception:
+            pass
         for item in results:
+            sku = item['sku']
             evaluate('scheduled.daily', {
-                'db': db, 'sku': item['sku'],
+                'db': db, 'sku': sku,
                 'product_name': item['product_name'],
                 'days_since_last': item['days_since_last'],
                 'stock': item['stock'],
                 'channel': item.get('channel', 'jd'),
+                'daily_sales': _sales.get(sku, 0),
             })
         logger.info(f"Daily rules: checked {len(results)} items")
     except Exception as e:

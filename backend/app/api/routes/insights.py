@@ -39,6 +39,8 @@ def detect_slow_moving_products(db=None, create_alerts=False):
     products_map = {p["sku"]: p for p in db.table("products").select("*").execute().data}
     sku_barcode_map = {sku: (p.get('barcode', '') or '') for sku, p in products_map.items()}
     inventory_map = {i["sku"]: i for i in db.table("inventory").select("*").execute().data}
+    # SKU → channel 映射（用于告警按渠道隔离）
+    sku_channel_map = {s: i.get('channel', 'jd') for s, i in inventory_map.items()}
     now = datetime.utcnow()
     result = []
     all_skus = set(products_map.keys()) | set(last_order.keys()) | set(inventory_map.keys())
@@ -59,7 +61,7 @@ def detect_slow_moving_products(db=None, create_alerts=False):
             if create_alerts:
                 ex = db.table("alerts").select("id").eq("alert_type","slow_moving").eq("related_sku",sku).eq("status","active").execute().data
                 if not ex:
-                    db.table("alerts").insert({"alert_type":"slow_moving", "title":f"滞销: {result[-1]['product_name']}", "description":f"{days} 天无销售，库存 {stock} 件", "severity":"warning", "source":"event_bus", "related_sku":sku, "status":"active"}).execute()
+                    db.table("alerts").insert({"alert_type":"slow_moving", "title":f"滞销: {result[-1]['product_name']}", "description":f"{days} 天无销售，库存 {stock} 件", "severity":"warning", "source":"event_bus", "related_sku":sku, "status":"active", "channel": sku_channel_map.get(sku, 'jd')}).execute()
     result.sort(key=lambda x: -x["days_since_last"])
     return ok(result)
 

@@ -324,7 +324,7 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                                 "alert_type":"oversell","title":f"超卖: {sku}","status":"active",
                                 "description":f"导入订单共{total_qty}件 > 可用库存{avail}件",
                                 "severity":"error","source":"cleansing",
-                                "related_sku":sku,
+                                "related_sku":sku, "channel": channel,
                             }, conflict_col='alert_type')
                     except Exception as e: print(f"[Cleansing] {e}")
             # 触发事件

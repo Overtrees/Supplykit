@@ -36,14 +36,14 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             existing = db.table("alerts").select("id").eq("alert_type","b_storage_warn").eq("related_sku",sku).eq("status","active").execute().data
             if days_stored >= 11 and days_stored < 15:
                 if not existing: db.table("alerts").insert({"alert_type":"b_storage_warn","title":f"B仓即将超免费期: {po.get('product_name',sku)}",
-                    "description":f"入库已{days_stored}天，即将超B仓15天免费期","severity":"info","source":"replenishment_engine","related_sku":sku,"status":"active"}).execute()
+                    "description":f"入库已{days_stored}天，即将超B仓15天免费期","severity":"info","source":"replenishment_engine","related_sku":sku,"status":"active","channel":channel}).execute()
             elif days_stored >= 15 and days_stored < 20:
                 if not existing: db.table("alerts").insert({"alert_type":"b_storage_warn","title":f"B仓超免费期: {po.get('product_name',sku)}",
-                    "description":f"入库已{days_stored}天，超B仓15天免费期，产生仓储费","severity":"warning","source":"replenishment_engine","related_sku":sku,"status":"active"}).execute()
+                    "description":f"入库已{days_stored}天，超B仓15天免费期，产生仓储费","severity":"warning","source":"replenishment_engine","related_sku":sku,"status":"active","channel":channel}).execute()
             elif days_stored >= 20:
                 if existing: db.table("alerts").update({"severity":"error","description":f"入库已{days_stored}天，远超B仓15天免费期，仓储费持续累计"}).eq("id",existing[0]["id"]).execute()
                 else: db.table("alerts").insert({"alert_type":"b_storage_warn","title":f"B仓严重超期: {po.get('product_name',sku)}",
-                    "description":f"入库已{days_stored}天，远超B仓15天免费期，仓储费持续累计","severity":"error","source":"replenishment_engine","related_sku":sku,"status":"active"}).execute()
+                    "description":f"入库已{days_stored}天，远超B仓15天免费期，仓储费持续累计","severity":"error","source":"replenishment_engine","related_sku":sku,"status":"active","channel":channel}).execute()
             elif days_stored >= 11 and existing:
                 db.table("alerts").update({"description":f"入库已{days_stored}天，即将超B仓15天免费期"}).eq("id",existing[0]["id"]).execute()
     except Exception as e: logger.warning(f"B仓超储预警: {e}")

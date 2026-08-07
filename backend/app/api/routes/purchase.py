@@ -132,10 +132,10 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', channel: str = 
             should_insert = r['purchase_qty'] > 0 and r['days_to_empty'] < 14 and r['sku'] not in existing
             if should_insert:
                 try:
-                    conn.execute("INSERT INTO alerts(alert_type,title,description,severity,source,related_sku,status) VALUES(?,?,?,?,?,?,?)",
+                    conn.execute("INSERT INTO alerts(alert_type,title,description,severity,source,related_sku,status,channel) VALUES(?,?,?,?,?,?,?,?)",
                         ("purchase_need", f"需采购: {r['product_name']}",
                          f"可用{r['available_qty']}件, 建议采购{r['purchase_qty']}件, 可撑{r['days_to_empty']}天",
-                         "warning", "purchase_engine", r['sku'], "active"))
+                         "warning", "purchase_engine", r['sku'], "active", channel))
                 except Exception as e: logger.warning(f"[purchase] insert alert: {e}")
             elif r['purchase_qty'] == 0 and r['sku'] in existing:
                 try:

@@ -1,5 +1,40 @@
 # SupplyKit 更新日志
 
+## 2026-08-07 性能优化 + 渠道隔离 + 可靠性根治（44 个提交）
+
+### 性能优化（10 万单量级）
+- 统一日销数据源：快照历史 + 当天 orders，消除重复计算
+- 5 个核心接口 17-27s → 2-7s（补货 3.6s / 采购 2.6s / 滞销 3.9s / 进销存 2.6s / 看板 4.4s）
+- 一键填充 12 分钟 → 2.5 分钟（订单 executemany 5.4x，规则引擎批量 1000x）
+- 告警批量处理（2000 次查询 → 3 次）、预计算日期、with-sales 30s 缓存
+
+### 渠道隔离（jd/other 全链路）
+- 告警/规则/供应商/已下单/出入库全部按 channel 隔离
+- evaluate() 按 channel 过滤规则，sku_to_channel() 从 products 主表推断
+- 修复 other 渠道告警为 0、供应商 upsert 互相覆盖
+- 清洗页渠道标记与全局渠道联动 + UI 明确导入目标
+
+### 可靠性根治
+- **存储配额**：40 个备份撑爆 512MB → 备份保留 7 个 + 每日磁盘自检 + WAL checkpoint
+- **任务状态持久化**：sync_tasks 表，跨重启恢复 status/result/steps
+- 健康检查 integrity quick_check + WAL 监控
+- 启动时自动 WAL checkpoint；数据归档惰性兜底
+
+### 稳定性
+- 骨架屏防卡死（3 处 seq 竞态）、任务轮询 not_found 容错
+- 欢迎页"开始体验"与一键填充联动修复
+
+### 代码质量
+- 裸 except 全部处理、Pydantic Schema（9 个）、localStorage 安全化
+- 恢复 purchase_router 注册（清理临时路由时误删）
+
+### 种子数据增强
+- 12% SKU 全仓低库存（含自有仓触发采购场景）、供应商渠道后缀
+- 填充后立即构建快照、seed 前 requires_reset 保护
+
+---
+# SupplyKit 更新日志
+
 ## 2026-08-06 种子数据重构 + CSS 系统 + 全局任务轮询
 
 ### 种子数据

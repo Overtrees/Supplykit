@@ -31,7 +31,7 @@
 | 京东/天猫后台导出数据杂乱，手动清洗费时 | 智能列名匹配 + 可视化映射，一次配置永久复用 |
 | 补货靠经验拍脑袋，不同人算出来不一样 | 三窗口滚动预测日销 + BBCC/传统双模式，结果可复现可追溯 |
 | B 仓超期仓储费、C 仓断货风险没人盯 | 双阈值预警（15天/90天）+ 濒临断货 TOP10，自动告警推送到看板 |
-| Excel 做报表，每次都要重新拉数 | 看板实时更新，WebSocket 推送，打开即用 |
+| Excel 做报表，每次都要重新拉数 | 看板 30s 静默刷新 + 15s 版本轮询，打开即用 |
 
 ---
 
@@ -70,7 +70,7 @@
 - GMV 趋势 + 店铺分布 + 订单阶段转化漏斗
 - 库存健康度（自有仓/平台仓/B仓三视图）
 - **濒临断货 TOP10** — 按可撑天数排序
-- 规则引擎实时告警，全部按渠道过滤
+- 规则引擎告警按渠道隔离，看板 30s 静默刷新自动更新
 
 ### 🧹 数据清洗，告别 Excel 手工
 
@@ -116,7 +116,7 @@
 
 | 页面 | 核心能力 |
 |------|---------|
-| 📊 **看板** | GMV趋势 / 店铺GMV / 漏斗转化 / 库存健康度 / 濒临断货TOP10 / 实时告警 / **按渠道过滤** |
+| 📊 **看板** | GMV趋势 / 店铺GMV / 漏斗转化 / 库存健康度 / 濒临断货TOP10 / 告警 / 30s静默刷新 / **按渠道过滤** |
 | 💡 **补货建议** | BBCC全国汇总 / 传统按仓 / 三窗口滚动日销 / B仓超储预警 / 一键标记操作 / **渠道筛选** |
 | 📦 **采购建议** | 14+28天融合日销 / 系统总库存视角 / MOQ兜底 / 导出Excel |
 | 🧹 **数据清洗** | 6种导入类型 / 渠道标记 / 智能列名匹配 / 字段映射 / 模板复用 / 异步导入 / 自定义字段 |
@@ -141,8 +141,9 @@ cd frontend && npm install && npm run dev
 cd ../backend && pip install -r requirements.txt
 uvicorn app.main:app --reload
 
-# 生成模拟数据（可选，含12SKU×60天×900订单）
-python seed_realistic.py
+# 一键填充种子数据（设置页按钮或 API）：
+# 1000 SKU/渠道 × 60 天 × 10万+订单，12% 低库存场景，约 2.5 分钟完成
+curl -X POST https://overtrees.pythonanywhere.com/api/seed/fill
 ```
 
 环境变量：
@@ -161,7 +162,8 @@ python seed_realistic.py
 ```
 ┌─ 前端 (Cloudflare Pages) ─────────────────────┐
 │  React 18 · TypeScript · ECharts 5 · Zustand   │
-│  Axios(缓存+去重+统一响应解包) · WebSocket      │
+│  Axios(缓存+去重+统一响应解包) · 版本轮询15s     │
+│  看板30s静默刷新 · WebSocket(可选)              │
 └──────────────────────┬─────────────────────────┘
                        │ HTTPS
 ┌─ 后端 (PythonAnywhere) ───────────────────────┐
@@ -207,7 +209,7 @@ python seed_realistic.py
 
 ```
 frontend/src/
-├── pages/ (9个): Dashboard / Insights / Cleansing / Rules / Orders / Inventory / Products / Suppliers / Quality
+├── pages/ (10个): Dashboard / Insights / Cleansing / Rules / Orders / Inventory / Products / Suppliers / Quality / Settings
 ├── components/ (10个): Chart / Sidebar / Toast / Card / ErrorBoundary / Icons / ...
 ├── store/useAppStore.ts          Zustand + WebSocket
 ├── api/client.ts                 Axios + 缓存 + 统一响应
@@ -217,8 +219,9 @@ backend/app/
 ├── main.py                       FastAPI 入口
 ├── api/routes/ (18个路由模块)
 ├── core/
-│   ├── database.py               SQLite ORM + 任务系统 + 版本管理
-│   ├── sales_utils.py            三窗口日销滚动预测
+│   ├── database.py               SQLite ORM + 任务持久化 + 索引 + 渠道迁移
+│   ├── sales_utils.py            三窗口日销滚动预测 + sku_to_channel
+│   ├── replenishment_cache.py     补货缓存(3min) + dashboard_cache.py 看板缓存
 │   ├── response.py               统一响应 ok()/fail()
 │   ├── dashboard_cache.py        看板缓存
 │   ├── cleansing_parser.py       文件解析 + 字段清洗

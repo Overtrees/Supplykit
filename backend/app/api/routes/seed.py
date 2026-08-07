@@ -211,6 +211,12 @@ def _update_steps(steps):
         with _task_lock:
             t = _task_results.get(_current_task_id)
             if t: t['steps'] = list(steps)
+        # 持久化 steps 到数据库（跨重启可恢复进度）
+        try:
+            from app.core.database import update_task
+            update_task(_current_task_id, steps=list(steps))
+        except Exception:
+            pass
 
 def _seed_products_suppliers(db, skus_data):
     for skus,ch in [(skus_data['jd'],'jd'),(skus_data['other'],'other')]:

@@ -30,37 +30,92 @@ _task_queue = []
 _task_results = {}
 _task_lock = threading.Lock()
 
+def _task_db_save(task_id, **fields):
+    """持久化任务状态到 sync_tasks 表（跨重启可查）"""
+    try:
+        import json
+        conn = get_conn()
+        status = fields.get('status', 'running')
+        result = fields.get('result')
+        steps = fields.get('steps')
+        payload = {}
+        if result is not None: payload['result'] = result
+        if steps is not None: payload['steps'] = steps
+        for k, v in fields.items():
+            if k not in ('status', 'result', 'steps'):
+                payload[k] = v
+        # 查是否已有记录（task_id 关联）
+        rows = conn.execute("SELECT id FROM sync_tasks WHERE task_id=?", (task_id,)).fetchall()
+        if rows:
+            conn.execute("UPDATE sync_tasks SET status=?, result=?, updated_at=datetime('now') WHERE task_id=?",
+                (status, json.dumps(payload, ensure_ascii=False, default=str), task_id))
+        else:
+            conn.execute("INSERT INTO sync_tasks(task_id, task_type, status, result, created_at, updated_at) VALUES(?,?,?,?,datetime('now'),datetime('now'))",
+                (task_id, 'background', status, json.dumps(payload, ensure_ascii=False, default=str)))
+        conn.commit()
+    except Exception:
+        pass
+
 def submit_task(task_id: str, fn, *args, **kwargs):
-    """提交一个后台任务（使用 APScheduler 运行，避免 daemon 线程被 kill）"""
+    """提交一个后台任务（独立线程运行，状态持久化到数据库）"""
     with _task_lock:
         _task_results[task_id] = {"status": "pending", "result": None, "error": None}
+    _task_db_save(task_id, status='pending')
     def _run():
         try:
             with _task_lock:
                 _task_results[task_id]["status"] = "running"
+            _task_db_save(task_id, status='running')
             result = fn(*args, **kwargs)
             with _task_lock:
                 _task_results[task_id]["status"] = "done"
                 _task_results[task_id]["result"] = result
+            _task_db_save(task_id, status='done', result=result)
         except Exception as e:
             with _task_lock:
                 _task_results[task_id]["status"] = "error"
                 _task_results[task_id]["error"] = str(e)
-    # 使用线程池运行任务（APScheduler 在部分环境不可靠，改用独立线程）
+            _task_db_save(task_id, status='error', error=str(e))
     import threading as _threading
     _t = _threading.Thread(target=_run, daemon=False)
     _t.start()
     return task_id
 
 def get_task(task_id: str):
+    """读取任务状态：优先内存，内存缺失（重启后）回退查数据库"""
     with _task_lock:
-        return _task_results.get(task_id)
+        t = _task_results.get(task_id)
+        if t:
+            return dict(t)
+    # 内存缺失：查数据库恢复
+    try:
+        import json
+        conn = get_conn()
+        rows = conn.execute("SELECT status, result FROM sync_tasks WHERE task_id=?", (task_id,)).fetchall()
+        if rows:
+            status, result_json = rows[0]
+            data = {"status": status}
+            try:
+                payload = json.loads(result_json or '{}')
+                if 'result' in payload: data['result'] = payload['result']
+                if 'steps' in payload: data['steps'] = payload['steps']
+                if 'error' in payload: data['error'] = payload['error']
+            except Exception:
+                pass
+            # 回填内存
+            with _task_lock:
+                _task_results[task_id] = data
+            return dict(data)
+    except Exception:
+        pass
+    return None
 
 def update_task(task_id: str, **kwargs):
-    """更新任务的进度等信息（从任务内部调用）"""
+    """更新任务的进度等信息（从任务内部调用，持久化到数据库）"""
     with _task_lock:
         if task_id in _task_results:
             _task_results[task_id].update(kwargs)
+    _task_db_save(task_id, **kwargs)
 
 def get_conn():
     if not hasattr(_local, "conn") or _local.conn is None:
@@ -460,6 +515,7 @@ def init_db(path=None):
         );
         CREATE TABLE IF NOT EXISTS sync_tasks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            task_id TEXT DEFAULT '',
             task_type TEXT NOT NULL,
             status TEXT DEFAULT 'pending',
             params TEXT DEFAULT '{}',
@@ -666,6 +722,8 @@ def init_db(path=None):
     try: conn.execute("ALTER TABLE inbound_records ADD COLUMN channel TEXT DEFAULT 'jd'")
     except: pass
     try: conn.execute("ALTER TABLE outbound_records ADD COLUMN channel TEXT DEFAULT 'jd'")
+    except: pass
+    try: conn.execute("ALTER TABLE sync_tasks ADD COLUMN task_id TEXT DEFAULT ''")
     except: pass
     # ── P0 性能索引 ──
     for idx in [

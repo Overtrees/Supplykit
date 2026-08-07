@@ -46,9 +46,10 @@ def submit_task(task_id: str, fn, *args, **kwargs):
             with _task_lock:
                 _task_results[task_id]["status"] = "error"
                 _task_results[task_id]["error"] = str(e)
-    # 使用 APScheduler 运行，避免 daemon 线程被 WSGI 请求结束 kill
-    from app.core.scheduler import scheduler as sched
-    sched.add_job(_run, 'date', run_date=datetime.utcnow(), id=task_id, replace_existing=True)
+    # 使用线程池运行任务（APScheduler 在部分环境不可靠，改用独立线程）
+    import threading as _threading
+    _t = _threading.Thread(target=_run, daemon=False)
+    _t.start()
     return task_id
 
 def get_task(task_id: str):

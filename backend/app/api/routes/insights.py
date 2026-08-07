@@ -293,10 +293,17 @@ def inventory_with_sales(wh_type: str = 'own', channel: str = 'jd', page: int = 
     sales_28 = {}
     products_for_barcode = {p["sku"]: p for p in (db.table("products").select("*").execute().data or [])}
     # 从快照聚合 28 天日销（替代 orders 全表遍历）
-    from app.core.sales_utils import load_daily_sales
+    from app.core.sales_utils import load_daily_sales, calc_sales_from_daily, rolling_predict
     daily_28 = load_daily_sales(28, db, sku_barcode_map={s: (p.get('barcode','') or '') for s,p in products_for_barcode.items()})
     for key, daily in daily_28.items():
         sales_28[key] = sum(daily.values())
+    # 融合日销（三窗口 3σ 剔除 + 趋势加权，用于周转天数计算）
+    _s7 = calc_sales_from_daily(daily_28, 7)
+    _s14 = calc_sales_from_daily(daily_28, 14)
+    _s28 = calc_sales_from_daily(daily_28, 28)
+    _fused = {}
+    for _sk in set(list(_s7.keys()) + list(_s14.keys()) + list(_s28.keys())):
+        _fused[_sk] = rolling_predict(_s7.get(_sk, 0), _s14.get(_sk, 0), _s28.get(_sk, 0))
     result = []
     # 当查询 B 仓时，预加载 C 仓在途用于 B→C 调拨在途列
     c_transit = {}
@@ -317,9 +324,9 @@ def inventory_with_sales(wh_type: str = 'own', channel: str = 'jd', page: int = 
         _p = products_for_barcode.get(sku) or {}
         try: price = float(_p.get('price') or 0)
         except Exception: price = 0
-        # 周转天数 = 可用库存 / 日均销量（daily_sales 是 28 天总销量，除以 28 换算为日均）
-        daily_avg = ds / 28 if ds > 0 else 0
-        turnover_days = round(avail / daily_avg, 1) if daily_avg > 0 else None
+        # 周转天数 = 可用库存 / 融合日销（三窗口 3σ 剔除 + 趋势加权，比简单平均更精准）
+        fused_ds = _fused.get(sales_key, 0) or _fused.get(sku, 0)
+        turnover_days = round(avail / fused_ds, 1) if fused_ds > 0 else None
         result.append({
             'id': i['id'],
             'sku': sku,

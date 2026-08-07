@@ -4,7 +4,7 @@ from app.core.response import ok
 from app.core.dashboard_cache import invalidate
 from app.core.sales_utils import build_daily_sales_snapshot
 from datetime import datetime, timedelta
-import random, sqlite3, uuid, threading
+import random, sqlite3, uuid, threading, os
 
 router = APIRouter(prefix="/api/seed", tags=["seed"])
 
@@ -394,6 +394,13 @@ def seed_reset(db=get_db()):
     for t in ['orders','inventory','products','suppliers','alerts','quality_logs','events','purchase_orders','replenishment_config_history','cleansing_templates','custom_fields','replenishment_config','rules']:
         try: conn.execute(f'DELETE FROM "{t}"')
         except Exception as _e: import logging; logging.warning(f'[seed] reset {t}: {_e}')
+    # 恢复 jwt_secret（避免重置后 token 失效，用户需重新登录）
+    try:
+        _secret = os.getenv("JWT_SECRET", "")
+        if _secret:
+            conn.execute("INSERT OR REPLACE INTO replenishment_config(key,value,channel) VALUES('jwt_secret',?,'jd')", (_secret,))
+    except Exception as _e:
+        import logging; logging.warning(f'[seed] restore jwt_secret: {_e}')
     conn.commit()
     invalidate()
     from app.core.replenishment_cache import invalidate_cache

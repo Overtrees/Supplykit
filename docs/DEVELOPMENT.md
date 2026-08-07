@@ -470,7 +470,12 @@ grep -rn "import.*from.*locale" src/ | sort | uniq -d
 - 告警按 source 区分（replenishment_engine / rules_engine），口径统一不误关
 - 规则引擎紧急补货考虑在途（可用+在途≤安全线才算真紧急）
 
-### 14.7 认证系统
+### 14.7 APM 监控
+- 内存聚合请求统计（总请求/平均耗时/错误率/慢接口 TOP10）
+- 慢请求（>5s）持久化到 quality_logs
+- 公开接口 `GET /api/monitor`
+
+### 14.8 认证系统
 - 纯标准库 JWT（HMAC-SHA256），零外部依赖
 - users 表（username/password_hash/role），预留多用户
 - 后端正中件强制鉴权，访客模式只读

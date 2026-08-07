@@ -77,11 +77,13 @@ from app.api.routes.purchase import router as purchase_router
 from app.api.routes.replenishment import router as replenishment_router
 from app.api.routes.records import router as records_router
 from app.api.routes.auth import router as auth_router
+from app.api.routes.monitor import router as monitor_router
 
 from app.core.events import register_core_handlers
 from app.core.database import init_db, backup_db
 from app.core.scheduler import start as start_scheduler, get_status as scheduler_status
 from app.core.auth import verify_token
+from app.core.monitor import record as monitor_record
 
 init_db()
 
@@ -161,25 +163,37 @@ if not os.getenv("JWT_SECRET"):
 
 app = FastAPI(title="Supplykit", openapi_url="/api/docs.json", docs_url="/api/docs")
 
-# API 鉴权中间件：保护所有 /api/* 路由（除 /api/auth 和 /api/health）
+# API 鉴权 + 监控中间件：保护所有 /api/* 路由（除 /api/auth 和 /api/health），记录请求统计
 @app.middleware("http")
-async def auth_middleware(request, next):
+async def auth_monitor_middleware(request, next):
+    import time as _mt
+    _start = _mt.time()
     path = request.url.path
     # 公开接口放行
-    if path.startswith("/api/auth") or path == "/api/health" or path.startswith("/api/docs") or path == "/api/insights/ping":
-        return await next(request)
+    if path.startswith("/api/auth") or path == "/api/health" or path.startswith("/api/docs") or path == "/api/insights/ping" or path == "/api/monitor":
+        resp = await next(request)
+        monitor_record(path, _mt.time() - _start, resp.status_code)
+        return resp
     # 业务接口强制鉴权
     if path.startswith("/api/"):
         auth = request.headers.get("Authorization", "")
         if not auth.startswith("Bearer "):
+            monitor_record(path, _mt.time() - _start, 401)
             return JSONResponse({"detail": "未登录，请先登录"}, status_code=401)
         user = verify_token(auth[7:])
         if not user:
+            monitor_record(path, _mt.time() - _start, 401)
             return JSONResponse({"detail": "Token 无效或已过期"}, status_code=401)
         # demo 账号只读
         if request.method in ("POST", "PUT", "DELETE", "PATCH") and user == "demo":
+            monitor_record(path, _mt.time() - _start, 403)
             return JSONResponse({"detail": "访客模式仅可查看，不可修改数据"}, status_code=403)
-    return await next(request)
+    resp = await next(request)
+    try:
+        monitor_record(path, _mt.time() - _start, resp.status_code)
+    except Exception:
+        pass
+    return resp
 origins = [x.strip() for x in os.getenv("CORS_ORIGINS", "*").split(",") if x.strip()]
 app.add_middleware(
     CORSMiddleware,
@@ -225,6 +239,7 @@ app.include_router(insights_router)
 app.include_router(seed_router)
 app.include_router(purchase_orders_router)
 app.include_router(auth_router)
+app.include_router(monitor_router)
 
 @app.get("/")
 def root():

@@ -313,6 +313,13 @@ UptimeRobot 免费版每 5 分钟 ping `https://overtrees.pythonanywhere.com/api
 - 启动时 `quick_check` → 检测到损坏 → VACUUM → 从备份恢复
 - 运行中健康检查检测到损坏时后台异步修复（不阻塞响应）
 
+## APM 监控（2026-08-07）
+- 内存聚合请求统计：总请求数、平均响应时间、错误率、慢请求数
+- 慢接口 TOP10：按平均耗时排序，含请求数和错误数
+- 慢请求（>5s）自动持久化到 quality_logs（慢查询告警）
+- 公开接口 `GET /api/monitor`，无需鉴权
+- 后端正中件自动记录所有 `/api/*` 请求
+
 ## 健康检查端点（2026-08-06）
 - `GET /api/health` 返回数据库状态、完整性、磁盘空间、版本号、WAL 大小
 

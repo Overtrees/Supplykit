@@ -9,7 +9,7 @@ def list_products(db = get_db(), search: str = "", channel: str = 'jd'):
     q = db.table("products").select("*").eq("channel", channel)
     if search:
         like = f"%{search}%"
-        q = q.ilike("product_name", like) | q.ilike("sku", like)
+        q = q.ilike("product_name", like).or_(q.ilike("sku", like))
     data = q.order("id", desc=True).execute().data
     return ok(data)
 

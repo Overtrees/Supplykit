@@ -33,7 +33,7 @@ def detect_slow_moving_products(db=None, create_alerts=False):
     inventory_map = {i["sku"]: i for i in db.table("inventory").select("*").execute().data}
     now = datetime.utcnow()
     result = []
-    all_skus = set(products_map.keys()) | {o.get("sku") for o in orders if o.get("sku")} | set(inventory_map.keys())
+    all_skus = set(products_map.keys()) | set(last_order.keys()) | set(inventory_map.keys())
     for sku in all_skus:
         p = products_map.get(sku)
         inv = inventory_map.get(sku)

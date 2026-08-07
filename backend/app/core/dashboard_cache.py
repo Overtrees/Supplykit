@@ -118,14 +118,18 @@ def _rebuild(channel='jd'):
     health = _compute_health(inv_list)
     
     from datetime import timedelta
-    today = datetime.utcnow().date()
+    # 使用北京时间（UTC+8）确保 today 周期与订单日期一致
+    bj_now = datetime.utcnow() + timedelta(hours=8)
+    bj_date = bj_now.date()
+    today_str = bj_date.isoformat()
     period_stores = {}
     period_funnel = {}
     for pname, pdays in [('today', 1), ('week', 7), ('month', 30)]:
-        cutoff = (today - timedelta(days=pdays - 1)).isoformat()
-        prow = conn.execute("SELECT store, SUM(CASE WHEN order_status='已完成' THEN total_amount ELSE 0 END) FROM orders WHERE channel=? AND ordered_at>=? GROUP BY store", (ch, cutoff)).fetchall()
+        cutoff = bj_date - timedelta(days=pdays - 1)
+        cutoff_str = cutoff.isoformat()
+        prow = conn.execute("SELECT store, SUM(CASE WHEN order_status='已完成' THEN total_amount ELSE 0 END) FROM orders WHERE channel=? AND ordered_at>=? GROUP BY store", (ch, cutoff_str)).fetchall()
         period_stores[pname] = [{"name": r[0], "gmv": r[1]} for r in prow]
-        pfrows = conn.execute("SELECT order_status, COUNT(*) FROM orders WHERE channel=? AND ordered_at>=? GROUP BY order_status", (ch, cutoff)).fetchall()
+        pfrows = conn.execute("SELECT order_status, COUNT(*) FROM orders WHERE channel=? AND ordered_at>=? GROUP BY order_status", (ch, cutoff_str)).fetchall()
         ptotal = sum(r[1] for r in pfrows)
         pfunnel = dict(pfrows)
         stages = [("总订单", ptotal, 100.0)]
@@ -139,7 +143,7 @@ def _rebuild(channel='jd'):
             result.append({"name": name, "value": count, "percentage": pct, "conversion": conv})
         period_funnel[pname] = result
     
-    periods = _compute_period_trends(conn, ch, today)
+    periods = _compute_period_trends(conn, ch, bj_date)
     
     return {
         "summary": {

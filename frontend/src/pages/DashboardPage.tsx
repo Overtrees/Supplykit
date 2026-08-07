@@ -30,6 +30,20 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
       setChLoading(false)
     }).catch(() => setChLoading(false))
   }, [channel])
+  // 30s 静默自动刷新（不显示 loading 骨架屏，避免闪烁）
+  useEffect(() => {
+    const timer = setInterval(async () => {
+      try {
+        const [s, a, r] = await Promise.all([
+          api.get('/api/dashboard/summary'),
+          api.get('/api/alerts'),
+          api.get('/api/dashboard/stock-risk'),
+        ])
+        useAppStore.setState({ dashboard: s.data, alerts: a.data || [], stockRisk: r.data || [], loading: false, dataLoaded: true })
+      } catch {}
+    }, 30000)
+    return () => clearInterval(timer)
+  }, [channel])
   const periodTrend = dashboard?.periods?.[periodTab + '_trend'] || dashboard?.trend || []
   const periodMeta = dashboard?.periods?.[periodTab] || {}
 

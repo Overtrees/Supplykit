@@ -4,7 +4,7 @@ import EmptyState from '../components/EmptyState'
 
 const COLS = [{id:'code',label:'编号'},{id:'name',label:'名称'},{id:'contact',label:'联系人'},{id:'phone',label:'手机'},{id:'score',label:'评分'}]
 const COL_KEY = () => 'c_cols_suppliers_' + (useAppStore.getState().channel || 'jd')
-const getVis=()=>{try{return JSON.parse(localStorage.getItem(COL_KEY())||'null')}catch{return <td key={col.id} className="small muted" style={{fontSize:11}}>-</td>}}
+const getVis=()=>{try{return JSON.parse(localStorage.getItem(COL_KEY())||'null')}catch{return null}}
 
 function Skeleton(){return <div>{[1,2,3].map(i=><div key={i} style={{display:'flex',gap:8,padding:'8px 0',borderBottom:'1px solid var(--border)'}}>
   <div className="skeleton" style={{width:60,height:14}}/><div className="skeleton" style={{flex:1,height:14}}/>

@@ -3,17 +3,17 @@ from fastapi import APIRouter
 from app.core.database import get_db
 from app.core.response import ok
 from app.core.sales_utils import calc_sales, rolling_predict
-from datetime import datetime
-import json, os
+from datetime import datetime, timedelta
+import json, os, logging
 
 router = APIRouter(prefix="/api/insights", tags=["insights"])
+
+logger = logging.getLogger("replenishment")
 
 
 @router.get('/replenishment')
 def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 'bbcc', channel: str = 'jd', db = get_db()):
     """补货建议，支持 days=7/14/28 切换，mode=bbcc/traditional 切换模型"""
-    from datetime import timedelta
-
     # 尝试读取缓存
     from app.core.replenishment_cache import get_cached, set_cache
     cached, hit = get_cached(mode, channel, days, db)
@@ -21,7 +21,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
         return cached
 
     try: db.table("alerts").update({"status": "inactive"}).eq("alert_type", "storage_fee").eq("status", "active").execute()
-    except: pass
+    except Exception as e: logger.warning(f"clear storage_fee alerts: {e}")
 
     # B仓超储预警
     try:
@@ -31,7 +31,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             ad = po.get("arrival_date", "")
             if not ad or po.get("status") == "completed": continue
             try: days_stored = (now - datetime.strptime(ad[:10], "%Y-%m-%d")).days
-            except: continue
+            except Exception as e: logger.warning(f"parse date {ad}: {e}"); continue
             sku = po.get("sku", "")
             existing = db.table("alerts").select("id").eq("alert_type","b_storage_warn").eq("related_sku",sku).eq("status","active").execute().data
             if days_stored >= 11 and days_stored < 15:
@@ -46,7 +46,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                     "description":f"入库已{days_stored}天，远超B仓15天免费期，仓储费持续累计","severity":"error","source":"replenishment_engine","related_sku":sku,"status":"active"}).execute()
             elif days_stored >= 11 and existing:
                 db.table("alerts").update({"description":f"入库已{days_stored}天，即将超B仓15天免费期"}).eq("id",existing[0]["id"]).execute()
-    except: pass
+    except Exception as e: logger.warning(f"B仓超储预警: {e}")
 
     cfg_rows = db.table("replenishment_config").select("*").eq("channel", channel).execute().data
     raw = {r['key']: r['value'] for r in cfg_rows}
@@ -58,7 +58,9 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
         if not k.startswith('mode_') and k not in cfg: cfg[k] = v
 
     products = {p["sku"]: p for p in db.table("products").select("*").execute().data}
-    orders = db.table("orders").select("*").execute().data
+    # SQL 级过滤：只加载最近 28 天订单（最大窗口）
+    cutoff = (datetime.utcnow() - timedelta(days=28)).isoformat()
+    orders = db.table("orders").select("*").gte("ordered_at", cutoff).execute().data
 
     # 构建 barcode 映射，用于日销复合 key（sku|barcode），提高匹配精度
     sku_barcode_map = {sku: p.get('barcode', '') or '' for sku, p in products.items()}
@@ -247,8 +249,8 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     try:
         from app.core.replenishment_cache import set_cache
         set_cache(mode, channel, days, {"data": suggestions}, db)
-    except:
-        pass
+    except Exception as e:
+        logger.warning(f"write replenishment cache: {e}")
 
     return ok(suggestions)
 

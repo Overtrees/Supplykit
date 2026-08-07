@@ -17,16 +17,15 @@ def _task_inventory_sync():
         db = get_db()
         orders = db.table("orders").select("*").order("id", desc=True).limit(100).execute().data
         count = 0
-        for o in orders:
-            try {
-                auto_adjust_inventory(o, 'cleansing', db);
+        for o in (orders or []):
+            try:
+                auto_adjust_inventory(o, 'cleansing', db)
                 count += 1
-            } catch(Exception) {
-                console.log("logger.error("Inventory sync error" for order", o);
-            }
-        logger.info(f"Inventory sync: {count}/{len(orders)}")
+            except Exception as e:
+                logger.warning(f"Inventory sync error for order {o.get('id')}: {e}")
+        logger.info(f"Inventory sync: {count}/{len(orders or [])}")
     except Exception as e:
-        logger.info(f"logger.error("Inventory sync error": {e}")
+        logger.error(f"Inventory sync error: {e}")
 
 def _task_build_sales_snapshot():
     """每天凌晨 3:30 构建日销快照"""

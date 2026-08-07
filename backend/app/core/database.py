@@ -654,6 +654,16 @@ def init_db(path=None):
     except: pass
     try: conn.execute("ALTER TABLE purchase_orders ADD COLUMN arrival_date TEXT DEFAULT ''")
     except: pass
+    # ── P0 性能索引 ──
+    for idx in [
+        "CREATE INDEX IF NOT EXISTS idx_orders_sku_ordered_at ON orders(sku, ordered_at, channel)",
+        "CREATE INDEX IF NOT EXISTS idx_inventory_sku_wh_ch ON inventory(sku, warehouse_type, channel)",
+        "CREATE INDEX IF NOT EXISTS idx_inventory_wh_ch ON inventory(warehouse_type, channel)",
+        "CREATE INDEX IF NOT EXISTS idx_daily_stats_date ON daily_stats(date, channel)",
+        "CREATE INDEX IF NOT EXISTS idx_products_sku_ch ON products(sku, channel)",
+    ]:
+        try: conn.execute(idx)
+        except: pass
     conn.commit()
     # ── schema 版本检查 ──
     try:

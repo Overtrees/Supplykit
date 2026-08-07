@@ -5,13 +5,13 @@ import json, hashlib
 CACHE_TTL = 300  # 5 分钟
 
 def get_cache_key(mode, channel, days, db):
-    """生成缓存 key：基于数据版本号和参数"""
-    # 计算数据版本号（订单数+库存数+产品数+配置版本）
-    ver = db.table("replenishment_config").select("*").eq("key", "_cache_version").execute().data
-    db_ver = ver[0]["value"] if ver else "0"
-    order_count = len(db.table("orders").select("id").execute().data or [])
-    inv_count = len(db.table("inventory").select("id").execute().data or [])
-    raw = f"{mode}|{channel}|{days}|{db_ver}|{order_count}|{inv_count}"
+    """生成缓存 key：只基于数据版本号（订单/库存变更都会递增版本号）"""
+    try:
+        ver = db.table("replenishment_config").select("*").eq("key", "_cache_version").execute().data
+        db_ver = ver[0]["value"] if ver else "0"
+    except Exception:
+        db_ver = "0"
+    raw = f"{mode}|{channel}|{days}|{db_ver}"
     return hashlib.md5(raw.encode()).hexdigest()
 
 
@@ -27,8 +27,8 @@ def get_cached(mode, channel, days, db):
         cached_time = datetime.fromisoformat(row.get("updated_at", "")) if row.get("updated_at") else datetime.min
         if (datetime.utcnow() - cached_time).total_seconds() < CACHE_TTL:
             return cached.get("data"), True
-    except:
-        pass
+    except Exception as e:
+        import logging; logging.warning(f"[replen-cache] read: {e}")
     return None, False
 
 

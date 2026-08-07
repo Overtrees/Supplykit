@@ -18,7 +18,8 @@ def detect_slow_moving_products(db=None, create_alerts=False):
     if db is None:
         from app.core.database import get_db
         db = get_db()
-    orders = db.table("orders").select("*").execute().data
+    cutoff = (datetime.utcnow() - timedelta(days=90)).isoformat()
+    orders = db.table("orders").select("*").gte("ordered_at", cutoff).execute().data
     products_map = {p["sku"]: p for p in db.table("products").select("*").execute().data}
     sku_barcode_map = {sku: (p.get('barcode', '') or '') for sku, p in products_map.items()}
     inventory_map = {i["sku"]: i for i in db.table("inventory").select("*").execute().data}
@@ -42,7 +43,7 @@ def detect_slow_moving_products(db=None, create_alerts=False):
         days = 999
         if last_date:
             try: days = (now - datetime.strptime(last_date[:10], "%Y-%m-%d")).days
-            except: pass
+            except Exception as e: import logging; logging.warning(f"[slow-moving] parse date {last_date}: {e}")
         stock = int(inv.get("available_qty") or 0) if inv else 0
         if days > 30 and stock > 0:
             level = "滞销" if days > 60 else ("冷淡" if days > 30 else "正常")

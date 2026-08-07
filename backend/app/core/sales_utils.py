@@ -27,7 +27,8 @@ def calc_sales(orders, cutoff_days, source='', wh_name=None, sku_barcode_map=Non
                 if key not in daily_by_sku:
                     daily_by_sku[key] = {}
                 daily_by_sku[key][row['date']] = daily_by_sku[key].get(row['date'], 0) + (row['order_count'] or 0)
-        except:
+        except Exception as e:
+            import logging; logging.warning(f"[sales] snapshot read: {e}")
             daily_by_sku = {}
     
     # 从原始订单补充当天数据（快照不包含当天）
@@ -123,14 +124,16 @@ def build_daily_sales_snapshot(db):
             else:
                 db.table("daily_sales_snapshot").insert({"date": date, "channel": channel, "sku": sku, "order_count": qty}).execute()
             count += 1
-        except: pass
+        except Exception as e:
+            import logging; logging.warning(f"[sales] snapshot upsert: {e}")
     # 清理超出 90 天的旧快照
     try:
         old = db.table("daily_sales_snapshot").select("*").execute().data or []
         for r in old:
             if r['date'] < (datetime.utcnow() - timedelta(days=100)).strftime('%Y-%m-%d'):
                 db.table("daily_sales_snapshot").delete().eq("id", r['id']).execute()
-    except: pass
+    except Exception as e:
+        import logging; logging.warning(f"[sales] snapshot cleanup: {e}")
     return count
 
 

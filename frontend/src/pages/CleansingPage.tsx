@@ -74,7 +74,7 @@ export default function CleansingPage() {
   const [pv,setPv] = useState(null)
   const [res,setRes] = useState(null)
   const [bs,setBs] = useState('')
-  const [cf,setCf] = useState(JSON.parse(localStorage.getItem('c_cf')||'[]'))
+  const [cf,setCf] = useState(() => { try { return JSON.parse(localStorage.getItem('c_cf')||'[]') } catch { return [] } })
   const [templates, setTemplates] = useState([])
   const saveCf = (v) => { setCf(v); localStorage.setItem('c_cf', JSON.stringify(v)) }
 
@@ -181,8 +181,7 @@ export default function CleansingPage() {
   }
 
   useEffect(() => {
-    const saved = localStorage.getItem('c_last_tt')
-    if (saved) setTt(saved)
+    try { const saved = localStorage.getItem('c_last_tt'); if (saved) setTt(saved) } catch {}
   }, [])
   useEffect(() => {
     localStorage.setItem('c_last_tt', tt)

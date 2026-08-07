@@ -164,7 +164,9 @@ def check_db_version():
         conn = get_conn()
         v = conn.execute("SELECT value FROM replenishment_config WHERE key='_cache_version'").fetchone()
         return int(v[0]) if v else 0
-    except: return 0
+    except Exception as e:
+        import logging; logging.warning(f"[dash-cache] check version: {e}")
+        return 0
 
 def invalidate():
     global _cache_dirty, _cache_by_channel, _cache_version, _stock_risk_cache
@@ -176,7 +178,8 @@ def invalidate():
         conn = get_conn()
         conn.execute("INSERT OR REPLACE INTO replenishment_config(key,value) VALUES('_cache_version',?)", (str(_cache_version),))
         conn.commit()
-    except: pass
+    except Exception as e:
+        import logging; logging.warning(f"[dash-cache] persist version: {e}")
 
 def get_stock_risk(channel='jd'):
     global _stock_risk_cache

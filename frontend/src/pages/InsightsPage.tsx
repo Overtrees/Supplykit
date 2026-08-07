@@ -69,6 +69,8 @@ function renderNote(text) {
 }
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
+const safeGet = (key, def) => { try { return localStorage.getItem(key) ?? def } catch { return def } }
+const safeSet = (key, val) => { try { localStorage.setItem(key, val) } catch {} }
 
 const pillStyle = (cond, yes = 'danger', no = 'info') => ({
   display: 'inline-block', padding: '2px 8px', borderRadius: 99,

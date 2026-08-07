@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useAppStore } from '../../store/useAppStore'
+import { useDebouncedSearch } from '../../hooks/useDebounce'
 import { SUPPLIER_COLS, suppColKey, getSuppVis } from './configs'
 import { t } from '../../locale'
 
@@ -7,6 +8,7 @@ interface HammerSuppliersProps { channel: string }
 
 export default function HammerSuppliers({ channel }: HammerSuppliersProps) {
   const { hammerPanel, setHammerPanel, hammerSearch, setHammerSearch, setHammerCols } = useAppStore()
+  const [localSearch, setLocalSearch] = useDebouncedSearch(hammerSearch, setHammerSearch)
   const [visCols, setVisCols] = useState(() => getSuppVis(channel) || SUPPLIER_COLS.map(c => c.id))
 
   useEffect(() => { setVisCols(getSuppVis(channel) || SUPPLIER_COLS.map(c => c.id)) }, [channel])
@@ -67,7 +69,7 @@ export default function HammerSuppliers({ channel }: HammerSuppliersProps) {
       )}
       {hammerPanel === 'search' && (
         <div className="hammer-panel">
-          <input id="hm-search-supp" value={hammerSearch} onChange={e=>setHammerSearch(e.target.value)}
+          <input id="hm-search-supp" value={localSearch} onChange={e=>setLocalSearch(e.target.value)}
             placeholder="搜索供应商名称/编号..." className="hammer-input" />
           {hammerSearch && <div className="text-right mt-8">
             <button className="hammer-clear" onClick={()=>setHammerSearch('')}>{t('common.clear')}</button>

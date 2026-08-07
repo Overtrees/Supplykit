@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { t } from "../../locale"
 import { useAppStore } from '../../store/useAppStore'
+import { useDebouncedSearch } from '../../hooks/useDebounce'
 import { useToast } from '../../components/Toast'
 import { INV_COLS, INV_COL_KEY, getInvVis, invColKey, INV_WH_LABEL } from './configs'
 import { IconExport } from '../Icons'
@@ -10,6 +11,7 @@ interface HammerInventoryProps { channel: string }
 export default function HammerInventory({ channel }: HammerInventoryProps) {
   const toast = useToast()
   const { hammerPanel, setHammerPanel, hammerSearch, setHammerSearch, setHammerCols, hammerWhType, setHammerWhType } = useAppStore()
+  const [localSearch, setLocalSearch] = useDebouncedSearch(hammerSearch, setHammerSearch)
   const [visCols, setVisCols] = useState(() => getInvVis(hammerWhType, channel) || INV_COLS[hammerWhType].map(c => c.id))
   const [exporting, setExporting] = useState(false)
 
@@ -115,7 +117,7 @@ export default function HammerInventory({ channel }: HammerInventoryProps) {
       {/* 搜索面板 */}
       {hammerPanel === 'search' && (
         <div className="hammer-panel">
-          <input id="hm-search-inv" value={hammerSearch} onChange={e=>setHammerSearch(e.target.value)}
+          <input id="hm-search-inv" value={localSearch} onChange={e=>setLocalSearch(e.target.value)}
             placeholder="搜索SKU/商品名..." className="hammer-input" />
           {hammerSearch && <div style={{marginTop:4,textAlign:'right'}}>
             <button className="hammer-clear" onClick={()=>setHammerSearch('')}>{t("common.clear")}</button>

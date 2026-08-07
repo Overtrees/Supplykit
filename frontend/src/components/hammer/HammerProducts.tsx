@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useAppStore } from '../../store/useAppStore'
+import { useDebouncedSearch } from '../../hooks/useDebounce'
 import { PRODUCT_COLS, prodColKey, getProdVis } from './configs'
 import { t } from '../../locale'
 
@@ -7,6 +8,7 @@ interface HammerProductsProps { channel: string }
 
 export default function HammerProducts({ channel }: HammerProductsProps) {
   const { hammerPanel, setHammerPanel, hammerSearch, setHammerSearch, setHammerCols } = useAppStore()
+  const [localSearch, setLocalSearch] = useDebouncedSearch(hammerSearch, setHammerSearch)
   const [visCols, setVisCols] = useState(() => getProdVis(channel) || PRODUCT_COLS.map(c => c.id))
 
   useEffect(() => { setVisCols(getProdVis(channel) || PRODUCT_COLS.map(c => c.id)) }, [channel])
@@ -69,7 +71,7 @@ export default function HammerProducts({ channel }: HammerProductsProps) {
       )}
       {hammerPanel === 'search' && (
         <div className="hammer-panel">
-          <input id="hm-search-prod" value={hammerSearch} onChange={e=>setHammerSearch(e.target.value)}
+          <input id="hm-search-prod" value={localSearch} onChange={e=>setLocalSearch(e.target.value)}
             placeholder="搜索SKU/商品名..." className="hammer-input" />
           {hammerSearch && <div className="text-right mt-8">
             <button className="hammer-clear" onClick={()=>setHammerSearch('')}>{t('common.clear')}</button>

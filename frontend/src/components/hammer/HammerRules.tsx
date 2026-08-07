@@ -4,6 +4,7 @@ interface HammerRulesProps { channel: string; onShowHistory?: (ch: string) => vo
 
 export default function HammerRules({ channel, onShowHistory }: HammerRulesProps) {
   const { hammerRulesTab, setHammerRulesTab, bumpHammerRuleNew, hammerRulesMode, setHammerRulesMode, hammerSearch, setHammerSearch } = useAppStore()
+  const [localSearch, setLocalSearch] = useDebouncedSearch(hammerSearch, setHammerSearch)
   const [searchOpen, setSearchOpen] = useState(false)
 
   return (
@@ -35,7 +36,7 @@ export default function HammerRules({ channel, onShowHistory }: HammerRulesProps
           </button>
         </div>
         {searchOpen && <div className="hammer-panel">
-          <input value={hammerSearch} onChange={e=>setHammerSearch(e.target.value)}
+          <input value={localSearch} onChange={e=>setLocalSearch(e.target.value)}
             placeholder="搜索规则名称..." className="hammer-input" />
           {hammerSearch && <div style={{marginTop:4,textAlign:'right'}}>
             <button className="hammer-clear" onClick={()=>setHammerSearch('')}>清除</button>

@@ -4,7 +4,7 @@ const BASE = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywh
 
 // 响应缓存（内存）
 const cache = new Map()
-const CACHE_TTL = 15_000 // 15s 内复用缓存
+const CACHE_TTL = 30_000 // 30s 内复用缓存
 
 function cacheKey(method, url, params) {
   return method + ':' + url + ':' + JSON.stringify(params || {})
@@ -13,7 +13,7 @@ function cacheKey(method, url, params) {
 // 底层 axios 实例
 const instance = axios.create({
   baseURL: BASE,
-  timeout: 120000,
+  timeout: 60000,
 })
 
 // 请求拦截器：自动注入全局 channel 参数
@@ -103,7 +103,7 @@ function invalidateCache() {
 export const api = {
   get: apiGet,
   post: async (url, data, config) => {
-    const merged = {timeout: 120000, ...config}
+    const merged = {timeout: 60000, ...config}
     const r = await instance.post(url, data, merged)
     invalidateCache()
     return r

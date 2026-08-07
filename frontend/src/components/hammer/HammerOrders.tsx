@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useAppStore } from '../../store/useAppStore'
+import { useDebouncedSearch } from '../../hooks/useDebounce'
 import { useToast } from '../../components/Toast'
 import { ORDER_COLS, ORDER_STATUSES, orderColKey, getOrderVis } from './configs'
 import { IconExport } from '../Icons'
@@ -10,6 +11,7 @@ interface HammerOrdersProps { channel: string }
 export default function HammerOrders({ channel }: HammerOrdersProps) {
   const toast = useToast()
   const { hammerPanel, setHammerPanel, hammerSearch, setHammerSearch, setHammerCols, setOrderFilterLocal, orderStatus } = useAppStore()
+  const [localSearch, setLocalSearch] = useDebouncedSearch(hammerSearch, setHammerSearch)
   const [visCols, setVisCols] = useState(() => getOrderVis(channel) || ORDER_COLS.map(c => c.id))
   const [exporting, setExporting] = useState(false)
 
@@ -100,7 +102,7 @@ export default function HammerOrders({ channel }: HammerOrdersProps) {
       )}
       {hammerPanel === 'search' && (
         <div className="hammer-panel">
-          <input id="hm-search-orders" value={hammerSearch} onChange={e=>setHammerSearch(e.target.value)}
+          <input id="hm-search-orders" value={localSearch} onChange={e=>setLocalSearch(e.target.value)}
             placeholder="搜索单号/商品/SKU..." className="hammer-input" />
           {hammerSearch && <div className="text-right mt-8">
             <button className="hammer-clear" onClick={()=>setHammerSearch('')}>{t('common.clear')}</button>

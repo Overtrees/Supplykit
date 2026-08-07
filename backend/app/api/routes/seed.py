@@ -158,15 +158,19 @@ def _seed_fill_async():
     steps.append(_run_step('生成库存', lambda: _seed_inventory(db, skus_data)))
     _update_steps(steps)
 
-    # 步骤5: 写入补货参数和规则
+    # 步骤5: 生成当月出入库记录（进销存页展示）
+    steps.append(_run_step('生成出入库记录', lambda: _seed_records(db, skus_data)))
+    _update_steps(steps)
+
+    # 步骤6: 写入补货参数和规则
     steps.append(_run_step('写入补货参数/规则', lambda: _seed_config(db, conn)))
     _update_steps(steps)
 
-    # 步骤6: 触发规则引擎
+    # 步骤7: 触发规则引擎
     steps.append(_run_step('触发规则引擎', lambda: _seed_rules(db, skus_data)))
     _update_steps(steps)
 
-    # 步骤7: 构建日销快照（新数据实时纳入日销计算，不等次日凌晨）
+    # 步骤8: 构建日销快照（新数据实时纳入日销计算，不等次日凌晨）
     steps.append(_run_step('构建日销快照', lambda: build_daily_sales_snapshot(db)))
     _update_steps(steps)
 
@@ -319,6 +323,45 @@ def _seed_rules(db, skus_data):
             "INSERT INTO alerts(alert_type,title,description,severity,source,channel,related_sku,status) VALUES(?,?,?,?,?,?,?,?)",
             [(t, ti, de, se, "rules_engine", ch, sk, "active") for (t, ti, de, se, ch, sk) in inserts]
         )
+    conn.commit()
+
+def _seed_records(db, skus_data):
+    """生成当月出入库记录（供进销存页展示）"""
+    from datetime import datetime, timedelta
+    import random
+    conn = get_conn()
+    today = datetime.utcnow()
+    for skus, ch in [(skus_data['jd'],'jd'), (skus_data['other'],'other')]:
+        for sk in skus:
+            max_days = max(today.day - 1, 6)  # 至少 7 天范围，避免月初无可用日期
+            used_dates = set()
+            in_cnt = random.randint(1, min(3, max_days + 1))
+            for _ in range(in_cnt):
+                days_back = random.randint(0, max_days)
+                while days_back in used_dates:
+                    days_back = random.randint(0, max_days)
+                used_dates.add(days_back)
+                try:
+                    conn.execute(
+                        "INSERT OR IGNORE INTO inbound_records(sku,product_name,quantity,supplier,inbound_date,channel) VALUES(?,?,?,?,?,?)",
+                        (sk['sku'], sk['name'], random.randint(50, 500), f"供应商-{sk['sku'][-3:]}",
+                         (today - timedelta(days=days_back)).strftime('%Y-%m-%d'), ch))
+                except Exception:
+                    pass
+            used_dates = set()
+            out_cnt = random.randint(1, min(2, max_days + 1))
+            for _ in range(out_cnt):
+                days_back = random.randint(0, max_days)
+                while days_back in used_dates:
+                    days_back = random.randint(0, max_days)
+                used_dates.add(days_back)
+                try:
+                    conn.execute(
+                        "INSERT OR IGNORE INTO outbound_records(sku,product_name,quantity,target_warehouse,outbound_date,channel) VALUES(?,?,?,?,?,?)",
+                        (sk['sku'], sk['name'], random.randint(10, 100), "京东备货仓",
+                         (today - timedelta(days=days_back)).strftime('%Y-%m-%d'), ch))
+                except Exception:
+                    pass
     conn.commit()
 
 def _seed_config(db, conn):

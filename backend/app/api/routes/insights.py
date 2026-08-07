@@ -222,50 +222,39 @@ def auto_adjust_inventory(order_data: dict, order_type: str, db):
             "safety_qty": 10,
         }).execute()
 @router.get('/with-sales')
-def inventory_with_sales(wh_type: str = 'own', channel: str = 'jd', db = get_db()):
+def inventory_with_sales(wh_type: str = 'own', channel: str = 'jd', page: int = 0, page_size: int = 0, db = get_db()):
     """库存列表 + 日销 + 在库周转 + 当月出入库
     wh_type: own=自有仓, platform=平台仓(C仓), platform_b=B仓
+    page/page_size: 翻页参数，传 0 返回全部
     """
     inv = db.table("inventory").select("*").eq("warehouse_type", wh_type).eq("channel", channel).execute().data or []
-    orders = db.table("orders").select("*").execute().data or []
     from datetime import datetime, timedelta
     now = datetime.utcnow()
-    cutoff_28 = (now - timedelta(days=28)).strftime('%Y-%m-%d')
-    cur_month = now.strftime('%Y-%m')  # 当前自然月，用于统计
-    # 动态获取出入库记录的实际日期范围（仅用于表头显示）
-    in_records = db.table("inbound_records").select("*").execute().data or []
-    out_records = db.table("outbound_records").select("*").execute().data or []
-    all_dates = set()
-    for r in in_records:
-        d = (r.get('inbound_date') or '')[:10]
-        if d[:7] == cur_month: all_dates.add(d)
-    for r in out_records:
-        d = (r.get('outbound_date') or '')[:10]
-        if d[:7] == cur_month: all_dates.add(d)
-    if all_dates:
-        month_start = min(all_dates)[:10]
-        month_end = max(all_dates)[:10]
-    else:
-        month_start = now.replace(day=1).strftime('%Y-%m-%d')
-        month_end = now.strftime('%Y-%m-%d')
-    # 当月出入库汇总（按当前自然月）
+    cutoff_28 = (now - timedelta(days=28)).isoformat()
+    cur_month = now.strftime('%Y-%m')
+    # SQL 级过滤：只取最近 28 天订单
+    orders = db.table("orders").select("*").gte("ordered_at", cutoff_28).execute().data or []
+    # 出入库记录只取当月
+    month_start = now.replace(day=1).strftime('%Y-%m-%d')
+    month_end = now.strftime('%Y-%m-%d')
+    in_records = db.table("inbound_records").select("*").gte("inbound_date", month_start).execute().data or []
+    out_records = db.table("outbound_records").select("*").gte("outbound_date", month_start).execute().data or []
+    # 当月出入库汇总
     inbound_month = {}
     for r in in_records:
-        if (r.get('inbound_date') or '')[:7] == cur_month:
-            s = r['sku']
-            inbound_month[s] = inbound_month.get(s, 0) + int(r.get('quantity',0) or 0)
+        s = r['sku']
+        inbound_month[s] = inbound_month.get(s, 0) + int(r.get('quantity',0) or 0)
     outbound_month = {}
     for r in out_records:
-        if (r.get('outbound_date') or '')[:7] == cur_month:
-            s = r['sku']
-            outbound_month[s] = outbound_month.get(s, 0) + int(r.get('quantity',0) or 0)
+        s = r['sku']
+        outbound_month[s] = outbound_month.get(s, 0) + int(r.get('quantity',0) or 0)
     sales_28 = {}
     products_for_barcode = {p["sku"]: p for p in (db.table("products").select("*").execute().data or [])}
     for o in orders:
         sku = o.get('sku','')
         dt = str(o.get('ordered_at',''))[:10]
         qty = int(o.get('quantity',0) or 0)
-        if not sku or dt < cutoff_28: continue
+        if not sku: continue
         bc = (products_for_barcode.get(sku) or {}).get('barcode', '')
         key = f"{sku}|{bc}" if bc else sku
         sales_28[key] = sales_28.get(key, 0) + qty
@@ -304,4 +293,7 @@ def inventory_with_sales(wh_type: str = 'own', channel: str = 'jd', db = get_db(
             'month_end': month_end,
             'turnover_days': round(i.get('turnover_days',0) or 0, 1) if (i.get('turnover_days') or 0) > 0 else None,
         })
-    return ok(result)
+    total = len(result)
+    if page > 0 and page_size > 0:
+        result = result[(page - 1) * page_size: page * page_size]
+    return ok({"items": result, "total": total, "page": page, "page_size": page_size})

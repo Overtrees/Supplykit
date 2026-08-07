@@ -112,7 +112,7 @@ export default function App() {
   const [showHistory, setShowHistory] = useState(false)
   const [history, setHistory] = useState([])
   const [histLoading, setHistLoading] = useState(false)
-  const [showWelcome, setShowWelcome] = useState(!localStorage.getItem('c_welcome_seen'))
+  const [showWelcome, setShowWelcome] = useState(() => { try { return !localStorage.getItem('c_welcome_seen') } catch { return false } })
   const loadHistory = useCallback(async (ch) => {
     setShowHistory(true)
     setHistLoading(true)
@@ -135,6 +135,27 @@ export default function App() {
     } catch { setApiStatus('error') }
   }, [])
   useEffect(() => { checkApi(); const t = setInterval(checkApi, 15000); return () => clearInterval(t) }, [checkApi])
+
+  // 数据版本轮询：后端_ cache_version 变化时自动刷新
+  const [dbVersion, setDbVersion] = useState(0)
+  const versionRef = useRef(0)
+  useEffect(() => {
+    const poll = setInterval(async () => {
+      try {
+        const r = await fetch(API + '/api/health')
+        const d = await r.json()
+        const v = d.version || 0
+        if (versionRef.current > 0 && v !== versionRef.current) {
+          // 版本变化，清除前端缓存
+          clearCache()
+          useAppStore.getState().loadAll().catch(() => {})
+        }
+        versionRef.current = v
+        setDbVersion(v)
+      } catch {}
+    }, 30000)
+    return () => clearInterval(poll)
+  }, [])
 
   const [showMenu, setShowMenu] = useState(false)
   const [menuClosing, setMenuClosing] = useState(false)

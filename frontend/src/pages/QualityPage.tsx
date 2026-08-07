@@ -13,7 +13,8 @@ const TYPE_LABEL = {
 const LEVEL_LABEL = { warning: '警告', error: '异常', info: '提示' }
 
 export default function QualityPage() {
-  const { qualityLogs, channelVersion } = useAppStore()
+  const { qualityLogs, channelVersion, loading } = useAppStore()
+  if (loading) return <div className="card"><div className="section-title">{t("nav.quality")}</div><div>{[1,2,3].map(i => <div key={i} className="skeleton" style={{height:36,marginBottom:4}} />)}</div></div>
   if (qualityLogs.length === 0) return <div className="card" key={channelVersion}><div className="section-title">{t("nav.quality")}</div><div className="small muted" style={{padding:24,textAlign:'center'}}>{t("quality.empty")}</div></div>
 
   const groups = {}

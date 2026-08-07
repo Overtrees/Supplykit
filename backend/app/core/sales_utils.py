@@ -96,13 +96,22 @@ def calc_sales(orders, cutoff_days, source='', wh_name=None, sku_barcode_map=Non
 
 
 def build_daily_sales_snapshot(db):
-    """构建/更新日销快照表（每天凌晨执行）"""
+    """构建/更新日销快照表（增量：只处理快照最大日期之后的新订单）"""
     from collections import defaultdict
     from datetime import datetime, timedelta
-    # 获取最近 90 天的订单
+    # 快照中已有的最大日期
+    try:
+        max_row = db.table("daily_sales_snapshot").select("MAX(date) as m").execute().data
+        max_date = (max_row[0]['m'] or '') if max_row else ''
+    except Exception as e:
+        import logging; logging.warning(f"[sales] snapshot max date: {e}")
+        max_date = ''
+    # 增量窗口：max_date 之后到昨天
     cutoff = (datetime.utcnow() - timedelta(days=90)).strftime('%Y-%m-%d')
-    orders = db.table("orders").select("*").execute().data or []
-    recent = [o for o in orders if str(o.get('ordered_at',''))[:10] >= cutoff and str(o.get('ordered_at',''))[:10] < datetime.utcnow().strftime('%Y-%m-%d')]
+    today = datetime.utcnow().strftime('%Y-%m-%d')
+    start = max(cutoff, max_date) if max_date else cutoff
+    orders = db.table("orders").select("*").gte("ordered_at", start).execute().data or []
+    recent = [o for o in orders if str(o.get('ordered_at',''))[:10] < today]
     if not recent:
         return 0
     # 按日期+渠道+SKU 聚合
@@ -114,24 +123,22 @@ def build_daily_sales_snapshot(db):
         if not sku: continue
         qty = int(o.get('quantity', 0) or 0)
         agg[(date, channel, sku)] += qty
-    # UPSERT 到快照表
-    count = 0
-    for (date, channel, sku), qty in agg.items():
-        try:
-            existing = db.table("daily_sales_snapshot").select("id").eq("date", date).eq("channel", channel).eq("sku", sku).execute().data
-            if existing:
-                db.table("daily_sales_snapshot").update({"order_count": qty}).eq("id", existing[0]["id"]).execute()
-            else:
-                db.table("daily_sales_snapshot").insert({"date": date, "channel": channel, "sku": sku, "order_count": qty}).execute()
-            count += 1
-        except Exception as e:
-            import logging; logging.warning(f"[sales] snapshot upsert: {e}")
-    # 清理超出 90 天的旧快照
+    # 批量 UPSERT（executemany 减少 IO）
+    from app.core.database import get_conn
+    conn = get_conn()
+    rows = [(d, ch, s, q) for (d, ch, s), q in agg.items()]
+    conn.executemany(
+        "INSERT INTO daily_sales_snapshot(date, channel, sku, order_count) VALUES(?,?,?,?) "
+        "ON CONFLICT(date, channel, sku) DO UPDATE SET order_count=excluded.order_count",
+        rows
+    )
+    conn.commit()
+    count = len(rows)
+    # 清理超出 100 天的旧快照
     try:
-        old = db.table("daily_sales_snapshot").select("*").execute().data or []
-        for r in old:
-            if r['date'] < (datetime.utcnow() - timedelta(days=100)).strftime('%Y-%m-%d'):
-                db.table("daily_sales_snapshot").delete().eq("id", r['id']).execute()
+        old_cutoff = (datetime.utcnow() - timedelta(days=100)).strftime('%Y-%m-%d')
+        conn.execute("DELETE FROM daily_sales_snapshot WHERE date < ?", (old_cutoff,))
+        conn.commit()
     except Exception as e:
         import logging; logging.warning(f"[sales] snapshot cleanup: {e}")
     return count

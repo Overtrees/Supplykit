@@ -128,6 +128,7 @@ export default function InsightsPage() {
   const [purchaseVisCols, setPurchaseVisCols] = useState(() => PURCHASE_COLS.map(c => c.id))
   const [slowVisCols, setSlowVisCols] = useState(() => SLOW_COLS.map(c => c.id))
   const reqSeq = useRef(0)
+  const replenSeq = useRef(0)
 
   useEffect(() => {
     const saved = hammerCols?.['insights_'+replenMode]
@@ -154,16 +155,16 @@ export default function InsightsPage() {
     else setSlowVisCols(SLOW_COLS.map(c => c.id))
   }, [hammerCols, globalChannel])
   const loadReplen = async (mode, ch) => {
-    const seq = ++reqSeq.current
+    const seq = ++replenSeq.current
     setReplenLoading(true)
     try {
       const r = await api.get('/api/insights/replenishment?days=28&mode=' + mode)
-      if (seq === reqSeq.current) setReplen(Array.isArray(r.data) ? r.data : [])
+      if (seq === replenSeq.current) setReplen(Array.isArray(r.data) ? r.data : [])
     } catch(e) {
       console.error('loadReplen:', e)
-      if (seq === reqSeq.current) setReplen([])
+      if (seq === replenSeq.current) setReplen([])
     }
-    if (seq === reqSeq.current) setReplenLoading(false)
+    if (seq === replenSeq.current) setReplenLoading(false)
   }
 
   // 从后端加载已下单标记
@@ -217,12 +218,12 @@ export default function InsightsPage() {
     if (globalChannel !== 'jd' && replenMode === 'bbcc') setHammerReplenMode('traditional')
     loadReplen(mode, globalChannel)
     api.get('/api/insights/purchase?days=28&channel=' + globalChannel).then(r => {
-      if (seq !== reqSeq.current) return
+      if (seq !== reqSeq.current) { setPurchaseLoading(false); return }
       setPurchase(r.data?.suggestions || r.data || [])
       setPurchaseLoading(false)
-    }).catch(() => { if (seq === reqSeq.current) setPurchaseLoading(false) })
+    }).catch(() => setPurchaseLoading(false))
     api.get('/api/insights/slow-moving').then(r => {
-      if (seq !== reqSeq.current) return
+      if (seq !== reqSeq.current) { setSlowLoading(false); return }
       setSlowMoving(r.data || [])
       setSlowLoading(false)
     }).catch(() => setSlowLoading(false))

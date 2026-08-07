@@ -24,7 +24,7 @@ def health():
             if qc and qc[0] == 'ok':
                 checks["integrity"] = "ok"
             else:
-                checks["integrity"] = f"error: {qc}"
+                checks["integrity"] = f"error: {qc}（启动时已尝试 VACUUM/备份恢复）"
                 status = "degraded"
         except Exception as e:
             checks["integrity"] = f"error: {e}"

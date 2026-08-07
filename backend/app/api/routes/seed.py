@@ -261,8 +261,8 @@ def _seed_inventory(db, skus_data):
     jd_s, ot_s = skus_data['jd'], skus_data['other']
     for skus in [jd_s,ot_s]:
         for sk in skus:
-            # 12% SKU 全仓低库存（模拟需补货场景），其余正常
-            low = random.random() < 0.12
+            # 18% SKU 全仓低库存（模拟需补货/采购场景），其余正常
+            low = random.random() < 0.18
             seen_own = False
             for wn,wt in WH:
                 if wt == 'own':
@@ -272,11 +272,11 @@ def _seed_inventory(db, skus_data):
                     wh_name = '集货仓' if skus is jd_s else '三方仓'
                 else: wh_name = wn
                 if low and wt == 'platform':
-                    q = random.randint(0, 25)      # C 仓低库存 → 触发补货
+                    q = random.randint(0, 15)      # C 仓低库存 → 触发补货
                 elif low and wt == 'platform_b':
-                    q = random.randint(0, 10)      # B 仓也低
+                    q = random.randint(0, 5)       # B 仓也低
                 elif low and wt == 'own':
-                    q = random.randint(0, 15)      # 自有仓也低 → 系统总库存低，触发采购
+                    q = random.randint(0, 10)      # 自有仓也低 → 系统总库存低，触发采购
                 else:
                     q = random.randint(50, 800)
                 inv.append({'sku':sk['sku'],'product_name':sk['name'],'warehouse':wh_name,'warehouse_type':wt,'available_qty':q,'in_transit_qty':random.randint(0,80) if low else random.randint(0,200),'safety_qty':random.randint(30,200),'channel':'jd' if skus is jd_s else 'other'})
@@ -300,7 +300,7 @@ def _seed_rules(db, skus_data):
     for r in inv_rows:
         s = sku_stock[r[0]]
         s['avail'] += int(r[2] or 0)
-        s['transit'] += int(r[5] or 0) if len(r) > 5 else 0
+        s['transit'] += int(r[6] or 0) if len(r) > 6 else 0
         s['safety'] += int(r[3] or 0)
         s['name'] = r[1] or r[0]
         s['ch'] = r[4] or 'jd'

@@ -86,15 +86,21 @@ RULES = [
 # ─── 评估引擎 ──────────────────────────────────────────────────────────────
 
 def _resolve_value(expr: str, ctx: dict):
-    """解析条件表达式，支持组合运算：
-    inv.available_qty + inv.in_transit_qty            （加法）
-    inv.safety_qty - inv.available_qty                （减法/缺口）
-    order.quantity * order.unit_price                 （乘法/金额）
-    inv.available_qty / inv.safety_qty                （除法/比例）
+    """解析条件表达式，支持组合运算+括号分组：
+    inv.available_qty + inv.in_transit_qty                  （加法）
+    (inv.available_qty + inv.in_transit_qty) / daily_sales  （括号分组）
     """
     expr = str(expr).strip()
     if not expr:
         return 0
+    # 处理括号：递归计算括号内表达式
+    while '(' in expr:
+        import re
+        m = re.search(r'\(([^()]+)\)', expr)
+        if not m:
+            break
+        inner = _resolve_value(m.group(1), ctx)
+        expr = expr[:m.start()] + str(inner) + expr[m.end():]
     if '+' in expr or '-' in expr:
         import re
         add_tokens = re.split(r'([+-])', expr)

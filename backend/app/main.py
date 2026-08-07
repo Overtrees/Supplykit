@@ -83,6 +83,47 @@ from app.core.scheduler import start as start_scheduler, get_status as scheduler
 
 init_db()
 
+# 数据库完整性自动恢复（启动时检测损坏，自动 VACUUM 或从备份恢复）
+try:
+    import sqlite3 as _sqlite3, glob as _glob, os as _os, shutil as _shutil
+    from app.core.database import DB_PATH as _DB_PATH
+    _c = _sqlite3.connect(_DB_PATH)
+    _c.execute("PRAGMA busy_timeout=10000")
+    _qc = _c.execute("PRAGMA quick_check").fetchone()
+    if _qc and _qc[0] != 'ok':
+        import logging as _logging
+        _logging.warning(f"[db] 数据库损坏检测: {_qc}")
+        # 尝试 VACUUM 修复
+        try:
+            _c.execute("VACUUM")
+            _qc2 = _c.execute("PRAGMA quick_check").fetchone()
+            if _qc2 and _qc2[0] == 'ok':
+                _logging.info("[db] VACUUM 修复成功")
+            else:
+                raise Exception("VACUUM 后仍损坏")
+        except Exception as _ve:
+            _logging.warning(f"[db] VACUUM 修复失败: {_ve}，尝试从备份恢复")
+            # 从最新备份恢复
+            _baks = sorted(_glob.glob(_DB_PATH + ".bak.*"), key=_os.path.getmtime, reverse=True)
+            _restored = False
+            for _bak in _baks:
+                try:
+                    _shutil.copy2(_bak, _DB_PATH)
+                    _c2 = _sqlite3.connect(_DB_PATH)
+                    _c2.execute("PRAGMA quick_check").fetchone()
+                    _c2.close()
+                    _logging.info(f"[db] 从备份恢复成功: {_bak}")
+                    _restored = True
+                    break
+                except Exception as _be:
+                    _logging.warning(f"[db] 备份恢复失败: {_bak}")
+            if not _restored:
+                _logging.error("[db] 所有备份恢复失败，数据库需要人工处理")
+    _c.close()
+except Exception as _e:
+    import logging as _logging
+    _logging.warning(f"[db] 启动自检异常: {_e}")
+
 # 启动时 WAL checkpoint（合并 WAL 到主库，防止 reload 后 WAL 膨胀）
 try:
     import sqlite3 as _sqlite3

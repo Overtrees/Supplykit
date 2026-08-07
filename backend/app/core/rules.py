@@ -86,17 +86,21 @@ RULES = [
 # ─── 评估引擎 ──────────────────────────────────────────────────────────────
 
 def _resolve_value(expr: str, ctx: dict):
-    """解析条件表达式，支持 inv.available_qty + inv.in_transit_qty 组合"""
+    """解析条件表达式，支持组合运算：
+    inv.available_qty + inv.in_transit_qty            （加法）
+    inv.safety_qty - inv.available_qty                （减法/缺口）
+    order.quantity * order.unit_price                 （乘法/金额）
+    inv.available_qty / inv.safety_qty                （除法/比例）
+    """
     expr = str(expr).strip()
     if not expr:
         return 0
-    # 组合表达式（+ / - 运算）
     if '+' in expr or '-' in expr:
         import re
-        tokens = re.split(r'([+-])', expr)
+        add_tokens = re.split(r'([+-])', expr)
         total = 0.0
         sign = 1.0
-        for t in tokens:
+        for t in add_tokens:
             t = t.strip()
             if not t:
                 continue
@@ -105,14 +109,47 @@ def _resolve_value(expr: str, ctx: dict):
             elif t == '-':
                 sign = -1.0
             else:
-                total += sign * float(_resolve_single(t, ctx))
+                total += sign * _resolve_muldiv(t, ctx)
         return total
-    return _resolve_single(expr, ctx)
+    return _resolve_muldiv(expr, ctx)
+
+
+def _resolve_muldiv(expr, ctx):
+    """解析乘除：字段*系数 / 字段*字段 / 字段/字段"""
+    import re
+    expr = str(expr).strip()
+    if '*' not in expr and '/' not in expr:
+        return _resolve_single(expr, ctx)
+    md_tokens = re.split(r'([*/])', expr)
+    result = None
+    op = None
+    for t in md_tokens:
+        t = t.strip()
+        if not t:
+            continue
+        if t in '*/':
+            op = t
+        else:
+            val = float(_resolve_single(t, ctx))
+            if result is None:
+                result = val
+            elif op == '*':
+                result *= val
+            elif op == '/':
+                result = result / val if val != 0 else 0
+    return result
 
 
 def _resolve_single(expr, ctx):
-    """解析单个字段，如 inv.available_qty → ctx['inv']['available_qty']"""
-    parts = str(expr).split('.')
+    """解析单个字段或数字，如 inv.available_qty → ctx['inv']['available_qty']；'2' → 2"""
+    expr = str(expr).strip()
+    # 纯数字直接返回
+    try:
+        if expr.replace('.', '', 1).isdigit():
+            return float(expr)
+    except Exception:
+        pass
+    parts = expr.split('.')
     val = ctx
     for p in parts:
         if isinstance(val, dict):

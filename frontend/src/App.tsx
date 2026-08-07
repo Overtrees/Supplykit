@@ -278,7 +278,7 @@ export default function App() {
   const errCount = (qualityLogs||[]).length
 
   const renderPage = (pageId) => {
-    const wrap = (el) => <ErrorBoundary key={pageId}><Suspense fallback={<div className="card"><div className="skeleton" style={{height:40,width:'40%'}}/><div style={{marginTop:12}}>{[1,2,3,4].map(i=><div key={i} className="skeleton" style={{height:36,marginBottom:4}}/>)}</div></div>}>{el}</Suspense></ErrorBoundary>
+    const wrap = (el) => <ErrorBoundary key={pageId}><Suspense fallback={<div style={{minHeight:200,display:'flex',alignItems:'center',justifyContent:'center',opacity:0.4}}><div className="hammer-spinner" style={{width:20,height:20}} /></div>}>{el}</Suspense></ErrorBoundary>
     switch (pageId) {
       case 'dash': return wrap(<DashboardPage key={pageId} onAlert={(s)=>{navigate('inv',s)}} />)
       case 'products': return wrap(<ProductPage key={pageId} />)

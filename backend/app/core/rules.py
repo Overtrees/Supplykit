@@ -86,8 +86,33 @@ RULES = [
 # ─── 评估引擎 ──────────────────────────────────────────────────────────────
 
 def _resolve_value(expr: str, ctx: dict):
-    """解析条件表达式，如 inv.available_qty → ctx['inv']['available_qty']"""
-    parts = expr.split('.')
+    """解析条件表达式，支持 inv.available_qty + inv.in_transit_qty 组合"""
+    expr = str(expr).strip()
+    if not expr:
+        return 0
+    # 组合表达式（+ / - 运算）
+    if '+' in expr or '-' in expr:
+        import re
+        tokens = re.split(r'([+-])', expr)
+        total = 0.0
+        sign = 1.0
+        for t in tokens:
+            t = t.strip()
+            if not t:
+                continue
+            if t == '+':
+                sign = 1.0
+            elif t == '-':
+                sign = -1.0
+            else:
+                total += sign * float(_resolve_single(t, ctx))
+        return total
+    return _resolve_single(expr, ctx)
+
+
+def _resolve_single(expr, ctx):
+    """解析单个字段，如 inv.available_qty → ctx['inv']['available_qty']"""
+    parts = str(expr).split('.')
     val = ctx
     for p in parts:
         if isinstance(val, dict):
@@ -111,7 +136,15 @@ def _check_single(cond: dict, ctx: dict) -> bool:
         if right_raw.startswith('max('):
             inner = right_raw[4:-1]
             parts = [p.strip() for p in inner.split(',')]
-            right = max(_resolve_value(parts[0], ctx), float(parts[1]) if parts[1].replace('.','',1).isdigit() else 0)
+            # 支持字段*系数表达式（如 inv.safety_qty*0.3）
+            def _resolve_any(p):
+                if '*' in p:
+                    a, b = p.split('*', 1)
+                    return float(_resolve_value(a, ctx)) * float(b.strip())
+                if p.replace('.','',1).isdigit():
+                    return float(p)
+                return _resolve_value(p, ctx)
+            right = max(_resolve_any(parts[0]), _resolve_any(parts[1]) if len(parts) > 1 else 0)
         elif right_raw.replace('.','',1).isdigit():
             right = float(right_raw)
         elif '.' in right_raw or right_raw.startswith('inv.'):

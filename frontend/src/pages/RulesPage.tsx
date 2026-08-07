@@ -26,6 +26,7 @@ const IS = {width:'100%',padding:'8px 12px',fontSize:16,border:'1px solid var(--
 
 const LF = [
   {l:'可用库存',v:'inv.available_qty'},{l:'安全库存',v:'inv.safety_qty'},{l:'在途库存',v:'inv.in_transit_qty'},
+  {l:'可用+在途',v:'inv.available_qty + inv.in_transit_qty'},
   {l:'距上次销售(天)',v:'inv.days_since_last'},{l:'库存量',v:'inv.stock'},{l:'仓库类型',v:'inv.warehouse_type'},
   {l:'订单数量',v:'order.quantity'},{l:'订单金额',v:'order.total_amount'},{l:'单价',v:'order.unit_price'}]
 const OPS = [{l:'小于',v:'<'},{l:'小于等于',v:'<='},{l:'大于',v:'>'},{l:'大于等于',v:'>='},{l:'等于',v:'=='},{l:'不等于',v:'!='}]

@@ -312,11 +312,17 @@ def inventory_with_sales(wh_type: str = 'own', channel: str = 'jd', page: int = 
         ds = round(sales_28.get(sales_key, 0), 1)
         avail = int(i.get('available_qty',0) or 0)
         begin = avail - inbound_month.get(sku, 0) + outbound_month.get(sku, 0)
+        # 单价：从 products 主表联表获取
+        price = 0
+        _p = products_for_barcode.get(sku) or {}
+        try: price = float(_p.get('price') or 0)
+        except Exception: price = 0
         result.append({
             'id': i['id'],
             'sku': sku,
             'barcode': bc,
             'product_name': i.get('product_name',''),
+            'price': price,
             'store': i.get('store',''),
             'warehouse': i.get('warehouse',''),
             'warehouse_type': i.get('warehouse_type','platform'),

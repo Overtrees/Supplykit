@@ -106,14 +106,23 @@ def _task_cleanup_logs():
         logger.info(f"Cleanup error: {e}")
 
 def _task_backup():
-    """每天凌晨 2 点备份数据库"""
+    """每天凌晨 2 点备份数据库（只保留最近 7 个备份，防止撑爆配额）"""
     try:
-        from app.core.database import backup_db
+        from app.core.database import backup_db, DB_PATH
         path = backup_db()
         if path:
             logger.info(f"Backup: {path}")
         else:
             logger.error("Backup failed")
+        # 清理旧备份：只保留最近 7 个
+        import glob, os
+        baks = sorted(glob.glob(DB_PATH + ".bak.*"), key=os.path.getmtime, reverse=True)
+        for old in baks[7:]:
+            try:
+                os.remove(old)
+                logger.info(f"Removed old backup: {old}")
+            except Exception as e:
+                logger.info(f"Remove backup error: {e}")
     except Exception as e:
         logger.info(f"Backup error: {e}")
 

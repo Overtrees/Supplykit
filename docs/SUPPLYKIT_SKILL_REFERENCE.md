@@ -159,6 +159,13 @@ backend/app/
 - 列选择器已移入锤子菜单
 - 合计行仅自有仓显示
 - 仓库类型按渠道持久化 `localStorage('c_wh_type_{channel}')`
+- **当月入库/出库**: 从 inbound/outbound_records 按月聚合，种子数据已生成
+- **在库周转**: 按融合日销（三窗口 3σ + 趋势加权）计算，非简单平均
+- 仓库类型筛选已移入锤子菜单（自有仓/平台仓/B仓）
+- 列配置按仓库类型独立持久化（localStorage: `c_cols_inventory_own/platform/platform_b`）
+- 列选择器已移入锤子菜单
+- 合计行仅自有仓显示
+- 仓库类型按渠道持久化 `localStorage('c_wh_type_{channel}')`
 
 ## 列选择器
 所有表格页面的列选择器已从页面内移入锤子菜单。

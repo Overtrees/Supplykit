@@ -470,7 +470,13 @@ grep -rn "import.*from.*locale" src/ | sort | uniq -d
 - 告警按 source 区分（replenishment_engine / rules_engine），口径统一不误关
 - 规则引擎紧急补货考虑在途（可用+在途≤安全线才算真紧急）
 
-### 14.6 代码质量
+### 14.7 认证系统
+- 纯标准库 JWT（HMAC-SHA256），零外部依赖
+- users 表（username/password_hash/role），预留多用户
+- 后端正中件强制鉴权，访客模式只读
+- JWT SECRET 持久化到数据库（启动时自动生成/恢复）
+
+### 14.8 代码质量
 - 裸 except 全部处理：ALTER TABLE 精确捕获 OperationalError，业务路径带日志
 - products.py 搜索 `|` 运算符 → `or_()` 方法
 - Pydantic Schema 入参校验（9 个）

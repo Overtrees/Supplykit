@@ -1,3 +1,22 @@
+## 2026-08-07 JWT 认证 + 访客模式 + 数据库自动恢复
+
+### JWT 认证（零外部依赖）
+- 纯标准库 HMAC-SHA256 JWT 生成/验证，无需 PyJWT/python-jose
+- users 表（id/username/password_hash/role），预留多用户扩展
+- 登录/设置接口 + 前端登录页
+- 后端正中件强制鉴权：所有 `/api/*` 路由保护（除 auth/health/ping/docs）
+- JWT SECRET 持久化到数据库，跨重启 token 有效
+
+### 访客模式
+- 内置 `demo / demo123` 账号（role='demo'）
+- 登录页展示"访客模式：demo / demo123"
+- 访客账号仅可查看，写操作（POST/PUT/DELETE）返回 403
+
+### 数据库自动恢复
+- 启动时 quick_check 检测 → VACUUM → 从备份恢复（三级修复链）
+- 运行中健康检查检测到损坏时后台自动修复
+
+---
 ## 2026-08-07 规则引擎组合表达式 + 日销支持
 
 ### 组合表达式（四则运算）

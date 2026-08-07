@@ -302,8 +302,19 @@ UptimeRobot 免费版每 5 分钟 ping `https://overtrees.pythonanywhere.com/api
 - 前端 SeedProgress 组件显示步骤进度和状态（SVG 图标）
 - 批量写入 50 条/批避免 SQLite 变量超限
 
+## 认证系统（2026-08-07）
+- 纯标准库 JWT（HMAC-SHA256），零外部依赖
+- 首次使用设置密码（`/api/auth/setup`），自动创建 admin + demo 账号
+- 后端正中件强制鉴权，所有 `/api/*` 路由保护（auth/health/ping/docs 除外）
+- 访客模式：`demo / demo123`（仅可查看，不可修改）
+- `JWT_SECRET` 持久化到 `replenishment_config` 表，跨重启 token 有效
+
+## 数据库自动恢复（2026-08-07）
+- 启动时 `quick_check` → 检测到损坏 → VACUUM → 从备份恢复
+- 运行中健康检查检测到损坏时后台异步修复（不阻塞响应）
+
 ## 健康检查端点（2026-08-06）
-- `GET /api/health` 返回数据库状态、磁盘空间、版本号
+- `GET /api/health` 返回数据库状态、完整性、磁盘空间、版本号、WAL 大小
 
 ## 数据库迁移工具（2026-08-06）
 - `python3 migrate.py [check|create|apply|list]`

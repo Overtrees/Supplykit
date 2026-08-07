@@ -49,6 +49,15 @@ _current_task_id = None
 @router.post("/fill")
 def seed_fill():
     global _current_task_id
+    # 检查是否已有数据（防止未重置直接填充导致 UNIQUE 冲突/数据混合）
+    try:
+        conn = get_conn()
+        n = conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
+        has_data = n > 0
+        if has_data:
+            return ok({"requires_reset": True, "task_id": "", "message": "已有数据，请先一键重置"})
+    except Exception:
+        pass
     task_id = 'seed_fill_' + uuid.uuid4().hex[:8]
     _current_task_id = task_id
     submit_task(task_id, _seed_fill_async)

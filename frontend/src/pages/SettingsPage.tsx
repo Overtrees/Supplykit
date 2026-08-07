@@ -203,11 +203,18 @@ export default function SettingsPage() {
       const r = await fetch(API + '/api/seed/fill', {method:'POST'})
       const d = await r.json()
       if (d.ok) {
+        if (d.data?.requires_reset) {
+          toast.error('已有数据，请先点击「一键重置」清空后再填充')
+          setConfirm('reset')  // 直接弹出重置确认框引导用户
+          return
+        }
         const taskId = d.data?.task_id
-        try { localStorage.setItem('c_seed_task', taskId) } catch {}
-        toast.success('种子数据填充任务已提交')
-        setTimeout(() => { try { localStorage.removeItem('c_seed_task') } catch {}; window.location.reload() }, 600000)
-      } else toast.error('填充失败')
+        if (taskId) {
+          try { localStorage.setItem('c_seed_task', taskId) } catch {}
+          toast.success('种子数据填充任务已提交')
+          setTimeout(() => { try { localStorage.removeItem('c_seed_task') } catch {}; window.location.reload() }, 600000)
+        }
+      } else toast.error('填充失败: ' + (d.error || ''))
     } catch { toast.error('填充失败') }
     setSeeding(false)
   }

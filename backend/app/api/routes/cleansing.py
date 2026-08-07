@@ -287,6 +287,8 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                 "order_status": str(data.get('order_status', '已完成'))[:50],
                 "ordered_at": str(data.get('ordered_at', ''))[:50],
                 "data_source": data_source,
+                "channel": channel,
+                "barcode": str(data.get('barcode', ''))[:100],
             })
             success += 1
 
@@ -294,19 +296,29 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
     data_list = product_to_insert if is_product else (inv_to_insert if is_inv else (inbound_to_insert if is_inbound else (outbound_to_insert if is_outbound else orders_to_insert)))
     if data_list:
         try:
-            # 批量 upsert（使用 executemany + ON CONFLICT）
+            # 批量 upsert（executemany + ON CONFLICT + 分批 commit 防大事务 I/O error）
             if data_list:
                 cols = list(data_list[0].keys())
                 col_names = ", ".join(f'"{c}"' for c in cols)
                 placeholders = ", ".join(["?"] * len(cols))
                 # 构造 ON CONFLICT 更新子句（排除主键列）
                 update_set = ", ".join([f'"{c}" = excluded."{c}"' for c in cols if c != 'id'])
-                conflict_col = 'order_no, sku' if not is_inv else 'id'
+                if is_inv:
+                    conflict_col = 'sku, warehouse'  # 库存按 SKU+仓库 去重
+                elif is_inbound:
+                    conflict_col = 'sku, inbound_date'
+                elif is_outbound:
+                    conflict_col = 'sku, outbound_date'
+                else:
+                    conflict_col = 'order_no, sku'
                 sql = f'INSERT INTO "{insert_table}" ({col_names}) VALUES ({placeholders}) ON CONFLICT({conflict_col}) DO UPDATE SET {update_set}'
-                params_list = [[row.get(c) for c in cols] for row in data_list]
                 conn = get_conn()
-                conn.executemany(sql, params_list)
-                conn.commit()
+                params_list = [[row.get(c) for c in cols] for row in data_list]
+                # 分批写入（每 5000 条一次 commit，避免单事务过大触发 WAL I/O error）
+                BATCH = 5000
+                for i in range(0, len(params_list), BATCH):
+                    conn.executemany(sql, params_list[i:i+BATCH])
+                    conn.commit()
                 conn.close()
             # 超卖检查：写入的订单量 > 该 SKU 全仓可用库存
             if not is_inv:

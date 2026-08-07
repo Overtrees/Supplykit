@@ -464,7 +464,13 @@ grep -rn "import.*from.*locale" src/ | sort | uniq -d
 - 前端任务轮询 not_found 容错（重试 3 次）
 - 欢迎页"开始体验"与一键填充联动修复（task_id 存储 + requires_reset 处理）
 
-### 14.5 代码质量
+### 14.5 规则引擎组合表达式
+- 四则运算支持：可用+在途 / 安全线-可用 / 可用/日销（可撑天数）/ 订单数量×单价
+- 定时任务注入日销，支持断货风险类规则
+- 告警按 source 区分（replenishment_engine / rules_engine），口径统一不误关
+- 规则引擎紧急补货考虑在途（可用+在途≤安全线才算真紧急）
+
+### 14.6 代码质量
 - 裸 except 全部处理：ALTER TABLE 精确捕获 OperationalError，业务路径带日志
 - products.py 搜索 `|` 运算符 → `or_()` 方法
 - Pydantic Schema 入参校验（9 个）

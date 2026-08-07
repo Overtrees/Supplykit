@@ -166,7 +166,7 @@ app = FastAPI(title="Supplykit", openapi_url="/api/docs.json", docs_url="/api/do
 async def auth_middleware(request, next):
     path = request.url.path
     # 公开接口放行
-    if path.startswith("/api/auth") or path == "/api/health" or path.startswith("/api/docs"):
+    if path.startswith("/api/auth") or path == "/api/health" or path.startswith("/api/docs") or path == "/api/insights/ping":
         return await next(request)
     # 业务接口强制鉴权
     if path.startswith("/api/"):

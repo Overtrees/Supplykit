@@ -70,13 +70,17 @@ def _rebuild(channel='jd'):
     """Full rebuild of dashboard data from database using SQL aggregation."""
     conn = get_conn()
     ch = channel
+    # 90 天窗口：只聚合最近 90 天订单（配合数据归档策略）
+    from datetime import timedelta
+    _today = datetime.utcnow().date()
+    _cut90 = (_today - timedelta(days=90)).isoformat()
     
-    gmv = conn.execute("SELECT COALESCE(SUM(total_amount),0) FROM orders WHERE channel=? AND order_status='已完成'", (ch,)).fetchone()[0]
-    pending = conn.execute("SELECT COUNT(*) FROM orders WHERE channel=? AND order_status='待发货'", (ch,)).fetchone()[0]
-    refund = conn.execute("SELECT COUNT(*) FROM orders WHERE channel=? AND order_status='申请退款'", (ch,)).fetchone()[0]
-    total_orders = conn.execute("SELECT COUNT(*) FROM orders WHERE channel=?", (ch,)).fetchone()[0]
+    gmv = conn.execute("SELECT COALESCE(SUM(total_amount),0) FROM orders WHERE channel=? AND order_status='已完成' AND ordered_at>=?", (ch, _cut90)).fetchone()[0]
+    pending = conn.execute("SELECT COUNT(*) FROM orders WHERE channel=? AND order_status='待发货' AND ordered_at>=?", (ch, _cut90)).fetchone()[0]
+    refund = conn.execute("SELECT COUNT(*) FROM orders WHERE channel=? AND order_status='申请退款' AND ordered_at>=?", (ch, _cut90)).fetchone()[0]
+    total_orders = conn.execute("SELECT COUNT(*) FROM orders WHERE channel=? AND ordered_at>=?", (ch, _cut90)).fetchone()[0]
     
-    rows = conn.execute("SELECT substr(ordered_at,1,10) as d, order_status, SUM(total_amount) as g, COUNT(*) as cnt FROM orders WHERE channel=? GROUP BY d, order_status", (ch,)).fetchall()
+    rows = conn.execute("SELECT substr(ordered_at,1,10) as d, order_status, SUM(total_amount) as g, COUNT(*) as cnt FROM orders WHERE channel=? AND ordered_at>=? GROUP BY d, order_status", (ch, _cut90)).fetchall()
     by_date = {}
     for r in rows:
         key = r[0][5:] if r[0] else '未知'
@@ -85,10 +89,10 @@ def _rebuild(channel='jd'):
         if r[1] == '已完成': by_date[key]["GMV"] += r[2]
     trend = [{"日期": k, **v} for k, v in sorted(by_date.items())]
     
-    store_rows = conn.execute("SELECT store, COUNT(*) as cnt, SUM(CASE WHEN order_status='已完成' THEN total_amount ELSE 0 END) as g FROM orders WHERE channel=? GROUP BY store ORDER BY store", (ch,)).fetchall()
+    store_rows = conn.execute("SELECT store, COUNT(*) as cnt, SUM(CASE WHEN order_status='已完成' THEN total_amount ELSE 0 END) as g FROM orders WHERE channel=? AND ordered_at>=? GROUP BY store ORDER BY store", (ch, _cut90)).fetchall()
     stores = [{"name": r[0], "orders": r[1], "gmv": r[2]} for r in store_rows]
     
-    status_rows = conn.execute("SELECT order_status, COUNT(*) FROM orders WHERE channel=? GROUP BY order_status", (ch,)).fetchall()
+    status_rows = conn.execute("SELECT order_status, COUNT(*) FROM orders WHERE channel=? AND ordered_at>=? GROUP BY order_status", (ch, _cut90)).fetchall()
     status_dist = [{"name": r[0] or '未知', "value": r[1]} for r in status_rows]
     
     inv = conn.execute("SELECT sku, product_name, warehouse, warehouse_type, available_qty, safety_qty, store FROM inventory WHERE channel=?", (ch,)).fetchall()

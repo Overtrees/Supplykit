@@ -2,6 +2,7 @@
 from fastapi import APIRouter
 from app.core.database import get_db
 from app.core.response import ok, fail
+from app.core.schemas import InboundRecord, OutboundRecord
 from datetime import datetime
 
 router = APIRouter(prefix="/api/records", tags=["records"])
@@ -28,13 +29,13 @@ def clear_inbound(db = get_db()):
 
 
 @router.post('/inbound')
-def create_inbound(body: dict, db = get_db()):
+def create_inbound(body: InboundRecord, db = get_db()):
     db.table("inbound_records").insert({
-        "sku": body.get("sku", ""),
-        "product_name": body.get("product_name", ""),
-        "quantity": int(body.get("quantity", 0)),
-        "supplier": body.get("supplier", ""),
-        "inbound_date": body.get("inbound_date", ""),
+        "sku": body.sku,
+        "product_name": body.product_name,
+        "quantity": body.quantity,
+        "supplier": body.supplier,
+        "inbound_date": body.inbound_date,
     }).execute()
     return ok({})
 
@@ -60,12 +61,12 @@ def clear_outbound(db = get_db()):
 
 
 @router.post('/outbound')
-def create_outbound(body: dict, db = get_db()):
+def create_outbound(body: OutboundRecord, db = get_db()):
     db.table("outbound_records").insert({
-        "sku": body.get("sku", ""),
-        "product_name": body.get("product_name", ""),
-        "quantity": int(body.get("quantity", 0)),
-        "target_warehouse": body.get("target_warehouse", ""),
-        "outbound_date": body.get("outbound_date", ""),
+        "sku": body.sku,
+        "product_name": body.product_name,
+        "quantity": body.quantity,
+        "target_warehouse": body.target_warehouse,
+        "outbound_date": body.outbound_date,
     }).execute()
     return ok({})

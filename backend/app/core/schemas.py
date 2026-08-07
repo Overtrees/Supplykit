@@ -50,3 +50,22 @@ class CustomField(BaseModel):
     key: str = Field(..., min_length=1, max_length=50)
     label: str = ""
     type: str = "string"
+
+class InboundRecord(BaseModel):
+    sku: str = Field(..., min_length=1, max_length=50)
+    product_name: str = ""
+    quantity: int = Field(default=0, ge=0)
+    supplier: str = ""
+    inbound_date: str = ""
+
+class OutboundRecord(BaseModel):
+    sku: str = Field(..., min_length=1, max_length=50)
+    product_name: str = ""
+    quantity: int = Field(default=0, ge=0)
+    target_warehouse: str = ""
+    outbound_date: str = ""
+
+class PurchaseOrderUpdate(BaseModel):
+    actual_qty: Optional[int] = None
+    arrival_date: Optional[str] = None
+    status: Optional[str] = None

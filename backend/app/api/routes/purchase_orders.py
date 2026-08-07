@@ -2,6 +2,7 @@
 from fastapi import APIRouter
 from app.core.database import get_db
 from app.core.response import ok, fail
+from app.core.schemas import PurchaseOrderUpdate
 from datetime import datetime
 
 router = APIRouter(prefix="/api/purchase-orders", tags=["purchase_orders"])
@@ -33,8 +34,10 @@ def create_purchase_order(sku: str, store: str = '', product_name: str = '',
 
 
 @router.put("/{iid}")
-def update_purchase_order(iid: int, body: dict, db = get_db()):
-    db.table("purchase_orders").update(body).eq("id", iid).execute()
+def update_purchase_order(iid: int, body: PurchaseOrderUpdate, db = get_db()):
+    data = {k: v for k, v in body.model_dump(exclude_none=True).items()}
+    if data:
+        db.table("purchase_orders").update(data).eq("id", iid).execute()
     return ok({})
 
 

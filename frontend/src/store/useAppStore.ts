@@ -27,8 +27,12 @@ import { api, clearCache, clearInflight } from '../api/client'
 const POLL_MS = Number(import.meta.env.VITE_POLL_INTERVAL_MS || 30000)
 const WS_URL = import.meta.env.VITE_WS_URL || 'wss://overtrees.pythonanywhere.com/ws/events'
 
+// 安全 localStorage 读取（Safari 隐私模式兼容）
+const safeGet = (key, def = null) => { try { return localStorage.getItem(key) } catch { return def } }
+const safeGetJSON = (key, def = null) => { try { return JSON.parse(localStorage.getItem(key) || 'null') } catch { return def } }
+
 export const useAppStore = create((set, get) => ({
-  channel: localStorage.getItem('c_channel') || 'jd',
+  channel: safeGet('c_channel') || 'jd',
   channelVersion: 0,
   dashboard: null,
   orders: [],
@@ -54,9 +58,9 @@ export const useAppStore = create((set, get) => ({
   setHammerPanel: (panel) => set({ hammerPanel: panel }),
   hammerSearch: '',
   setHammerSearch: (text) => set({ hammerSearch: text }),
-  hammerData: JSON.parse(localStorage.getItem('c_hammer_data_' + (localStorage.getItem('c_channel') || 'jd')) || '{}'),
-  hammerWhType: localStorage.getItem('c_wh_type_' + (localStorage.getItem('c_channel') || 'jd')) || 'own',
-  setHammerWhType: (v) => { localStorage.setItem('c_wh_type_' + get().channel, v); set({ hammerWhType: v }) },
+  hammerData: safeGetJSON('c_hammer_data_' + (safeGet('c_channel') || 'jd')) || {},
+  hammerWhType: safeGet('c_wh_type_' + (safeGet('c_channel') || 'jd')) || 'own',
+  setHammerWhType: (v) => { try { localStorage.setItem('c_wh_type_' + get().channel, v) } catch {} set({ hammerWhType: v }) },
   hammerInsightsTab: 'replen',
   setHammerInsightsTab: (t) => set({ hammerInsightsTab: t }),
   hammerCleansingChannel: 'jd',
@@ -65,25 +69,25 @@ export const useAppStore = create((set, get) => ({
   setHammerRulesTab: (t) => set({ hammerRulesTab: t }),
   hammerRuleNewVersion: 0,
   bumpHammerRuleNew: () => set((s) => ({ hammerRuleNewVersion: s.hammerRuleNewVersion + 1 })),
-  hammerRulesMode: localStorage.getItem('c_replen_mode_' + (localStorage.getItem('c_channel') || 'jd')) || ((localStorage.getItem('c_channel') || 'jd') === 'jd' ? 'bbcc' : 'traditional'),
-  setHammerRulesMode: (m) => { localStorage.setItem('c_replen_mode_' + get().channel, m); set({ hammerRulesMode: m }) },
-  hammerDashPeriod: localStorage.getItem('c_dash_period_' + (localStorage.getItem('c_channel') || 'jd')) || 'month',
+  hammerRulesMode: safeGet('c_replen_mode_' + (safeGet('c_channel') || 'jd')) || ((safeGet('c_channel') || 'jd') === 'jd' ? 'bbcc' : 'traditional'),
+  setHammerRulesMode: (m) => { try { localStorage.setItem('c_replen_mode_' + get().channel, m) } catch {} set({ hammerRulesMode: m }) },
+  hammerDashPeriod: safeGet('c_dash_period_' + (safeGet('c_channel') || 'jd')) || 'month',
   customDateStart: '',
   customDateEnd: '',
-  setHammerDashPeriod: (p) => { localStorage.setItem('c_dash_period_' + get().channel, p); set({ hammerDashPeriod: p, customDateStart: '', customDateEnd: '' }); get().loadAll() },
+  setHammerDashPeriod: (p) => { try { localStorage.setItem('c_dash_period_' + get().channel, p) } catch {} set({ hammerDashPeriod: p, customDateStart: '', customDateEnd: '' }); get().loadAll() },
   setCustomDate: (start, end) => { set({ customDateStart: start, customDateEnd: end, hammerDashPeriod: 'custom' }); get().loadAll() },
-  hammerReplenMode: localStorage.getItem('c_replen_mode_' + (localStorage.getItem('c_channel') || 'jd')) || ((localStorage.getItem('c_channel') || 'jd') === 'jd' ? 'bbcc' : 'traditional'),
-  setHammerReplenMode: (m) => { localStorage.setItem('c_replen_mode_' + get().channel, m); set({ hammerReplenMode: m }) },
+  hammerReplenMode: safeGet('c_replen_mode_' + (safeGet('c_channel') || 'jd')) || ((safeGet('c_channel') || 'jd') === 'jd' ? 'bbcc' : 'traditional'),
+  setHammerReplenMode: (m) => { try { localStorage.setItem('c_replen_mode_' + get().channel, m) } catch {} set({ hammerReplenMode: m }) },
   hammerCols: {},
   setHammerCols: (pageKey, cols) => set((s) => ({ hammerCols: { ...s.hammerCols, [pageKey]: cols } })),
   setHammerData: (page, data) => {
     const ch = get().channel
     const channelData = get().hammerData[ch] || {}
     const hd = { ...get().hammerData, [ch]: { ...channelData, [page]: data } }
-    localStorage.setItem('c_hammer_data', JSON.stringify(hd))
+    try { localStorage.setItem('c_hammer_data', JSON.stringify(hd)) } catch {}
     set({ hammerData: hd })
   },
-  setChannel: (ch) => { localStorage.setItem('c_channel', ch); clearCache(); clearInflight(); set({ channel: ch, dataLoaded: false, loading: true, hammerWhType: localStorage.getItem('c_wh_type_' + ch) || 'own', hammerDashPeriod: localStorage.getItem('c_dash_period_' + ch) || 'month', hammerReplenMode: localStorage.getItem('c_replen_mode_' + ch) || (ch === 'jd' ? 'bbcc' : 'traditional'), hammerRulesMode: localStorage.getItem('c_replen_mode_' + ch) || (ch === 'jd' ? 'bbcc' : 'traditional') }); get().loadAll() },
+  setChannel: (ch) => { try { localStorage.setItem('c_channel', ch) } catch {} clearCache(); clearInflight(); set({ channel: ch, dataLoaded: false, loading: true, hammerWhType: safeGet('c_wh_type_' + ch) || 'own', hammerDashPeriod: safeGet('c_dash_period_' + ch) || 'month', hammerReplenMode: safeGet('c_replen_mode_' + ch) || (ch === 'jd' ? 'bbcc' : 'traditional'), hammerRulesMode: safeGet('c_replen_mode_' + ch) || (ch === 'jd' ? 'bbcc' : 'traditional') }); get().loadAll() },
 
   async loadAll(page) {
     set({ loading: true, orderLoading: true })

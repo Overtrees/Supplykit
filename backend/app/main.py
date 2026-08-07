@@ -76,6 +76,7 @@ from app.api.routes.seed import router as seed_router
 from app.api.routes.purchase import router as purchase_router
 from app.api.routes.replenishment import router as replenishment_router
 from app.api.routes.records import router as records_router
+from app.api.routes.fix import router as fix_router
 
 from app.core.events import register_core_handlers
 from app.core.database import init_db, backup_db
@@ -128,6 +129,7 @@ app.include_router(products_router)
 app.include_router(suppliers_router)
 
 app.include_router(records_router)
+app.include_router(fix_router)
 app.include_router(purchase_router)
 app.include_router(replenishment_router)
 app.include_router(insights_router)

@@ -1,15 +1,21 @@
-import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react"
+import React, { useState, useEffect, useCallback, useRef } from "react"
 import { useAppStore } from './store/useAppStore'
 import { clearCache, clearInflight } from './api/client'
-import { ToastProvider } from './components/Toast'
-import ErrorBoundary from './components/ErrorBoundary'
-import Sidebar from './components/Sidebar'
-import useKeyboard from './hooks/useKeyboard'
-import { useToast } from './components/Toast'
-import { t } from "./locale"
-import { IconStatusOnline, IconStatusWarning, IconStatusOffline, IconExport } from './components/Icons'
 import { api } from './api/client'
-import './version'
+import { ToastProvider, useToast } from './components/Toast'
+import ProductPage from './pages/ProductPage'
+import SupplierPage from './pages/SupplierPage'
+import InsightsPage from './pages/InsightsPage'
+import CleansingPage from './pages/CleansingPage'
+import RulesPage from './pages/RulesPage'
+import DashboardPage from './pages/DashboardPage'
+import ErrorBoundary from './components/ErrorBoundary'
+import OrdersPage from './pages/OrdersPage'
+import InventoryPage from './pages/InventoryPage'
+import QualityPage from './pages/QualityPage'
+import SettingsPage from './pages/SettingsPage'
+import Sidebar from './components/Sidebar'
+import HistorySheet from './components/hammer/HistorySheet'
 import HammerProducts from './components/hammer/HammerProducts'
 import HammerInsights from './components/hammer/HammerInsights'
 import HammerCleansing from './components/hammer/HammerCleansing'
@@ -18,19 +24,10 @@ import HammerDashboard from './components/hammer/HammerDashboard'
 import HammerInventory from './components/hammer/HammerInventory'
 import HammerOrders from './components/hammer/HammerOrders'
 import HammerSuppliers from './components/hammer/HammerSuppliers'
-import HistorySheet from './components/hammer/HistorySheet'
-
-// 页面按需懒加载，减小首屏 JS 体积
-const ProductPage = lazy(() => import('./pages/ProductPage'))
-const SupplierPage = lazy(() => import('./pages/SupplierPage'))
-const InsightsPage = lazy(() => import('./pages/InsightsPage'))
-const CleansingPage = lazy(() => import('./pages/CleansingPage'))
-const RulesPage = lazy(() => import('./pages/RulesPage'))
-const DashboardPage = lazy(() => import('./pages/DashboardPage'))
-const OrdersPage = lazy(() => import('./pages/OrdersPage'))
-const InventoryPage = lazy(() => import('./pages/InventoryPage'))
-const QualityPage = lazy(() => import('./pages/QualityPage'))
-const SettingsPage = lazy(() => import('./pages/SettingsPage'))
+import useKeyboard from './hooks/useKeyboard'
+import { t } from "./locale"
+import { IconStatusOnline, IconStatusWarning, IconStatusOffline, IconExport } from './components/Icons'
+import './version'
 import { PRODUCT_COLS, prodColKey, getProdVis, SUPPLIER_COLS, suppColKey, getSuppVis, ORDER_COLS, ORDER_STATUSES, orderColKey, getOrderVis, INS_BBCC_COLS, INS_TRAD_COLS, INS_PURCHASE_COLS, INS_SLOW_COLS, insColKey, getInsVis, insDefVis, insDefVisTrad, INV_COLS, INV_COL_KEY, getInvVis, INV_WH_LABEL } from './components/hammer/configs'
 
 export const NAV = [
@@ -278,7 +275,7 @@ export default function App() {
   const errCount = (qualityLogs||[]).length
 
   const renderPage = (pageId) => {
-    const wrap = (el) => <ErrorBoundary key={pageId}><Suspense fallback={<div style={{minHeight:200,display:'flex',alignItems:'center',justifyContent:'center',opacity:0.4}}><div className="hammer-spinner" style={{width:20,height:20}} /></div>}>{el}</Suspense></ErrorBoundary>
+    const wrap = (el) => <ErrorBoundary key={pageId}>{el}</ErrorBoundary>
     switch (pageId) {
       case 'dash': return wrap(<DashboardPage key={pageId} onAlert={(s)=>{navigate('inv',s)}} />)
       case 'products': return wrap(<ProductPage key={pageId} />)

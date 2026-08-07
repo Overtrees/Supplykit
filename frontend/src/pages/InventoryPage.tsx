@@ -34,7 +34,8 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
   const [visCols, setVisCols] = useState([])
   const [confirmDel, setConfirmDel] = useState(null)
   const [monthRange, setMonthRange] = useState('')
-  const { channel: globalChannel, hammerWhType, hammerCols, hammerSearch } = useAppStore()
+  const reqSeq = useRef(0)
+  const { channel: globalChannel, hammerWhType, hammerCols, hammerSearch, setHammerSearch } = useAppStore()
   const whType = hammerWhType
   useEffect(() => { if (visCols.length === 0) setVisCols(getVis('own', globalChannel) || WH_COLS['own'].map(c=>c.id)) }, [globalChannel])
 
@@ -49,9 +50,11 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
   }, [hammerCols, whType])
 
   const loadInv = async () => {
+    const seq = ++reqSeq.current
     setLoading(true)
     try {
       const r = await api.get('/api/insights/with-sales?wh_type=' + whType + '&channel=' + globalChannel)
+      if (seq !== reqSeq.current) return  // 竞态丢弃
       const data = r.data || []
       setInventory(data)
       if (data.length > 0) {
@@ -59,8 +62,8 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
         const e = data[0].month_end?.slice(5) || ''
         setMonthRange(`${s}至${e}`)
       }
-    } catch(e) { setInventory([]) }
-    setLoading(false)
+    } catch(e) { if (seq === reqSeq.current) setInventory([]) }
+    if (seq === reqSeq.current) setLoading(false)
   }
   useEffect(() => { loadInv() }, [whType, globalChannel])
 

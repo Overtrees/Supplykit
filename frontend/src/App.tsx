@@ -446,11 +446,22 @@ export default function App() {
             })}
           </div>
           <button onClick={async function(){
-            localStorage.setItem('c_welcome_seen','1');setShowWelcome(false)
+            try { localStorage.setItem('c_welcome_seen','1') } catch {}
+            setShowWelcome(false)
             try {
               var r = await fetch(API + '/api/seed/fill', {method:'POST'})
               var d = await r.json()
-              if (d.ok) { clearCache(); clearInflight(); setTimeout(function(){window.location.reload()}, 1500) }
+              if (d.ok) {
+                if (d.data?.requires_reset) {
+                  useToast().error('已有数据，请在设置页先「一键重置」')
+                  return
+                }
+                var taskId = d.data?.task_id
+                if (taskId) {
+                  try { localStorage.setItem('c_seed_task', taskId) } catch {}
+                  useToast().success('种子数据填充中，可前往设置页查看进度')
+                }
+              } else useToast().error('填充失败: ' + (d.error || ''))
             } catch(e) {}
           }} className="btn btn-primary" style={{width:'100%',padding:'14px',fontSize:16,fontWeight:600,marginBottom:10}}>{t("welcome.start")}</button>
           <button onClick={function(){localStorage.setItem('c_welcome_seen','1');setShowWelcome(false)}}

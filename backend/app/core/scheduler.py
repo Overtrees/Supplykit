@@ -126,6 +126,45 @@ def _task_backup():
     except Exception as e:
         logger.info(f"Backup error: {e}")
 
+def _task_disk_cleanup():
+    """每日磁盘自检：清理旧备份/临时文件 + WAL checkpoint，防止撑爆存储配额"""
+    try:
+        from app.core.database import DB_PATH
+        import glob, os
+        cleaned = []
+        # 1. 旧备份只保留 7 个
+        baks = sorted(glob.glob(DB_PATH + ".bak.*"), key=os.path.getmtime, reverse=True)
+        for old in baks[7:]:
+            try:
+                os.remove(old)
+                cleaned.append(os.path.basename(old))
+            except Exception: pass
+        # 2. 清理临时文件（tmp* / .nfs*）
+        app_dir = os.path.dirname(DB_PATH)
+        for f in glob.glob(os.path.join(app_dir, "tmp*")) + glob.glob(os.path.join(app_dir, ".nfs*")):
+            try:
+                if os.path.isfile(f):
+                    os.remove(f)
+                    cleaned.append(os.path.basename(f))
+            except Exception: pass
+        # 3. WAL checkpoint 防膨胀（合并 WAL 到主库）
+        try:
+            import sqlite3
+            conn = sqlite3.connect(DB_PATH)
+            conn.execute("PRAGMA busy_timeout=30000")
+            conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            conn.close()
+            cleaned.append("wal_checkpoint")
+        except Exception as e:
+            logger.info(f"WAL checkpoint error: {e}")
+        # 4. 报告数据库和 WAL 大小
+        db_size = os.path.getsize(DB_PATH) / 1024 / 1024
+        wal_path = DB_PATH + "-wal"
+        wal_size = os.path.getsize(wal_path) / 1024 / 1024 if os.path.exists(wal_path) else 0
+        logger.info(f"Disk cleanup: {cleaned} | db={db_size:.1f}MB wal={wal_size:.1f}MB")
+    except Exception as e:
+        logger.info(f"Disk cleanup error: {e}")
+
 def _task_daily_rules():
     """每天执行定时规则（滞销识别等）"""
     try:
@@ -157,6 +196,7 @@ def start():
     scheduler.add_job(_task_cleanup_logs, CronTrigger(hour=3, minute=0), id='cleanup_logs')
     scheduler.add_job(_task_backup, CronTrigger(hour=2, minute=0), id='db_backup')
     scheduler.add_job(_task_daily_rules, CronTrigger(hour=4, minute=0), id='daily_rules')
+    scheduler.add_job(_task_disk_cleanup, CronTrigger(hour=3, minute=20), id='disk_cleanup')
     scheduler.start()
     logger.info(f"Started at {datetime.utcnow().isoformat()}")
 

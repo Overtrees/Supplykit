@@ -195,6 +195,9 @@ def _seed_fill_async():
              f"种子填充{'完成' if not err_steps else '部分失败'}: {len(ok_steps)}/{len(steps)} 步成功",
              f"步骤: {[s['name'] for s in err_steps]} 失败: {[s.get('error','')[:100] for s in err_steps]}",
              "seed_engine"))
+        # WAL checkpoint 防膨胀（填充产生大量写入，合并 WAL 到主库释放空间）
+        try: conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        except Exception: pass
         conn.commit()
     except Exception as e:
         pass

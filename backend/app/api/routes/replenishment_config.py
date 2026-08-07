@@ -60,9 +60,9 @@ def get_seasons(mode: str = 'bbcc', channel: str = 'jd', db=get_db()):
     if val and val[0].get('value'):
         return json.loads(val[0]['value'])
     return [
-        {'key':'618','name':'618','factor':1.5,'enabled':True},
-        {'key':'1111','name':'双11','factor':1.8,'enabled':True},
-        {'key':'cny','name':'年货节','factor':1.6,'enabled':True},
+        {'key':'618','name':'618','factor':1.5,'enabled':False},
+        {'key':'1111','name':'双11','factor':1.8,'enabled':False},
+        {'key':'cny','name':'年货节','factor':1.6,'enabled':False},
     ]
 
 @router.put('/seasons')

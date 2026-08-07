@@ -2,6 +2,7 @@ from fastapi import APIRouter
 from app.core.database import get_db, get_conn, DB_PATH, submit_task, get_task, _task_lock, _task_results
 from app.core.response import ok
 from app.core.dashboard_cache import invalidate
+from app.core.sales_utils import build_daily_sales_snapshot
 from datetime import datetime, timedelta
 import random, sqlite3, uuid, threading
 
@@ -108,6 +109,10 @@ def _seed_fill_async():
     steps.append(_run_step('触发规则引擎', lambda: _seed_rules(db, skus_data)))
     _update_steps(steps)
 
+    # 步骤7: 构建日销快照（新数据实时纳入日销计算，不等次日凌晨）
+    steps.append(_run_step('构建日销快照', lambda: build_daily_sales_snapshot(db)))
+    _update_steps(steps)
+
     # 刷新缓存
     try:
         invalidate()
@@ -167,11 +172,18 @@ def _seed_inventory(db, skus_data):
     jd_s, ot_s = skus_data['jd'], skus_data['other']
     for skus in [jd_s,ot_s]:
         for sk in skus:
+            # 12% SKU 全仓低库存（模拟需补货场景），其余正常
+            low = random.random() < 0.12
             for wn,wt in WH:
                 if wt == 'own': wh_name = '集货仓' if skus is jd_s else '三方仓'
                 else: wh_name = wn
-                q = random.randint(0,30) if random.random()<0.08 else random.randint(50,800)
-                inv.append({'sku':sk['sku'],'product_name':sk['name'],'warehouse':wh_name,'warehouse_type':wt,'available_qty':q,'in_transit_qty':random.randint(0,200),'safety_qty':random.randint(30,200),'channel':'jd' if skus is jd_s else 'other'})
+                if low and wt == 'platform':
+                    q = random.randint(0, 25)      # C 仓低库存 → 触发补货
+                elif low and wt == 'platform_b':
+                    q = random.randint(0, 10)      # B 仓也低
+                else:
+                    q = random.randint(50, 800)
+                inv.append({'sku':sk['sku'],'product_name':sk['name'],'warehouse':wh_name,'warehouse_type':wt,'available_qty':q,'in_transit_qty':random.randint(0,80) if low else random.randint(0,200),'safety_qty':random.randint(30,200),'channel':'jd' if skus is jd_s else 'other'})
     db.table("inventory").insert(inv).execute()
 
 def _seed_rules(db, skus_data):

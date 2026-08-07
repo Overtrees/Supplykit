@@ -75,6 +75,8 @@ def _rebuild(channel='jd'):
     _today = datetime.utcnow().date()
     _cut90 = (_today - timedelta(days=90)).isoformat()
     
+    # 注：dashboard GMV 只统计"已完成"订单，daily_stats 聚合的是全部订单（口径不一致）
+    # 因此 dashboard 仍从 orders 聚合（已加 90 天窗口 + idx_orders_ch_status 索引提速）
     gmv = conn.execute("SELECT COALESCE(SUM(total_amount),0) FROM orders WHERE channel=? AND order_status='已完成' AND ordered_at>=?", (ch, _cut90)).fetchone()[0]
     pending = conn.execute("SELECT COUNT(*) FROM orders WHERE channel=? AND order_status='待发货' AND ordered_at>=?", (ch, _cut90)).fetchone()[0]
     refund = conn.execute("SELECT COUNT(*) FROM orders WHERE channel=? AND order_status='申请退款' AND ordered_at>=?", (ch, _cut90)).fetchone()[0]

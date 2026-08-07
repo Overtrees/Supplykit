@@ -19,15 +19,23 @@ def detect_slow_moving_products(db=None, create_alerts=False):
         from app.core.database import get_db
         db = get_db()
     cutoff = (datetime.utcnow() - timedelta(days=90)).isoformat()
-    # SQL 级聚合：按 SKU 取最大下单日期，避免全量加载
+    # 快照聚合：按 SKU 取最大日期，替代 orders 全表 GROUP BY
     from app.core.database import get_conn
+    last_order = {}
     try:
-        conn = get_conn()
-        rows = conn.execute("SELECT sku, MAX(ordered_at) as last_date FROM orders WHERE ordered_at >= ? GROUP BY sku", (cutoff,)).fetchall()
+        rows = get_conn().execute("SELECT sku, MAX(date) FROM daily_sales_snapshot WHERE date >= ? GROUP BY sku", (cutoff,)).fetchall()
         last_order = {r[0]: (r[1] or '')[:10] for r in rows}
     except Exception as e:
-        import logging; logging.warning(f"[slow-moving] SQL agg: {e}")
-        last_order = {}
+        import logging; logging.warning(f"[slow-moving] snapshot agg: {e}")
+    # 当天 orders 补充（快照不含今天）
+    try:
+        today = datetime.utcnow().strftime('%Y-%m-%d')
+        rows = get_conn().execute("SELECT sku, MAX(ordered_at) FROM orders WHERE ordered_at >= ? GROUP BY sku", (today,)).fetchall()
+        for r in rows:
+            if r[0] and (r[1] or '')[:10] > last_order.get(r[0], ''):
+                last_order[r[0]] = (r[1] or '')[:10]
+    except Exception as e:
+        import logging; logging.warning(f"[slow-moving] today orders: {e}")
     products_map = {p["sku"]: p for p in db.table("products").select("*").execute().data}
     sku_barcode_map = {sku: (p.get('barcode', '') or '') for sku, p in products_map.items()}
     inventory_map = {i["sku"]: i for i in db.table("inventory").select("*").execute().data}
@@ -252,14 +260,11 @@ def inventory_with_sales(wh_type: str = 'own', channel: str = 'jd', page: int = 
         outbound_month[s] = outbound_month.get(s, 0) + int(r.get('quantity',0) or 0)
     sales_28 = {}
     products_for_barcode = {p["sku"]: p for p in (db.table("products").select("*").execute().data or [])}
-    for o in orders:
-        sku = o.get('sku','')
-        dt = str(o.get('ordered_at',''))[:10]
-        qty = int(o.get('quantity',0) or 0)
-        if not sku: continue
-        bc = (products_for_barcode.get(sku) or {}).get('barcode', '')
-        key = f"{sku}|{bc}" if bc else sku
-        sales_28[key] = sales_28.get(key, 0) + qty
+    # 从快照聚合 28 天日销（替代 orders 全表遍历）
+    from app.core.sales_utils import load_daily_sales
+    daily_28 = load_daily_sales(28, db, sku_barcode_map={s: (p.get('barcode','') or '') for s,p in products_for_barcode.items()})
+    for key, daily in daily_28.items():
+        sales_28[key] = sum(daily.values())
     result = []
     # 当查询 B 仓时，预加载 C 仓在途用于 B→C 调拨在途列
     c_transit = {}

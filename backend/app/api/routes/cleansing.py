@@ -332,6 +332,11 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                 from app.core.replenishment_cache import invalidate_cache
                 invalidate_cache(db)
             except Exception as e: print(f"[Cleansing] {e}")
+            # 导入后立即更新日销快照（新订单实时纳入日销计算，不等次日凌晨）
+            try:
+                from app.core.sales_utils import build_daily_sales_snapshot
+                build_daily_sales_snapshot(db)
+            except Exception as e: print(f"[Cleansing] {e}")
             # 库存导入后触发规则引擎评估
             if is_inv:
                 try:

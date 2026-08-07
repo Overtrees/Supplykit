@@ -58,17 +58,21 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
         if not k.startswith('mode_') and k not in cfg: cfg[k] = v
 
     products = {p["sku"]: p for p in db.table("products").select("*").execute().data}
-    # SQL 级过滤：只加载最近 28 天订单（最大窗口）
-    cutoff = (datetime.utcnow() - timedelta(days=28)).isoformat()
-    orders = db.table("orders").select("*").gte("ordered_at", cutoff).execute().data
 
     # 构建 barcode 映射，用于日销复合 key（sku|barcode），提高匹配精度
     sku_barcode_map = {sku: p.get('barcode', '') or '' for sku, p in products.items()}
 
-    # 三周期日销
-    sales_7 = calc_sales(orders, 7, source=source, sku_barcode_map=sku_barcode_map, db=db)
-    sales_14 = calc_sales(orders, 14, source=source, sku_barcode_map=sku_barcode_map, db=db)
-    sales_28 = calc_sales(orders, 28, source=source, sku_barcode_map=sku_barcode_map, db=db)
+    # 统一数据源：快照(历史) + 当天orders(实时)，消除重复计算
+    from app.core.sales_utils import load_daily_sales, calc_sales_from_daily
+    # 只加载当天订单（快照已含历史），从 2 万行 → 几十行
+    today = datetime.utcnow().strftime('%Y-%m-%d')
+    orders = db.table("orders").select("*").gte("ordered_at", today).execute().data
+
+    # 三周期日销：一次遍历算 3 个窗口
+    daily_28 = load_daily_sales(28, db, sku_barcode_map=sku_barcode_map, channel=channel)
+    sales_7 = calc_sales_from_daily(daily_28, 7, orders=orders, sku_barcode_map=sku_barcode_map)
+    sales_14 = calc_sales_from_daily(daily_28, 14, orders=orders, sku_barcode_map=sku_barcode_map)
+    sales_28 = calc_sales_from_daily(daily_28, 28, orders=orders, sku_barcode_map=sku_barcode_map)
 
     def get_sales(sales_dict, sku):
         """按 sku 查询日销，优先用复合 key sku|barcode，降级为 sku"""

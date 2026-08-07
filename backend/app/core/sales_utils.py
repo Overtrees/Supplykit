@@ -4,53 +4,62 @@
 """
 from datetime import datetime, timedelta
 import os
+import logging
+
+logger = logging.getLogger("sales_utils")
 
 
-def calc_sales(orders, cutoff_days, source='', wh_name=None, sku_barcode_map=None, db=None):
-    """计算指定窗口的日均销量（含 3σ 异常剔除 + 近3天1.5倍加权）
+def load_daily_sales(cutoff_days, db, sku_barcode_map=None, channel=None):
+    """统一数据源：从快照读历史 + 当天 orders 补充，消除重复计算
     
-    如果传入了 db，优先使用 daily_sales_snapshot 快照，减少计算量。
-    sku_barcode_map: {sku: barcode} 用于生成 sku|barcode 复合 key，提高匹配精度
+    返回: {key: {date: qty, ...}, ...}  key 为 sku 或 sku|barcode
     """
     cutoff = (datetime.utcnow() - timedelta(days=cutoff_days)).strftime('%Y-%m-%d')
     today = datetime.utcnow().strftime('%Y-%m-%d')
-    
-    # 如果有 db，尝试从快照获取历史日销
     daily_by_sku = {}
-    if db:
-        try:
-            rows = db.table("daily_sales_snapshot").select("*").execute().data or []
-            for row in rows:
-                if row['date'] < cutoff:
-                    continue
-                key = row['sku']
-                if key not in daily_by_sku:
-                    daily_by_sku[key] = {}
-                daily_by_sku[key][row['date']] = daily_by_sku[key].get(row['date'], 0) + (row['order_count'] or 0)
-        except Exception as e:
-            import logging; logging.warning(f"[sales] snapshot read: {e}")
-            daily_by_sku = {}
     
-    # 从原始订单补充当天数据（快照不包含当天）
-    for o in orders:
-        if source and o.get('data_source', '') != source:
-            continue
-        if wh_name and o.get('warehouse', '') != wh_name:
-            continue
-        sku = o.get('sku', '')
-        if not sku:
-            continue
-        if sku_barcode_map and sku_barcode_map.get(sku):
-            key = f"{sku}|{sku_barcode_map[sku]}"
-        else:
+    # 1. 快照读历史（SQL 过滤日期，不走全表）
+    try:
+        q = db.table("daily_sales_snapshot").select("*").gte("date", cutoff)
+        if channel:
+            q = q.eq("channel", channel)
+        rows = q.execute().data or []
+        for row in rows:
+            sku = row['sku']
             key = sku
-        dt = str(o.get('ordered_at', ''))[:10]
-        qty = int(o.get('quantity', 0) or 0)
-        if dt >= cutoff:
-            if key not in daily_by_sku:
-                daily_by_sku[key] = {}
-            daily_by_sku[key][dt] = daily_by_sku[key].get(dt, 0) + qty
+            if sku_barcode_map and sku_barcode_map.get(sku):
+                key = f"{sku}|{sku_barcode_map[sku]}"
+            daily_by_sku.setdefault(key, {})[row['date']] = (row['order_count'] or 0)
+    except Exception as e:
+        logger.warning(f"[sales] snapshot read: {e}")
+    
+    # 2. 当天 orders 补充（只取 date = today，从 2 万行 → 几十行）
+    try:
+        orders = db.table("orders").select("*").gte("ordered_at", today).execute().data or []
+        for o in orders:
+            sku = o.get('sku', '')
+            if not sku: continue
+            key = sku
+            if sku_barcode_map and sku_barcode_map.get(sku):
+                key = f"{sku}|{sku_barcode_map[sku]}"
+            dt = str(o.get('ordered_at', ''))[:10]
+            qty = int(o.get('quantity', 0) or 0)
+            if dt >= cutoff:
+                daily_by_sku.setdefault(key, {})[dt] = daily_by_sku[key].get(dt, 0) + qty
+    except Exception as e:
+        logger.warning(f"[sales] today orders: {e}")
+    
+    return daily_by_sku
 
+
+def calc_sales_from_daily(daily_by_sku, cutoff_days, orders=None, sku_barcode_map=None):
+    """从已构建的 daily_by_sku 计算指定窗口的日均销量（含 3σ 剔除 + 近3天1.5倍加权）
+    
+    daily_by_sku: load_daily_sales 的返回值，或旧版 calc_sales 兼容格式
+    cutoff_days: 窗口天数
+    orders: 可选，用于补充 0 日销 SKU（兼容旧调用方）
+    sku_barcode_map: 可选，用于补 0 日销
+    """
     result = {}
     for key, daily in daily_by_sku.items():
         n = len(daily)
@@ -77,22 +86,64 @@ def calc_sales(orders, cutoff_days, source='', wh_name=None, sku_barcode_map=Non
                 weight_total += w
         result[key] = weighted_sum / weight_total if weight_total > 0 else 0
 
-    # 补0日销的SKU（用原始 sku 或 key）
-    for o in orders:
-        sku = o.get('sku', '')
-        if not sku: continue
-        if sku_barcode_map and sku_barcode_map.get(sku):
-            key = f"{sku}|{sku_barcode_map[sku]}"
-        else:
+    # 补 0 日销的 SKU
+    if orders:
+        for o in orders:
+            sku = o.get('sku', '')
+            if not sku: continue
             key = sku
-        if key not in result:
-            result[key] = 0
+            if sku_barcode_map and sku_barcode_map.get(sku):
+                key = f"{sku}|{sku_barcode_map[sku]}"
+            if key not in result:
+                result[key] = 0
 
     if os.getenv('SALES_LOG') and any(v > 0 for v in result.values()):
-        import logging
         nonzero = {k: round(v, 2) for k, v in result.items() if v > 0}
-        logging.info(f"[SALES] cutoff={cutoff_days}d wh={wh_name} → {len(nonzero)} SKU: {nonzero}")
+        logger.info(f"[SALES] cutoff={cutoff_days}d → {len(nonzero)} SKU: {nonzero}")
     return result
+
+
+def calc_sales(orders, cutoff_days, source='', wh_name=None, sku_barcode_map=None, db=None):
+    """旧版兼容入口：内部调用 load_daily_sales + calc_sales_from_daily
+    
+    如果传入了 db，优先使用快照（统一数据源），orders 只用于当天补充。
+    如果未传入 db，走旧逻辑（仅从 orders 计算）。
+    """
+    if db:
+        # 统一数据源路径：快照 + 当天 orders
+        daily = load_daily_sales(cutoff_days, db, sku_barcode_map=sku_barcode_map)
+        # 过滤 source/wh_name（外部调用时已有）
+        if source or wh_name:
+            filtered = {}
+            for o in orders:
+                if source and o.get('data_source', '') != source: continue
+                if wh_name and o.get('warehouse', '') != wh_name: continue
+                sku = o.get('sku', '')
+                if not sku: continue
+                key = sku
+                if sku_barcode_map and sku_barcode_map.get(sku):
+                    key = f"{sku}|{sku_barcode_map[sku]}"
+                if key not in filtered:
+                    filtered[key] = daily.get(key, {})
+            daily = filtered
+        return calc_sales_from_daily(daily, cutoff_days, orders=orders, sku_barcode_map=sku_barcode_map)
+    else:
+        # 旧路径：仅从 orders 计算（无 db 时）
+        cutoff = (datetime.utcnow() - timedelta(days=cutoff_days)).strftime('%Y-%m-%d')
+        daily_by_sku = {}
+        for o in orders:
+            if source and o.get('data_source', '') != source: continue
+            if wh_name and o.get('warehouse', '') != wh_name: continue
+            sku = o.get('sku', '')
+            if not sku: continue
+            key = sku
+            if sku_barcode_map and sku_barcode_map.get(sku):
+                key = f"{sku}|{sku_barcode_map[sku]}"
+            dt = str(o.get('ordered_at', ''))[:10]
+            qty = int(o.get('quantity', 0) or 0)
+            if dt >= cutoff:
+                daily_by_sku.setdefault(key, {})[dt] = daily_by_sku[key].get(dt, 0) + qty
+        return calc_sales_from_daily(daily_by_sku, cutoff_days, orders=orders, sku_barcode_map=sku_barcode_map)
 
 
 def build_daily_sales_snapshot(db):

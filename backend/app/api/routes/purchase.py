@@ -3,7 +3,9 @@ from fastapi import APIRouter
 from app.core.database import get_db
 from app.core.response import ok
 from datetime import datetime
-import json, os
+import json, os, logging
+
+logger = logging.getLogger("purchase")
 
 router = APIRouter(prefix="/api/insights", tags=["insights"])
 
@@ -121,20 +123,27 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', channel: str = 
         })
 
     result.sort(key=lambda x: x['days_to_empty'])
-    # 创建/关闭采购告警
-    for r in result:
-        if r['purchase_qty'] > 0 and r['days_to_empty'] < 14:
-            try:
-                ex = db.table("alerts").select("id").eq("alert_type","purchase_need").eq("related_sku",r['sku']).eq("status","active").execute().data
-                if not ex:
-                    db.table("alerts").insert({"alert_type":"purchase_need","title":f"需采购: {r['product_name']}",
-                        "description":f"可用{r['available_qty']}件, 建议采购{r['purchase_qty']}件, 可撑{r['days_to_empty']}天",
-                        "severity":"warning","source":"purchase_engine","related_sku":r['sku'],"status":"active"}).execute()
-            except Exception as e: import logging; logging.warning(f"[purchase] insert alert error: {e}")
-        elif r['purchase_qty'] == 0:
-            try:
-                db.table("alerts").update({"status":"closed"}).eq("alert_type","purchase_need").eq("related_sku",r['sku']).eq("status","active").execute()
-            except Exception as e: import logging; logging.warning(f"[purchase] close alert error: {e}")
+    # 批量处理告警（避免单 SKU 逐条查询，2000 SKU 时减少 4000 次 DB 查询）
+    try:
+        existing = {r['related_sku'] for r in db.table("alerts").select("*").eq("alert_type","purchase_need").eq("status","active").execute().data or []}
+        from app.core.database import get_conn
+        conn = get_conn()
+        for r in result:
+            should_insert = r['purchase_qty'] > 0 and r['days_to_empty'] < 14 and r['sku'] not in existing
+            if should_insert:
+                try:
+                    conn.execute("INSERT INTO alerts(alert_type,title,description,severity,source,related_sku,status) VALUES(?,?,?,?,?,?,?)",
+                        ("purchase_need", f"需采购: {r['product_name']}",
+                         f"可用{r['available_qty']}件, 建议采购{r['purchase_qty']}件, 可撑{r['days_to_empty']}天",
+                         "warning", "purchase_engine", r['sku'], "active"))
+                except Exception as e: logger.warning(f"[purchase] insert alert: {e}")
+            elif r['purchase_qty'] == 0 and r['sku'] in existing:
+                try:
+                    conn.execute("UPDATE alerts SET status='closed' WHERE alert_type='purchase_need' AND related_sku=? AND status='active'", (r['sku'],))
+                except Exception as e: logger.warning(f"[purchase] close alert: {e}")
+        conn.commit()
+    except Exception as e:
+        logger.warning(f"[purchase] batch alerts: {e}")
     return ok(result)
 
 

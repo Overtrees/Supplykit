@@ -14,26 +14,28 @@ def load_daily_sales(cutoff_days, db, sku_barcode_map=None, channel=None):
     
     返回: {key: {date: qty, ...}, ...}  key 为 sku 或 sku|barcode
     """
+    from app.core.database import get_conn
     cutoff = (datetime.utcnow() - timedelta(days=cutoff_days)).strftime('%Y-%m-%d')
     today = datetime.utcnow().strftime('%Y-%m-%d')
     daily_by_sku = {}
     
-    # 1. 快照读历史（SQL 过滤日期，不走全表）
+    # 1. 快照读历史（原始 SQL 避免 ORM 行转 dict 开销）
     try:
-        q = db.table("daily_sales_snapshot").select("*").gte("date", cutoff)
+        conn = get_conn()
         if channel:
-            q = q.eq("channel", channel)
-        rows = q.execute().data or []
+            rows = conn.execute("SELECT date, sku, order_count FROM daily_sales_snapshot WHERE date>=? AND channel=?", (cutoff, channel)).fetchall()
+        else:
+            rows = conn.execute("SELECT date, sku, order_count FROM daily_sales_snapshot WHERE date>=?", (cutoff,)).fetchall()
         for row in rows:
-            sku = row['sku']
+            sku = row[1]  # tuple 索引访问，避免 dict 创建开销
             key = sku
             if sku_barcode_map and sku_barcode_map.get(sku):
                 key = f"{sku}|{sku_barcode_map[sku]}"
-            daily_by_sku.setdefault(key, {})[row['date']] = (row['order_count'] or 0)
+            daily_by_sku.setdefault(key, {})[row[0]] = (row[2] or 0)
     except Exception as e:
-        logger.warning(f"[sales] snapshot read: {e}")
+        logger.warning(f"[sales] snapshot raw read: {e}")
     
-    # 2. 当天 orders 补充（只取 date = today，从 2 万行 → 几十行）
+    # 2. 当天 orders 补充（原始 SQL）
     try:
         orders = db.table("orders").select("*").gte("ordered_at", today).execute().data or []
         for o in orders:
@@ -60,6 +62,9 @@ def calc_sales_from_daily(daily_by_sku, cutoff_days, orders=None, sku_barcode_ma
     orders: 可选，用于补充 0 日销 SKU（兼容旧调用方）
     sku_barcode_map: 可选，用于补 0 日销
     """
+    # 预计算日期列表，避免循环内重复调用 datetime.utcnow()
+    now = datetime.utcnow()
+    all_days = [(now - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(cutoff_days)]
     result = {}
     for key, daily in daily_by_sku.items():
         n = len(daily)
@@ -68,18 +73,15 @@ def calc_sales_from_daily(daily_by_sku, cutoff_days, orders=None, sku_barcode_ma
         if n < 3 or cutoff_days < 7:
             result[key] = base_avg
             continue
-        all_days = []
-        for i in range(cutoff_days):
-            d = (datetime.utcnow() - timedelta(days=i)).strftime("%Y-%m-%d")
-            all_days.append(daily.get(d, 0))
+        vals = [daily.get(d, 0) for d in all_days]
         nd = cutoff_days
-        mean = sum(all_days) / nd
-        var = sum((v - mean) ** 2 for v in all_days) / nd
+        mean = sum(vals) / nd
+        var = sum((v - mean) ** 2 for v in vals) / nd
         std = var ** 0.5
         threshold = max(3 * std, mean * 1.5)
         weighted_sum = 0
         weight_total = 0
-        for idx, v in enumerate(reversed(all_days)):
+        for idx, v in enumerate(reversed(vals)):
             if abs(v - mean) <= threshold:
                 w = 1.5 if idx >= nd - 3 else 1.0
                 weighted_sum += v * w

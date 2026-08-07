@@ -151,11 +151,11 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', channel: str = 
                     db.table("alerts").insert({"alert_type":"purchase_need","title":f"需采购: {r['product_name']}",
                         "description":f"可用{r['available_qty']}件, 建议采购{r['purchase_qty']}件, 可撑{r['days_to_empty']}天",
                         "severity":"warning","source":"purchase_engine","related_sku":r['sku'],"status":"active"}).execute()
-            except: pass
+            except Exception as e: import logging; logging.warning(f"[purchase] insert alert error: {e}")
         elif r['purchase_qty'] == 0:
             try:
                 db.table("alerts").update({"status":"closed"}).eq("alert_type","purchase_need").eq("related_sku",r['sku']).eq("status","active").execute()
-            except: pass
+            except Exception as e: import logging; logging.warning(f"[purchase] close alert error: {e}")
     return ok(result)
 
 

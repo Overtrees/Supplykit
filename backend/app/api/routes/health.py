@@ -32,7 +32,8 @@ def health():
             status = "degraded"
         else:
             checks["disk"] = "ok"
-    except:
+    except Exception as e:
+        import logging; logging.warning(f"[health] disk check error: {e}")
         checks["disk"] = "unknown"
     
     # 缓存版本号（用于前端轮询）

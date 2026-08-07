@@ -123,11 +123,13 @@ def get_insight_summary(db = get_db()):
 
 
 @router.get('/trend-analysis')
-def trend_analysis(days: int = 30, db = get_db()):
+def trend_analysis(days: int = 30, channel: str = 'jd', db = get_db()):
     """趋势分析：日/周/月维度聚合"""
     from collections import defaultdict
-    orders = db.table("orders").select("*").execute().data
-    inventory = db.table("inventory").select("*").execute().data
+    from datetime import datetime, timedelta
+    cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
+    orders = db.table("orders").select("*").gte("ordered_at", cutoff).eq("channel", channel).execute().data
+    inventory = db.table("inventory").select("*").eq("channel", channel).execute().data
 
     daily = defaultdict(lambda: {'gmv': 0, 'orders': 0})
     cat_count = defaultdict(int)

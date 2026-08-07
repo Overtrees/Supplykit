@@ -76,7 +76,7 @@ export default function CleansingPage() {
   const [bs,setBs] = useState('')
   const [cf,setCf] = useState(() => { try { return JSON.parse(localStorage.getItem('c_cf')||'[]') } catch { return [] } })
   const [templates, setTemplates] = useState([])
-  const saveCf = (v) => { setCf(v); localStorage.setItem('c_cf', JSON.stringify(v)) }
+  const saveCf = (v) => { setCf(v); try { localStorage.setItem('c_cf', JSON.stringify(v)) } catch {} }
 
   const loadTemplates = async () => { try { const r = await api.get('/api/cleansing/templates'); setTemplates(r.data || []) } catch(e) {} }
   useEffect(() => { loadTemplates() }, [])
@@ -151,19 +151,19 @@ export default function CleansingPage() {
             const sr = await api.get('/api/cleansing/task/'+d.task_id)
             const sd = sr.data
             if (sd.status === 'done') {
-              finished = true; clearInterval(poll); localStorage.removeItem('c_cleansing_task')
+              finished = true; clearInterval(poll); try { localStorage.removeItem('c_cleansing_task') } catch {}
               setRes(sd.result); setS(3); setBs(''); toast.success('清洗完成')
             } else if (sd.status === 'error') {
-              finished = true; clearInterval(poll); localStorage.removeItem('c_cleansing_task')
+              finished = true; clearInterval(poll); try { localStorage.removeItem('c_cleansing_task') } catch {}
               toast.error('失败: '+sd.error); setBs('')
             } else if (sd.progress !== undefined) {
               setBs(`清洗中... ${sd.progress}% (${Math.round(sd.progress/100*totalRows)}/${totalRows}条)`)
-              localStorage.setItem('c_cleansing_task', JSON.stringify({task_id: d.task_id, progress: sd.progress}))
+              try { localStorage.setItem('c_cleansing_task', JSON.stringify({task_id: d.task_id, progress: sd.progress})) } catch {}
             }
           } catch { finished = true; clearInterval(poll); setBs('') }
         }, 1000)
         // 全局轮询（跨页面）：存 task_id 到 localStorage
-        localStorage.setItem('c_cleansing_task', JSON.stringify({task_id: d.task_id, progress: 0}))
+        try { localStorage.setItem('c_cleansing_task', JSON.stringify({task_id: d.task_id, progress: 0})) } catch {}
     } catch(e) { toast.error('请求异常: '+e.message); setBs('') }
     } finally { execLock.current = false }
   }
@@ -184,7 +184,7 @@ export default function CleansingPage() {
     try { const saved = localStorage.getItem('c_last_tt'); if (saved) setTt(saved) } catch {}
   }, [])
   useEffect(() => {
-    localStorage.setItem('c_last_tt', tt)
+    try { localStorage.setItem('c_last_tt', tt) } catch {}
   }, [tt])
 
   const btn = (label, onClick, color='primary') => <button onClick={onClick} disabled={!!bs}

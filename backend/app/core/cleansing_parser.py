@@ -32,5 +32,6 @@ def cleanse_value(raw_val, cfg):
             return v[:10] if fmt_str == 'YMD' else v
         else:
             return v
-    except:
+    except Exception as e:
+        import logging; logging.warning(f"[clean] parse value {v} error: {e}")
         return v

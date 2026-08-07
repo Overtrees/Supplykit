@@ -67,5 +67,5 @@ def evaluate_all_rules(db = get_db()):
     count = 0
     for r in rules_data:
         try: rule_evaluate(r["event"], {"db": db, "rule": r}); count += 1
-        except: pass
+        except Exception as e: import logging; logging.warning(f"[rules] evaluate rule {r.get('id')} error: {e}")
     return ok({"message": f"已评估 {count} 条规则", "count": count})

@@ -126,7 +126,9 @@ def _check_single(cond: dict, ctx: dict) -> bool:
         if op == '==': return left == right
         if op == '!=': return left != right
         return False
-    except: return False
+    except Exception as e:
+        import logging; logging.warning(f"[rules] evaluate condition error: {e}")
+        return False
 
 def _check_condition(cond: dict, ctx: dict) -> bool:
     """判断条件（含 AND 子条件）"""

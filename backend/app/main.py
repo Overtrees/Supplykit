@@ -32,7 +32,8 @@ if os.path.exists(_req):
             try:
                 with zipfile.ZipFile(os.path.join(_app_dir, _f)) as _z:
                     _z.extractall(_pkg_dir)
-            except: pass
+            except Exception as e:
+                import logging; logging.warning(f"[startup] extract {_f}: {e}")
     # 确保 vendor 路径在 sys.path 最前面
     while _pkg_dir in sys.path: sys.path.remove(_pkg_dir)
     sys.path.insert(0, _pkg_dir)

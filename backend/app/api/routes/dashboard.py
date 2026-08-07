@@ -68,7 +68,8 @@ def stock_risk(channel: str = 'jd'):
         row = cur.fetchone()
         db_ver = int(row[0]) if row else 0
         conn.close()
-    except:
+    except Exception as e:
+        import logging; logging.warning(f"[dash] read db version error: {e}")
         db_ver = 0
     cached = _stock_risk_cache.get(channel)
     if cached and cached.get('ver') == db_ver and now - cached['ts'] < _STOCK_CACHE_TTL:

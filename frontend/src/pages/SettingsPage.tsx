@@ -175,22 +175,25 @@ export default function SettingsPage() {
 
   const clearLocalCache = () => {
     const keys = []
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i)
-      if (k && (k.startsWith('c_cols_') || k.startsWith('c_ordered') || k.startsWith('c_replen_') || k.startsWith('c_page'))) {
-        keys.push(k)
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i)
+        if (k && (k.startsWith('c_cols_') || k.startsWith('c_ordered') || k.startsWith('c_replen_') || k.startsWith('c_page'))) {
+          keys.push(k)
+        }
       }
-    }
-    keys.forEach(k => localStorage.removeItem(k))
-    setCacheSize(0)
-    toast.success('缓存已清除')
+      keys.forEach(k => { try { localStorage.removeItem(k) } catch {} })
+      setCacheSize(0)
+      toast.success('缓存已清除')
+    } catch { toast.error('无法访问本地存储') }
   }
 
   const [seeding, setSeeding] = useState(false)
   const [resetting, setResetting] = useState(false)
 
   const doSeed = async () => {
-    if (seeding || localStorage.getItem('c_seed_task')) {
+    const hasTask = (() => { try { return localStorage.getItem('c_seed_task') } catch { return null } })()
+    if (seeding || hasTask) {
       toast.error('已有填充任务进行中，请等待完成')
       return
     }
@@ -201,10 +204,9 @@ export default function SettingsPage() {
       const d = await r.json()
       if (d.ok) {
         const taskId = d.data?.task_id
-        localStorage.setItem('c_seed_task', taskId)
+        try { localStorage.setItem('c_seed_task', taskId) } catch {}
         toast.success('种子数据填充任务已提交')
-        // 3 分钟后后备刷新
-        setTimeout(() => { localStorage.removeItem('c_seed_task'); window.location.reload() }, 600000)
+        setTimeout(() => { try { localStorage.removeItem('c_seed_task') } catch {}; window.location.reload() }, 600000)
       } else toast.error('填充失败')
     } catch { toast.error('填充失败') }
     setSeeding(false)
@@ -245,7 +247,7 @@ export default function SettingsPage() {
       </Group>
 
       <Group title="界面">
-        <Row label="重置欢迎页" sub="重新显示首次使用引导" onClick={() => { localStorage.removeItem('c_welcome_seen'); toast.success('欢迎页已重置') }} />
+        <Row label="重置欢迎页" sub="重新显示首次使用引导" onClick={() => { try { localStorage.removeItem('c_welcome_seen') } catch {} toast.success('欢迎页已重置') }} />
       </Group>
 
       <Group title="种子数据">

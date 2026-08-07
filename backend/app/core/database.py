@@ -311,9 +311,9 @@ def _seed_builtin_rules():
         for r in rules:
             _local.conn.execute("INSERT INTO rules(name,event,condition_json,alert_type,alert_title,alert_desc,severity,is_active) VALUES(?,?,?,?,?,?,?,?)", r)
         _local.conn.commit()
-    except: pass
-
-_local.conn = None
+    except:
+        logging.warning("[db] seed builtin rules failed")
+    _local.conn = None
 
 db = SQLiteDB()
 

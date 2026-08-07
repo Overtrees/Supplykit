@@ -50,22 +50,22 @@ def _task_archive_orders():
         if not old_orders:
             logger.info(f"Order archive: no orders before {cutoff}")
             return
-        # 按天+渠道+店铺+SKU 聚合
+        # 按天+渠道+店铺+SKU+状态 聚合
         from collections import defaultdict
         agg = defaultdict(lambda: {'gmv': 0, 'count': 0, 'qty': 0})
         for o in old_orders:
-            key = (str(o.get('ordered_at',''))[:10], o.get('channel','jd'), o.get('store',''), o.get('sku',''))
+            key = (str(o.get('ordered_at',''))[:10], o.get('channel','jd'), o.get('store',''), o.get('sku',''), o.get('order_status','')[:10])
             agg[key]['gmv'] += float(o.get('total_amount') or 0)
             agg[key]['count'] += 1
             agg[key]['qty'] += int(o.get('quantity') or 0)
         # 写入 daily_stats
         conn = get_conn()
-        for (date, channel, store, sku), v in agg.items():
+        for (date, channel, store, sku, order_status), v in agg.items():
             try:
                 conn.execute(
-                    "INSERT INTO daily_stats (date, channel, store, sku, gmv, order_count, quantity) VALUES (?,?,?,?,?,?,?) "
-                    "ON CONFLICT(date, channel, store, sku) DO UPDATE SET gmv=gmv+?, order_count=order_count+?, quantity=quantity+?",
-                    (date, channel, store, sku, v['gmv'], v['count'], v['qty'], v['gmv'], v['count'], v['qty'])
+                    "INSERT INTO daily_stats (date, channel, store, sku, order_status, gmv, order_count, quantity) VALUES (?,?,?,?,?,?,?,?) "
+                    "ON CONFLICT(date, channel, store, sku, order_status) DO UPDATE SET gmv=gmv+?, order_count=order_count+?, quantity=quantity+?",
+                    (date, channel, store, sku, order_status, v['gmv'], v['count'], v['qty'], v['gmv'], v['count'], v['qty'])
                 )
             except Exception as e: logger.info(f"{e}")
         conn.commit()

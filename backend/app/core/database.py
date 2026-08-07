@@ -489,9 +489,10 @@ def init_db(path=None):
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             date TEXT NOT NULL, channel TEXT DEFAULT 'jd',
             store TEXT DEFAULT '', sku TEXT DEFAULT '',
+            order_status TEXT DEFAULT '',  -- 空=全部，已完成/待发货等
             gmv REAL DEFAULT 0, order_count INTEGER DEFAULT 0,
             quantity INTEGER DEFAULT 0,
-            UNIQUE(date, channel, store, sku)
+            UNIQUE(date, channel, store, sku, order_status)
         );
         CREATE TABLE IF NOT EXISTS daily_sales_snapshot (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -627,6 +628,8 @@ def init_db(path=None):
     try: conn.execute("ALTER TABLE inventory ADD COLUMN channel TEXT DEFAULT 'jd'")
     except: pass
     try: conn.execute("ALTER TABLE replenishment_config ADD COLUMN channel TEXT DEFAULT 'jd'")
+    except: pass
+    try: conn.execute("ALTER TABLE daily_stats ADD COLUMN order_status TEXT DEFAULT ''")
     except: pass
     # 修复表约束：UNIQUE(key) → UNIQUE(key, channel)
     try:

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react"
+import React, { useState, useMemo, useEffect, useRef } from "react"
 import { api } from '../api/client'
 import { useAppStore } from '../store/useAppStore'
 import Chart from '../components/Chart'
@@ -16,16 +16,19 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
   const [showAllLowStock, setShowAllLowStock] = useState(false)
   const [showAllReplenish, setShowAllReplenish] = useState(false)
   const [chLoading, setChLoading] = useState(false)
+  const reqSeq = useRef(0)
   useEffect(() => {
+    const seq = ++reqSeq.current
     setChLoading(true)
     Promise.all([
       api.get('/api/dashboard/summary'),
       api.get('/api/alerts'),
       api.get('/api/dashboard/stock-risk'),
     ]).then(([s, a, r]) => {
+      if (seq !== reqSeq.current) return  // 竞态丢弃
       useAppStore.setState({ dashboard: s.data, alerts: a.data || [], stockRisk: r.data || [], loading: false, dataLoaded: true })
       setChLoading(false)
-    }).catch(() => setChLoading(false))
+    }).catch(() => { if (seq === reqSeq.current) setChLoading(false) })
   }, [channel])
   const periodTrend = dashboard?.periods?.[periodTab + '_trend'] || dashboard?.trend || []
   const periodMeta = dashboard?.periods?.[periodTab] || {}

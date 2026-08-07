@@ -7,7 +7,7 @@ router = APIRouter(tags=["health"])
 
 @router.get("/api/health")
 def health():
-    """系统健康检查"""
+    """系统健康检查 + 缓存版本号"""
     status = "ok"
     checks = {}
     
@@ -35,9 +35,19 @@ def health():
     except:
         checks["disk"] = "unknown"
     
+    # 缓存版本号（用于前端轮询）
+    version = 0
+    try:
+        from app.core.database import get_db
+        db = get_db()
+        ver = db.table("replenishment_config").select("*").eq("key", "_cache_version").execute().data
+        version = int(ver[0]["value"]) if ver else 0
+    except Exception:
+        pass
+    
     return {
         "status": status,
         "timestamp": datetime.utcnow().isoformat(),
         "checks": checks,
-        "version": os.getenv("APP_VERSION", "1.0.0"),
+        "version": version,
     }

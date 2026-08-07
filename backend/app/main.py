@@ -118,23 +118,6 @@ app.include_router(alerts_router)
 app.include_router(health_router)
 app.include_router(events_router)
 
-# ─── 健康检查 ───────────────────────────────────────────────────────────────
-@app.get('/api/health')
-def health():
-    try:
-        from app.core.database import get_db
-        db = get_db()
-        orders = db.table("orders").select("*").limit(1).execute().data
-        # 返回缓存版本号，前端轮询用
-        try:
-            ver = db.table("replenishment_config").select("*").eq("key", "_cache_version").execute().data
-            version = int(ver[0]["value"]) if ver else 0
-        except Exception:
-            version = 0
-        return {"status":"ok","db":True,"orders":len(orders),"version": version}
-    except Exception as e:
-        return {"status":"error","db":False,"error":str(e)[:100], "version":0}
-
 app.include_router(sync_tasks_router)
 app.include_router(ws_router)
 app.include_router(cleansing_router)

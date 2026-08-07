@@ -11,7 +11,7 @@ def health():
     status = "ok"
     checks = {}
     
-    # 数据库检查（含完整性快速检测）
+    # 数据库检查（含完整性快速检测 + 运行中自动修复）
     try:
         db_path = os.getenv("SQLITE_PATH", os.path.join(os.path.dirname(__file__), "..", "supplykit.db"))
         conn = sqlite3.connect(db_path)
@@ -24,8 +24,33 @@ def health():
             if qc and qc[0] == 'ok':
                 checks["integrity"] = "ok"
             else:
-                checks["integrity"] = f"error: {qc}（启动时已尝试 VACUUM/备份恢复）"
+                checks["integrity"] = f"error: {qc}（尝试后台修复中）"
                 status = "degraded"
+                # 后台异步修复（不影响健康检查响应）
+                def _repair():
+                    try:
+                        _c2 = sqlite3.connect(db_path)
+                        _c2.execute("PRAGMA busy_timeout=30000")
+                        _c2.execute("VACUUM")
+                        _qc2 = _c2.execute("PRAGMA quick_check").fetchone()
+                        _c2.close()
+                        if _qc2 and _qc2[0] == 'ok':
+                            import logging; logging.info("[db] 健康检查触发 VACUUM 修复成功")
+                        else:
+                            raise Exception("VACUUM 后仍损坏")
+                    except Exception as _ve:
+                        import logging; logging.warning(f"[db] VACUUM 修复失败，尝试备份恢复: {_ve}")
+                        import glob, shutil, os
+                        baks = sorted(glob.glob(db_path + ".bak.*"), key=os.path.getmtime, reverse=True)
+                        for b in baks:
+                            try:
+                                shutil.copy2(b, db_path)
+                                logging.info(f"[db] 从备份恢复成功: {b}")
+                                break
+                            except Exception:
+                                pass
+                import threading
+                threading.Thread(target=_repair, daemon=True).start()
         except Exception as e:
             checks["integrity"] = f"error: {e}"
         # 检查 WAL 文件是否异常膨胀（>200MB 提示）

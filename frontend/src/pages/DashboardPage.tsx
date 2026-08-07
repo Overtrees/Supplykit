@@ -25,10 +25,10 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
       api.get('/api/alerts'),
       api.get('/api/dashboard/stock-risk'),
     ]).then(([s, a, r]) => {
-      if (seq !== reqSeq.current) return  // 竞态丢弃
+      if (seq !== reqSeq.current) { setChLoading(false); return }  // 竞态丢弃，关闭 loading
       useAppStore.setState({ dashboard: s.data, alerts: a.data || [], stockRisk: r.data || [], loading: false, dataLoaded: true })
       setChLoading(false)
-    }).catch(() => { if (seq === reqSeq.current) setChLoading(false) })
+    }).catch(() => setChLoading(false))
   }, [channel])
   const periodTrend = dashboard?.periods?.[periodTab + '_trend'] || dashboard?.trend || []
   const periodMeta = dashboard?.periods?.[periodTab] || {}

@@ -54,7 +54,7 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
     setLoading(true)
     try {
       const r = await api.get('/api/insights/with-sales?wh_type=' + whType + '&channel=' + globalChannel)
-      if (seq !== reqSeq.current) return  // 竞态丢弃
+      if (seq !== reqSeq.current) { setLoading(false); return }  // 竞态丢弃，关闭 loading
       const data = r.data || []
       setInventory(data)
       if (data.length > 0) {

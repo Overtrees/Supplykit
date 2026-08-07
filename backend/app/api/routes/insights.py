@@ -317,6 +317,9 @@ def inventory_with_sales(wh_type: str = 'own', channel: str = 'jd', page: int = 
         _p = products_for_barcode.get(sku) or {}
         try: price = float(_p.get('price') or 0)
         except Exception: price = 0
+        # 周转天数 = 可用库存 / 日均销量（daily_sales 是 28 天总销量，除以 28 换算为日均）
+        daily_avg = ds / 28 if ds > 0 else 0
+        turnover_days = round(avail / daily_avg, 1) if daily_avg > 0 else None
         result.append({
             'id': i['id'],
             'sku': sku,
@@ -336,7 +339,7 @@ def inventory_with_sales(wh_type: str = 'own', channel: str = 'jd', page: int = 
             'beginning_stock': int(i.get('beginning_stock',0) or 0) or begin,
             'month_start': month_start,
             'month_end': month_end,
-            'turnover_days': round(i.get('turnover_days',0) or 0, 1) if (i.get('turnover_days') or 0) > 0 else None,
+            'turnover_days': turnover_days,
         })
     total = len(result)
     # 写缓存（30s TTL + 版本号）

@@ -1,5 +1,6 @@
 import React, { useState } from "react"
 import { useAppStore } from "../../store/useAppStore"
+import { useDebouncedSearch } from "../../hooks/useDebounce"
 interface HammerRulesProps { channel: string; onShowHistory?: (ch: string) => void }
 
 export default function HammerRules({ channel, onShowHistory }: HammerRulesProps) {

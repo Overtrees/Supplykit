@@ -661,6 +661,7 @@ def init_db(path=None):
         "CREATE INDEX IF NOT EXISTS idx_inventory_wh_ch ON inventory(warehouse_type, channel)",
         "CREATE INDEX IF NOT EXISTS idx_daily_stats_date ON daily_stats(date, channel)",
         "CREATE INDEX IF NOT EXISTS idx_products_sku_ch ON products(sku, channel)",
+        "CREATE INDEX IF NOT EXISTS idx_orders_ch_status ON orders(channel, order_status)",
     ]:
         try: conn.execute(idx)
         except: pass

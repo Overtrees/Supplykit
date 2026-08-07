@@ -19,18 +19,18 @@ def detect_slow_moving_products(db=None, create_alerts=False):
         from app.core.database import get_db
         db = get_db()
     cutoff = (datetime.utcnow() - timedelta(days=90)).isoformat()
-    orders = db.table("orders").select("*").gte("ordered_at", cutoff).execute().data
+    # SQL 级聚合：按 SKU 取最大下单日期，避免全量加载
+    from app.core.database import get_conn
+    try:
+        conn = get_conn()
+        rows = conn.execute("SELECT sku, MAX(ordered_at) as last_date FROM orders WHERE ordered_at >= ? GROUP BY sku", (cutoff,)).fetchall()
+        last_order = {r[0]: (r[1] or '')[:10] for r in rows}
+    except Exception as e:
+        import logging; logging.warning(f"[slow-moving] SQL agg: {e}")
+        last_order = {}
     products_map = {p["sku"]: p for p in db.table("products").select("*").execute().data}
     sku_barcode_map = {sku: (p.get('barcode', '') or '') for sku, p in products_map.items()}
     inventory_map = {i["sku"]: i for i in db.table("inventory").select("*").execute().data}
-    last_order = {}
-    for o in orders:
-        sku = o.get("sku")
-        if not sku: continue
-        bc = sku_barcode_map.get(sku, '')
-        key = f"{sku}|{bc}" if bc else sku
-        ds = str(o.get("ordered_at") or "")[:10]
-        if key not in last_order or ds > last_order[key]: last_order[key] = ds
     now = datetime.utcnow()
     result = []
     all_skus = set(products_map.keys()) | {o.get("sku") for o in orders if o.get("sku")} | set(inventory_map.keys())

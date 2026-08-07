@@ -288,30 +288,32 @@ def _seed_rules(db, skus_data):
     conn = get_conn()
     # 读取真实库存（按渠道）
     inv_rows = conn.execute(
-        "SELECT sku, product_name, available_qty, safety_qty, channel, warehouse_type FROM inventory"
+        "SELECT sku, product_name, available_qty, safety_qty, channel, warehouse_type, in_transit_qty FROM inventory"
     ).fetchall()
     # 批量查现有活跃告警，避免重复
     existing = {}
     for r in conn.execute("SELECT alert_type, related_sku FROM alerts WHERE status='active'").fetchall():
         existing.setdefault((r[0], r[1]), True)
-    # 逐 SKU 聚合可用库存（同 SKU 多仓求和），判断规则
+    # 逐 SKU 聚合可用库存/在途/安全线（同 SKU 多仓求和），判断规则
     from collections import defaultdict
-    sku_stock = defaultdict(lambda: {'avail': 0, 'safety': 0, 'name': '', 'ch': 'jd'})
+    sku_stock = defaultdict(lambda: {'avail': 0, 'transit': 0, 'safety': 0, 'name': '', 'ch': 'jd'})
     for r in inv_rows:
         s = sku_stock[r[0]]
         s['avail'] += int(r[2] or 0)
+        s['transit'] += int(r[5] or 0) if len(r) > 5 else 0
         s['safety'] += int(r[3] or 0)
         s['name'] = r[1] or r[0]
         s['ch'] = r[4] or 'jd'
     inserts = []
     for sku, st in sku_stock.items():
-        avail, safety = st['avail'], st['safety']
+        avail, transit, safety = st['avail'], st['transit'], st['safety']
         if avail < safety and (('low_stock', sku) not in existing):
             inserts.append(("low_stock", f"低库存预警: {st['name']}",
                             f"可用 {avail} < 安全线 {safety}", "warning", st['ch'], sku))
-        if avail <= max(1, safety * 0.3) and (('replenish', sku) not in existing):
+        # 紧急补货：可用极低 且 可用+在途也不够安全线（真紧急，到货后仍紧张）
+        if avail <= max(1, safety * 0.3) and (avail + transit) <= safety and (('replenish', sku) not in existing):
             inserts.append(("replenish", f"紧急补货: {st['name']}",
-                            f"可用 {avail}，低于安全线 30%", "error", st['ch'], sku))
+                            f"可用 {avail}（<安全线30%），含在途 {avail+transit} 仍不足安全线 {safety}", "error", st['ch'], sku))
     if inserts:
         conn.executemany(
             "INSERT INTO alerts(alert_type,title,description,severity,source,channel,related_sku,status) VALUES(?,?,?,?,?,?,?,?)",

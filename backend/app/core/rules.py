@@ -140,12 +140,17 @@ def _check_condition(cond: dict, ctx: dict) -> bool:
     return True
 
 def evaluate(event: str, context: dict):
-    """根据事件名匹配数据库中的规则，满足条件则执行动作"""
+    """根据事件名匹配数据库中的规则，满足条件则执行动作（按渠道隔离）"""
     results = []
     try:
         from app.core.database import get_db
         db = get_db()
-        db_rules = db.table("rules").select("*").eq("is_active", 1).eq("event", event).execute().data
+        # 只加载与当前事件匹配且符合渠道的规则（渠道隔离：jd/other 规则互不干扰）
+        q = db.table("rules").select("*").eq("is_active", 1).eq("event", event)
+        ctx_channel = context.get('channel')
+        if ctx_channel:
+            q = q.eq("channel", ctx_channel)
+        db_rules = q.execute().data
         for rule in db_rules:
             try:
                 cond = json.loads(rule.get('condition_json', '{}'))

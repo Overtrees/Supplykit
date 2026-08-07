@@ -66,6 +66,6 @@ def evaluate_all_rules(db = get_db()):
     from app.core.rules import evaluate as rule_evaluate
     count = 0
     for r in rules_data:
-        try: rule_evaluate(r["event"], {"db": db, "rule": r}); count += 1
+        try: rule_evaluate(r["event"], {"db": db, "rule": r, "channel": r.get('channel', 'jd')}); count += 1
         except Exception as e: import logging; logging.warning(f"[rules] evaluate rule {r.get('id')} error: {e}")
     return ok({"message": f"已评估 {count} 条规则", "count": count})

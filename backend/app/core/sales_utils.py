@@ -9,6 +9,27 @@ import logging
 logger = logging.getLogger("sales_utils")
 
 
+def sku_to_channel(sku, db=None):
+    """按 SKU 推断渠道（严谨：从 products 主表查，查不到再查 inventory）"""
+    if not sku:
+        return None
+    try:
+        if db is None:
+            from app.core.database import get_db
+            db = get_db()
+        # products 表是 SKU 主表，优先
+        p = db.table("products").select("channel").eq("sku", sku).execute().data
+        if p and p[0].get('channel'):
+            return p[0]['channel']
+        # 回退查 inventory
+        i = db.table("inventory").select("channel").eq("sku", sku).execute().data
+        if i and i[0].get('channel'):
+            return i[0]['channel']
+    except Exception as e:
+        logger.warning(f"[sales] sku_to_channel {sku}: {e}")
+    return None
+
+
 def load_daily_sales(cutoff_days, db, sku_barcode_map=None, channel=None):
     """统一数据源：从快照读历史 + 当天 orders 补充，消除重复计算
     

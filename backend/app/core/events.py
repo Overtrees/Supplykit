@@ -55,6 +55,7 @@ def register_core_handlers():
 
     def _handle_order_rules(data):
         from app.core.rules import evaluate
+        from app.core.sales_utils import sku_to_channel
         db = get_db()
         for item in data.get('items', []):
             sku = item.get('sku', '')
@@ -66,6 +67,7 @@ def register_core_handlers():
                 'order': item,
                 'inv': inv,
                 'db': db,
+                'channel': item.get('channel') or sku_to_channel(sku, db) or 'jd',
             })
 
     bus.on('order.created', _handle_inventory_adjust)
@@ -107,5 +109,5 @@ def register_core_handlers():
     # ─── 规则引擎 ──────────────────────────────────────────────────────
     def _handle_rules_engine(data):
         from app.core.rules import evaluate
-        evaluate('inventory.changed', {'inv': data.get('inventory', {}), 'db': get_db(), 'sku': data.get('inventory', {}).get('sku','')})
+        evaluate('inventory.changed', {'inv': data.get('inventory', {}), 'db': get_db(), 'sku': data.get('inventory', {}).get('sku',''), 'channel': data.get('inventory', {}).get('channel', 'jd')})
     bus.on('inventory.changed', _handle_rules_engine)

@@ -97,7 +97,7 @@ def update_inventory(iid: int, body: dict, db = get_db()):
             pass
         try:
             from app.core.rules import evaluate
-            evaluate('inventory.changed', {'inv': inv, 'db': db, 'sku': inv.get('sku','')})
+            evaluate('inventory.changed', {'inv': inv, 'db': db, 'sku': inv.get('sku',''), 'channel': inv.get('channel', 'jd')})
         except Exception:
             pass
     return ok({})

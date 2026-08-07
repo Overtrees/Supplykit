@@ -131,6 +131,7 @@ def _task_daily_rules():
                 'product_name': item['product_name'],
                 'days_since_last': item['days_since_last'],
                 'stock': item['stock'],
+                'channel': item.get('channel', 'jd'),
             })
         logger.info(f"Daily rules: checked {len(results)} items")
     except Exception as e:

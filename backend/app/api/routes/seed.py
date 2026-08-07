@@ -138,7 +138,8 @@ def _seed_products_suppliers(db, skus_data):
             db.table("products").upsert({'sku':p['sku'],'product_name':p['name'],'store':p['store'],'category':p['cat'],'price':p['price'],'box_qty':p['box'],'barcode':p['barcode'],'weight':p['weight'],'volume':p['volume'],'status':p['status'],'channel':ch}, conflict_col='sku')
     for s in SUP:
         for ch in ['jd','other']:
-            db.table("suppliers").upsert({'supplier_code':s['code'],'supplier_name':s['name'],'contact_person':s['contact'],'contact_phone':s['phone'],'score':s['score'],'channel':ch}, conflict_col='supplier_code')
+            # supplier_code 加渠道后缀，避免两渠道共用同一 code 导致 upsert 互相覆盖
+            db.table("suppliers").upsert({'supplier_code':f"{s['code']}-{ch.upper()}",'supplier_name':s['name'],'contact_person':s['contact'],'contact_phone':s['phone'],'score':s['score'],'channel':ch}, conflict_col='supplier_code')
 
 def _seed_orders(db, today, skus_data):
     jd_s, ot_s = skus_data['jd'], skus_data['other']

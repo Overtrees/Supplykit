@@ -64,11 +64,23 @@ def seed_fill_status(task_id: str = 'seed_fill'):
     return ok(r)
 
 def _run_step(step_name, fn):
+    import time as _t
+    start = _t.time()
     try:
         fn()
-        return {"name": step_name, "status": "ok"}
+        return {"name": step_name, "status": "ok", "elapsed": round(_t.time() - start, 1)}
     except Exception as e:
-        return {"name": step_name, "status": "error", "error": str(e)}
+        err = str(e)[:500]
+        # 持久化异常到 quality_logs（可跨重启查看）
+        try:
+            from app.core.database import get_conn
+            conn = get_conn()
+            conn.execute("INSERT INTO quality_logs(log_type,level,message,details,source) VALUES(?,?,?,?,?)",
+                ("seed_step", "error", f"种子填充步骤失败: {step_name}", err, "seed_engine"))
+            conn.commit()
+        except Exception as le:
+            pass
+        return {"name": step_name, "status": "error", "error": err, "elapsed": round(_t.time() - start, 1)}
 
 def _seed_fill_async():
     global _current_task_id
@@ -126,6 +138,22 @@ def _seed_fill_async():
         for ch in ['jd','other']:
             requests.get(f"{base}/api/dashboard/summary?channel={ch}", timeout=120)
     except: pass
+
+    # 持久化填充结果 summary（成功/失败，跨重启可查）
+    try:
+        ok_steps = [s for s in steps if s.get('status') == 'ok']
+        err_steps = [s for s in steps if s.get('status') == 'error']
+        from app.core.database import get_conn
+        conn = get_conn()
+        conn.execute("INSERT INTO quality_logs(log_type,level,message,details,source) VALUES(?,?,?,?,?)",
+            ("seed_result",
+             "success" if not err_steps else "error",
+             f"种子填充{'完成' if not err_steps else '部分失败'}: {len(ok_steps)}/{len(steps)} 步成功",
+             f"步骤: {[s['name'] for s in err_steps]} 失败: {[s.get('error','')[:100] for s in err_steps]}",
+             "seed_engine"))
+        conn.commit()
+    except Exception as e:
+        pass
 
     return {"steps": steps}
 

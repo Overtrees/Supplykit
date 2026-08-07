@@ -86,13 +86,18 @@ function TaskItem({ task }) {
       {/* 步骤进度 */}
       {task.type === 'seed' && steps.length > 0 && (
         <div className="flex-col gap-2" style={{paddingLeft:18,marginTop:4}}>
+          <div className="text-10 muted2" style={{marginBottom:2}}>
+            已完成 {steps.filter(s => s.status === 'ok').length}/{steps.length} 步
+            {steps.some(s => s.status === 'error') && <span className="danger"> · 有失败步骤</span>}
+          </div>
           {steps.map((s, i) => (
-            <div key={i} className="flex items-center gap-4 text-10">
-              {s.status === 'ok' ? <span className="muted2"><IconCheck size={10} /></span> :
-               s.status === 'error' ? <span className="danger"><IconUndo size={10} /></span> :
-               <span className="muted2"><IconLoading size={10} /></span>}
-              <span className={s.status === 'error' ? 'danger' : 'muted2'}>{s.name}</span>
-              {s.status === 'error' && <span className="text-10 muted2">({s.error})</span>}
+            <div key={i} className="flex items-center gap-4 text-10" style={{flexWrap:'wrap'}}>
+              {s.status === 'ok' ? <span className="success" style={{display:'inline-flex'}}><IconCheck size={10} /></span> :
+               s.status === 'error' ? <span className="danger" style={{display:'inline-flex'}}><IconUndo size={10} /></span> :
+               <span className="muted2" style={{display:'inline-flex'}}><IconLoading size={10} /></span>}
+              <span className={s.status === 'error' ? 'danger font-600' : 'muted2'}>{s.name}</span>
+              {s.elapsed != null && <span className="text-10 muted2">({s.elapsed}s)</span>}
+              {s.status === 'error' && <span className="text-10 danger" style={{flexBasis:'100%',paddingLeft:14}}>✗ {s.error}</span>}
             </div>
           ))}
         </div>

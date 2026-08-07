@@ -152,7 +152,7 @@ export default function CleansingPage() {
             const sd = sr.data
             if (sd.status === 'done') {
               finished = true; clearInterval(poll); try { localStorage.removeItem('c_cleansing_task') } catch {}
-              setRes(sd.result); setS(3); setBs(''); toast.success('清洗完成')
+              setRes(sd.result); setS(3); setBs(''); toast.success('清洗完成，数据已归入「' + (ch === 'jd' ? '京东' : '其他渠道') + '」渠道')
             } else if (sd.status === 'error') {
               finished = true; clearInterval(poll); try { localStorage.removeItem('c_cleansing_task') } catch {}
               toast.error('失败: '+sd.error); setBs('')

@@ -87,7 +87,7 @@ export const useAppStore = create((set, get) => ({
     try { localStorage.setItem('c_hammer_data', JSON.stringify(hd)) } catch {}
     set({ hammerData: hd })
   },
-  setChannel: (ch) => { try { localStorage.setItem('c_channel', ch) } catch {} clearCache(); clearInflight(); set({ channel: ch, dataLoaded: false, loading: true, hammerWhType: safeGet('c_wh_type_' + ch) || 'own', hammerDashPeriod: safeGet('c_dash_period_' + ch) || 'month', hammerReplenMode: safeGet('c_replen_mode_' + ch) || (ch === 'jd' ? 'bbcc' : 'traditional'), hammerRulesMode: safeGet('c_replen_mode_' + ch) || (ch === 'jd' ? 'bbcc' : 'traditional') }); get().loadAll() },
+  setChannel: (ch) => { try { localStorage.setItem('c_channel', ch) } catch {} clearCache(); clearInflight(); set({ channel: ch, dataLoaded: false, loading: true, hammerWhType: safeGet('c_wh_type_' + ch) || 'own', hammerDashPeriod: safeGet('c_dash_period_' + ch) || 'month', hammerReplenMode: safeGet('c_replen_mode_' + ch) || (ch === 'jd' ? 'bbcc' : 'traditional'), hammerRulesMode: safeGet('c_replen_mode_' + ch) || (ch === 'jd' ? 'bbcc' : 'traditional'), hammerCleansingChannel: ch }); get().loadAll() },
 
   async loadAll(page) {
     set({ loading: true, orderLoading: true })

@@ -293,14 +293,13 @@ def inventory_with_sales(wh_type: str = 'own', channel: str = 'jd', page: int = 
     sales_28 = {}
     products_for_barcode = {p["sku"]: p for p in (db.table("products").select("*").execute().data or [])}
     # 从快照聚合 28 天日销（替代 orders 全表遍历）
-    from app.core.sales_utils import load_daily_sales, calc_sales_from_daily, rolling_predict
+    from app.core.sales_utils import load_daily_sales, calc_sales_multi, rolling_predict
     daily_28 = load_daily_sales(28, db, sku_barcode_map={s: (p.get('barcode','') or '') for s,p in products_for_barcode.items()})
     for key, daily in daily_28.items():
         sales_28[key] = sum(daily.values())
-    # 融合日销（三窗口 3σ 剔除 + 趋势加权，用于周转天数计算）
-    _s7 = calc_sales_from_daily(daily_28, 7)
-    _s14 = calc_sales_from_daily(daily_28, 14)
-    _s28 = calc_sales_from_daily(daily_28, 28)
+    # 融合日销（一次遍历算 7/14/28 三窗口 + 趋势加权，用于周转天数计算）
+    _multi = calc_sales_multi(daily_28, windows=[7, 14, 28])
+    _s7, _s14, _s28 = _multi[7], _multi[14], _multi[28]
     _fused = {}
     for _sk in set(list(_s7.keys()) + list(_s14.keys()) + list(_s28.keys())):
         _fused[_sk] = rolling_predict(_s7.get(_sk, 0), _s14.get(_sk, 0), _s28.get(_sk, 0))

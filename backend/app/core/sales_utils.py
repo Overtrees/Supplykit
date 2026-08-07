@@ -75,6 +75,44 @@ def load_daily_sales(cutoff_days, db, sku_barcode_map=None, channel=None):
     return daily_by_sku
 
 
+def calc_sales_multi(daily_by_sku, windows=None, sku_barcode_map=None):
+    """一次遍历 daily_by_sku 计算多个窗口的日均销量（含 3σ 剔除 + 近3天1.5倍加权）
+    
+    替代多次 calc_sales_from_daily 调用，减少重复遍历。
+    windows: 窗口天数列表，如 [7, 14, 28]
+    返回: {7: {key: val}, 14: {key: val}, 28: {key: val}}
+    """
+    if windows is None:
+        windows = [7, 14, 28]
+    now = datetime.utcnow()
+    max_win = max(windows)
+    all_days = [(now - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(max_win)]
+    results = {w: {} for w in windows}
+    for key, daily in daily_by_sku.items():
+        n = len(daily)
+        base_vals = [daily.get(d, 0) for d in all_days]
+        for win in windows:
+            vals = base_vals[:win]
+            total = sum(vals)
+            base_avg = total / win
+            if n < 3 or win < 7:
+                results[win][key] = base_avg
+                continue
+            mean = sum(vals) / win
+            var = sum((v - mean) ** 2 for v in vals) / win
+            std = var ** 0.5
+            threshold = max(3 * std, mean * 1.5)
+            weighted_sum = 0
+            weight_total = 0
+            for idx, v in enumerate(reversed(vals)):
+                if abs(v - mean) <= threshold:
+                    w = 1.5 if idx >= win - 3 else 1.0
+                    weighted_sum += v * w
+                    weight_total += w
+            results[win][key] = weighted_sum / weight_total if weight_total > 0 else 0
+    return results
+
+
 def calc_sales_from_daily(daily_by_sku, cutoff_days, orders=None, sku_barcode_map=None):
     """从已构建的 daily_by_sku 计算指定窗口的日均销量（含 3σ 剔除 + 近3天1.5倍加权）
     

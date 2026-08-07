@@ -77,10 +77,16 @@ def _rebuild(channel='jd'):
     
     # 注：dashboard GMV 只统计"已完成"订单，daily_stats 聚合的是全部订单（口径不一致）
     # 因此 dashboard 仍从 orders 聚合（已加 90 天窗口 + idx_orders_ch_status 索引提速）
-    gmv = conn.execute("SELECT COALESCE(SUM(total_amount),0) FROM orders WHERE channel=? AND order_status='已完成' AND ordered_at>=?", (ch, _cut90)).fetchone()[0]
-    pending = conn.execute("SELECT COUNT(*) FROM orders WHERE channel=? AND order_status='待发货' AND ordered_at>=?", (ch, _cut90)).fetchone()[0]
-    refund = conn.execute("SELECT COUNT(*) FROM orders WHERE channel=? AND order_status='申请退款' AND ordered_at>=?", (ch, _cut90)).fetchone()[0]
-    total_orders = conn.execute("SELECT COUNT(*) FROM orders WHERE channel=? AND ordered_at>=?", (ch, _cut90)).fetchone()[0]
+    # 合并 4 个独立聚合为 1 次查询（COUNT CASE WHEN 替代多个 COUNT/SUM）
+    _agg = conn.execute("""
+        SELECT 
+            COALESCE(SUM(CASE WHEN order_status='已完成' THEN total_amount ELSE 0 END), 0),
+            COUNT(CASE WHEN order_status='待发货' THEN 1 END),
+            COUNT(CASE WHEN order_status='申请退款' THEN 1 END),
+            COUNT(*)
+        FROM orders WHERE channel=? AND ordered_at>=?
+    """, (ch, _cut90)).fetchone()
+    gmv, pending, refund, total_orders = _agg[0], _agg[1], _agg[2], _agg[3]
     
     rows = conn.execute("SELECT substr(ordered_at,1,10) as d, order_status, SUM(total_amount) as g, COUNT(*) as cnt FROM orders WHERE channel=? AND ordered_at>=? GROUP BY d, order_status", (ch, _cut90)).fetchall()
     by_date = {}
@@ -94,8 +100,12 @@ def _rebuild(channel='jd'):
     store_rows = conn.execute("SELECT store, COUNT(*) as cnt, SUM(CASE WHEN order_status='已完成' THEN total_amount ELSE 0 END) as g FROM orders WHERE channel=? AND ordered_at>=? GROUP BY store ORDER BY store", (ch, _cut90)).fetchall()
     stores = [{"name": r[0], "orders": r[1], "gmv": r[2]} for r in store_rows]
     
-    status_rows = conn.execute("SELECT order_status, COUNT(*) FROM orders WHERE channel=? AND ordered_at>=? GROUP BY order_status", (ch, _cut90)).fetchall()
-    status_dist = [{"name": r[0] or '未知', "value": r[1]} for r in status_rows]
+    # 从 trend 原始数据聚合状态分布（避免独立 GROUP BY 查询）
+    _status_agg = {}
+    for r in rows:
+        _st = r[1] or '未知'
+        _status_agg[_st] = _status_agg.get(_st, 0) + r[3]
+    status_dist = [{"name": k, "value": v} for k, v in _status_agg.items()]
     
     inv = conn.execute("SELECT sku, product_name, warehouse, warehouse_type, available_qty, safety_qty, store FROM inventory WHERE channel=?", (ch,)).fetchall()
     inv_list = [{"sku":r[0],"product_name":r[1],"warehouse":r[2],"warehouse_type":r[3],"available_qty":r[4],"safety_qty":r[5],"store":r[6]} for r in inv]

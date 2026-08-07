@@ -212,14 +212,17 @@ export default function InsightsPage() {
     setReplenLoading(true)
     setPurchaseLoading(true)
     setSlowLoading(true)
+    const seq = ++reqSeq.current
     const mode = globalChannel === 'jd' ? replenMode : 'traditional'
     if (globalChannel !== 'jd' && replenMode === 'bbcc') setHammerReplenMode('traditional')
     loadReplen(mode, globalChannel)
     api.get('/api/insights/purchase?days=28&channel=' + globalChannel).then(r => {
+      if (seq !== reqSeq.current) return
       setPurchase(r.data?.suggestions || r.data || [])
       setPurchaseLoading(false)
-    }).catch(() => setPurchaseLoading(false))
+    }).catch(() => { if (seq === reqSeq.current) setPurchaseLoading(false) })
     api.get('/api/insights/slow-moving').then(r => {
+      if (seq !== reqSeq.current) return
       setSlowMoving(r.data || [])
       setSlowLoading(false)
     }).catch(() => setSlowLoading(false))

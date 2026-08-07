@@ -26,8 +26,8 @@ function OrderSkeleton() {
 
 export default function OrdersPage() {
   const toast = useToast()
-  const { orders, orderPage, orderLoading, setOrderPage, orderStatus, dataLoaded, channel, hammerCols, hammerSearch, orderTotal } = useAppStore()
-  useEffect(() => { useAppStore.getState().loadAll(1) }, [channel])
+  const { orders, orderPage, orderLoading, setOrderPage, orderStatus, dataLoaded, channel, hammerCols, hammerSearch, orderTotal, setHammerSearch } = useAppStore()
+  useEffect(() => { useAppStore.getState().loadAll(1); setHammerSearch('') }, [channel])
   useEffect(() => { useAppStore.getState().loadAll() }, [hammerSearch, orderStatus])
   const [confirmDel, setConfirmDel] = useState(null)
   const [visCols, setVisCols] = useState(() => getVis(COL_KEY()) || COLS.map(c => c.id))

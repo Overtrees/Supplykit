@@ -94,10 +94,47 @@ def _seed_fill_async():
     ot_s = make_skus('-O', 1000, shared=shared_skus + [None] * 800)
     skus_data = {'jd': jd_s, 'other': ot_s}
 
-    # 步骤1: 清空旧数据
-    steps.append(_run_step('清空旧数据', lambda: [
-        conn.execute(f'DELETE FROM "{t}"') for t in ['orders','inventory','products','suppliers','alerts','quality_logs','events','purchase_orders','replenishment_config_history','cleansing_templates','custom_fields']
-    ] and conn.commit()))
+    # 步骤1: 清空旧数据（临时切 DELETE 模式避免 WAL 膨胀，orders 分批删除防 I/O error）
+    def _clear_all():
+        conn = get_conn()
+        # 临时切到 DELETE journal 模式（清空期间避免 WAL 文件膨胀导致 disk I/O error）
+        try: conn.execute("PRAGMA journal_mode=DELETE")
+        except Exception: pass
+        for t in ['inventory','products','suppliers','alerts','quality_logs','events','purchase_orders','replenishment_config_history','cleansing_templates','custom_fields','daily_sales_snapshot','daily_stats','inbound_records','outbound_records','rules','replenishment_config']:
+            try: conn.execute(f'DELETE FROM "{t}"')
+            except Exception: pass
+        # orders 大表分批删除（每批 5000 行 commit，避免单事务过大）
+        try:
+            while True:
+                cur = conn.execute("DELETE FROM orders WHERE id IN (SELECT id FROM orders LIMIT 5000)")
+                conn.commit()
+                if cur.rowcount == 0: break
+        except Exception as e:
+            # 分批删除失败则 DROP 重建
+            try:
+                conn.execute("DROP TABLE IF EXISTS orders")
+                conn.execute("""CREATE TABLE orders (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    order_no TEXT NOT NULL, store TEXT DEFAULT '', warehouse TEXT DEFAULT '',
+                    sku TEXT DEFAULT '', product_name TEXT DEFAULT '', quantity INTEGER DEFAULT 0,
+                    unit_price REAL DEFAULT 0, total_amount REAL DEFAULT 0, data_source TEXT DEFAULT '',
+                    order_status TEXT DEFAULT '', ordered_at TEXT DEFAULT '', platform TEXT DEFAULT '',
+                    supplier TEXT DEFAULT '', remark TEXT DEFAULT '', parent_order_no TEXT DEFAULT '',
+                    raw_data TEXT DEFAULT '', source TEXT DEFAULT '', owner_id TEXT DEFAULT '',
+                    created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')),
+                    channel TEXT DEFAULT 'jd', paid_at TEXT DEFAULT '', barcode TEXT DEFAULT '')""")
+                conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_no_sku ON orders(order_no, sku)")
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_orders_ordered_at ON orders(ordered_at)")
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_orders_sku ON orders(sku)")
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_orders_ch_status ON orders(channel, order_status)")
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_orders_sku_ordered_at ON orders(sku, ordered_at, channel)")
+            except Exception as e2:
+                pass
+        conn.commit()
+        # 恢复 WAL 模式
+        try: conn.execute("PRAGMA journal_mode=WAL")
+        except Exception: pass
+    steps.append(_run_step('清空旧数据', _clear_all))
     _update_steps(steps)
 
     # 步骤2: 写入商品/供应商
@@ -187,10 +224,18 @@ def _seed_orders(db, today, skus_data):
                 st = random.choices(['已完成','已发货','待发货','待确认','申请退款'],[45,18,15,10,7])[0]
                 if random.random() < 0.03: st = '已退货'
                 orders.append({'order_no':f'{label.upper()}-{ch}{d:03d}-{len(orders):03d}','store':sk['store'],'warehouse':random.choice(WH)[0],'sku':sk['sku'],'product_name':sk['name'],'quantity':q,'unit_price':sk['price'],'total_amount':round(q*sk['price'],2),'order_status':st,'ordered_at':dt.strftime('%Y-%m-%d'),'channel':ch,'platform':'京东' if label=='jd' else '天猫'})
-    # 分批写入，避免 SQLite 变量数超限
-    batch_size = 50
+    # 批量写入：executemany + 分批 commit（每 500 条一次 fsync，替代逐条 commit）
+    conn = get_conn()
+    cols = ['order_no','store','warehouse','sku','product_name','quantity','unit_price','total_amount',
+            'order_status','ordered_at','channel','platform']
+    batch_size = 500
     for i in range(0, len(orders), batch_size):
-        db.table("orders").insert(orders[i:i+batch_size]).execute()
+        batch = orders[i:i+batch_size]
+        conn.executemany(
+            f"INSERT INTO orders({','.join(cols)}) VALUES({','.join(['?']*len(cols))})",
+            [[o.get(c) for c in cols] for o in batch]
+        )
+        conn.commit()
 
 def _seed_inventory(db, skus_data):
     jd_s, ot_s = skus_data["jd"], skus_data["other"]
@@ -213,16 +258,41 @@ def _seed_inventory(db, skus_data):
     db.table("inventory").insert(inv).execute()
 
 def _seed_rules(db, skus_data):
-    jd_s, ot_s = skus_data["jd"], skus_data["other"]
-    inv = []
-    from app.core.rules import evaluate
-    jd_s, ot_s = skus_data['jd'], skus_data['other']
-    for skus in [jd_s,ot_s]:
-        for sk in skus:
-            for wn,wt in WH:
-                inv.append({'sku':sk['sku'],'channel':'jd' if skus is jd_s else 'other'})
-    for item in inv:
-        evaluate('inventory.changed', {'inv': item, 'db': db, 'sku': item.get('sku',''), 'channel': item.get('channel', 'jd')})
+    """触发规则引擎：从真实库存批量判断低库存/紧急补货，批量生成告警
+    （替代逐 SKU evaluate，20000 次 → 1 次批量）"""
+    conn = get_conn()
+    # 读取真实库存（按渠道）
+    inv_rows = conn.execute(
+        "SELECT sku, product_name, available_qty, safety_qty, channel, warehouse_type FROM inventory"
+    ).fetchall()
+    # 批量查现有活跃告警，避免重复
+    existing = {}
+    for r in conn.execute("SELECT alert_type, related_sku FROM alerts WHERE status='active'").fetchall():
+        existing.setdefault((r[0], r[1]), True)
+    # 逐 SKU 聚合可用库存（同 SKU 多仓求和），判断规则
+    from collections import defaultdict
+    sku_stock = defaultdict(lambda: {'avail': 0, 'safety': 0, 'name': '', 'ch': 'jd'})
+    for r in inv_rows:
+        s = sku_stock[r[0]]
+        s['avail'] += int(r[2] or 0)
+        s['safety'] += int(r[3] or 0)
+        s['name'] = r[1] or r[0]
+        s['ch'] = r[4] or 'jd'
+    inserts = []
+    for sku, st in sku_stock.items():
+        avail, safety = st['avail'], st['safety']
+        if avail < safety and (('low_stock', sku) not in existing):
+            inserts.append(("low_stock", f"低库存预警: {st['name']}",
+                            f"可用 {avail} < 安全线 {safety}", "warning", st['ch'], sku))
+        if avail <= max(1, safety * 0.3) and (('replenish', sku) not in existing):
+            inserts.append(("replenish", f"紧急补货: {st['name']}",
+                            f"可用 {avail}，低于安全线 30%", "error", st['ch'], sku))
+    if inserts:
+        conn.executemany(
+            "INSERT INTO alerts(alert_type,title,description,severity,source,channel,related_sku,status) VALUES(?,?,?,?,?,?,?,?)",
+            [(t, ti, de, se, "rules_engine", ch, sk, "active") for (t, ti, de, se, ch, sk) in inserts]
+        )
+    conn.commit()
 
 def _seed_config(db, conn):
     conn.execute("DELETE FROM replenishment_config")

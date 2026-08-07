@@ -275,6 +275,8 @@ def _seed_inventory(db, skus_data):
                     q = random.randint(0, 25)      # C 仓低库存 → 触发补货
                 elif low and wt == 'platform_b':
                     q = random.randint(0, 10)      # B 仓也低
+                elif low and wt == 'own':
+                    q = random.randint(0, 15)      # 自有仓也低 → 系统总库存低，触发采购
                 else:
                     q = random.randint(50, 800)
                 inv.append({'sku':sk['sku'],'product_name':sk['name'],'warehouse':wh_name,'warehouse_type':wt,'available_qty':q,'in_transit_qty':random.randint(0,80) if low else random.randint(0,200),'safety_qty':random.randint(30,200),'channel':'jd' if skus is jd_s else 'other'})

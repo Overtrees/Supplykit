@@ -140,6 +140,7 @@ app.include_router(suppliers_router)
 
 app.include_router(records_router)
 app.include_router(replenishment_router)
+app.include_router(purchase_router)
 app.include_router(insights_router)
 app.include_router(seed_router)
 app.include_router(purchase_orders_router)

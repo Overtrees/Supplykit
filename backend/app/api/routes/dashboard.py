@@ -96,27 +96,22 @@ def stock_risk(channel: str = 'jd'):
     c_safety = int(cfg.get('c_safety_days', '0'))
     bbcc_lead = b_to_c + c_safety
 
-    orders = db.table("orders").select("*").execute().data or []
     inv = db.table("inventory").select("*").eq("channel", channel).execute().data or []
     products = {p["sku"]: p for p in (db.table("products").select("*").execute().data or [])}
     sku_barcode_map = {sku: p.get('barcode', '') or '' for sku, p in products.items()}
 
-    # 三窗口日销 + 融合值（复用补货建议算法）
-    s7 = calc_sales(orders, 7, sku_barcode_map=sku_barcode_map, db=db)
-    s14 = calc_sales(orders, 14, sku_barcode_map=sku_barcode_map, db=db)
-    s28 = calc_sales(orders, 28, sku_barcode_map=sku_barcode_map, db=db)
-    all_skus = set(o.get('sku', '') for o in orders)
+    # 统一数据源：快照+当天，不用 orders 全表扫描
+    from app.core.sales_utils import load_daily_sales, calc_sales_from_daily, rolling_predict
+    daily_28 = load_daily_sales(28, db, sku_barcode_map=sku_barcode_map, channel=channel)
+    s7 = calc_sales_from_daily(daily_28, 7, sku_barcode_map=sku_barcode_map)
+    s14 = calc_sales_from_daily(daily_28, 14, sku_barcode_map=sku_barcode_map)
+    s28 = calc_sales_from_daily(daily_28, 28, sku_barcode_map=sku_barcode_map)
+    all_skus = set(sku_barcode_map.keys()) | {i.get('sku','') for i in inv if i.get('sku')}
     fused = {}
     for sku in all_skus:
-        barcode = sku_barcode_map.get(sku, '')
-        if barcode:
-            s7v = s7.get(f"{sku}|{barcode}") or s7.get(sku, 0)
-            s14v = s14.get(f"{sku}|{barcode}") or s14.get(sku, 0)
-            s28v = s28.get(f"{sku}|{barcode}") or s28.get(sku, 0)
-        else:
-            s7v = s7.get(sku, 0)
-            s14v = s14.get(sku, 0)
-            s28v = s28.get(sku, 0)
+        s7v = s7.get(sku, 0) or s7.get(f"{sku}|{sku_barcode_map.get(sku,'')}", 0)
+        s14v = s14.get(sku, 0) or s14.get(f"{sku}|{sku_barcode_map.get(sku,'')}", 0)
+        s28v = s28.get(sku, 0) or s28.get(f"{sku}|{sku_barcode_map.get(sku,'')}", 0)
         fused[sku] = rolling_predict(s7v, s14v, s28v)
 
     # 分类型汇总库存

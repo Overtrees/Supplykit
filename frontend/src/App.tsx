@@ -152,7 +152,7 @@ export default function App() {
         versionRef.current = v
         setDbVersion(v)
       } catch {}
-    }, 30000)
+    }, 15000)
     return () => clearInterval(poll)
   }, [])
 

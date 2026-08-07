@@ -2,7 +2,7 @@
 from datetime import datetime, timedelta
 import json, hashlib
 
-CACHE_TTL = 300  # 5 分钟
+CACHE_TTL = 180  # 3 分钟
 
 def get_cache_key(mode, channel, days, db):
     """生成缓存 key：只基于数据版本号（订单/库存变更都会递增版本号）"""

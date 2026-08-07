@@ -44,6 +44,11 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', channel: str = 
 
     def get_purchase_sales(sales_dict, sku):
         """按 sku 查询采购日销，优先用复合 key，降级为 sku"""
+        bc = sku_barcode_map.get(sku, '')
+        if bc:
+            val = sales_dict.get(f"{sku}|{bc}")
+            if val is not None: return val
+        return sales_dict.get(sku, 0) or 0
     fused_sales = {}
     for sku in set(sku_barcode_map.keys()):
         s14 = get_purchase_sales(sales_14, sku); s28 = get_purchase_sales(sales_28, sku)

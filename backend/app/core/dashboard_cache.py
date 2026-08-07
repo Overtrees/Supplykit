@@ -7,7 +7,7 @@ from app.core.database import get_db, DB_PATH, get_conn
 _cache = None
 _cache_ts = 0
 _cache_dirty = True
-_CACHE_TTL = 300
+_CACHE_TTL = 180
 
 _cache_by_channel = {}
 _stock_risk_cache = {}
@@ -159,7 +159,29 @@ def get_cached_dashboard(channel):
     now = time.time()
     stale = check_db_version()
     cached = _cache_by_channel.get(channel)
-    if cached is None or _cache_dirty or stale or (now - cached['ts']) > _CACHE_TTL:
+    if cached is None:
+        # 首次无缓存，同步重建
+        data = _rebuild(channel)
+        _cache_by_channel[channel] = {'data': data, 'ts': now}
+        _cache_dirty = False
+        return data
+    if _cache_dirty or stale or (now - cached['ts']) > _CACHE_TTL:
+        # 有旧缓存且刚过期(<30s)：异步重建，本次返回旧缓存（降级，不阻塞请求）
+        if now - cached['ts'] < 30:
+            try:
+                import threading
+                def _rebuild_async():
+                    global _cache_dirty
+                    try:
+                        _cache_by_channel[channel] = {'data': _rebuild(channel), 'ts': time.time()}
+                        _cache_dirty = False
+                    except Exception as e:
+                        import logging; logging.warning(f"[dash-cache] async rebuild: {e}")
+                threading.Thread(target=_rebuild_async, daemon=True).start()
+                return cached['data']
+            except Exception:
+                pass
+        # 缓存较旧或异步失败：同步重建
         data = _rebuild(channel)
         _cache_by_channel[channel] = {'data': data, 'ts': now}
         _cache_dirty = False

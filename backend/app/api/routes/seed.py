@@ -254,8 +254,13 @@ def _seed_inventory(db, skus_data):
         for sk in skus:
             # 12% SKU 全仓低库存（模拟需补货场景），其余正常
             low = random.random() < 0.12
+            seen_own = False
             for wn,wt in WH:
-                if wt == 'own': wh_name = '集货仓' if skus is jd_s else '三方仓'
+                if wt == 'own':
+                    # WH 里有两个 own 仓（集货仓/三方仓），只保留一个避免重复行
+                    if seen_own: continue
+                    seen_own = True
+                    wh_name = '集货仓' if skus is jd_s else '三方仓'
                 else: wh_name = wn
                 if low and wt == 'platform':
                     q = random.randint(0, 25)      # C 仓低库存 → 触发补货

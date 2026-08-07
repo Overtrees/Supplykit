@@ -25,7 +25,7 @@ SupplyKit 是**电商供应链数据清洗与补货决策看板**，定位为 ER
 | 数据库 | SQLite（WAL 模式） | — |
 | 前端部署 | Cloudflare Pages | — |
 | 后端部署 | PythonAnywhere | — |
-| 定时任务 | APScheduler | — |
+| 定时任务 | APScheduler（调度）+ threading（后台任务） | 后台任务状态持久化到 sync_tasks 表 |
 | 国际化 | 自建 i18n（无外部依赖） | — |
 
 ---
@@ -67,10 +67,12 @@ Supplykit/
 │   │   ├── core/
 │   │   │   ├── database.py      # SQLite ORM + TableRef（DB_LOG 环境变量控制日志）
 │   │   │   ├── dashboard_cache.py  # 看板内存缓存 15s
-│   │   │   ├── replenishment_cache.py  # 补货建议持久化缓存 5min
+│   │   │   ├── replenishment_cache.py  # 补货建议持久化缓存 3min
 │   │   │   ├── sales_utils.py   # 日销计算（三窗口 3σ 剔除 + 趋势加权）
 │   │   │   ├── rules.py         # 规则引擎
-│   │   │   └── scheduler.py     # APScheduler 定时任务
+│   │   │   ├── scheduler.py     # APScheduler 定时任务 + 磁盘自检/备份保留7个
+│   │   │   ├── database.py     # SQLite ORM + 任务持久化 + 索引 + 渠道迁移
+│   │   │   └── sales_utils.py  # 日销计算 + sku_to_channel 渠道推断
 │   │   └── api/routes/          # 19 个路由模块
 │   └── tests/                   # 80+ 个后端测试
 │
@@ -431,3 +433,45 @@ grep -rn "import.*from.*locale" src/ | sort | uniq -d
 | 横屏菜单按钮被遮挡 | 缺少 `safe-area-inset-left` | header 已加 padding |
 | 按钮高度不一致 | `box-sizing` 不一致 | 统一 `box-sizing:border-box` |
 | 玻璃态模糊不生效 | 缺少 `-webkit-backdrop-filter` | 同时写两个属性 |
+---
+
+## 十四、2026-08-07 关键改进记录
+
+### 14.1 性能优化（10 万单量级）
+- 统一日销数据源：`load_daily_sales`（快照历史 + 当天 orders），消除重复计算
+- SQL 级过滤 + 8 个索引，补货/滞销/进销存查询大幅提速
+- `calc_sales_from_daily` 预计算日期列表，消除 8 万次 datetime 调用
+- 告警批量处理：2000 次独立查询 → 3 次（executemany）
+- 一键填充：12 分钟 → 2.5 分钟（订单 executemany 5.4x，规则引擎批量 1000x）
+- with-sales 结果缓存 30s（版本号校验）
+
+### 14.2 渠道隔离（jd/other 全链路）
+- 告警/规则/供应商/已下单/出入库全部按 channel 隔离
+- `evaluate()` 按 channel 过滤规则；`sku_to_channel()` 从 products 主表推断渠道
+- 供应商 code 加渠道后缀，避免两渠道 upsert 互相覆盖
+- 清洗页渠道标记与全局渠道联动 + UI 明确导入目标
+
+### 14.3 可靠性（存储配额 + 任务持久化）
+- **存储配额根治**：40 个每日备份（2-3GB）撑爆 512MB → 备份只保留 7 个 + 每日磁盘自检 + WAL checkpoint
+- **任务状态持久化**：sync_tasks 表（task_id 列），跨重启可恢复 status/result/steps
+- 健康检查加 integrity quick_check + WAL 监控
+- 启动时自动 WAL checkpoint；seed 后 WAL checkpoint
+- 数据归档惰性兜底（with-sales 请求时每天检查一次）
+
+### 14.4 加载/骨架屏防卡死
+- `loadReplen` 独立 seq（不再与外层 useEffect 共享 reqSeq）
+- InventoryPage/DashboardPage 竞态丢弃时关闭 loading
+- 前端任务轮询 not_found 容错（重试 3 次）
+- 欢迎页"开始体验"与一键填充联动修复（task_id 存储 + requires_reset 处理）
+
+### 14.5 代码质量
+- 裸 except 全部处理：ALTER TABLE 精确捕获 OperationalError，业务路径带日志
+- products.py 搜索 `|` 运算符 → `or_()` 方法
+- Pydantic Schema 入参校验（9 个）
+- 前端 localStorage 全部 try-catch（store 18 处 safeGet）
+
+### 14.6 种子数据增强
+- 12% SKU 全仓低库存（含自有仓，触发采购场景）
+- 填充后立即构建日销快照
+- seed 前检测已有数据（requires_reset 保护）
+- 供应商 code 渠道后缀

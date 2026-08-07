@@ -1,0 +1,69 @@
+"""JWT 认证工具 — 纯标准库 HMAC-SHA256，零第三方依赖"""
+import hmac, hashlib, base64, json, time, os
+from typing import Optional
+
+# 环境变量配置
+SECRET = os.getenv("JWT_SECRET", "")
+USERNAME = os.getenv("APP_USERNAME", "admin")
+# 密码 sha256 哈希（如未设环境变量，默认空字符串不允许登录）
+PASSWORD_HASH = os.getenv("APP_PASSWORD_HASH", "")
+
+# 未来多用户：从数据库 users 表读取
+# 当前单用户：从环境变量校验
+
+
+def _b64(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).rstrip(b'=').decode()
+
+
+def _b64decode(s: str) -> bytes:
+    padding = 4 - len(s) % 4
+    if padding != 4:
+        s += '=' * padding
+    return base64.urlsafe_b64decode(s)
+
+
+def hash_password(password: str) -> str:
+    """返回密码的 sha256 哈希"""
+    return hashlib.sha256(password.encode()).hexdigest()
+
+
+def create_token(username: str, expire_hours: int = 720) -> str:
+    """生成 HS256 JWT，默认 30 天过期"""
+    secret = SECRET or (os.urandom(32).hex() if not SECRET else SECRET)
+    header = _b64(json.dumps({"alg": "HS256", "typ": "JWT"}).encode())
+    payload = _b64(json.dumps({
+        "sub": username, "iat": int(time.time()),
+        "exp": int(time.time()) + expire_hours * 3600
+    }).encode())
+    sig = _b64(hmac.new(secret.encode(), f"{header}.{payload}".encode(), hashlib.sha256).digest())
+    return f"{header}.{payload}.{sig}"
+
+
+def verify_token(token: str) -> Optional[str]:
+    """验证 JWT，返回 username 或 None"""
+    try:
+        secret = SECRET
+        if not secret:
+            return None
+        parts = token.split('.')
+        if len(parts) != 3:
+            return None
+        # 验证签名
+        expected = _b64(hmac.new(secret.encode(), f"{parts[0]}.{parts[1]}".encode(), hashlib.sha256).digest())
+        if parts[2] != expected:
+            return None
+        # 解析 payload
+        payload = json.loads(_b64decode(parts[1]))
+        if payload.get('exp', 0) < time.time():
+            return None  # 过期
+        return payload.get('sub')
+    except Exception:
+        return None
+
+
+def check_password(password: str) -> bool:
+    """校验密码（环境变量模式）"""
+    if not PASSWORD_HASH:
+        return False
+    return hash_password(password) == PASSWORD_HASH

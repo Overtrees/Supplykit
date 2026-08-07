@@ -16,7 +16,7 @@ const instance = axios.create({
   timeout: 30000,
 })
 
-// 请求拦截器：自动注入全局 channel 参数
+// 请求拦截器：自动注入全局 channel 参数 + 认证 token
 instance.interceptors.request.use((config: any) => {
   if (!config.params || !config.params.channel) {
     const ch = localStorage.getItem('c_channel') || 'jd'
@@ -25,6 +25,12 @@ instance.interceptors.request.use((config: any) => {
     } else {
       config.params = { channel: ch }
     }
+  }
+  // 注入认证 token
+  const token = (() => { try { return localStorage.getItem('c_token') } catch { return null } })()
+  if (token) {
+    config.headers = config.headers || {}
+    config.headers.Authorization = 'Bearer ' + token
   }
   return config
 })

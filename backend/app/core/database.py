@@ -629,6 +629,15 @@ def init_db(path=None):
         CREATE INDEX IF NOT EXISTS idx_orders_data_source ON orders(data_source);
         CREATE INDEX IF NOT EXISTS idx_inventory_store ON inventory(store);
         CREATE INDEX IF NOT EXISTS idx_events_created_at ON events(created_at);
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            role TEXT DEFAULT 'user',
+            is_active INTEGER DEFAULT 1,
+            created_at TEXT DEFAULT (datetime('now')),
+            updated_at TEXT DEFAULT (datetime('now'))
+        );
     """)
     conn.execute("""
         CREATE TABLE IF NOT EXISTS replenishment_config_history (

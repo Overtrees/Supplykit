@@ -14,6 +14,7 @@ import OrdersPage from './pages/OrdersPage'
 import InventoryPage from './pages/InventoryPage'
 import QualityPage from './pages/QualityPage'
 import SettingsPage from './pages/SettingsPage'
+import LoginPage from './pages/LoginPage'
 import Sidebar from './components/Sidebar'
 import HistorySheet from './components/hammer/HistorySheet'
 import HammerProducts from './components/hammer/HammerProducts'
@@ -137,6 +138,7 @@ export default function App() {
   const [history, setHistory] = useState([])
   const [histLoading, setHistLoading] = useState(false)
   const [showWelcome, setShowWelcome] = useState(() => { try { return !localStorage.getItem('c_welcome_seen') } catch { return false } })
+  const [loggedIn, setLoggedIn] = useState(() => { try { return !!localStorage.getItem('c_token') } catch { return false } })
   const loadHistory = useCallback(async (ch) => {
     setShowHistory(true)
     setHistLoading(true)
@@ -317,7 +319,9 @@ export default function App() {
   }
 
   return (
-    <ToastProvider>
+    <>
+      {!loggedIn ? <LoginPage onLogin={() => { try { localStorage.removeItem('c_welcome_seen') } catch {} setLoggedIn(true); window.location.reload() }} />
+      : <ToastProvider>
       {/* 主内容 — 侧边栏打开时显示菜单，关闭时显示页面 */}
       <header style={{display:showWelcome?'none':''}}>
         <div className="header-inner">
@@ -490,6 +494,7 @@ export default function App() {
         data={history}
         onClose={() => setShowHistory(false)}
       />
-    </ToastProvider>
+    </ToastProvider>}
+    </>
   )
 }

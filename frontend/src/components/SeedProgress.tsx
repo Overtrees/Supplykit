@@ -9,9 +9,10 @@ export default function SeedProgress() {
   useEffect(() => {
     const refresh = () => {
       const list = []
-      const seedTask = localStorage.getItem('c_seed_task')
+      let seedTask = null, cleansingTask = null
+      try { seedTask = localStorage.getItem('c_seed_task') } catch {}
+      try { cleansingTask = JSON.parse(localStorage.getItem('c_cleansing_task') || 'null') } catch {}
       if (seedTask) list.push({ type: 'seed', id: seedTask, label: '种子数据填充' })
-      const cleansingTask = JSON.parse(localStorage.getItem('c_cleansing_task') || 'null')
       if (cleansingTask && cleansingTask.task_id) list.push({ type: 'cleansing', id: cleansingTask.task_id, label: '数据清洗导入', progress: cleansingTask.progress })
       setTasks(list)
     }
@@ -49,11 +50,11 @@ function TaskItem({ task }) {
         const data = d.data || d
         if (task.type === 'seed') {
           if (data.steps) setSteps(data.steps)
-          if (data.status === 'done') { clearInterval(poll); setStatus('done'); setTimeout(() => { localStorage.removeItem('c_seed_task'); window.location.reload() }, 1500) }
+          if (data.status === 'done') { clearInterval(poll); setStatus('done'); setTimeout(() => { try{localStorage.removeItem('c_seed_task')}catch{}; window.location.reload() }, 1500) }
           else if (data.status === 'error') { clearInterval(poll); setStatus('error'); setMessage(data.error || '') }
           else if (data.status === 'running') setStatus('running')
         } else {
-          if (data.status === 'done') { clearInterval(poll); setStatus('done'); setTimeout(() => { localStorage.removeItem('c_cleansing_task'); window.location.reload() }, 1500) }
+          if (data.status === 'done') { clearInterval(poll); setStatus('done'); setTimeout(() => { try{localStorage.removeItem('c_cleansing_task')}catch{}; window.location.reload() }, 1500) }
           else if (data.status === 'error') { clearInterval(poll); setStatus('error'); setMessage(data.error || '') }
           else if (data.progress !== undefined) { setProgress(data.progress); setStatus('running') }
         }
@@ -78,7 +79,7 @@ function TaskItem({ task }) {
           </div>
         </div>
         {status !== 'done' && (
-          <button onClick={() => { localStorage.removeItem(task.type === 'seed' ? 'c_seed_task' : 'c_cleansing_task'); window.location.reload() }}
+          <button onClick={() => { try{localStorage.removeItem(task.type === 'seed' ? 'c_seed_task' : 'c_cleansing_task')}catch{}; window.location.reload() }}
             className="btn btn-ghost text-10" style={{padding:'2px 8px'}}>取消</button>
         )}
       </div>

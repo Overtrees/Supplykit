@@ -139,6 +139,16 @@ export default function App() {
   const [histLoading, setHistLoading] = useState(false)
   const [showWelcome, setShowWelcome] = useState(() => { try { return !localStorage.getItem('c_welcome_seen') } catch { return false } })
   const [loggedIn, setLoggedIn] = useState(() => { try { return !!localStorage.getItem('c_token') } catch { return false } })
+  // 启动时验证 token 有效性（失效则清除并显示登录页）
+  useEffect(() => {
+    if (!loggedIn) return
+    const token = (() => { try { return localStorage.getItem('c_token') } catch { return null } })()
+    if (!token) { setLoggedIn(false); return }
+    fetch(API + '/api/auth/check', { headers: { 'Authorization': 'Bearer ' + token } })
+      .then(r => { if (r.status === 401) { try { localStorage.removeItem('c_token') } catch {}; setLoggedIn(false) } })
+      .catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const loadHistory = useCallback(async (ch) => {
     setShowHistory(true)
     setHistLoading(true)

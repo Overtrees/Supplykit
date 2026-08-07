@@ -178,7 +178,7 @@ async def auth_middleware(request, next):
             return JSONResponse({"detail": "Token 无效或已过期"}, status_code=401)
         # demo 账号只读
         if request.method in ("POST", "PUT", "DELETE", "PATCH") and user == "demo":
-            return JSONResponse({"detail": "演示账号仅可查看，不可修改数据"}, status_code=403)
+            return JSONResponse({"detail": "访客模式仅可查看，不可修改数据"}, status_code=403)
     return await next(request)
 origins = [x.strip() for x in os.getenv("CORS_ORIGINS", "*").split(",") if x.strip()]
 app.add_middleware(

@@ -56,7 +56,7 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
             {loading ? '登录中...' : '登录'}
           </button>
           <div style={{marginTop:16,padding:'10px 14px',background:'var(--bg)',borderRadius:16,fontSize:12,color:'var(--muted2)',textAlign:'center'}}>
-            演示账号：<b>demo</b> / <b>demo123</b>（仅可查看）
+            访客模式：<b>demo</b> / <b>demo123</b>（仅可查看，无需注册）
           </div>
         </div>
       </div>

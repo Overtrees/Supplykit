@@ -54,7 +54,7 @@ def setup(body: dict):
     except Exception:
         pass
     token = create_token(body.get("username", "admin"))
-    return {"ok": True, "token": token, "user": body.get("username", "admin"), "demo": "demo / demo123"}
+    return {"ok": True, "token": token, "user": body.get("username", "admin"), "demo": "访客模式: demo / demo123"}
 
 
 @router.get("/check")
@@ -96,5 +96,5 @@ async def require_write(request: Request):
     """FastAPI Depends：写操作权限（demo 账号只读）"""
     role = getattr(request.state, "role", "user")
     if role == "demo":
-        raise HTTPException(403, detail="演示账号仅可查看，不可修改数据")
+        raise HTTPException(403, detail="访客模式仅可查看，不可修改数据")
     return user

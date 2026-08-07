@@ -73,7 +73,6 @@ def _run_step(step_name, fn):
         err = str(e)[:500]
         # 持久化异常到 quality_logs（可跨重启查看）
         try:
-            from app.core.database import get_conn
             conn = get_conn()
             conn.execute("INSERT INTO quality_logs(log_type,level,message,details,source) VALUES(?,?,?,?,?)",
                 ("seed_step", "error", f"种子填充步骤失败: {step_name}", err, "seed_engine"))
@@ -143,7 +142,6 @@ def _seed_fill_async():
     try:
         ok_steps = [s for s in steps if s.get('status') == 'ok']
         err_steps = [s for s in steps if s.get('status') == 'error']
-        from app.core.database import get_conn
         conn = get_conn()
         conn.execute("INSERT INTO quality_logs(log_type,level,message,details,source) VALUES(?,?,?,?,?)",
             ("seed_result",

@@ -296,4 +296,5 @@ def inventory_with_sales(wh_type: str = 'own', channel: str = 'jd', page: int = 
     total = len(result)
     if page > 0 and page_size > 0:
         result = result[(page - 1) * page_size: page * page_size]
-    return ok({"items": result, "total": total, "page": page, "page_size": page_size})
+        return ok({"items": result, "total": total, "page": page, "page_size": page_size})
+    return ok(result)

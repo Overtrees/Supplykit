@@ -644,53 +644,53 @@ def init_db(path=None):
     """)
     # 兼容旧表：补加可能缺失的列
     try: conn.execute("ALTER TABLE products ADD COLUMN box_qty INTEGER DEFAULT 1")
-    except: pass
+    except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE products ADD COLUMN barcode TEXT DEFAULT ''")
-    except: pass
+    except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE products ADD COLUMN weight REAL DEFAULT 0")
-    except: pass
+    except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE products ADD COLUMN volume REAL DEFAULT 0")
-    except: pass
+    except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE products ADD COLUMN channel TEXT DEFAULT 'jd'")
-    except: pass
+    except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE products ADD COLUMN unit TEXT DEFAULT ''")
-    except: pass
+    except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE suppliers ADD COLUMN channel TEXT DEFAULT 'jd'")
-    except: pass
+    except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE orders ADD COLUMN channel TEXT DEFAULT 'jd'")
-    except: pass
+    except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE orders ADD COLUMN paid_at TEXT DEFAULT ''")
-    except: pass
+    except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE orders ADD COLUMN barcode TEXT DEFAULT ''")
-    except: pass
+    except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE inventory ADD COLUMN channel TEXT DEFAULT 'jd'")
-    except: pass
+    except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE inventory ADD COLUMN beginning_stock INTEGER DEFAULT 0")
-    except: pass
+    except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE inventory ADD COLUMN month_inbound INTEGER DEFAULT 0")
-    except: pass
+    except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE inventory ADD COLUMN month_outbound INTEGER DEFAULT 0")
-    except: pass
+    except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE inventory ADD COLUMN turnover_days REAL DEFAULT 0")
-    except: pass
+    except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE inventory ADD COLUMN c_transit INTEGER DEFAULT 0")
-    except: pass
+    except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE inventory ADD COLUMN weight REAL DEFAULT 0")
-    except: pass
+    except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE inventory ADD COLUMN volume REAL DEFAULT 0")
-    except: pass
+    except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE inventory ADD COLUMN barcode TEXT DEFAULT ''")
-    except: pass
+    except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE alerts ADD COLUMN channel TEXT DEFAULT 'jd'")
-    except: pass
+    except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE inventory ADD COLUMN warehouse_type TEXT DEFAULT 'platform'")
-    except: pass
+    except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE inventory ADD COLUMN channel TEXT DEFAULT 'jd'")
-    except: pass
+    except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE replenishment_config ADD COLUMN channel TEXT DEFAULT 'jd'")
-    except: pass
+    except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE daily_stats ADD COLUMN order_status TEXT DEFAULT ''")
-    except: pass
+    except sqlite3.OperationalError: pass
     # 修复表约束：UNIQUE(key) → UNIQUE(key, channel)
     try:
         conn.execute("SELECT 1 FROM replenishment_config WHERE 1=0")  # 表存在则继续
@@ -710,21 +710,21 @@ def init_db(path=None):
             conn.execute("INSERT OR IGNORE INTO replenishment_config_new (id,key,value,channel,updated_at) SELECT id,key,value,COALESCE(channel,'jd'),updated_at FROM replenishment_config")
             conn.execute("DROP TABLE replenishment_config")
             conn.execute("ALTER TABLE replenishment_config_new RENAME TO replenishment_config")
-    except: pass
+    except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE rules ADD COLUMN channel TEXT DEFAULT 'jd'")
-    except: pass
+    except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE purchase_orders ADD COLUMN actual_qty INTEGER DEFAULT 0")
-    except: pass
+    except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE purchase_orders ADD COLUMN arrival_date TEXT DEFAULT ''")
-    except: pass
+    except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE purchase_orders ADD COLUMN channel TEXT DEFAULT 'jd'")
-    except: pass
+    except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE inbound_records ADD COLUMN channel TEXT DEFAULT 'jd'")
-    except: pass
+    except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE outbound_records ADD COLUMN channel TEXT DEFAULT 'jd'")
-    except: pass
+    except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE sync_tasks ADD COLUMN task_id TEXT DEFAULT ''")
-    except: pass
+    except sqlite3.OperationalError: pass
     # ── P0 性能索引 ──
     for idx in [
         "CREATE INDEX IF NOT EXISTS idx_orders_sku_ordered_at ON orders(sku, ordered_at, channel)",
@@ -741,7 +741,7 @@ def init_db(path=None):
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_outbound_sku_date ON outbound_records(sku, outbound_date)",
     ]:
         try: conn.execute(idx)
-        except: pass
+        except sqlite3.OperationalError: pass
     conn.commit()
     # ── schema 版本检查 ──
     try:
@@ -772,7 +772,8 @@ def _seed_builtin_rules():
             for r in rules:
                 _local.conn.execute("INSERT INTO rules(name,event,condition_json,alert_type,alert_title,alert_desc,severity,is_active,channel) VALUES(?,?,?,?,?,?,?,?,?)", (*r, ch))
         _local.conn.commit()
-    except: pass
+    except Exception as e:
+        logging.warning(f"[db] seed builtin rules for channels: {e}")
 
 
     # 播种内置规则

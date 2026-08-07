@@ -8,6 +8,9 @@ import json, os
 
 router = APIRouter(prefix="/api/insights", tags=["insights"])
 
+# with-sales 结果缓存（30s TTL + 版本号）
+_with_sales_cache = {}
+
 
 @router.get('/ping')
 def ping():
@@ -243,6 +246,29 @@ def inventory_with_sales(wh_type: str = 'own', channel: str = 'jd', page: int = 
     wh_type: own=自有仓, platform=平台仓(C仓), platform_b=B仓
     page/page_size: 翻页参数，传 0 返回全部
     """
+    # 结果缓存 30s（版本号校验，数据变更自动失效）
+    import time as _t
+    _cache_key = f"{wh_type}|{channel}"
+    _now_ts = _t.time()
+    try:
+        from app.core.dashboard_cache import check_db_version
+        _ver = check_db_version()
+    except Exception:
+        _ver = 0
+    _cached = _with_sales_cache.get(_cache_key)
+    if _cached and _cached.get('ver') == _ver and _now_ts - _cached.get('ts', 0) < 30:
+        return ok(_cached['data'])
+    # 惰性归档：每天最多检查一次是否有超期订单需归档（不依赖凌晨任务）
+    try:
+        _arc = db.table("replenishment_config").select("*").eq("key", "_last_archive_check").execute().data
+        _last_arc = _arc[0]['value'] if _arc else ''
+        from datetime import timedelta as _td
+        if _last_arc != (datetime.utcnow() - _td(days=1)).strftime('%Y-%m-%d'):
+            from app.core.scheduler import _task_archive_orders
+            _task_archive_orders()
+            db.table("replenishment_config").upsert({"key": "_last_archive_check", "value": datetime.utcnow().strftime('%Y-%m-%d'), "channel": "jd", "updated_at": datetime.utcnow().isoformat()}, conflict_col='key')
+    except Exception:
+        pass
     inv = db.table("inventory").select("*").eq("warehouse_type", wh_type).eq("channel", channel).execute().data or []
     from datetime import datetime, timedelta
     now = datetime.utcnow()
@@ -307,6 +333,11 @@ def inventory_with_sales(wh_type: str = 'own', channel: str = 'jd', page: int = 
             'turnover_days': round(i.get('turnover_days',0) or 0, 1) if (i.get('turnover_days') or 0) > 0 else None,
         })
     total = len(result)
+    # 写缓存（30s TTL + 版本号）
+    try:
+        _with_sales_cache[_cache_key] = {'data': result, 'ts': _t.time(), 'ver': _ver}
+    except Exception:
+        pass
     if page > 0 and page_size > 0:
         result = result[(page - 1) * page_size: page * page_size]
         return ok({"items": result, "total": total, "page": page, "page_size": page_size})

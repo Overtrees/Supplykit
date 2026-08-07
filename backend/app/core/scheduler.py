@@ -45,8 +45,9 @@ def _task_archive_orders():
         from datetime import timedelta
         cutoff = (datetime.utcnow() - timedelta(days=90)).strftime('%Y-%m-%d')
         db = get_db()
-        old_orders = db.table("orders").select("*").execute().data or []
-        old_orders = [o for o in old_orders if str(o.get('ordered_at',''))[:10] < cutoff]
+        # 用 SQL 只取超期订单（避免全表加载）
+        conn = get_conn()
+        old_orders = [dict(r) for r in conn.execute("SELECT * FROM orders WHERE substr(ordered_at,1,10) < ?", (cutoff,)).fetchall()]
         if not old_orders:
             logger.info(f"Order archive: no orders before {cutoff}")
             return
@@ -69,15 +70,15 @@ def _task_archive_orders():
                 )
             except Exception as e: logger.info(f"{e}")
         conn.commit()
-        # 删除已归档的原始订单
+        # 删除已归档的原始订单（分批）
         ids = [o['id'] for o in old_orders]
         batch_size = 100
         for i in range(0, len(ids), batch_size):
             batch = ids[i:i+batch_size]
-            for id_str in batch:
-                try:
-                    db.table("orders").delete().eq("id", id_str).execute()
-                except Exception as e: logger.info(f"{e}")
+            try:
+                conn.execute(f"DELETE FROM orders WHERE id IN ({','.join(['?']*len(batch))})", batch)
+                conn.commit()
+            except Exception as e: logger.info(f"{e}")
         logger.info(f"Order archive: {len(old_orders)} orders → {len(agg)} daily stats rows")
         conn.close()
     except Exception as e:

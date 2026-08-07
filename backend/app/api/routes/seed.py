@@ -175,14 +175,14 @@ def _seed_fill_async():
         invalidate()
         from app.core.replenishment_cache import invalidate_cache
         invalidate_cache(db)
-    except: pass
+    except Exception as _e: import logging; logging.warning(f'[seed] invalidate cache: {_e}')
     # 预热看板缓存（避免首次请求超时）
     try:
         import requests
         base = os.getenv("API_BASE_URL", "https://overtrees.pythonanywhere.com")
         for ch in ['jd','other']:
             requests.get(f"{base}/api/dashboard/summary?channel={ch}", timeout=120)
-    except: pass
+    except Exception as _e: import logging; logging.warning(f'[seed] warmup: {_e}')
 
     # 持久化填充结果 summary（成功/失败，跨重启可查）
     try:
@@ -346,13 +346,13 @@ def seed_reset(db=get_db()):
     conn = get_conn()
     for t in ['orders','inventory','products','suppliers','alerts','quality_logs','events','purchase_orders','replenishment_config_history','cleansing_templates','custom_fields','replenishment_config','rules']:
         try: conn.execute(f'DELETE FROM "{t}"')
-        except: pass
+        except Exception as _e: import logging; logging.warning(f'[seed] reset {t}: {_e}')
     conn.commit()
     invalidate()
     from app.core.replenishment_cache import invalidate_cache
     try: invalidate_cache(db)
-    except: pass
+    except Exception as _e: import logging; logging.warning(f'[seed] invalidate: {_e}')
     from app.core.database import _seed_builtin_rules
     try: _seed_builtin_rules()
-    except: pass
+    except Exception as _e: import logging; logging.warning(f'[seed] builtin rules: {_e}')
     return ok({"reset": True})

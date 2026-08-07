@@ -5,11 +5,11 @@ from app.core.response import ok, fail
 router = APIRouter(prefix="/api/suppliers", tags=["suppliers"])
 
 @router.get("")
-def list_suppliers(db = get_db(), search: str = ""):
-    q = db.table("suppliers").select("*")
+def list_suppliers(db = get_db(), search: str = "", channel: str = 'jd'):
+    q = db.table("suppliers").select("*").eq("channel", channel)
     if search:
         like = f"%{search}%"
-        q = q.ilike("supplier_name", like) | q.ilike("supplier_code", like)
+        q = q.ilike("supplier_name", like).or_(q.ilike("supplier_code", like))
     data = q.order("id", desc=True).execute().data
     return ok(data)
 
@@ -22,6 +22,7 @@ def create_supplier(body: dict, db = get_db()):
         "contact_phone": body.get("contact_phone", ""),
         "score": int(body.get("score", 0)),
         "status": body.get("status", "active"),
+        "channel": body.get("channel", 'jd'),
     }).execute().data
     return data[0] if data else {"ok": True}
 

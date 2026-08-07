@@ -167,10 +167,10 @@ export default function InsightsPage() {
     if (seq === replenSeq.current) setReplenLoading(false)
   }
 
-  // 从后端加载已下单标记
+  // 从后端加载已下单标记（按渠道隔离）
   const loadOrdered = async () => {
     try {
-      const r = await api.get('/api/purchase-orders')
+      const r = await api.get('/api/purchase-orders?channel=' + globalChannel)
       const items = r.data || []
       // 存两份：orderedKeys 用于快速判断，orderedItems 用于展示详情
       setOrderedKeys(items.map(x => x.sku + "|" + x.store))
@@ -190,12 +190,12 @@ export default function InsightsPage() {
     if (isOrdered) {
       setOrderedKeys(prev => prev.filter(k => k !== key))
       setOrderedItems(prev => prev.filter(x => x.sku !== sku || x.store !== store))
-      api.delete('/api/purchase-orders?sku=' + encodeURIComponent(sku) + '&store=' + encodeURIComponent(store)).catch(() => loadOrdered())
+      api.delete('/api/purchase-orders?sku=' + encodeURIComponent(sku) + '&store=' + encodeURIComponent(store) + '&channel=' + globalChannel).catch(() => loadOrdered())
     } else {
       const newItem = {sku, store, product_name: product_name || '', suggested_qty: suggested_qty || 0, arrival_date: ''}
       setOrderedKeys(prev => [...prev, key])
       setOrderedItems(prev => [...prev, newItem])
-      api.post('/api/purchase-orders?sku=' + encodeURIComponent(sku) + '&store=' + encodeURIComponent(store) + '&product_name=' + encodeURIComponent(product_name || '') + '&suggested_qty=' + (suggested_qty || 0)).catch(() => loadOrdered())
+      api.post('/api/purchase-orders?sku=' + encodeURIComponent(sku) + '&store=' + encodeURIComponent(store) + '&product_name=' + encodeURIComponent(product_name || '') + '&suggested_qty=' + (suggested_qty || 0) + '&channel=' + globalChannel).catch(() => loadOrdered())
     }
   }
 

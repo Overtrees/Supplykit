@@ -253,8 +253,8 @@ def inventory_with_sales(wh_type: str = 'own', channel: str = 'jd', page: int = 
     # 出入库记录只取当月
     month_start = now.replace(day=1).strftime('%Y-%m-%d')
     month_end = now.strftime('%Y-%m-%d')
-    in_records = db.table("inbound_records").select("*").gte("inbound_date", month_start).execute().data or []
-    out_records = db.table("outbound_records").select("*").gte("outbound_date", month_start).execute().data or []
+    in_records = db.table("inbound_records").select("*").gte("inbound_date", month_start).eq("channel", channel).execute().data or []
+    out_records = db.table("outbound_records").select("*").gte("outbound_date", month_start).eq("channel", channel).execute().data or []
     # 当月出入库汇总
     inbound_month = {}
     for r in in_records:

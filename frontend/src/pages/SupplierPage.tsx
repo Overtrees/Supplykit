@@ -16,7 +16,7 @@ import { t } from "../locale"
 export default function SupplierPage(){const[list,setList]=useState([]);const[ld,setLd]=useState(true)
 const[visCols,setVisCols]=useState(()=>getVis(COL_KEY())||COLS.map(c=>c.id))
 const { channelVersion, hammerCols, hammerSearch } = useAppStore()
-useEffect(()=>{api.get('/api/suppliers').then(r=>{const d=r.data?.items||r.data||[];setList(d);setLd(false)}).catch(()=>setLd(false))},[channelVersion])
+useEffect(()=>{api.get('/api/suppliers?channel=' + (useAppStore.getState().channel || 'jd')).then(r=>{const d=r.data?.items||r.data||[];setList(d);setLd(false)}).catch(()=>setLd(false))},[channelVersion])
 useEffect(() => { if (hammerCols?.suppliers) setVisCols(hammerCols.suppliers) }, [hammerCols])
 if(ld)return<div className='card'><div className='section-title'><span>{t("nav.suppliers")}</span></div><Skeleton/></div>
 const s = (hammerSearch || '').toLowerCase()

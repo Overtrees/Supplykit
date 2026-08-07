@@ -535,6 +535,7 @@ def init_db(path=None):
             actual_qty INTEGER DEFAULT 0,
             arrival_date TEXT DEFAULT '',
             status TEXT DEFAULT 'pending',
+            channel TEXT DEFAULT 'jd',
             owner_id TEXT DEFAULT '',
             created_at TEXT DEFAULT (datetime('now')),
             updated_at TEXT DEFAULT (datetime('now'))
@@ -547,6 +548,7 @@ def init_db(path=None):
             quantity INTEGER DEFAULT 0,
             supplier TEXT DEFAULT '',
             inbound_date TEXT DEFAULT '',
+            channel TEXT DEFAULT 'jd',
             owner_id TEXT DEFAULT '',
             created_at TEXT DEFAULT (datetime('now'))
         );
@@ -557,6 +559,7 @@ def init_db(path=None):
             quantity INTEGER DEFAULT 0,
             target_warehouse TEXT DEFAULT '',
             outbound_date TEXT DEFAULT '',
+            channel TEXT DEFAULT 'jd',
             owner_id TEXT DEFAULT '',
             created_at TEXT DEFAULT (datetime('now'))
         );
@@ -656,6 +659,12 @@ def init_db(path=None):
     try: conn.execute("ALTER TABLE purchase_orders ADD COLUMN actual_qty INTEGER DEFAULT 0")
     except: pass
     try: conn.execute("ALTER TABLE purchase_orders ADD COLUMN arrival_date TEXT DEFAULT ''")
+    except: pass
+    try: conn.execute("ALTER TABLE purchase_orders ADD COLUMN channel TEXT DEFAULT 'jd'")
+    except: pass
+    try: conn.execute("ALTER TABLE inbound_records ADD COLUMN channel TEXT DEFAULT 'jd'")
+    except: pass
+    try: conn.execute("ALTER TABLE outbound_records ADD COLUMN channel TEXT DEFAULT 'jd'")
     except: pass
     # ── P0 性能索引 ──
     for idx in [

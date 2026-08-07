@@ -9,15 +9,15 @@ router = APIRouter(prefix="/api/purchase-orders", tags=["purchase_orders"])
 
 
 @router.get("")
-def list_purchase_orders(db = get_db()):
-    items = db.table("purchase_orders").select("*").order("id", desc=True).execute().data or []
+def list_purchase_orders(channel: str = 'jd', db = get_db()):
+    items = db.table("purchase_orders").select("*").eq("channel", channel).order("id", desc=True).execute().data or []
     return ok(items)
 
 
 @router.post("")
 def create_purchase_order(sku: str, store: str = '', product_name: str = '',
                           suggested_qty: int = 0, actual_qty: int = 0,
-                          arrival_date: str = '', db = get_db()):
+                          arrival_date: str = '', channel: str = 'jd', db = get_db()):
     try:
         db.table("purchase_orders").upsert({
             "sku": sku,
@@ -27,6 +27,7 @@ def create_purchase_order(sku: str, store: str = '', product_name: str = '',
             "actual_qty": actual_qty,
             "arrival_date": arrival_date,
             "status": "pending",
+            "channel": channel,
         })
         return ok({"sku": sku, "store": store})
     except Exception as e:
@@ -42,9 +43,9 @@ def update_purchase_order(iid: int, body: PurchaseOrderUpdate, db = get_db()):
 
 
 @router.delete("")
-def delete_purchase_order(sku: str, store: str = '', db = get_db()):
+def delete_purchase_order(sku: str, store: str = '', channel: str = 'jd', db = get_db()):
     try:
-        db.table("purchase_orders").delete().eq("sku", sku).eq("store", store).execute()
+        db.table("purchase_orders").delete().eq("sku", sku).eq("store", store).eq("channel", channel).execute()
         return ok({"sku": sku, "store": store})
     except Exception as e:
         return fail(str(e))

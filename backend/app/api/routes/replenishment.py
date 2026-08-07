@@ -256,12 +256,13 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     except Exception as e:
         logger.warning(f"write replenishment cache: {e}")
 
-    # 生成/关闭补货告警（按渠道隔离）
+    # 生成/关闭补货告警（按渠道隔离，只管理自己 source='replenishment_engine' 的告警，
+    # 不干扰规则引擎 source='rules_engine' 生成的紧急补货告警）
     try:
         from app.core.database import get_conn
         conn = get_conn()
         active = {r[0] for r in conn.execute(
-            "SELECT related_sku FROM alerts WHERE alert_type='replenish' AND status='active' AND channel=?",
+            "SELECT related_sku FROM alerts WHERE alert_type='replenish' AND status='active' AND channel=? AND source='replenishment_engine'",
             (channel,)).fetchall()}
         for s in suggestions:
             sku = s.get('sku', '')
@@ -275,7 +276,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                 except Exception as e: logger.warning(f"[replenish] insert alert: {e}")
             elif qty == 0 and sku in active:
                 try:
-                    conn.execute("UPDATE alerts SET status='closed' WHERE alert_type='replenish' AND related_sku=? AND channel=? AND status='active'", (sku, channel))
+                    conn.execute("UPDATE alerts SET status='closed' WHERE alert_type='replenish' AND related_sku=? AND channel=? AND status='active' AND source='replenishment_engine'", (sku, channel))
                 except Exception as e: logger.warning(f"[replenish] close alert: {e}")
         conn.commit()
     except Exception as e:

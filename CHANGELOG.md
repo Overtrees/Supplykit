@@ -1,3 +1,8 @@
+## 2026-08-07 性能优化（calc_sales_multi + dashboard SQL 合并）
+- `calc_sales_multi` 一次遍历算多窗口，替代 3 次独立 calc_sales_from_daily 调用
+- dashboard `_rebuild` 合并 4 个独立聚合为 1 次查询，status_dist 从 trend 数据推导
+
+---
 ## 2026-08-07 前端 token 有效性验证
 
 - App.tsx 启动时异步验证 `/api/auth/check`，token 失效自动清除并弹登录页

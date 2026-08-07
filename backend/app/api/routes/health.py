@@ -11,13 +11,37 @@ def health():
     status = "ok"
     checks = {}
     
-    # 数据库检查
+    # 数据库检查（含完整性快速检测）
     try:
         db_path = os.getenv("SQLITE_PATH", os.path.join(os.path.dirname(__file__), "..", "supplykit.db"))
         conn = sqlite3.connect(db_path)
+        conn.execute("PRAGMA busy_timeout=5000")
         conn.execute("SELECT 1")
-        conn.close()
         checks["database"] = "ok"
+        # 轻量完整性检测（quick_check 比 integrity_check 快，用于早期发现损坏）
+        try:
+            qc = conn.execute("PRAGMA quick_check").fetchone()
+            if qc and qc[0] == 'ok':
+                checks["integrity"] = "ok"
+            else:
+                checks["integrity"] = f"error: {qc}"
+                status = "degraded"
+        except Exception as e:
+            checks["integrity"] = f"error: {e}"
+        # 检查 WAL 文件是否异常膨胀（>200MB 提示）
+        try:
+            wal = db_path + "-wal"
+            if os.path.exists(wal):
+                wal_mb = os.path.getsize(wal) / 1024 / 1024
+                checks["wal_mb"] = round(wal_mb, 1)
+                if wal_mb > 200:
+                    checks["wal"] = f"warning: {wal_mb:.0f}MB"
+                    status = "degraded"
+                else:
+                    checks["wal"] = "ok"
+        except Exception:
+            pass
+        conn.close()
     except Exception as e:
         checks["database"] = f"error: {e}"
         status = "degraded"

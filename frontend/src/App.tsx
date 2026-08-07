@@ -94,7 +94,11 @@ export default function App() {
             toast.success('种子数据填充完成，即将刷新')
             setTimeout(() => window.location.reload(), 1500)
           } else if (d.data?.status === 'error' || d.data?.status === 'not_found') {
-            clearInterval(poll); try { localStorage.removeItem('c_seed_task') } catch {}
+            // not_found 容错：任务可能刚提交数据库写入有延迟，重试 3 次才清理
+            const missCount = (window.__seedMissCount || 0) + 1
+            window.__seedMissCount = missCount
+            if (d.data?.status === 'not_found' && missCount < 3) { return }
+            clearInterval(poll); try { localStorage.removeItem('c_seed_task') } catch {}; window.__seedMissCount = 0
             if (d.data?.status === 'error') toast.error('种子数据填充失败')
           }
         } catch {}
@@ -109,12 +113,18 @@ export default function App() {
           const r = await fetch(API + '/api/cleansing/task/' + cleansingTask.task_id)
           const d = await r.json()
           if (d.status === 'done') {
-            clearInterval(poll); localStorage.removeItem('c_cleansing_task')
+            clearInterval(poll); try { localStorage.removeItem('c_cleansing_task') } catch {}
             toast.success('数据清洗完成，即将刷新')
             setTimeout(() => window.location.reload(), 1500)
           } else if (d.status === 'error') {
-            clearInterval(poll); localStorage.removeItem('c_cleansing_task')
+            clearInterval(poll); try { localStorage.removeItem('c_cleansing_task') } catch {}
             toast.error('数据清洗失败')
+          } else if (d.status === 'not_found') {
+            // 容错：刚提交的任务可能还没入库，重试 3 次
+            const missCount = (window.__cleanMissCount || 0) + 1
+            window.__cleanMissCount = missCount
+            if (missCount < 3) return
+            clearInterval(poll); try { localStorage.removeItem('c_cleansing_task') } catch {}; window.__cleanMissCount = 0
           }
         } catch {}
       }, 5000)

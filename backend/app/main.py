@@ -82,6 +82,17 @@ from app.core.database import init_db, backup_db
 from app.core.scheduler import start as start_scheduler, get_status as scheduler_status
 
 init_db()
+
+# 启动时 WAL checkpoint（合并 WAL 到主库，防止 reload 后 WAL 膨胀）
+try:
+    import sqlite3 as _sqlite3
+    from app.core.database import DB_PATH as _DB_PATH
+    _c = _sqlite3.connect(_DB_PATH)
+    _c.execute("PRAGMA busy_timeout=10000")
+    _c.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+    _c.close()
+except Exception:
+    pass
 bak = backup_db()
 if bak:
     import logging; logging.info(f"Database backed up to {bak}")

@@ -214,7 +214,9 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             ds14 = round(get_sales(sales_14, sku), 1)
             ds28 = round(get_sales(sales_28, sku), 1)
             sel_ds = round(fused_ds(ds7, ds14, ds28) * active_factor, 1)
-            suggested = max(round(sel_ds * lead_time - avail - transit), 0) if sel_ds > 0 else 0
+            safety_days = float(cfg.get('safety_multiplier', '0'))
+            effective_safety = round(sel_ds * safety_days) if sel_ds > 0 else 0
+            suggested = max(round(sel_ds * lead_time + effective_safety - avail - transit), 0) if sel_ds > 0 else 0
             prod = products.get(sku, {})
             box = int(prod.get('box_qty', 1) or 1)
             box_qty = (suggested + box - 1) // box * box if suggested > 0 else 0

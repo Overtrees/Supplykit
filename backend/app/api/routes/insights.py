@@ -50,7 +50,8 @@ def detect_slow_moving_products(db=None, create_alerts=False):
             sku_channel_map[s] = i.get('channel') or 'jd'
     now = datetime.utcnow()
     result = []
-    all_skus = set(products_map.keys()) | set(last_order.keys()) | set(inventory_map.keys())
+    # 只遍历有库存的 SKU（无库存不需要滞销检测），避免 10 万+ SKU 全量遍历
+    all_skus = set(inventory_map.keys())
     for sku in all_skus:
         p = products_map.get(sku)
         inv = inventory_map.get(sku)

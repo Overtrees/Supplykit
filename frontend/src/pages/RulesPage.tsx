@@ -74,7 +74,7 @@ export default function RulesPage() {
   const load = async (ch) => { try { const c=ch||globalChannel; const r = await api.get('/api/rules?channel='+c); setRules(r.data||[]) } catch(e) {} }
   const loadCfg = async (mode, ch) => { try { clearCache(); clearInflight(); const m=mode||cfg.replenishment_mode||'bbcc'; const c=ch||globalChannel; const r=await api.get('/api/replenishment-config?mode='+m+'&channel='+c);if(r.data&&Object.keys(r.data).length>0)setCfg(p=>({...p, ...r.data, replenishment_mode:m}));else if(c!=='jd'){const fallback=await api.get('/api/replenishment-config?mode='+m+'&channel=jd');if(fallback.data)setCfg(p=>({...p,...fallback.data,replenishment_mode:m}))}setCfg(p => ({...p, replenishment_mode: m}));return r.data||{} } catch(e) { return {} } }
   const loadSeasons = async (mode, ch) => { try { clearCache(); clearInflight(); const m=mode||cfg.replenishment_mode||'bbcc'; const c=ch||globalChannel; const r=await api.get('/api/replenishment-config/seasons?mode='+m+'&channel='+c); setSeasons(r.data||[]) } catch(e) {} }
-  const loadAll = async (ch) => { setLoading(true); const c=ch||globalChannel; const savedMode=(()=>{try{return localStorage.getItem('c_replen_mode_'+c)}catch{return null}})(); const m=c!=='jd'?'traditional':(savedMode||'bbcc'); await load(c); try{const flat=await api.get('/api/replenishment-config?channel='+c);if(flat.data)setCfg(p=>({...p,...flat.data,replenishment_mode:m}))}catch(e){} await loadCfg(m,c); await loadSeasons(m,c); try{const sr=await api.get('/api/suppliers?channel='+c);if(sr.data)setSuppliers(sr.data.map(x=>x.supplier_code).filter(Boolean))}catch(e){} setLoading(false) }
+  const loadAll = async (ch) => { setLoading(true); const c=ch||globalChannel; const savedMode=(()=>{try{return localStorage.getItem('c_replen_mode_'+c)}catch{return null}})(); const m=c!=='jd'?'traditional':(savedMode||'bbcc'); await load(c); try{const flat=await api.get('/api/replenishment-config?channel='+c);if(flat.data)setCfg(p=>({...p,...flat.data,replenishment_mode:m}))}catch(e){} await loadCfg(m,c); await loadSeasons(m,c); try{const sr=await api.get('/api/suppliers?channel='+c);if(sr.data)setSuppliers(sr.data.map(x=>x.supplier_code).filter(Boolean))}catch(e){} try{const _s=localStorage.getItem('c_supplier_'+c);if(_s)setSelectedSupplier(_s)}catch{} setLoading(false) }
   useEffect(() => { loadAll() }, [globalChannel])
   // tab/模式切换时加载配置，补货参数页加骨架过渡
   useEffect(() => {
@@ -259,20 +259,19 @@ export default function RulesPage() {
     {/* ── 采购参数 ── */}
     {tab === 'purchase' && <div>
       <div style={{fontSize:12,color:'var(--muted2)',marginBottom:8}}>供应商起订（可选）</div>
-      <div style={{display:'flex',gap:8,marginBottom:12}}>
-        <select value={selectedSupplier} onChange={e=>setSelectedSupplier(e.target.value)}
-          style={{flex:1,padding:'8px 12px',fontSize:16,border:'1px solid var(--border)',borderRadius:32,outline:'none',background:'var(--card)',color:'var(--text)',boxSizing:'border-box',WebkitAppearance:'none'}}>
+      <div className="hammer-btn-row" style={{marginBottom:12}}>
+        <select value={selectedSupplier} onChange={e=>{setSelectedSupplier(e.target.value);try{localStorage.setItem('c_supplier_'+globalChannel,e.target.value)}catch{}}}
+          className="hammer-select">
           <option value="">通用（所有供应商）</option>
           {suppliers.map(s=><option key={s} value={s}>{s}</option>)}
         </select>
       </div>
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:20}}>
+      <div className="hammer-params-grid">
         {purchaseFields.map(({k,l})=>{
-          // 如果选中了供应商，MOQ 字段 key 变为 moq_{supplier_code}
           const actualKey = selectedSupplier && k === 'moq' ? `moq_${selectedSupplier}` : k
           return <label key={actualKey} style={{fontSize:13}}>
             {l}{selectedSupplier && k === 'moq' && <span className='small muted'>（{selectedSupplier}）</span>}
-            <input value={cfg[actualKey]||''} onChange={e=>setCfg(p=>({...p,[actualKey]:e.target.value}))} style={IS}/>
+            <input value={cfg[actualKey]||''} onChange={e=>setCfg(p=>({...p,[actualKey]:e.target.value}))} className="hammer-input"/>
           </label>
         })}
       </div>

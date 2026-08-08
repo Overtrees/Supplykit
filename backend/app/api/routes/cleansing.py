@@ -353,10 +353,15 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
             if is_inv:
                 try:
                     from app.core.rules import evaluate
-                    for item in data_list:
-                        try:
-                            evaluate('inventory.changed', {'inv': item, 'db': db, 'sku': item.get('sku',''), 'channel': channel})
-                        except Exception as e: print(f"[Cleansing] {e}")
+                    # 批量导入（>100 条）时跳过逐条 evaluate，避免 10 万次触发拖慢导入
+                    if len(data_list) <= 100:
+                        for item in data_list:
+                            try:
+                                evaluate('inventory.changed', {'inv': item, 'db': db, 'sku': item.get('sku',''), 'channel': channel})
+                            except Exception as e: print(f"[Cleansing] {e}")
+                    else:
+                        import logging
+                        logging.info(f"[Cleansing] 批量导入 {len(data_list)} 条，跳过逐条 evaluate")
                 except Exception as e: print(f"[Cleansing] {e}")
             try:
                 from app.core.events import bus

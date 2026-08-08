@@ -113,16 +113,14 @@ def delete_inventory(iid: int, db = get_db()):
 def batch_set_warehouse_type(ids: str = '', warehouse: str = '', warehouse_type: str = 'own', db = get_db()):
     """批量设置仓库类型，ids逗号分隔 / warehouse名 / 'all'全部"""
     if warehouse:
-        rows = db.table("inventory").select("id").eq("warehouse", warehouse).execute().data or []
-        for r in rows:
-            db.table("inventory").update({"warehouse_type": warehouse_type}).eq("id", r["id"]).execute()
-        return ok({"updated": len(rows), "warehouse": warehouse})
+        db.table("inventory").update({"warehouse_type": warehouse_type}).eq("warehouse", warehouse).execute()
+        return ok({"updated": warehouse, "warehouse": warehouse})
     if ids == 'all':
         db.table("inventory").update({"warehouse_type": warehouse_type}).eq("warehouse_type", "platform").execute()
         return ok({"updated": "all"})
     id_list = [int(x.strip()) for x in ids.split(',') if x.strip().isdigit()]
-    for iid in id_list:
-        db.table("inventory").update({"warehouse_type": warehouse_type}).eq("id", iid).execute()
+    if id_list:
+        db.table("inventory").update({"warehouse_type": warehouse_type}).in_("id", id_list).execute()
     return ok({"updated": len(id_list)})
 
 

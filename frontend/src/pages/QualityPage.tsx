@@ -46,7 +46,7 @@ export default function QualityPage() {
   }
 
   return <div className="card">
-    <div className="section-title">操作异常记录</div>
+    <div className="section-title">{t("nav.quality")}</div>
     {rows}
   </div>
 }

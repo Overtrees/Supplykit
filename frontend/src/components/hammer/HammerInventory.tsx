@@ -38,7 +38,7 @@ export default function HammerInventory({ channel }: HammerInventoryProps) {
     setExporting(true)
     try {
       const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
-      const r = await fetch(API + '/api/insights/export-inventory?channel=' + channel + '&wh_type=' + hammerWhType)
+      const r = await fetch(API + '/api/insights/export-inventory?channel=' + channel + '&wh_type=' + hammerWhType, {headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
       if (!r.ok) throw new Error('HTTP ' + r.status)
       const b = await r.blob()
       const u = URL.createObjectURL(b)

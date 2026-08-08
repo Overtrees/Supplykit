@@ -103,18 +103,18 @@ export default function RulesPage() {
     const cj = JSON.stringify({left:cond.left, op:cond.op, right:rv, rightType:cond.rightType, warehouse:cond.warehouse})
     const isNew = !editing || !editing.id
     const url = isNew ? API+'/api/rules' : API+'/api/rules/'+editing.id
-    await fetch(url, {method: isNew?'POST':'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({...f, mode: f.mode||'', channel:globalChannel, condition_json:cj})})
+    await fetch(url, {headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()},method: isNew?'POST':'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({...f, mode: f.mode||'', channel:globalChannel, condition_json:cj})})
     cancelEdit(); load(globalChannel)
   }
   const del = async (id) => {
-    await fetch(API+'/api/rules/'+id, {method:'DELETE'})
+    await fetch(API+'/api/rules/'+id, {headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()},method:'DELETE'})
     load(globalChannel)
     var timer = setTimeout(async function() {
-      await fetch(API+'/api/rules/'+id+'/permanent-delete', {method:'POST'})
+      await fetch(API+'/api/rules/'+id+'/permanent-delete', {headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()},method:'POST'})
     }, 5000)
     toast.add({type:'success', title:t("common.delete"), duration:5000, action: {label: t("undo.undo"), handler: async function() {
       clearTimeout(timer)
-      await fetch(API+'/api/rules/'+id+'/restore', {method:'POST'})
+      await fetch(API+'/api/rules/'+id+'/restore', {headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()},method:'POST'})
       load(globalChannel)
     }}})
   }

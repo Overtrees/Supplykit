@@ -45,7 +45,7 @@ function TaskItem({ task }) {
         const url = task.type === 'seed'
           ? API + '/api/seed/fill/status?task_id=' + task.id
           : API + '/api/cleansing/task/' + task.id
-        const r = await fetch(url)
+        const r = await fetch(url, {headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
         const d = await r.json()
         const data = d.data || d
         if (task.type === 'seed') {

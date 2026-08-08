@@ -88,7 +88,7 @@ export default function App() {
     if (seedTask) {
       const poll = setInterval(async () => {
         try {
-          const r = await fetch(API + '/api/seed/fill/status?task_id=' + seedTask)
+          const r = await fetch(API + '/api/seed/fill/status?task_id=' + seedTask, {headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
           const d = await r.json()
           if (d.data?.status === 'done') {
             clearInterval(poll); try { localStorage.removeItem('c_seed_task') } catch {}
@@ -111,7 +111,7 @@ export default function App() {
     if (cleansingTask && cleansingTask.task_id) {
       const poll = setInterval(async () => {
         try {
-          const r = await fetch(API + '/api/cleansing/task/' + cleansingTask.task_id)
+          const r = await fetch(API + '/api/cleansing/task/' + cleansingTask.task_id, {headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
           const d = await r.json()
           if (d.status === 'done') {
             clearInterval(poll); try { localStorage.removeItem('c_cleansing_task') } catch {}
@@ -156,7 +156,7 @@ export default function App() {
     setHistLoading(true)
     try {
       const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
-      const r = await fetch(API + '/api/replenishment-config/history?channel=' + (ch||channel) + '&limit=50')
+      const r = await fetch(API + '/api/replenishment-config/history?channel=' + (ch||channel) + '&limit=50', {headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
       const d = await r.json()
       setHistory(d.data || [])
     } catch(e) { setHistory([]) }
@@ -473,7 +473,7 @@ export default function App() {
             try { localStorage.setItem('c_welcome_seen','1') } catch {}
             setShowWelcome(false)
             try {
-              var r = await fetch(API + '/api/seed/fill', {method:'POST'})
+              var r = await fetch(API + '/api/seed/fill', {headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()},method:'POST'})
               var d = await r.json()
               if (d.ok) {
                 if (d.data?.requires_reset) {

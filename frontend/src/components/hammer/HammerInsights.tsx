@@ -64,7 +64,7 @@ export default function HammerInsights({ channel }: HammerInsightsProps) {
         url = API + '/api/insights/export-purchase?days=28&mode=' + mode + '&channel=' + channel
         filename = '补货建议_' + (mode === 'bbcc' ? 'BBCC_' : '传统_')
       }
-      const r = await fetch(url)
+      const r = await fetch(url, {headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
       if (!r.ok) throw new Error('HTTP ' + r.status)
       const blob = await r.blob()
       const a = document.createElement('a')

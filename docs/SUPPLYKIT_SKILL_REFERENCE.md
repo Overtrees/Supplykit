@@ -153,6 +153,12 @@ backend/app/
   有效天数 < 3 时: 跳过异常值剔除，直接用总销量/天数
   复合 key: 支持 sku|barcode 提高匹配精度，无 barcode 降级为 sku
 
+## 传统多仓补货（2026-08-08 重写）
+- **按仓库维度算日销**：快照加 warehouse 列，各仓库日销独立
+- 安全库存 = 日销 × `safety_multiplier`（与 BBCC 口径一致）
+- 前置期 = `lead_time_days` + `c_safety_days`（可独立配置）
+- 备注增强：箱数提示（补X箱）+ 跨仓调拨/人工复核提醒
+
 ## 进销存页
 - 仓库类型筛选已移入锤子菜单（自有仓/平台仓/B仓）
 - 列配置按仓库类型独立持久化（localStorage: `c_cols_inventory_own/platform/platform_b`）

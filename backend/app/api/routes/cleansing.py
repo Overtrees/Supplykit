@@ -353,7 +353,7 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
             if is_inv:
                 try:
                     from app.core.rules import evaluate
-                    # 批量导入（>100 条）时跳过逐条 evaluate，避免 10 万次触发拖慢导入
+                    # 批量导入（>100 条）时跳过逐条 evaluate，改为后台批量评估（平衡性能与实时性）
                     if len(data_list) <= 100:
                         for item in data_list:
                             try:
@@ -361,7 +361,14 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                             except Exception as e: print(f"[Cleansing] {e}")
                     else:
                         import logging
-                        logging.info(f"[Cleansing] 批量导入 {len(data_list)} 条，跳过逐条 evaluate")
+                        logging.info(f"[Cleansing] 批量导入 {len(data_list)} 条，提交后台批量规则评估")
+                        try:
+                            from app.core.database import submit_task
+                            from app.api.routes.seed import _seed_rules
+                            _tid = f"rule_eval_{datetime.utcnow().strftime('%H%M%S')}"
+                            submit_task(_tid, _seed_rules, get_db(), None)
+                        except Exception as e:
+                            import logging; logging.warning(f"[Cleansing] batch rule eval: {e}")
                 except Exception as e: print(f"[Cleansing] {e}")
             try:
                 from app.core.events import bus

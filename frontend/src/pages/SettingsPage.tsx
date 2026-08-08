@@ -200,7 +200,7 @@ export default function SettingsPage() {
     setConfirm(null)
     setSeeding(true)
     try {
-      const r = await fetch(API + '/api/seed/fill', {method:'POST'})
+      const r = await fetch(API + '/api/seed/fill', {method:'POST', headers:{'Authorization':'Bearer ' + (()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
       const d = await r.json()
       if (d.ok) {
         if (d.data?.requires_reset) {
@@ -223,7 +223,7 @@ export default function SettingsPage() {
     setConfirm(null)
     setResetting(true)
     try {
-      await fetch('https://overtrees.pythonanywhere.com/api/seed/reset', {method:'POST'})
+      await fetch(API + '/api/seed/reset', {method:'POST', headers:{'Authorization':'Bearer ' + (()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
       clearCache(); clearInflight()
       useAppStore.setState({ dashboard: null, alerts: [], stockRisk: [] })
       toast.success('数据已重置，即将刷新')

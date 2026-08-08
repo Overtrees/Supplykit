@@ -90,7 +90,8 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
         c_lead = int(cfg.get('b_to_c_days', '0')) + int(cfg.get('c_safety_days', '0'))
         lead_time = c_lead
     else:
-        lead_time = int(cfg.get('lead_time_days', '0'))
+        # 传统模式：前置期 + 安全天数（与 BBCC 口径一致，安全库存 = 日销×安全天数）
+        lead_time = int(cfg.get('lead_time_days', '0')) + int(cfg.get('c_safety_days', '0'))
 
     season_key = f'season_config_{mode}'
     season_val = db.table('replenishment_config').select('*').eq('key', season_key).execute().data

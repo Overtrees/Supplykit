@@ -90,7 +90,7 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', channel: str = 
         if sup_code not in _sup_params:
             _sup_params[sup_code] = {}
         if key not in _sup_params[sup_code]:
-            _sup_params[sup_code][key] = int(raw.get(f'{key}_{sup_code}', str(fallback)))
+            _sup_params[sup_code][key] = int(float(raw.get(f'{key}_{sup_code}', str(fallback))))
         return _sup_params[sup_code][key]
 
     result = []
@@ -115,12 +115,11 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', channel: str = 
         c_consume = round(ds * _lead) if ds > 0 else 0
         note = ""
         if purchase_qty > 0:
-            note = f"消耗{c_consume}+安全{eff_safety} -系统总库存{int(sys_total)} ={int(purchase_qty)}"
-            note += f" | 箱规{box_qty}件, 实购{actual_purchase}件"
-            note += f"（{actual_purchase//box_qty}箱）" if box_qty > 1 else ""
-            note += f", 补后周转{after_turnover}天"
+            note = f"消耗{c_consume}+安全{eff_safety} -库存{int(sys_total)} ={int(purchase_qty)}"
+            if box_qty > 1:
+                note += f" · 箱规{box_qty}件, 实购{actual_purchase}件（{actual_purchase//box_qty}箱）"
             if target_turn > 0:
-                note += f" > 目标{target_turn}天" if after_turnover > target_turn else f" < 目标{target_turn}天"
+                note += f" · 补后周转{after_turnover}天" + (f" > 目标{target_turn}天" if after_turnover > target_turn else f" < 目标{target_turn}天")
 
         result.append({
             'sku': sku, 'barcode': sku_barcode_map.get(sku, ''), 'product_name': prod.get('product_name', ''),
@@ -144,12 +143,10 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', channel: str = 
         _sup = _r.get('supplier_code', '')
         if not _sup: continue
         if _sup not in _sup_groups:
-            # 获取该供应商的 MOQ（优先按供应商独立配置，无则用全局 MOQ）
             _sup_moq = int(raw.get(f'moq_{_sup}', str(moq_default)))
             _sup_groups[_sup] = {'moq': _sup_moq, 'total_raw': 0, 'skus': []}
         _sup_groups[_sup]['total_raw'] += _r['purchase_qty']
         _sup_groups[_sup]['skus'].append(_r)
-    # 对每个供应商：若总采购量 < MOQ 且 > 0，按比例提升到 MOQ
     for _sup, _sg in _sup_groups.items():
         if _sg['total_raw'] > 0 and _sg['total_raw'] < _sg['moq']:
             _ratio = _sg['moq'] / _sg['total_raw']
@@ -159,7 +156,12 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', channel: str = 
                 if _r['purchase_qty'] > 0:
                     _box = _r.get('box_qty', 1) or 1
                     _r['actual_purchase'] = (_r['purchase_qty'] + _box - 1) // _box * _box
-                _r['note'] = _r.get('note', '') + f" | 供应商起订{_sg['moq']}件，占比{_old}/{_sg['total_raw']}→{_r['purchase_qty']}件"
+                # 按优先级显示 MOQ 提示
+                _parts = []
+                _parts.append(f"供应商{_sup}起订{_sg['moq']}件")
+                _parts.append(f"该供应商总计{_sg['total_raw']}件不足起订量")
+                _parts.append(f"按占比{_old}/{_sg['total_raw']}提升至{_r['purchase_qty']}件")
+                _r['note'] = _r.get('note', '') + ' · ' + '，'.join(_parts)
     result.sort(key=lambda x: x['days_to_empty'])
     # 批量处理告警（避免单 SKU 逐条查询，2000 SKU 时减少 4000 次 DB 查询）
     try:

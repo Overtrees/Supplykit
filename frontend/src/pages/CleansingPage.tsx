@@ -137,6 +137,15 @@ export default function CleansingPage() {
     execLock.current = true
     try {
     setBs('清洗中...')
+    // 库存类型必须映射 warehouse 列（否则传统多仓无法按仓库核算）
+    const isInvType = tt === 'inventory' || tt === 'platform_inv' || tt === 'inventory_b'
+    if (isInvType) {
+      const hasWarehouse = Object.values(mp || {}).some(m => m && (m.target === 'warehouse' || m.t === 'warehouse'))
+      if (!hasWarehouse) {
+        toast.error('导入库存必须映射「仓库」列，否则传统多仓无法按仓库维度核算')
+        setBs(''); execLock.current = false; return
+      }
+    }
     const fd = new FormData(); fd.append('file', f); fd.append('mapping', JSON.stringify(mp)); fd.append('target', tt); fd.append('channel', ch)
     try {
       const r = await api.post('/api/cleansing/execute-async', fd)

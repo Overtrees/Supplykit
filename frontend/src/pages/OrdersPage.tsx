@@ -43,15 +43,15 @@ export default function OrdersPage() {
     setConfirmDel(null)
     try {
       const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
-      const r = await fetch(`${headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()},API}/api/orders/${id}`, {method:'DELETE'})
+      const r = await fetch(`${API}/api/orders/${id}`, {method:'DELETE', headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
       if (r.ok) {
         useAppStore.getState().loadAll()
         var timer = setTimeout(async function() {
-          await fetch(`${headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()},API}/api/orders/${id}/permanent-delete`, {method:'POST'})
+          await fetch(`${API}/api/orders/${id}/permanent-delete`, {method:'POST', headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
         }, 5000)
         toast.add({type:'success', title:t("undo.deleted"), duration:5000, action: {label: t("undo.undo"), handler: async function() {
           clearTimeout(timer)
-          await fetch(`${headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()},API}/api/orders/${id}/restore`, {method:'POST'})
+          await fetch(`${API}/api/orders/${id}/restore`, {method:'POST', headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
           useAppStore.getState().loadAll()
         }}})
       } else toast.error('删除失败')

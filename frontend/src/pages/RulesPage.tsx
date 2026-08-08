@@ -103,7 +103,7 @@ export default function RulesPage() {
     const cj = JSON.stringify({left:cond.left, op:cond.op, right:rv, rightType:cond.rightType, warehouse:cond.warehouse})
     const isNew = !editing || !editing.id
     const url = isNew ? API+'/api/rules' : API+'/api/rules/'+editing.id
-    await fetch(url, {headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()},method: isNew?'POST':'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({...f, mode: f.mode||'', channel:globalChannel, condition_json:cj})})
+    await fetch(url, {method: isNew?'POST':'PUT', headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})(), 'Content-Type':'application/json'}, body:JSON.stringify({...f, mode: f.mode||'', channel:globalChannel, condition_json:cj})})
     cancelEdit(); load(globalChannel)
   }
   const del = async (id) => {

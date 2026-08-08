@@ -84,7 +84,7 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
   const delInv = async () => {
     if (!confirmDel) return
     try {
-      const r = await fetch(`${headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()},API}/api/inventory/${confirmDel}`, {method:'DELETE'})
+      const r = await fetch(`${API}/api/inventory/${confirmDel}`, {method:'DELETE', headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
       if (r.ok) { toast.success('已删除'); setConfirmDel(null); loadInv() }
       else toast.error('删除失败')
     } catch(e) { toast.error('删除失败: '+e.message) }

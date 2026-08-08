@@ -82,22 +82,37 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', channel: str = 
 
     products = {p["sku"]: p for p in db.table("products").select("*").execute().data}
 
+    # 供应商特定参数缓存（前置期/安全天数/MOQ 按供应商独立）
+    _sup_params = {}
+    def _get_sup_param(sup_code, key, fallback):
+        if not sup_code:
+            return fallback
+        if sup_code not in _sup_params:
+            _sup_params[sup_code] = {}
+        if key not in _sup_params[sup_code]:
+            _sup_params[sup_code][key] = int(raw.get(f'{key}_{sup_code}', str(fallback)))
+        return _sup_params[sup_code][key]
+
     result = []
     for sku, st in stock_by_sku.items():
         ds = round(fused_sales.get(sku, 0) * active_factor, 1)
         sys_total = st['available'] + st['transit']
-        safety_days = st['safety_days'] if st['safety_days'] > 0 else purchase_safety_days
-        eff_safety = round(ds * safety_days) if ds > 0 else 0
-        purchase_qty = max(round(ds * purchase_lead_time) + eff_safety - sys_total, 0) if ds > 0 else 0
-        # MOQ 在供应商维度统一处理，不在此处单个 SKU 触发
         prod = products.get(sku, {})
+        _sup = prod.get('supplier_code', '')
+        # 按供应商读取前置期和安全天数（无供应商则用全局）
+        _lead = _get_sup_param(_sup, 'purchase_lead_days', purchase_lead_time)
+        _safe_days = st['safety_days'] if st['safety_days'] > 0 else _get_sup_param(_sup, 'purchase_safety_days', purchase_safety_days)
+        safety_days = _safe_days
+        eff_safety = round(ds * safety_days) if ds > 0 else 0
+        purchase_qty = max(round(ds * _lead) + eff_safety - sys_total, 0) if ds > 0 else 0
+        # MOQ 在供应商维度统一处理，不在此处单个 SKU 触发
         box_qty = int(prod.get('box_qty', 1) or 1)
         actual_purchase = (purchase_qty + box_qty - 1) // box_qty * box_qty if purchase_qty > 0 else 0
         days_to_empty = round(st['available'] / ds, 1) if ds > 0 else 999
         after_stock = st['own_avail'] + st['own_transit'] + actual_purchase
         after_turnover = round(after_stock / ds, 1) if ds > 0 else 999
         target_turn = int(raw.get('max_turnover_days', '0'))
-        c_consume = round(ds * purchase_lead_time) if ds > 0 else 0
+        c_consume = round(ds * _lead) if ds > 0 else 0
         note = ""
         if purchase_qty > 0:
             note = f"消耗{c_consume}+安全{eff_safety} -系统总库存{int(sys_total)} ={int(purchase_qty)}"

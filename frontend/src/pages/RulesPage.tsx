@@ -268,14 +268,15 @@ export default function RulesPage() {
       </div>
       <div className="hammer-params-grid">
         {purchaseFields.map(({k,l})=>{
-          const actualKey = selectedSupplier && k === 'moq' ? `moq_${selectedSupplier}` : k
+          const isSupKey = k === 'moq' || k === 'purchase_lead_days' || k === 'purchase_safety_days'
+          const actualKey = selectedSupplier && isSupKey ? `${k}_${selectedSupplier}` : k
           return <label key={actualKey} style={{fontSize:13}}>
-            {l}{selectedSupplier && k === 'moq' && <span className='small muted'>（{selectedSupplier}）</span>}
+            {l}{selectedSupplier && isSupKey && <span className='small muted'>（{selectedSupplier}）</span>}
             <input value={cfg[actualKey]||''} onChange={e=>setCfg(p=>({...p,[actualKey]:e.target.value}))} className="hammer-input"/>
           </label>
         })}
       </div>
-      <button disabled={saving} onClick={async()=>{setSaving(true);const ch=globalChannel;try{const toSave={};purchaseFields.forEach(f=>{const k=selectedSupplier&&f.k==='moq'?`moq_${selectedSupplier}`:f.k;if(cfg[k]!==undefined)toSave[k]=cfg[k]});await api.put('/api/replenishment-config?channel='+ch,toSave);setCfg(p=>({...p,...toSave}));toast.success('已保存')}catch(e){toast.error('保存失败: '+e.message)}setSaving(false)}} className="btn btn-primary" style={{width:'100%',display:'inline-flex',alignItems:'center',gap:4,justifyContent:'center',minHeight:42}}>{saving?<><IconLoading size={14} /> 保存中...</>:<><IconSave size={14} /> 保存</>}</button>
+      <button disabled={saving} onClick={async()=>{setSaving(true);const ch=globalChannel;try{const toSave={};purchaseFields.forEach(f=>{const isSupKey = f.k === 'moq' || f.k === 'purchase_lead_days' || f.k === 'purchase_safety_days'; const k=selectedSupplier&&isSupKey?`${f.k}_${selectedSupplier}`:f.k;if(cfg[k]!==undefined)toSave[k]=cfg[k]});await api.put('/api/replenishment-config?channel='+ch,toSave);setCfg(p=>({...p,...toSave}));toast.success('已保存')}catch(e){toast.error('保存失败: '+e.message)}setSaving(false)}} className="btn btn-primary" style={{width:'100%',display:'inline-flex',alignItems:'center',gap:4,justifyContent:'center',minHeight:42}}>{saving?<><IconLoading size={14} /> 保存中...</>:<><IconSave size={14} /> 保存</>}</button>
     </div>}
 
     {/* ── 活动系数 ── */}

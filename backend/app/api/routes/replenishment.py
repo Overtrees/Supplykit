@@ -251,9 +251,27 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                 if avail > 0: parts.append("🔴 近30天无销量，库存积压")
                 else: parts.append("⚪ 近30天无销量")
             if sel_ds > 0: parts.append(trend_text)
-            if box_qty > 0: parts.append(f"建议补{box_qty}件 · 箱规{box}件")
-            wh_data = [x for x in all_inv if x.get('sku')==sku and x.get('warehouse')!=warehouse]
-            if wh_data: parts.append(f"跨仓提示: {wh_data[0].get('warehouse','')}还有{wh_data[0].get('available_qty',0)}件")
+            # 箱数提示 + 补1箱智能提醒
+            if box_qty > 0:
+                _boxes = box_qty // box
+                if _boxes > 1:
+                    parts.append(f"建议补{box_qty}件（{_boxes}箱）· 箱规{box}件")
+                else:
+                    parts.append(f"建议补{box_qty}件（1箱）· 箱规{box}件")
+                    # 补1箱时：检查其他仓是否有高库存且低日销的 SKU
+                    _cross_wh = []
+                    for _x in all_inv:
+                        if _x.get('sku')==sku and _x.get('warehouse')!=warehouse:
+                            _x_avail = int(_x.get('available_qty') or 0)
+                            if _x_avail > avail * 2:  # 其他仓库存远大于当前仓
+                                _cross_wh.append(f"{_x.get('warehouse','')}还有{_x_avail}件")
+                    if _cross_wh:
+                        parts.append(f"跨仓调拨: {', '.join(_cross_wh[:2])}，建议人工复核是否需补货")
+                    else:
+                        parts.append("仅补1箱，建议人工复核")
+            else:
+                wh_data = [x for x in all_inv if x.get('sku')==sku and x.get('warehouse')!=warehouse]
+                if wh_data: parts.append(f"跨仓提示: {wh_data[0].get('warehouse','')}还有{wh_data[0].get('available_qty',0)}件")
             if not parts: parts.append("库存充足")
             note = " · ".join(parts)
             suggestions.append({

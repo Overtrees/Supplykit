@@ -68,9 +68,10 @@ function RecycleBin({ onClose }) {
 
   useEffect(function() {
     setLoading(true)
+    var _auth = {'Authorization':'Bearer ' + (()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}
     Promise.all([
-      fetch(API + '/api/rules?channel=all').then(function(r) { return r.json() }),
-      fetch(API + '/api/orders?page=1&page_size=200').then(function(r) { return r.json() }),
+      fetch(API + '/api/rules?channel=all', {headers:_auth}).then(function(r) { return r.json() }),
+      fetch(API + '/api/orders?page=1&page_size=200', {headers:_auth}).then(function(r) { return r.json() }),
     ]).then(function([rData, oData]) {
       var items = rData.data || rData || []
       setRules(items.filter(function(x) { return x.is_active === 0 }))
@@ -81,7 +82,7 @@ function RecycleBin({ onClose }) {
   }, [])
 
   var restore = async function(type, id) {
-    await fetch(API + '/api/' + type + '/' + id + '/restore', {method:'POST'})
+    await fetch(API + '/api/' + type + '/' + id + '/restore', {method:'POST', headers:{'Authorization':'Bearer ' + (()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
     if (type === 'rules') setRules(rules.filter(function(x) { return x.id !== id }))
     else setOrders(orders.filter(function(x) { return x.id !== id }))
   }

@@ -4,7 +4,7 @@
       db.table("orders").select("*").eq("order_no","xxx").execute()
       db.table("orders").insert([{"order_no":"xxx"}]).execute()
 """
-import sqlite3, json, os, threading
+import sqlite3, json, os, threading, concurrent.futures
 from datetime import datetime
 from collections import defaultdict
 from typing import Any, Optional
@@ -29,6 +29,8 @@ def backup_db():
 _task_queue = []
 _task_results = {}
 _task_lock = threading.Lock()
+# 线程池（限制最大并发任务数，避免无限创建线程）
+_task_executor = concurrent.futures.ThreadPoolExecutor(max_workers=2, thread_name_prefix="bg_task")
 
 def _task_db_save(task_id, **fields):
     """持久化任务状态到 sync_tasks 表（跨重启可查）"""
@@ -76,9 +78,7 @@ def submit_task(task_id: str, fn, *args, **kwargs):
                 _task_results[task_id]["status"] = "error"
                 _task_results[task_id]["error"] = str(e)
             _task_db_save(task_id, status='error', error=str(e))
-    import threading as _threading
-    _t = _threading.Thread(target=_run, daemon=False)
-    _t.start()
+    _task_executor.submit(_run)
     return task_id
 
 def get_task(task_id: str):

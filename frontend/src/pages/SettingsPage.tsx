@@ -255,7 +255,7 @@ export default function SettingsPage() {
       </Group>
 
       <Group title="界面">
-        <Row label="重置欢迎页" sub="重新显示首次使用引导" onClick={() => { try { localStorage.removeItem('c_welcome_seen') } catch {} toast.success('欢迎页已重置') }} />
+        <LastRow label="重置欢迎页" sub="重新显示首次使用引导" onClick={() => { try { localStorage.removeItem('c_welcome_seen') } catch {} toast.success('欢迎页已重置') }} />
       </Group>
 
       <Group title="种子数据">

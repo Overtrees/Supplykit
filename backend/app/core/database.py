@@ -263,6 +263,16 @@ class UpdateBuilder:
         self._params.append(val)
         return self
 
+    def in_(self, col, vals):
+        if not vals:
+            # 空列表：WHERE 1=0（不更新任何行）
+            self._where.append("1=0")
+            return self
+        placeholders = ", ".join(["?"] * len(vals))
+        self._where.append(f'"{col}" IN ({placeholders})')
+        self._params.extend(vals)
+        return self
+
     def execute(self):
         if not self._where:
             raise Exception("UPDATE without WHERE is not allowed")

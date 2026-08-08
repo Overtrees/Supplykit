@@ -287,37 +287,35 @@ def _seed_inventory(db, skus_data):
     db.table("inventory").insert(inv).execute()
 
 def _seed_rules(db, skus_data):
-    """触发规则引擎：从真实库存批量判断低库存/紧急补货，批量生成告警
-    （替代逐 SKU evaluate，20000 次 → 1 次批量）"""
+    """触发规则引擎：SQL 级聚合 + 条件筛选，批量生成告警
+    （替代 Python 全量遍历，10 万 SKU 时从 O(百万行 Python) → SQL 聚合 + 仅筛选符合条件的 SKU）"""
     conn = get_conn()
-    # 读取真实库存（按渠道）
-    inv_rows = conn.execute(
-        "SELECT sku, product_name, available_qty, safety_qty, channel, warehouse_type, in_transit_qty FROM inventory"
-    ).fetchall()
     # 批量查现有活跃告警，避免重复
     existing = {}
     for r in conn.execute("SELECT alert_type, related_sku FROM alerts WHERE status='active'").fetchall():
         existing.setdefault((r[0], r[1]), True)
-    # 逐 SKU 聚合可用库存/在途/安全线（同 SKU 多仓求和），判断规则
-    from collections import defaultdict
-    sku_stock = defaultdict(lambda: {'avail': 0, 'transit': 0, 'safety': 0, 'name': '', 'ch': 'jd'})
-    for r in inv_rows:
-        s = sku_stock[r[0]]
-        s['avail'] += int(r[2] or 0)
-        s['transit'] += int(r[6] or 0) if len(r) > 6 else 0
-        s['safety'] += int(r[3] or 0)
-        s['name'] = r[1] or r[0]
-        s['ch'] = r[4] or 'jd'
+    # SQL 级聚合 + HAVING 条件筛选（只返回低库存或紧急补货的 SKU，减少 Python 遍历量）
+    inv_rows = conn.execute("""
+        SELECT sku, MAX(product_name) as name, 
+               SUM(available_qty) as avail, SUM(in_transit_qty) as transit, SUM(safety_qty) as safety,
+               MAX(channel) as ch
+        FROM inventory 
+        GROUP BY sku
+        HAVING SUM(available_qty) < SUM(safety_qty)
+            OR (SUM(available_qty) <= MAX(1, SUM(safety_qty)*0.3) 
+                AND SUM(available_qty)+SUM(in_transit_qty) <= SUM(safety_qty))
+    """).fetchall()
     inserts = []
-    for sku, st in sku_stock.items():
-        avail, transit, safety = st['avail'], st['transit'], st['safety']
+    for r in inv_rows:
+        sku, name = r[0], r[1] or r[0]
+        avail, transit, safety, ch = int(r[2] or 0), int(r[3] or 0), int(r[4] or 0), r[5] or 'jd'
         if avail < safety and (('low_stock', sku) not in existing):
-            inserts.append(("low_stock", f"低库存预警: {st['name']}",
-                            f"可用 {avail} < 安全线 {safety}", "warning", st['ch'], sku))
+            inserts.append(("low_stock", f"低库存预警: {name}",
+                            f"可用 {avail} < 安全线 {safety}", "warning", ch, sku))
         # 紧急补货：可用极低 且 可用+在途也不够安全线（真紧急，到货后仍紧张）
         if avail <= max(1, safety * 0.3) and (avail + transit) <= safety and (('replenish', sku) not in existing):
-            inserts.append(("replenish", f"紧急补货: {st['name']}",
-                            f"可用 {avail}（<安全线30%），含在途 {avail+transit} 仍不足安全线 {safety}", "error", st['ch'], sku))
+            inserts.append(("replenish", f"紧急补货: {name}",
+                            f"可用 {avail}（<安全线30%），含在途 {avail+transit} 仍不足安全线 {safety}", "error", ch, sku))
     if inserts:
         conn.executemany(
             "INSERT INTO alerts(alert_type,title,description,severity,source,channel,related_sku,status) VALUES(?,?,?,?,?,?,?,?)",

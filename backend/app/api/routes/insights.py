@@ -104,7 +104,13 @@ def export_slow_moving_excel(channel: str = 'jd', db = get_db()):
     import json
     data = result.get("data") if isinstance(result, dict) and "data" in result else (result if isinstance(result, list) else [])
     if channel != 'all':
-        products = {p["sku"]: p for p in db.table("products").select("*").eq("channel", channel).execute().data or []}
+        products = set()
+        try:
+            from app.core.database import get_conn as _gconn
+            for _r in _gconn().execute("SELECT sku FROM products WHERE channel=?", (channel,)).fetchall():
+                products.add(_r[0])
+        except Exception:
+            products = set()
         data = [x for x in data if x['sku'] in products]
     slow = [x for x in data if x.get('level') != '正常']
 
@@ -128,7 +134,13 @@ def export_slow_moving_excel(channel: str = 'jd', db = get_db()):
 
 @router.get('/summary')
 def get_insight_summary(db = get_db()):
-    inv = db.table("inventory").select("*").execute().data
+    inv = []
+    try:
+        from app.core.database import get_conn as _gconn
+        inv = [{"sku": r[0], "available_qty": r[1], "safety_qty": r[2] or 0}
+               for r in _gconn().execute("SELECT sku, available_qty, safety_qty FROM inventory").fetchall()]
+    except Exception:
+        inv = []
     total = len(inv)
     low_stock = len([x for x in inv if int(x.get("available_qty") or 0) < int(x.get("safety_qty") or 0)])
     out_of_stock = len([x for x in inv if int(x.get("available_qty") or 0) == 0])
@@ -159,8 +171,17 @@ def trend_analysis(days: int = 30, channel: str = 'jd', db = get_db()):
     from collections import defaultdict
     from datetime import datetime, timedelta
     cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
-    orders = db.table("orders").select("*").gte("ordered_at", cutoff).eq("channel", channel).execute().data
-    inventory = db.table("inventory").select("*").eq("channel", channel).execute().data
+    orders = []
+    inventory = []
+    try:
+        from app.core.database import get_conn as _gconn
+        _c = _gconn()
+        orders = [{"ordered_at": r[0], "total_amount": r[1], "product_name": r[2]}
+                  for r in _c.execute("SELECT ordered_at, total_amount, product_name FROM orders WHERE channel=? AND ordered_at>=?", (channel, cutoff)).fetchall()]
+        inventory = [{"available_qty": r[0], "safety_qty": r[1]}
+                     for r in _c.execute("SELECT available_qty, safety_qty FROM inventory WHERE channel=?", (channel,)).fetchall()]
+    except Exception:
+        orders, inventory = [], []
 
     daily = defaultdict(lambda: {'gmv': 0, 'orders': 0})
     cat_count = defaultdict(int)
@@ -305,7 +326,13 @@ def inventory_with_sales(wh_type: str = 'own', channel: str = 'jd', page: int = 
         s = r['sku']
         outbound_month[s] = outbound_month.get(s, 0) + int(r.get('quantity',0) or 0)
     sales_28 = {}
-    products_for_barcode = {p["sku"]: p for p in (db.table("products").select("*").execute().data or [])}
+    products_for_barcode = {}
+    try:
+        from app.core.database import get_conn as _gconn
+        for _r in _gconn().execute("SELECT sku, barcode, price FROM products").fetchall():
+            products_for_barcode[_r[0]] = {"sku": _r[0], "barcode": _r[1] or '', "price": _r[2] or 0}
+    except Exception:
+        products_for_barcode = {}
     # 从快照聚合 28 天日销（替代 orders 全表遍历）
     from app.core.sales_utils import load_daily_sales, calc_sales_multi, rolling_predict
     daily_28 = load_daily_sales(28, db, sku_barcode_map={s: (p.get('barcode','') or '') for s,p in products_for_barcode.items()})

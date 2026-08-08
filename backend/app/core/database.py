@@ -554,8 +554,9 @@ def init_db(path=None):
         CREATE TABLE IF NOT EXISTS daily_sales_snapshot (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             date TEXT NOT NULL, channel TEXT DEFAULT 'jd',
-            sku TEXT NOT NULL, order_count INTEGER DEFAULT 0,
-            UNIQUE(date, channel, sku)
+            sku TEXT NOT NULL, warehouse TEXT DEFAULT '',
+            order_count INTEGER DEFAULT 0,
+            UNIQUE(date, channel, sku, warehouse)
         );
         CREATE INDEX IF NOT EXISTS idx_orders_order_no ON orders(order_no);
         CREATE INDEX IF NOT EXISTS idx_inventory_sku ON inventory(sku);
@@ -733,6 +734,8 @@ def init_db(path=None):
     try: conn.execute("ALTER TABLE outbound_records ADD COLUMN channel TEXT DEFAULT 'jd'")
     except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE sync_tasks ADD COLUMN task_id TEXT DEFAULT ''")
+    except sqlite3.OperationalError: pass
+    try: conn.execute("ALTER TABLE daily_sales_snapshot ADD COLUMN warehouse TEXT DEFAULT ''")
     except sqlite3.OperationalError: pass
     # ── P0 性能索引 ──
     for idx in [

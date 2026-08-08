@@ -30,7 +30,7 @@ def sku_to_channel(sku, db=None):
     return None
 
 
-def load_daily_sales(cutoff_days, db, sku_barcode_map=None, channel=None):
+def load_daily_sales(cutoff_days, db, sku_barcode_map=None, channel=None, warehouse=None):
     """统一数据源：从快照读历史 + 当天 orders 补充，消除重复计算
     
     返回: {key: {date: qty, ...}, ...}  key 为 sku 或 sku|barcode
@@ -43,7 +43,9 @@ def load_daily_sales(cutoff_days, db, sku_barcode_map=None, channel=None):
     # 1. 快照读历史（原始 SQL 避免 ORM 行转 dict 开销）
     try:
         conn = get_conn()
-        if channel:
+        if channel and warehouse:
+            rows = conn.execute("SELECT date, sku, order_count FROM daily_sales_snapshot WHERE date>=? AND channel=? AND warehouse=?", (cutoff, channel, warehouse)).fetchall()
+        elif channel:
             rows = conn.execute("SELECT date, sku, order_count FROM daily_sales_snapshot WHERE date>=? AND channel=?", (cutoff, channel)).fetchall()
         else:
             rows = conn.execute("SELECT date, sku, order_count FROM daily_sales_snapshot WHERE date>=?", (cutoff,)).fetchall()
@@ -208,6 +210,21 @@ def calc_sales(orders, cutoff_days, source='', wh_name=None, sku_barcode_map=Non
 
 
 def build_daily_sales_snapshot(db):
+    # 确保表结构正确（首次调用时重建，添加 warehouse 维度）
+    try:
+        from app.core.database import get_conn
+        _c = get_conn()
+        _c.execute("DROP TABLE IF EXISTS daily_sales_snapshot")
+        _c.execute("CREATE TABLE IF NOT EXISTS daily_sales_snapshot ("
+            "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            "date TEXT NOT NULL, channel TEXT DEFAULT 'jd',"
+            "sku TEXT NOT NULL, warehouse TEXT DEFAULT '',"
+            "order_count INTEGER DEFAULT 0,"
+            "UNIQUE(date, channel, sku, warehouse))")
+        _c.commit()
+    except Exception as e:
+        import logging; logging.warning(f"[sales] recreate snapshot: {e}")
+
     """构建/更新日销快照表（增量：只处理快照最大日期之后的新订单）"""
     from collections import defaultdict
     from datetime import datetime, timedelta
@@ -226,22 +243,23 @@ def build_daily_sales_snapshot(db):
     recent = [o for o in orders if str(o.get('ordered_at',''))[:10] < today]
     if not recent:
         return 0
-    # 按日期+渠道+SKU 聚合
+    # 按日期+渠道+SKU+仓库 聚合（支持传统多仓按仓库维度算日销）
     agg = defaultdict(int)
     for o in recent:
         date = str(o.get('ordered_at',''))[:10]
         channel = o.get('channel','jd')
         sku = o.get('sku','')
         if not sku: continue
+        warehouse = o.get('warehouse','') or '未知'
         qty = int(o.get('quantity', 0) or 0)
-        agg[(date, channel, sku)] += qty
+        agg[(date, channel, sku, warehouse)] += qty
     # 批量 UPSERT（executemany 减少 IO）
     from app.core.database import get_conn
     conn = get_conn()
-    rows = [(d, ch, s, q) for (d, ch, s), q in agg.items()]
+    rows = [(d, ch, s, w, q) for (d, ch, s, w), q in agg.items()]
     conn.executemany(
-        "INSERT INTO daily_sales_snapshot(date, channel, sku, order_count) VALUES(?,?,?,?) "
-        "ON CONFLICT(date, channel, sku) DO UPDATE SET order_count=excluded.order_count",
+        "INSERT INTO daily_sales_snapshot(date, channel, sku, warehouse, order_count) VALUES(?,?,?,?,?) "
+        "ON CONFLICT(date, channel, sku, warehouse) DO UPDATE SET order_count=excluded.order_count",
         rows
     )
     conn.commit()

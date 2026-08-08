@@ -305,6 +305,8 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                 update_set = ", ".join([f'"{c}" = excluded."{c}"' for c in cols if c != 'id'])
                 if is_inv:
                     conflict_col = 'sku, warehouse, channel'  # 库存按 SKU+仓库+渠道 去重
+                elif is_product:
+                    conflict_col = 'sku'  # 商品按 SKU 去重（sku 有 UNIQUE 约束）
                 elif is_inbound:
                     conflict_col = 'sku, inbound_date'
                 elif is_outbound:

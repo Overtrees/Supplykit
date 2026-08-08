@@ -39,9 +39,22 @@ def detect_slow_moving_products(db=None, create_alerts=False):
                 last_order[r[0]] = (r[1] or '')[:10]
     except Exception as e:
         import logging; logging.warning(f"[slow-moving] today orders: {e}")
-    products_map = {p["sku"]: p for p in db.table("products").select("*").execute().data}
-    sku_barcode_map = {sku: (p.get('barcode', '') or '') for sku, p in products_map.items()}
-    inventory_map = {i["sku"]: i for i in db.table("inventory").select("*").execute().data}
+    # 只加载需要的字段，避免全量 select("*") 导致 10 万 SKU 时 OOM
+    products_map = {}
+    try:
+        from app.core.database import get_conn
+        _conn = get_conn()
+        for r in _conn.execute("SELECT sku, product_name, barcode, channel FROM products").fetchall():
+            products_map[r[0]] = {"sku": r[0], "product_name": r[1], "barcode": r[2] or '', "channel": r[3] or 'jd'}
+    except Exception as e:
+        import logging; logging.warning(f"[slow-moving] products: {e}")
+    sku_barcode_map = {s: (p.get('barcode', '') or '') for s, p in products_map.items()}
+    inventory_map = {}
+    try:
+        for r in _conn.execute("SELECT sku, available_qty, product_name, channel FROM inventory").fetchall():
+            inventory_map[r[0]] = {"sku": r[0], "available_qty": r[1], "product_name": r[2] or r[0], "channel": r[3] or 'jd'}
+    except Exception as e:
+        import logging; logging.warning(f"[slow-moving] inventory: {e}")
     # SKU → channel（优先 products 主表，回退 inventory）
     from app.core.sales_utils import sku_to_channel
     sku_channel_map = {s: (p.get('channel') or sku_to_channel(s, db) or 'jd') for s, p in products_map.items()}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { api, clearCache, clearInflight } from '../api/client'
 import { useToast } from '../components/Toast'
 import { useAppStore } from '../store/useAppStore'
@@ -63,6 +63,7 @@ export default function RulesPage() {
   const [editing, setEditing] = useState(null)
   const [cfg, setCfg] = useState({})
   const [seasons, setSeasons] = useState([])
+  const reqSeq = useRef(0)
   const [selectedSupplier, setSelectedSupplier] = useState('')
   const [suppliers, setSuppliers] = useState([])
 
@@ -78,11 +79,12 @@ export default function RulesPage() {
   useEffect(() => { loadAll() }, [globalChannel])
   // tab/模式切换时加载配置，补货参数页加骨架过渡
   useEffect(() => {
+    const seq = ++reqSeq.current
     if (tab === 'params') {
       setLoading(true)
       Promise.all([loadCfg(hammerRulesMode), loadSeasons(hammerRulesMode)])
         .catch(() => {})
-        .finally(() => setLoading(false))
+        .finally(() => { if (reqSeq.current === seq) setLoading(false) })
     } else if (tab === 'purchase') {
       loadCfg(hammerRulesMode)
     }

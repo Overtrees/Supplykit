@@ -107,23 +107,45 @@ def _task_cleanup_logs():
         logger.info(f"Cleanup error: {e}")
 
 def _task_backup():
-    """每天凌晨 2 点备份数据库（只保留最近 7 个备份，防止撑爆配额）"""
+    """每天凌晨 2 点备份数据库（自动检查配额，只保留最近 2 个备份）"""
     try:
         from app.core.database import backup_db, DB_PATH
+        import glob, os
+        # 备份前检查配额：如果已有 2 个备份，先删最旧的再备份
+        baks = sorted(glob.glob(DB_PATH + ".bak.*"), key=os.path.getmtime, reverse=True)
+        while len(baks) >= 2:
+            old = baks.pop()
+            try:
+                os.remove(old)
+                logger.info(f"Pre-backup cleanup: removed {old}")
+            except Exception as e:
+                logger.info(f"Pre-backup cleanup error: {e}")
+        # 备份
         path = backup_db()
         if path:
             logger.info(f"Backup: {path}")
         else:
             logger.error("Backup failed")
-        # 清理旧备份：只保留最近 7 个
-        import glob, os
+        # 备份后复查配额，超限则继续清理
         baks = sorted(glob.glob(DB_PATH + ".bak.*"), key=os.path.getmtime, reverse=True)
-        for old in baks[7:]:
+        while len(baks) > 2:
+            old = baks.pop()
             try:
                 os.remove(old)
-                logger.info(f"Removed old backup: {old}")
+                logger.info(f"Post-backup cleanup: removed {old}")
             except Exception as e:
-                logger.info(f"Remove backup error: {e}")
+                logger.info(f"Post-backup cleanup error: {e}")
+        # 备份后 VACUUM 压缩数据库（回收碎片，减小体积）
+        try:
+            import sqlite3
+            _c = sqlite3.connect(DB_PATH)
+            _c.execute("PRAGMA busy_timeout=30000")
+            _c.execute("VACUUM")
+            _c.close()
+            db_size = os.path.getsize(DB_PATH) / 1024 / 1024
+            logger.info(f"VACUUM done: db={db_size:.1f}MB")
+        except Exception as e:
+            logger.info(f"VACUUM error: {e}")
     except Exception as e:
         logger.info(f"Backup error: {e}")
 
@@ -133,9 +155,9 @@ def _task_disk_cleanup():
         from app.core.database import DB_PATH
         import glob, os
         cleaned = []
-        # 1. 旧备份只保留 7 个
+        # 1. 旧备份只保留 2 个
         baks = sorted(glob.glob(DB_PATH + ".bak.*"), key=os.path.getmtime, reverse=True)
-        for old in baks[7:]:
+        for old in baks[2:]:
             try:
                 os.remove(old)
                 cleaned.append(os.path.basename(old))
@@ -158,7 +180,16 @@ def _task_disk_cleanup():
             cleaned.append("wal_checkpoint")
         except Exception as e:
             logger.info(f"WAL checkpoint error: {e}")
-        # 4. 报告数据库和 WAL 大小
+        # 4. VACUUM 压缩数据库（回收碎片，防止数据库膨胀）
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            conn.execute("PRAGMA busy_timeout=30000")
+            conn.execute("VACUUM")
+            conn.close()
+            cleaned.append("vacuum")
+        except Exception as e:
+            logger.info(f"VACUUM error: {e}")
+        # 5. 报告数据库和 WAL 大小
         db_size = os.path.getsize(DB_PATH) / 1024 / 1024
         wal_path = DB_PATH + "-wal"
         wal_size = os.path.getsize(wal_path) / 1024 / 1024 if os.path.exists(wal_path) else 0

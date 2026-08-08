@@ -307,10 +307,8 @@ def inventory_with_sales(wh_type: str = 'own', channel: str = 'jd', page: int = 
     inv = db.table("inventory").select("*").eq("warehouse_type", wh_type).eq("channel", channel).execute().data or []
     from datetime import datetime, timedelta
     now = datetime.utcnow()
-    cutoff_28 = (now - timedelta(days=28)).isoformat()
     cur_month = now.strftime('%Y-%m')
-    # SQL 级过滤：只取最近 28 天订单
-    orders = db.table("orders").select("*").gte("ordered_at", cutoff_28).execute().data or []
+    # 日销已从快照读取，orders 全量加载已移除（死代码，改用快照）
     # 出入库记录只取当月
     month_start = now.replace(day=1).strftime('%Y-%m-%d')
     month_end = now.strftime('%Y-%m-%d')

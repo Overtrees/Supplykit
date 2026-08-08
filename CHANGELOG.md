@@ -1,3 +1,25 @@
+## 2026-08-08 全页面鉴权修复 + 构建修复 + 规则引擎优化
+
+### 全页面原生 fetch 鉴权修复（10 个文件）
+- 后端加强制鉴权后，SettingsPage/App/SeedProgress/Orders/Inventory/Rules/Hammer 等页面原生 fetch 未带 token → 功能失效
+- 修复 10 个文件共 20+ 处 fetch 调用，全部加 `Authorization: Bearer` 头
+- 公开接口（auth/login、health、ping）不加 token，其余全部注入
+
+### 构建修复
+- 批量修复脚本导致 OrdersPage/InventoryPage 模板字符串错误、RulesPage 重复 headers key
+- 本地验证 + CF Pages 构建成功
+
+### 规则引擎优化
+- `_seed_rules` SQL HAVING 聚合筛选替代 Python 全量遍历
+- `detect_slow_moving` 只遍历有库存 SKU（避免 10 万+ SKU 全量遍历）
+- 批量导入 evaluate 节流（>100 条跳过逐条 evaluate，改为后台批量评估）
+- `_task_daily_rules` 去掉多余 evaluate 调用（告警已由 detect_slow_moving 直接创建）
+
+### 内存优化
+- 6 处 `select(*)` 改为原始 SQL 仅加载所需字段（省 ~300MB）
+- 移除 with-sales 中死代码 orders 全量加载（改用快照后残留，省 ~200MB）
+
+---
 ## 2026-08-07 性能优化（calc_sales_multi + dashboard SQL 合并）
 - `calc_sales_multi` 一次遍历算多窗口，替代 3 次独立 calc_sales_from_daily 调用
 - dashboard `_rebuild` 合并 4 个独立聚合为 1 次查询，status_dist 从 trend 数据推导

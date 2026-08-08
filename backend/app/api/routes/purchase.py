@@ -89,7 +89,7 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', channel: str = 
         safety_days = st['safety_days'] if st['safety_days'] > 0 else purchase_safety_days
         eff_safety = round(ds * safety_days) if ds > 0 else 0
         purchase_qty = max(round(ds * purchase_lead_time) + eff_safety - sys_total, 0) if ds > 0 else 0
-        purchase_qty = max(purchase_qty, moq_default) if purchase_qty > 0 else 0
+        # MOQ 在供应商维度统一处理，不在此处单个 SKU 触发
         prod = products.get(sku, {})
         box_qty = int(prod.get('box_qty', 1) or 1)
         actual_purchase = (purchase_qty + box_qty - 1) // box_qty * box_qty if purchase_qty > 0 else 0
@@ -116,12 +116,35 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', channel: str = 
             'b_available': b_avail.get(sku, 0),
             'safety_qty': st['safety'], 'daily_sales': ds,
             'daily_sales_14': get_purchase_sales(sales_14, sku), 'daily_sales_28': get_purchase_sales(sales_28, sku),
+            'supplier_code': prod.get('supplier_code', ''),
             'purchase_qty': purchase_qty, 'box_qty': box_qty, 'actual_purchase': actual_purchase,
             'after_stock': st['own_avail'] + purchase_qty, 'after_turnover': after_turnover,
             'target_turnover': target_turn,
             'days_to_empty': days_to_empty, 'note': note,
         })
 
+    # 按供应商汇总 MOQ：同一供应商所有 SKU 的采购量合计 < 该供应商 MOQ 时触发提升
+    _sup_groups = {}
+    for _r in result:
+        _sup = _r.get('supplier_code', '')
+        if not _sup: continue
+        if _sup not in _sup_groups:
+            # 获取该供应商的 MOQ（优先按供应商独立配置，无则用全局 MOQ）
+            _sup_moq = int(raw.get(f'moq_{_sup}', str(moq_default)))
+            _sup_groups[_sup] = {'moq': _sup_moq, 'total_raw': 0, 'skus': []}
+        _sup_groups[_sup]['total_raw'] += _r['purchase_qty']
+        _sup_groups[_sup]['skus'].append(_r)
+    # 对每个供应商：若总采购量 < MOQ 且 > 0，按比例提升到 MOQ
+    for _sup, _sg in _sup_groups.items():
+        if _sg['total_raw'] > 0 and _sg['total_raw'] < _sg['moq']:
+            _ratio = _sg['moq'] / _sg['total_raw']
+            for _r in _sg['skus']:
+                _old = _r['purchase_qty']
+                _r['purchase_qty'] = max(round(_r['purchase_qty'] * _ratio), 0)
+                if _r['purchase_qty'] > 0:
+                    _box = _r.get('box_qty', 1) or 1
+                    _r['actual_purchase'] = (_r['purchase_qty'] + _box - 1) // _box * _box
+                _r['note'] = _r.get('note', '') + f" | 供应商起订{_sg['moq']}件，占比{_old}/{_sg['total_raw']}→{_r['purchase_qty']}件"
     result.sort(key=lambda x: x['days_to_empty'])
     # 批量处理告警（避免单 SKU 逐条查询，2000 SKU 时减少 4000 次 DB 查询）
     try:

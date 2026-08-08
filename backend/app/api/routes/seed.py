@@ -224,8 +224,11 @@ def _update_steps(steps):
 
 def _seed_products_suppliers(db, skus_data):
     for skus,ch in [(skus_data['jd'],'jd'),(skus_data['other'],'other')]:
-        for p in skus:
-            db.table("products").upsert({'sku':p['sku'],'product_name':p['name'],'store':p['store'],'category':p['cat'],'price':p['price'],'box_qty':p['box'],'barcode':p['barcode'],'weight':p['weight'],'volume':p['volume'],'status':p['status'],'channel':ch}, conflict_col='sku')
+        for i, p in enumerate(skus):
+            # 按顺序分配供应商（10 家供应商轮流覆盖 SKU）
+            _sup_idx = i % 10
+            _sup_code = f"SUP-{_sup_idx+1:03d}-{ch.upper()}"
+            db.table("products").upsert({'sku':p['sku'],'product_name':p['name'],'store':p['store'],'category':p['cat'],'price':p['price'],'box_qty':p['box'],'barcode':p['barcode'],'weight':p['weight'],'volume':p['volume'],'status':p['status'],'channel':ch,'supplier_code':_sup_code}, conflict_col='sku')
     for s in SUP:
         for ch in ['jd','other']:
             # supplier_code 加渠道后缀，避免两渠道共用同一 code 导致 upsert 互相覆盖

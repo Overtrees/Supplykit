@@ -434,6 +434,7 @@ def init_db(path=None):
             price REAL DEFAULT 0,
             box_qty INTEGER DEFAULT 1,
             status TEXT DEFAULT 'active',
+            supplier_code TEXT DEFAULT '',
             owner_id TEXT DEFAULT '',
             created_at TEXT DEFAULT (datetime('now')),
             updated_at TEXT DEFAULT (datetime('now'))
@@ -736,6 +737,8 @@ def init_db(path=None):
     try: conn.execute("ALTER TABLE sync_tasks ADD COLUMN task_id TEXT DEFAULT ''")
     except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE daily_sales_snapshot ADD COLUMN warehouse TEXT DEFAULT ''")
+    except sqlite3.OperationalError: pass
+    try: conn.execute("ALTER TABLE products ADD COLUMN supplier_code TEXT DEFAULT ''")
     except sqlite3.OperationalError: pass
     # ── P0 性能索引 ──
     for idx in [

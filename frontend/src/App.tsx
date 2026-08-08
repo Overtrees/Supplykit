@@ -35,7 +35,7 @@ export const NAV = [
   { id:'dash',label:t('nav.dash')},{id:'products',label:t('nav.products')},{id:'suppliers',label:t('nav.suppliers')},
   { id:'orders',label:'订单明细'},{id:'inv',label:t('nav.inv')},{id:'insights',label:t('nav.insights')},
   { id:'cleansing',label:'数据清洗及导入'},{id:'rules',label:t('nav.rules')},
-  { id:'quality',label:'操作异常记录'},{id:'settings',label:t('nav.settings')},
+  { id:'quality',label:t('nav.quality')},{id:'settings',label:t('nav.settings')},
 ]
 
 

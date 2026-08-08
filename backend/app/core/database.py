@@ -748,6 +748,7 @@ def init_db(path=None):
         "CREATE INDEX IF NOT EXISTS idx_daily_stats_date ON daily_stats(date, channel)",
         "CREATE INDEX IF NOT EXISTS idx_products_sku_ch ON products(sku, channel)",
         "CREATE INDEX IF NOT EXISTS idx_orders_ch_status ON orders(channel, order_status)",
+        "CREATE INDEX IF NOT EXISTS idx_orders_ch_ordered_at ON orders(channel, order_status, ordered_at)",
         "CREATE INDEX IF NOT EXISTS idx_inbound_date ON inbound_records(inbound_date)",
         "CREATE INDEX IF NOT EXISTS idx_outbound_date ON outbound_records(outbound_date)",
         "CREATE INDEX IF NOT EXISTS idx_snapshot_date ON daily_sales_snapshot(date, channel, sku)",

@@ -38,7 +38,7 @@ export default function HammerInventory({ channel }: HammerInventoryProps) {
     setExporting(true)
     try {
       const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
-      const r = await fetch(API + '/api/exports?type=inventory&channel=' + channel, {method:'POST', headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
+      const r = await fetch(API + '/api/exports?type=inventory&channel=' + channel + '&wh_type=' + hammerWhType, {method:'POST', headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
       const d = await r.json()
       if (d.ok && d.task_id) toast.success('导出任务已提交，请到任务管理查看详情')
       else throw new Error(d.error || '提交失败')

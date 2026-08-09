@@ -14,11 +14,11 @@ os.makedirs(EXPORT_DIR, exist_ok=True)
 
 @router.post("")
 def create_export_task(type: str = 'purchase', mode: str = 'bbcc', days: int = 28,
-                       channel: str = 'jd', limit: int = 5000, db=get_db()):
+                       channel: str = 'jd', limit: int = 5000, wh_type: str = '', db=get_db()):
     """提交导出任务，后台异步生成 Excel"""
     from app.core.database import submit_task
     task_id = f"export_{uuid.uuid4().hex[:8]}"
-    params = {"type": type, "mode": mode, "days": days, "channel": channel, "limit": limit}
+    params = {"type": type, "mode": mode, "days": days, "channel": channel, "limit": limit, "wh_type": wh_type}
 
     def _run():
         try:
@@ -83,11 +83,18 @@ def create_export_task(type: str = 'purchase', mode: str = 'bbcc', days: int = 2
                     for _r in _conn.execute("SELECT sku, channel, barcode FROM products WHERE barcode!=''").fetchall():
                         _barcodes[(_r[0], _r[1])] = _r[2] or ''
                 except Exception: pass
-                _rows = _conn.execute("SELECT sku,available_qty,in_transit_qty,safety_qty,warehouse,warehouse_type,channel,product_name FROM inventory WHERE channel=?", (channel,)).fetchall()
-                ws.append(["SKU","69码","商品名称","仓库","类型","渠道","可用","在途","安全线"])
+                _where = "channel=?"
+                _params = [channel]
+                if wh_type:
+                    _where += " AND warehouse_type=?"
+                    _params.append(wh_type)
+                _sql = "SELECT sku,available_qty,in_transit_qty,safety_qty,warehouse,warehouse_type,channel,product_name,beginning_stock,month_inbound,month_outbound,turnover_days FROM inventory WHERE " + _where
+                _rows = _conn.execute(_sql, _params).fetchall()
+                ws.append(["SKU","69码","商品名称","仓库","类型","渠道","可用","在途","安全线","期初库存","当月入库","当月出库","周转天数"])
                 for r in _rows:
                     _bc = _barcodes.get((r[0], r[6]), '')
-                    ws.append([r[0], _bc, r[7], r[4], r[5], r[6], r[1], r[2], r[3]])
+                    _td = round(r[11] or 0, 1) if (r[11] or 0) > 0 else None
+                    ws.append([r[0], _bc, r[7], r[4], r[5], r[6], r[1], r[2], r[3], r[8], r[9], r[10], _td])
             filename = f"{type}_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}.xlsx"
             filepath = os.path.join(EXPORT_DIR, filename)
             wb.save(filepath)

@@ -192,28 +192,13 @@ export default function SettingsPage() {
   const [resetting, setResetting] = useState(false)
 
   const doSeed = async () => {
-    const hasTask = (() => { try { return localStorage.getItem('c_seed_task') } catch { return null } })()
-    if (seeding || hasTask) {
-      toast.error('已有填充任务进行中，请等待完成')
-      return
-    }
-    setConfirm(null)
-    setSeeding(true)
+    setConfirm(null); setSeeding(true)
     try {
       const r = await fetch(API + '/api/seed/fill', {method:'POST', headers:{'Authorization':'Bearer ' + (()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
       const d = await r.json()
       if (d.ok) {
-        if (d.data?.requires_reset) {
-          toast.error('已有数据，请先点击「一键重置」清空后再填充')
-          setConfirm('reset')  // 直接弹出重置确认框引导用户
-          return
-        }
-        const taskId = d.data?.task_id
-        if (taskId) {
-          try { localStorage.setItem('c_seed_task', taskId) } catch {}
-          toast.success('种子数据填充任务已提交')
-          setTimeout(() => { try { localStorage.removeItem('c_seed_task') } catch {}; window.location.reload() }, 600000)
-        }
+        if (d.data?.requires_reset) { toast.error('已有数据，请先重置'); setConfirm('reset'); return }
+        toast.success('填充任务已提交，请到任务管理查看详情')
       } else toast.error('填充失败: ' + (d.error || ''))
     } catch { toast.error('填充失败') }
     setSeeding(false)

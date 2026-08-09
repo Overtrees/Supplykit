@@ -61,14 +61,12 @@ export default function TaskPage() {
                     <span className={'task-status ' + st}>{STATUS_LABEL[st]}</span>
                   </div>
                   <div className="task-card-sub">{task.task_type === "export" ? EXPORT_TYPE_NAME[result?.result?.type || result?.type] || "导出" : task.task_type === "cleansing" ? CLEAN_TARGET_NAME[result?.result?.target || result?.target] || "导入" : task.task_id.slice(0,22)}</div>
-                  <div className="task-card-sub-row">
-                    <div className="task-card-time">{task.created_at ? toBeijing(task.created_at) : ''}</div>
-                    {st === 'done' && filename && task.task_type === 'export' && (
-                      <button className="task-download" onClick={() => download(filename)}>下载</button>
-                    )}
-                  </div>
+                  {task.created_at && <div className="task-card-time">{toBeijing(task.created_at)}</div>}
                   {st === 'running' && <div className="hero-progress"><div className="hero-progress-bar" /></div>}
                 </div>
+                {st === 'done' && filename && task.task_type === 'export' && (
+                  <button className="task-download" onClick={() => download(filename)}>下载</button>
+                )}
               </div>
             )
           })

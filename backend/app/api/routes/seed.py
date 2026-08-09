@@ -248,11 +248,12 @@ def _seed_orders(db, today, skus_data):
                 q = random.randint(1,20) if is_promo else random.randint(1,8)
                 st = random.choices(['已完成','已发货','待发货','待确认','申请退款'],[45,18,15,10,7])[0]
                 if random.random() < 0.03: st = '已退货'
-                orders.append({'order_no':f'{label.upper()}-{ch}{d:03d}-{len(orders):03d}','store':sk['store'],'warehouse':random.choice(WH)[0],'sku':sk['sku'],'product_name':sk['name'],'quantity':q,'unit_price':sk['price'],'total_amount':round(q*sk['price'],2),'order_status':st,'ordered_at':dt.strftime('%Y-%m-%d'),'channel':ch,'platform':'京东' if label=='jd' else '天猫'})
+                paid_dt = dt + timedelta(days=random.randint(1,3))
+                orders.append({'order_no':f'{label.upper()}-{ch}{d:03d}-{len(orders):03d}','store':sk['store'],'warehouse':random.choice(WH)[0],'sku':sk['sku'],'product_name':sk['name'],'quantity':q,'unit_price':sk['price'],'total_amount':round(q*sk['price'],2),'order_status':st,'ordered_at':dt.strftime('%Y-%m-%d'),'paid_at':paid_dt.strftime('%Y-%m-%d'),'channel':ch,'platform':'京东' if label=='jd' else '天猫'})
     # 批量写入：executemany + 分批 commit（每 500 条一次 fsync，替代逐条 commit）
     conn = get_conn()
     cols = ['order_no','store','warehouse','sku','product_name','quantity','unit_price','total_amount',
-            'order_status','ordered_at','channel','platform']
+            'order_status','ordered_at','paid_at','channel','platform']
     batch_size = 500
     for i in range(0, len(orders), batch_size):
         batch = orders[i:i+batch_size]

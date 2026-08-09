@@ -94,7 +94,7 @@ input,select,button,textarea{font-family:inherit;font-size:16px}input[type="file
 .ellipsis{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .task-card-time{font-size:10px;color:var(--muted2);font-family:monospace}
 .task-card-sub-row{display:flex;align-items:center;justify-content:space-between;margin-top:2px}
-.task-download{padding:4px 14px;border:none;border-radius:99px;background:var(--primary);color:#fff;font-size:13px;cursor:pointer;font-family:inherit;flex-shrink:0;align-self:center;font-weight:600}
+.task-download{min-height:48px;padding:0 18px;border:none;border-radius:99px;background:var(--primary);color:#fff;font-size:13px;cursor:pointer;font-family:inherit;flex-shrink:0;align-self:center;font-weight:600;display:flex;align-items:center;justify-content:center}
 .hero-progress{height:4px;background:var(--gray);border-radius:99px;overflow:hidden;margin-top:6px}
 .hero-progress-bar{height:100%;width:100%;background:var(--primary);animation:progress 1.5s ease-in-out infinite}
 @keyframes progress{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}

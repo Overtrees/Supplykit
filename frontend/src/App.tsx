@@ -64,7 +64,7 @@ const INV_WH_LABEL = { own:'自有仓', platform:'平台仓', platform_b:'B仓' 
 
 export default function App() {
   const [page, setPage] = useState('dash')
-  ;(window as any).__setPage = (p: string) => setPage(p)
+  ;(window as any).__setPage = (p: string) => { setPage(p); closeHammerMenu() }
   const [highlightSku, setHighlightSku] = useState('')
   const { inventory, qualityLogs, startPolling, stopAll, wsStatus, channel, setChannel, hammerData, setHammerPanel } = useAppStore()
   const toast = useToast()

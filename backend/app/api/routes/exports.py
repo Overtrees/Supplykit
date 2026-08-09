@@ -64,7 +64,7 @@ def create_export_task(type: str = 'purchase', mode: str = 'bbcc', days: int = 2
             filename = f"{type}_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}.xlsx"
             filepath = os.path.join(EXPORT_DIR, filename)
             wb.save(filepath)
-            return {"filepath": filepath, "filename": filename, "size": os.path.getsize(filepath)}
+            return {"filepath": filepath, "filename": filename, "size": os.path.getsize(filepath), "type": type}
         except Exception as e:
             import logging; logging.warning(f"[export] {type}: {e}")
             raise

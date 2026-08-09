@@ -4,10 +4,11 @@ import { t } from '../locale'
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
 
+const EXPORT_TYPE_NAME = { orders: '订单明细', inventory: '库存明细', slow: '滞销明细', purchase: '补货建议', purchase_suggestions: '采购建议' }
 const TYPE_LABEL = {
-  seed: { label: '种子数据填充', icon: '🧩' },
-  cleansing: { label: '数据清洗导入', icon: '🧹' },
-  export: { label: '导出任务', icon: '📤' },
+  seed: { label: '种子数据填充', icon: '🔄' },
+  cleansing: { label: '数据清洗导入', icon: '📋' },
+  export: { label: '导出任务', icon: '📥' },
 }
 const STATUS_LABEL = { pending: '等待中', running: '进行中', done: '已完成', error: '失败' }
 
@@ -45,10 +46,10 @@ export default function TaskPage() {
           tasks.map(task => {
             const type = task.task_type === 'export' ? 'export' :
               task.task_type === 'seed' ? 'seed' : 'cleansing'
-            const meta = TYPE_LABEL[type] || { label: '任务', icon: '📋' }
+            const meta = TYPE_LABEL[type] || { label: '任务', icon: '📄' }
             const st = task.status
             const result = task.result ? (typeof task.result === 'string' ? safeParse(task.result) : task.result) : null
-            const filename = result?.filename || ''
+            const filename = result?.result?.filename || result?.filename || ''
             return (
               <div key={task.task_id} className="task-card">
                 <div className="task-card-icon">{meta.icon}</div>
@@ -57,8 +58,8 @@ export default function TaskPage() {
                     <span className="ellipsis">{meta.label}</span>
                     <span className={'task-status ' + st}>{STATUS_LABEL[st]}</span>
                   </div>
-                  <div className="task-card-sub">{task.task_id.slice(0,22)}</div>
-                  {task.created_at && <div className="task-card-time">{task.created_at.slice(0,19)}</div>}
+                  <div className="task-card-sub">{task.task_type === "export" ? (EXPORT_TYPE_NAME[result?.type] || "导出") + " · " + task.task_id.slice(0,14) : task.task_id.slice(0,22)}</div>
+                  {task.created_at && <div className="task-card-time">{toBeijing(task.created_at)}</div>}
                   {st === 'running' && <div className="hero-progress"><div className="hero-progress-bar" /></div>}
                 </div>
                 {st === 'done' && filename && (
@@ -74,4 +75,8 @@ export default function TaskPage() {
 
 function safeParse(s) {
   try { return JSON.parse(s) } catch { return null }
+}
+function toBeijing(utc) {
+  if (!utc) return ''
+  try { const d = new Date(utc.replace(' ', 'T') + 'Z'); return d.toLocaleString('zh-CN', {timeZone:'Asia/Shanghai', hour12:false}) } catch { return utc }
 }

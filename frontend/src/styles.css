@@ -81,8 +81,8 @@ input,select,button,textarea{font-family:inherit;font-size:16px}input[type="file
 .hammer-input{width:100%;padding:6px 10px;font-size:16px;border:1px solid var(--border);border-radius:var(--radius-lg);outline:none;box-sizing:border-box;background:var(--card);color:var(--text);-webkit-appearance:none;appearance:none}
 .hammer-select{width:100%;padding:8px 16px;font-size:16px;border:1px solid var(--border);border-radius:var(--radius-lg);outline:none;box-sizing:border-box;background:var(--card);color:var(--text);-webkit-appearance:none;appearance:none;cursor:pointer}
 .hammer-params-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
-.task-card{display:flex;align-items:stretch;gap:12px;padding:12px 16px;border:1px solid var(--border);border-radius:16px;margin-bottom:8px;background:var(--card)}
-.task-card-icon{font-size:20px;flex-shrink:0}
+.task-card{display:flex;align-items:stretch;gap:12px;padding:14px 16px;border:1px solid var(--border);border-radius:16px;margin-bottom:8px;background:var(--card)}
+.task-card-icon{font-size:20px;flex-shrink:0;color:var(--primary)}
 .task-card-body{flex:1;min-width:0}
 .task-card-title{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:14px;font-weight:600;color:var(--text)}
 .task-status{font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px}
@@ -90,11 +90,11 @@ input,select,button,textarea{font-family:inherit;font-size:16px}input[type="file
 .task-status.running{background:var(--orange);color:#fff}
 .task-status.error{background:var(--danger);color:#fff}
 .task-status.pending{background:var(--gray);color:var(--text)}
-.task-card-sub{font-size:11px;color:var(--muted2);margin-top:2px}
+.task-card-sub{font-size:11px;color:var(--muted2);margin-top:4px}
 .ellipsis{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.task-card-time{font-size:10px;color:var(--muted2);font-family:monospace}
-.task-card-sub-row{display:flex;align-items:baseline;justify-content:space-between;margin-top:2px;gap:8px}
-.task-download{padding:2px 14px;border:none;border-radius:99px;background:var(--primary);color:#fff;font-size:13px;cursor:pointer;font-family:inherit;flex-shrink:0;font-weight:600;margin-right:4px;transition:opacity 0.15s,transform 0.1s}
+.task-card-time{font-size:11px;color:var(--muted2);font-family:monospace}
+.task-card-sub-row{display:flex;align-items:baseline;justify-content:space-between;margin-top:4px;gap:8px}
+.task-download{padding:3px 16px;border:none;border-radius:99px;background:var(--primary);color:#fff;font-size:13px;cursor:pointer;font-family:inherit;flex-shrink:0;font-weight:600;margin-right:6px;transition:opacity 0.15s,transform 0.1s}
 .task-download:hover{opacity:0.85}
 .task-download:active{transform:scale(0.94);opacity:0.75}
 .hero-progress{height:4px;background:var(--gray);border-radius:99px;overflow:hidden;margin-top:6px}

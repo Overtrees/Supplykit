@@ -1,5 +1,6 @@
 import React, { useState } from "react"
 import { useAppStore } from "../../store/useAppStore"
+import { IconClipboard } from "../Icons"
 import { t } from "../../locale"
 export default function HammerDashboard({ channel }) {
   const { hammerDashPeriod, setHammerDashPeriod, setCustomDate, customDateStart, customDateEnd, dashboard } = useAppStore()
@@ -47,7 +48,7 @@ export default function HammerDashboard({ channel }) {
       </div>}
       <div className="hammer-btn-row" style={{marginTop:12}}>
         <button onClick={() => { try { window.__setPage('tasks') } catch {} }}
-          className="hammer-btn btn-primary">📋 任务管理</button>
+          className="hammer-btn btn-primary"><IconClipboard size={14} /> 任务管理</button>
       </div>
     </div>
   )

@@ -48,10 +48,16 @@ def create_export_task(type: str = 'purchase', mode: str = 'bbcc', days: int = 2
             elif type == 'orders':
                 from app.core.database import get_conn
                 _conn = get_conn()
-                _rows = _conn.execute("SELECT ordered_at, order_no, barcode, store, warehouse, product_name, total_amount, order_status, sku FROM orders WHERE channel=? ORDER BY id DESC LIMIT 2000", (channel,)).fetchall()
-                ws.append(["下单日期","订单号","69码","店铺","仓库","商品","金额","状态","SKU"])
+                _barcodes = {}
+                try:
+                    for _r in _conn.execute("SELECT sku, channel, barcode FROM products WHERE barcode!=''").fetchall():
+                        _barcodes[(_r[0], _r[1])] = _r[2] or ''
+                except Exception: pass
+                _rows = _conn.execute("SELECT ordered_at,order_no,store,warehouse,product_name,sku,quantity,unit_price,total_amount,order_status,supplier,data_source,channel FROM orders WHERE channel=? ORDER BY id DESC LIMIT 2000", (channel,)).fetchall()
+                ws.append(["下单日期","订单号","店铺","仓库","商品","SKU","数量","单价","金额","状态","69码","入库日期","供应商","来源"])
                 for r in _rows:
-                    ws.append([str(r[0] or '')[:10], r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8]])
+                    _bc = _barcodes.get((r[5], r[12]), '')
+                    ws.append([str(r[0] or '')[:10], r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8], r[9], _bc, str(r[0] or '')[:10], r[10], r[11]])
             elif type == 'inventory':
                 from app.core.database import get_conn
                 _conn = get_conn()

@@ -194,9 +194,7 @@ def export_purchase_suggestions_excel(days: int = 28, mode: str = 'bbcc', channe
     from io import BytesIO
     from fastapi.responses import Response
     from urllib.parse import quote
-    import tempfile, os
-    tempfile.tempdir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'tmp')
-    os.makedirs(tempfile.tempdir, exist_ok=True)
+
 
     data = get_purchase_suggestions(days=days, mode=mode, channel=channel, db=db)
     suggestions = data.get("data") if isinstance(data, dict) and "data" in data else data

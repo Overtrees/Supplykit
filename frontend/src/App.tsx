@@ -131,6 +131,24 @@ export default function App() {
       }, 5000)
       polls.push(poll)
     }
+    // 导出任务轮询
+    const exportTask = (() => { try { return JSON.parse(localStorage.getItem('c_export_task') || 'null') } catch { return null } })()
+    if (exportTask && exportTask.task_id) {
+      const poll = setInterval(async () => {
+        try {
+          const r = await fetch(API + '/api/seed/fill/status?task_id=' + exportTask.task_id, {headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
+          const d = await r.json()
+          if (d.data?.status === 'done') {
+            clearInterval(poll); try { localStorage.removeItem('c_export_task') } catch {}
+            toast.success('导出完成，可在质量日志查看下载')
+          } else if (d.data?.status === 'error') {
+            clearInterval(poll); try { localStorage.removeItem('c_export_task') } catch {}
+            toast.error('导出失败')
+          }
+        } catch {}
+      }, 5000)
+      polls.push(poll)
+    }
     return () => polls.forEach(p => clearInterval(p))
   }, [taskVersion])
   const [apiStatus, setApiStatus] = useState('checking')

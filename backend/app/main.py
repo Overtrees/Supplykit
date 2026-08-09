@@ -1,4 +1,10 @@
-import os, sys, subprocess
+import os, sys, subprocess, tempfile
+
+# 统一临时目录到项目 tmp/（避免依赖 /tmp 导致 disk I/O error）
+_tmp_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tmp')
+os.makedirs(_tmp_dir, exist_ok=True)
+os.environ['TMPDIR'] = _tmp_dir
+tempfile.tempdir = _tmp_dir
 
 # Sentry（可选，通过 SENTRY_DSN 环境变量启用）
 if os.getenv("SENTRY_DSN"):
@@ -78,6 +84,7 @@ from app.api.routes.replenishment import router as replenishment_router
 from app.api.routes.records import router as records_router
 from app.api.routes.auth import router as auth_router
 from app.api.routes.monitor import router as monitor_router
+from app.api.routes.exports import router as exports_router
 
 from app.core.events import register_core_handlers
 from app.core.database import init_db, backup_db
@@ -240,6 +247,7 @@ app.include_router(seed_router)
 app.include_router(purchase_orders_router)
 app.include_router(auth_router)
 app.include_router(monitor_router)
+app.include_router(exports_router)
 
 @app.get("/")
 def root():

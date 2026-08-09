@@ -52,26 +52,17 @@ export default function HammerInsights({ channel }: HammerInsightsProps) {
     setExporting(true)
     try {
       const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
-      let url = ''
-      let filename = ''
-      if (type === 'slow') {
-        url = API + '/api/insights/export-slow-moving?channel=' + channel
-        filename = '滞销预警_'
-      } else if (type === 'purchase') {
-        url = API + '/api/insights/export-purchase-suggestions?days=28&channel=' + channel
-        filename = '采购建议_'
+      const _mode = window.__hammerReplenMode || 'bbcc'
+      const _type = type === 'slow' ? 'slow' : type === 'purchase' ? 'purchase_suggestions' : 'purchase'
+      const r = await fetch(API + '/api/exports?type=' + _type + '&mode=' + _mode + '&channel=' + channel, 
+        {method:'POST', headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
+      const d = await r.json()
+      if (d.ok && d.task_id) {
+        try { localStorage.setItem('c_export_task', JSON.stringify({task_id: d.task_id, type: _type})) } catch {}
+        toast.success('导出任务已提交，后台生成中...')
       } else {
-        url = API + '/api/insights/export-purchase?days=28&mode=' + mode + '&channel=' + channel
-        filename = '补货建议_' + (mode === 'bbcc' ? 'BBCC_' : '传统_')
+        throw new Error(d.error || '提交失败')
       }
-      const r = await fetch(url, {headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
-      if (!r.ok) throw new Error('HTTP ' + r.status)
-      const blob = await r.blob()
-      const a = document.createElement('a')
-      a.href = URL.createObjectURL(blob)
-      a.download = filename + new Date().toISOString().slice(0,10).replace(/-/g,'') + '.xlsx'
-      document.body.appendChild(a); a.click(); a.remove()
-      toast.success('导出完成')
     } catch(e) { toast.error('导出失败: ' + e.message) }
     setExporting(false)
     setExporting(false)

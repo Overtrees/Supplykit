@@ -17,6 +17,7 @@ const STATUS_LABEL = { pending: '等待中', running: '进行中', done: '已完
 export default function TaskPage() {
   const { channel } = useAppStore()
   const [tasks, setTasks] = useState([])
+  const [downloading, setDownloading] = useState({})
   const [loading, setLoading] = useState(true)
 
   const loadTasks = async () => {
@@ -31,11 +32,11 @@ export default function TaskPage() {
   useEffect(() => { loadTasks() }, [channel])
   useEffect(() => { const poll = setInterval(loadTasks, 5000); return () => clearInterval(poll) }, [channel])
 
-  const download = async (filename) => {
+  const download = async (taskId, filename) => { setDownloading(p => ({...p, [taskId]: true}));
     try {
       const dl = await fetch(API + '/api/exports/download/' + filename, { headers: { 'Authorization': 'Bearer ' + (() => { try { return localStorage.getItem('c_token') } catch { return '' } })() } })
       const blob = await dl.blob(); const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
-      a.download = filename; a.click()
+      a.download = filename; a.click(); setDownloading(p => ({...p, [taskId]: false}))
     } catch {}
   }
 
@@ -64,7 +65,7 @@ export default function TaskPage() {
                   <div className="task-card-sub-row">
                     <div className="task-card-time">{task.created_at ? toBeijing(task.created_at) : ''}</div>
                     {st === 'done' && filename && task.task_type === 'export' && (
-                      <button className="task-download" onClick={() => download(filename)}>下载</button>
+                      <button className="task-download" onClick={() => download(task.task_id, filename)} disabled={downloading[task.task_id]}>{downloading[task.task_id] ? '下载中...' : '下载'}</button>
                     )}
                   </div>
                   {st === 'running' && <div className="hero-progress"><div className="hero-progress-bar" /></div>}

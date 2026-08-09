@@ -45,7 +45,6 @@ export default function HammerDashboard({ channel }) {
           if (startVal && endVal && startVal <= endVal) { setCustomDate(startVal, endVal); setShowCustom(false) }
         }} className="btn btn-primary w-full text-12" style={{minHeight:32,padding:'4px 8px'}}>{t('common.confirm')}</button>
       </div>}
-    </div>
       <div className="hammer-btn-row" style={{marginTop:12}}>
         <button onClick={() => { try { window.__setPage('tasks') } catch {} }}
           className="hammer-btn btn-primary">📋 任务管理</button>

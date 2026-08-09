@@ -54,15 +54,16 @@ export default function TaskPage() {
                 <div className="task-card-icon">{meta.icon}</div>
                 <div className="task-card-body">
                   <div className="task-card-title">
-                    <span>{meta.label}</span>
+                    <span className="ellipsis">{meta.label}</span>
                     <span className={'task-status ' + st}>{STATUS_LABEL[st]}</span>
                   </div>
-                  <div className="task-card-sub">{task.task_id}</div>
+                  <div className="task-card-sub">{task.task_id.slice(0,22)}</div>
+                  {task.created_at && <div className="task-card-time">{task.created_at.slice(0,19)}</div>}
                   {st === 'running' && <div className="hero-progress"><div className="hero-progress-bar" /></div>}
-                  {st === 'done' && filename && (
-                    <button className="task-download" onClick={() => download(filename)}>下载</button>
-                  )}
                 </div>
+                {st === 'done' && filename && (
+                  <button className="task-download" onClick={() => download(filename)} title="下载文件">下载</button>
+                )}
               </div>
             )
           })

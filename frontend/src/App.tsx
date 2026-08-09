@@ -14,10 +14,11 @@ import OrdersPage from './pages/OrdersPage'
 import InventoryPage from './pages/InventoryPage'
 import QualityPage from './pages/QualityPage'
 import SettingsPage from './pages/SettingsPage'
+import TaskPage from './pages/TaskPage'
 import LoginPage from './pages/LoginPage'
 import Sidebar from './components/Sidebar'
 import HistorySheet from './components/hammer/HistorySheet'
-import ExportProgress from './components/ExportProgress'
+
 import HammerProducts from './components/hammer/HammerProducts'
 import HammerInsights from './components/hammer/HammerInsights'
 import HammerCleansing from './components/hammer/HammerCleansing'
@@ -36,7 +37,8 @@ export const NAV = [
   { id:'dash',label:t('nav.dash')},{id:'products',label:t('nav.products')},{id:'suppliers',label:t('nav.suppliers')},
   { id:'orders',label:'订单明细'},{id:'inv',label:t('nav.inv')},{id:'insights',label:t('nav.insights')},
   { id:'cleansing',label:'数据清洗及导入'},{id:'rules',label:t('nav.rules')},
-  { id:'quality',label:t('nav.quality')},{id:'settings',label:t('nav.settings')},
+  { id:'quality',label:t('nav.quality')},
+  { id:'tasks',label:'任务管理'},{id:'settings',label:t('nav.settings')},
 ]
 
 
@@ -62,6 +64,7 @@ const INV_WH_LABEL = { own:'自有仓', platform:'平台仓', platform_b:'B仓' 
 
 export default function App() {
   const [page, setPage] = useState('dash')
+  ;(window as any).__setPage = (p: string) => setPage(p)
   const [highlightSku, setHighlightSku] = useState('')
   const { inventory, qualityLogs, startPolling, stopAll, wsStatus, channel, setChannel, hammerData, setHammerPanel } = useAppStore()
   const toast = useToast()
@@ -342,6 +345,7 @@ export default function App() {
       case 'cleansing': return wrap(<CleansingPage key={pageId} />)
       case 'rules': return wrap(<RulesPage key={pageId} />)
       case 'quality': return wrap(<QualityPage key={pageId} />)
+      case 'tasks': return wrap(<TaskPage key={pageId} />)
       case 'settings': return wrap(<SettingsPage key={pageId} />)
       default: return null
     }
@@ -517,7 +521,6 @@ export default function App() {
       </main>
 
       {/* 变更历史底部弹窗 */}
-      <ExportProgress />
       <HistorySheet
         show={showHistory}
         loading={histLoading}

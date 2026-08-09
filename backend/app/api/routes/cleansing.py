@@ -368,7 +368,7 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                             from app.core.database import submit_task
                             from app.api.routes.seed import _seed_rules
                             _tid = f"rule_eval_{datetime.utcnow().strftime('%H%M%S')}"
-                            submit_task(_tid, _seed_rules, get_db(), None)
+                            submit_task(_tid, _seed_rules, get_db(), None, channel=channel)
                         except Exception as e:
                             import logging; logging.warning(f"[Cleansing] batch rule eval: {e}")
                 except Exception as e: print(f"[Cleansing] {e}")

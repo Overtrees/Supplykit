@@ -81,6 +81,20 @@ input,select,button,textarea{font-family:inherit;font-size:16px}input[type="file
 .hammer-input{width:100%;padding:6px 10px;font-size:16px;border:1px solid var(--border);border-radius:var(--radius-lg);outline:none;box-sizing:border-box;background:var(--card);color:var(--text);-webkit-appearance:none;appearance:none}
 .hammer-select{width:100%;padding:8px 16px;font-size:16px;border:1px solid var(--border);border-radius:var(--radius-lg);outline:none;box-sizing:border-box;background:var(--card);color:var(--text);-webkit-appearance:none;appearance:none;cursor:pointer}
 .hammer-params-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+.task-card{display:flex;align-items:center;gap:12px;padding:12px 16px;border:1px solid var(--border);border-radius:16px;margin-bottom:8px;background:var(--card)}
+.task-card-icon{font-size:20px;flex-shrink:0}
+.task-card-body{flex:1;min-width:0}
+.task-card-title{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:14px;font-weight:600;color:var(--text)}
+.task-status{font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px}
+.task-status.done{background:var(--primary);color:#fff}
+.task-status.running{background:var(--orange);color:#fff}
+.task-status.error{background:var(--danger);color:#fff}
+.task-status.pending{background:var(--gray);color:var(--text)}
+.task-card-sub{font-size:11px;color:var(--muted2);margin-top:2px}
+.task-download{margin-top:6px;padding:4px 12px;border:none;border-radius:99px;background:var(--primary);color:#fff;font-size:12px;cursor:pointer;font-family:inherit}
+.hero-progress{height:4px;background:var(--gray);border-radius:99px;overflow:hidden;margin-top:6px}
+.hero-progress-bar{height:100%;width:100%;background:var(--primary);animation:progress 1.5s ease-in-out infinite}
+@keyframes progress{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
 .col-drag{display:flex;align-items:center;gap:8px;padding:6px var(--space-sm);border-radius:32px;font-size:12px;white-space:nowrap;border-top:1px solid transparent;user-select:none;-webkit-user-select:none;margin-bottom:4px}
 .col-drag.visible{background:var(--card);opacity:1;cursor:grab}
 .col-drag.hidden{background:transparent;opacity:0.4;cursor:default}

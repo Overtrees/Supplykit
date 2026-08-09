@@ -52,7 +52,7 @@ def create_export_task(type: str = 'purchase', mode: str = 'bbcc', days: int = 2
             import logging; logging.warning(f"[export] {type}: {e}")
             raise
 
-    submit_task(task_id, _run)
+    submit_task(task_id, _run, channel=channel)
     return {"ok": True, "task_id": task_id, "data": {"type": type, "channel": channel}}
 
 

@@ -68,18 +68,22 @@ def _task_db_save(task_id, **fields):
             if k not in ('status', 'result', 'steps'):
                 payload[k] = v
         # 查是否已有记录（task_id 关联）
+        # 持久化 channel
+        _ch = payload.pop('channel', 'jd') if 'channel' in payload else 'jd'
         rows = conn.execute("SELECT id FROM sync_tasks WHERE task_id=?", (task_id,)).fetchall()
         if rows:
             conn.execute("UPDATE sync_tasks SET status=?, result=?, updated_at=datetime('now') WHERE task_id=?",
                 (status, json.dumps(payload, ensure_ascii=False, default=str), task_id))
         else:
-            conn.execute("INSERT INTO sync_tasks(task_id, task_type, status, result, created_at, updated_at) VALUES(?,?,?,?,datetime('now'),datetime('now'))",
-                (task_id, 'background', status, json.dumps(payload, ensure_ascii=False, default=str)))
+            conn.execute("INSERT INTO sync_tasks(task_id, task_type, status, result, channel, created_at, updated_at) VALUES(?,?,?,?,?,datetime('now'),datetime('now'))",
+                (task_id, 'background', status, json.dumps(payload, ensure_ascii=False, default=str), _ch))
         conn.commit()
     except Exception:
         pass
 
 def submit_task(task_id: str, fn, *args, **kwargs):
+    # 提取 channel 参数（用于持久化隔离）
+    _channel = kwargs.pop('channel', 'jd')
     """提交一个后台任务（独立线程运行，状态持久化到数据库）"""
     with _task_lock:
         _task_results[task_id] = {"status": "pending", "result": None, "error": None}
@@ -597,6 +601,7 @@ def init_db(path=None):
             status TEXT DEFAULT 'pending',
             params TEXT DEFAULT '{}',
             result TEXT DEFAULT '',
+            channel TEXT DEFAULT 'jd',
             owner_id TEXT DEFAULT '',
             created_at TEXT DEFAULT (datetime('now')),
             updated_at TEXT DEFAULT (datetime('now'))
@@ -815,6 +820,8 @@ def init_db(path=None):
     try: conn.execute("ALTER TABLE daily_sales_snapshot ADD COLUMN warehouse TEXT DEFAULT ''")
     except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE products ADD COLUMN supplier_code TEXT DEFAULT ''")
+    except sqlite3.OperationalError: pass
+    try: conn.execute("ALTER TABLE sync_tasks ADD COLUMN channel TEXT DEFAULT 'jd'")
     except sqlite3.OperationalError: pass
     # ── P0 性能索引 ──
     for idx in [

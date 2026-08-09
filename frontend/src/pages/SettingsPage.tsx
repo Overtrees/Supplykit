@@ -5,7 +5,6 @@ import { clearCache, clearInflight } from '../api/client'
 import { useToast } from '../components/Toast'
 import { t } from "../locale"
 import ConfirmDialog from '../components/ConfirmDialog'
-import SeedProgress from '../components/SeedProgress'
 
 const VERSION = '1.0.0'
 const BUILD = new Date().toISOString().slice(0,10)
@@ -262,7 +261,6 @@ export default function SettingsPage() {
         <Row label="一键填充" sub="生成 2,000 SKU × 60 天 × 10 万条模拟数据" onClick={() => setConfirm('fill')} loading={seeding} />
         <LastRow label="一键重置" sub="清空所有数据恢复初始状态" onClick={() => setConfirm('reset')} danger loading={resetting} />
       </Group>
-      <SeedProgress />
 
       <div style={{textAlign:'center',marginTop:24,fontSize:12,color:'var(--muted2)'}}>
         SupplyKit · 供应链数据工作台

@@ -85,6 +85,7 @@ from app.api.routes.records import router as records_router
 from app.api.routes.auth import router as auth_router
 from app.api.routes.monitor import router as monitor_router
 from app.api.routes.exports import router as exports_router
+from app.api.routes.tasks import router as tasks_router
 
 from app.core.events import register_core_handlers
 from app.core.database import init_db, backup_db
@@ -248,6 +249,7 @@ app.include_router(purchase_orders_router)
 app.include_router(auth_router)
 app.include_router(monitor_router)
 app.include_router(exports_router)
+app.include_router(tasks_router)
 
 @app.get("/")
 def root():

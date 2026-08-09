@@ -62,7 +62,7 @@ export default function TaskPage() {
                   {st === 'running' && <div className="hero-progress"><div className="hero-progress-bar" /></div>}
                 </div>
                 {st === 'done' && filename && (
-                  <button className="task-download" onClick={() => download(filename)} title="下载文件">下载</button>
+                  <button className="task-download" onClick={() => download(filename)}>下载</button>
                 )}
               </div>
             )

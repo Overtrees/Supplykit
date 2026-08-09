@@ -40,9 +40,10 @@ def create_export_task(type: str = 'purchase', mode: str = 'bbcc', days: int = 2
                 for r in (items or []):
                     ws.append([r.get('sku',''), r.get('product_name',''), r.get('suggested_qty',0), r.get('daily_sales',0)])
             elif type == 'slow':
-                items = detect_slow_moving_products(db=get_db(), create_alerts=False)
+                data = detect_slow_moving_products(db=get_db(), create_alerts=False)
+                items = data.get("data") if isinstance(data, dict) else data
                 ws.append(["SKU", "商品", "库存", "无销售天数"])
-                for r in items:
+                for r in (items or []):
                     ws.append([r.get('sku',''), r.get('product_name',''), r.get('stock',0), r.get('days_since_last',0)])
             filename = f"{type}_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}.xlsx"
             filepath = os.path.join(EXPORT_DIR, filename)

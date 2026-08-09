@@ -53,7 +53,7 @@ _task_lock = threading.Lock()
 # 线程池（限制最大并发任务数，避免无限创建线程）
 _task_executor = concurrent.futures.ThreadPoolExecutor(max_workers=2, thread_name_prefix="bg_task")
 
-def _task_db_save(task_id, **fields):
+def _task_db_save(task_id, task_type='background', channel='jd', **fields):
     """持久化任务状态到 sync_tasks 表（跨重启可查）"""
     try:
         import json
@@ -67,16 +67,14 @@ def _task_db_save(task_id, **fields):
         for k, v in fields.items():
             if k not in ('status', 'result', 'steps'):
                 payload[k] = v
-        # 查是否已有记录（task_id 关联）
-        # 持久化 channel
-        _ch = payload.pop('channel', 'jd') if 'channel' in payload else 'jd'
+        _ch = channel
         rows = conn.execute("SELECT id FROM sync_tasks WHERE task_id=?", (task_id,)).fetchall()
         if rows:
             conn.execute("UPDATE sync_tasks SET status=?, result=?, updated_at=datetime('now') WHERE task_id=?",
                 (status, json.dumps(payload, ensure_ascii=False, default=str), task_id))
         else:
             conn.execute("INSERT INTO sync_tasks(task_id, task_type, status, result, channel, created_at, updated_at) VALUES(?,?,?,?,?,datetime('now'),datetime('now'))",
-                (task_id, _task_type, status, json.dumps(payload, ensure_ascii=False, default=str), _ch))
+                (task_id, task_type, status, json.dumps(payload, ensure_ascii=False, default=str), _ch))
         conn.commit()
     except Exception:
         pass
@@ -88,22 +86,22 @@ def submit_task(task_id: str, fn, *args, **kwargs):
     """提交一个后台任务（独立线程运行，状态持久化到数据库）"""
     with _task_lock:
         _task_results[task_id] = {"status": "pending", "result": None, "error": None}
-    _task_db_save(task_id, status='pending')
+    _task_db_save(task_id, task_type=_task_type, channel=_channel, status='pending')
     def _run():
         try:
             with _task_lock:
                 _task_results[task_id]["status"] = "running"
-            _task_db_save(task_id, status='running')
+            _task_db_save(task_id, task_type=_task_type, channel=_channel, status='running')
             result = fn(*args, **kwargs)
             with _task_lock:
                 _task_results[task_id]["status"] = "done"
                 _task_results[task_id]["result"] = result
-            _task_db_save(task_id, status='done', result=result)
+            _task_db_save(task_id, task_type=_task_type, channel=_channel, status='done', result=result)
         except Exception as e:
             with _task_lock:
                 _task_results[task_id]["status"] = "error"
                 _task_results[task_id]["error"] = str(e)
-            _task_db_save(task_id, status='error', error=str(e))
+            _task_db_save(task_id, task_type=_task_type, channel=_channel, status='error', error=str(e))
     _task_executor.submit(_run)
     return task_id
 

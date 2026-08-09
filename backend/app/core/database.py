@@ -76,14 +76,15 @@ def _task_db_save(task_id, **fields):
                 (status, json.dumps(payload, ensure_ascii=False, default=str), task_id))
         else:
             conn.execute("INSERT INTO sync_tasks(task_id, task_type, status, result, channel, created_at, updated_at) VALUES(?,?,?,?,?,datetime('now'),datetime('now'))",
-                (task_id, 'background', status, json.dumps(payload, ensure_ascii=False, default=str), _ch))
+                (task_id, _task_type, status, json.dumps(payload, ensure_ascii=False, default=str), _ch))
         conn.commit()
     except Exception:
         pass
 
 def submit_task(task_id: str, fn, *args, **kwargs):
-    # 提取 channel 参数（用于持久化隔离）
+    # 提取 channel 和 task_type 参数
     _channel = kwargs.pop('channel', 'jd')
+    _task_type = kwargs.pop('task_type', 'background')
     """提交一个后台任务（独立线程运行，状态持久化到数据库）"""
     with _task_lock:
         _task_results[task_id] = {"status": "pending", "result": None, "error": None}

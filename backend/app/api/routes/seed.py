@@ -60,7 +60,7 @@ def seed_fill():
         pass
     task_id = 'seed_fill_' + uuid.uuid4().hex[:8]
     _current_task_id = task_id
-    submit_task(task_id, _seed_fill_async)
+    submit_task(task_id, _seed_fill_async, task_type='seed')
     return ok({"task_id": task_id, "message": "种子数据填充已开始"})
 
 @router.get("/fill/status")

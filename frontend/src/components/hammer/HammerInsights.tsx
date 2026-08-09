@@ -58,25 +58,12 @@ export default function HammerInsights({ channel }: HammerInsightsProps) {
         {method:'POST', headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
       const d = await r.json()
       if (d.ok && d.task_id) {
-        const poll = setInterval(async () => {
-          try {
-            const sr = await fetch(API + '/api/seed/fill/status?task_id=' + d.task_id, {headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
-            const sd = await sr.json()
-            if (sd.data?.status === 'done') {
-              clearInterval(poll)
-              const result = sd.data?.result; const fn = result?.filename || (_type + '.xlsx')
-              const dl = await fetch(API + '/api/exports/download/' + fn, {headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
-              const blob = await dl.blob(); const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
-              a.download = fn; document.body.appendChild(a); a.click(); a.remove(); toast.success('导出完成'); setExporting(false)
-            } else if (sd.data?.status === 'error') {
-              clearInterval(poll); toast.error('导出失败'); setExporting(false)
-            }
-          } catch { clearInterval(poll); setExporting(false) }
-        }, 2000)
+        toast.success('导出任务已提交，可在任务管理查看')
       } else {
         throw new Error(d.error || '提交失败')
       }
-    } catch(e) { toast.error('导出失败: ' + e.message); setExporting(false) }
+    } catch(e) { toast.error('导出失败: ' + e.message) }
+    setExporting(false)
   }
   return (
     <div>

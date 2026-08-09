@@ -43,8 +43,8 @@ export default function TaskPage() {
       {loading ? <div className="skeleton" style={{ height: 40 }} /> :
         tasks.length === 0 ? <div className="small muted" style={{ padding: 24, textAlign: 'center' }}>暂无任务</div> :
           tasks.map(task => {
-            const type = task.task_type.includes('export') ? 'export' :
-              task.task_type === 'seed' || task.task_id.startsWith('seed_') ? 'seed' : 'cleansing'
+            const type = task.task_type === 'export' ? 'export' :
+              task.task_type === 'seed' ? 'seed' : 'cleansing'
             const meta = TYPE_LABEL[type] || { label: '任务', icon: '📋' }
             const st = task.status
             const result = task.result ? (typeof task.result === 'string' ? safeParse(task.result) : task.result) : null

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useAppStore } from '../store/useAppStore'
+import { IconRefresh, IconBroom, IconExport, IconClipboard } from '../components/Icons'
 import { t } from '../locale'
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
@@ -7,9 +8,9 @@ const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhe
 const EXPORT_TYPE_NAME = { orders: '订单明细', inventory: '库存明细', slow: '滞销明细', purchase: '补货建议', purchase_suggestions: '采购建议' }
 const CLEAN_TARGET_NAME = { order: '订单表', inventory: '库存表(自有)', platform_inv: '库存表(平台)', inventory_b: '库存表(B仓)', inbound: '入库记录表', outbound: '出库记录表', product: '商品表' }
 const TYPE_LABEL = {
-  seed: { label: '种子数据填充', icon: '🔄' },
-  cleansing: { label: '数据清洗导入', icon: '📋' },
-  export: { label: '导出任务', icon: '📥' },
+  seed: { label: '种子数据填充', Icon: IconRefresh },
+  cleansing: { label: '数据清洗导入', Icon: IconBroom },
+  export: { label: '导出任务', Icon: IconExport },
 }
 const STATUS_LABEL = { pending: '等待中', running: '进行中', done: '已完成', error: '失败' }
 
@@ -47,13 +48,13 @@ export default function TaskPage() {
           tasks.map(task => {
             const type = task.task_type === 'export' ? 'export' :
               task.task_type === 'seed' ? 'seed' : 'cleansing'
-            const meta = TYPE_LABEL[type] || { label: '任务', icon: '📄' }
+            const meta = TYPE_LABEL[type] || { label: '任务', Icon: IconClipboard }
             const st = task.status
             const result = task.result ? (typeof task.result === 'string' ? safeParse(task.result) : task.result) : null
             const filename = result?.result?.filename || result?.filename || ''
             return (
               <div key={task.task_id} className="task-card">
-                <div className="task-card-icon">{meta.icon}</div>
+                <div className="task-card-icon">{meta.Icon ? <meta.Icon size={18} /> : <IconClipboard size={18} />}</div>
                 <div className="task-card-body">
                   <div className="task-card-title">
                     <span className="ellipsis">{meta.label}</span>

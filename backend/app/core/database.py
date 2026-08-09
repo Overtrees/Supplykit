@@ -10,7 +10,28 @@ from collections import defaultdict
 from typing import Any, Optional
 
 DB_PATH = os.getenv("SQLITE_PATH", os.path.join(os.path.dirname(__file__), "..", "supplykit.db"))
-SCHEMA_VERSION = 1  # 当前 schema 版本，每次改表结构+1
+SCHEMA_VERSION = 2  # 当前 schema 版本，每次改表结构+1
+
+# 版本化迁移注册表：{目标版本: 迁移函数}
+# 迁移函数签名: def migrate(conn): 执行该版本的 schema 变更
+_MIGRATIONS = {}
+
+
+def _register_migration(version):
+    def decorator(fn):
+        _MIGRATIONS[version] = fn
+        return fn
+    return decorator
+
+
+# 示例迁移 v2：创建 migration_log 表（记录迁移历史）
+@_register_migration(2)
+def _migrate_v2(conn):
+    conn.execute("CREATE TABLE IF NOT EXISTS migration_log ("
+        "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+        "version INTEGER NOT NULL,"
+        "applied_at TEXT DEFAULT (datetime('now')),"
+        "description TEXT DEFAULT '')")
 
 _local = threading.local()
 
@@ -155,6 +176,15 @@ def get_conn():
         _local.conn.execute("PRAGMA journal_mode=WAL")
         _local.conn.execute("PRAGMA busy_timeout=5000")
         _local.conn.execute("PRAGMA foreign_keys=ON")
+    else:
+        try:
+            _local.conn.execute("SELECT 1")
+        except Exception:
+            _local.conn = sqlite3.connect(DB_PATH)
+            _local.conn.row_factory = sqlite3.Row
+            _local.conn.execute("PRAGMA journal_mode=WAL")
+            _local.conn.execute("PRAGMA busy_timeout=5000")
+            _local.conn.execute("PRAGMA foreign_keys=ON")
     return _local.conn
 
 def _quote_col(col):
@@ -812,10 +842,20 @@ def init_db(path=None):
     except:
         conn.execute("CREATE TABLE IF NOT EXISTS _schema_version (key TEXT PRIMARY KEY, value TEXT)")
         ver = 0
+    # 版本化迁移：按顺序执行未完成版本
     if ver < SCHEMA_VERSION:
+        import logging
+        for v in range(ver + 1, SCHEMA_VERSION + 1):
+            if v in _MIGRATIONS:
+                try:
+                    _MIGRATIONS[v](conn)
+                    conn.commit()
+                    logging.info(f"[DB] Migration {v} applied")
+                except Exception as e:
+                    logging.warning(f"[DB] Migration {v} failed: {e}")
+                    raise
         conn.execute("INSERT OR REPLACE INTO _schema_version(key,value) VALUES('version',?)", (str(SCHEMA_VERSION),))
         conn.commit()
-        import logging
         logging.info(f"[DB] Schema migrated: {ver} → {SCHEMA_VERSION}")
     conn.close()
 def _seed_builtin_rules():

@@ -46,21 +46,19 @@ def create_export_task(type: str = 'purchase', mode: str = 'bbcc', days: int = 2
                 for r in (items or []):
                     ws.append([r.get('sku',''), r.get('product_name',''), r.get('stock',0), r.get('days_since_last',0)])
             elif type == 'orders':
-                from app.api.routes.replenishment import export_orders_excel
-                resp = export_orders_excel(channel=channel, db=get_db())
-                items = resp.get("data") if isinstance(resp, dict) and "data" in resp else resp
-                if isinstance(items, list):
-                    ws.append(["订单号", "SKU", "商品", "数量", "金额", "日期"])
-                    for r in items:
-                        ws.append([r.get('order_no',''), r.get('sku',''), r.get('product_name',''), r.get('quantity',0), r.get('total_amount',0), str(r.get('ordered_at',''))[:10]])
+                from app.core.database import get_conn
+                _conn = get_conn()
+                _rows = _conn.execute("SELECT ordered_at, order_no, barcode, store, warehouse, product_name, total_amount, order_status, sku FROM orders WHERE channel=? ORDER BY id DESC LIMIT 2000", (channel,)).fetchall()
+                ws.append(["下单日期","订单号","69码","店铺","仓库","商品","金额","状态","SKU"])
+                for r in _rows:
+                    ws.append([str(r[0] or '')[:10], r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8]])
             elif type == 'inventory':
-                from app.api.routes.replenishment import export_inventory_excel
-                resp = export_inventory_excel(channel=channel, db=get_db())
-                items = resp.get("data") if isinstance(resp, dict) and "data" in resp else resp
-                if isinstance(items, list):
-                    ws.append(["SKU", "商品", "仓库", "可用", "在途", "安全线"])
-                    for r in items:
-                        ws.append([r.get('sku',''), r.get('product_name',''), r.get('warehouse',''), r.get('available_qty',0), r.get('in_transit_qty',0), r.get('safety_qty',0)])
+                from app.core.database import get_conn
+                _conn = get_conn()
+                _rows = _conn.execute("SELECT sku, product_name, warehouse, warehouse_type, available_qty, in_transit_qty, safety_qty FROM inventory WHERE channel=?", (channel,)).fetchall()
+                ws.append(["SKU","商品","仓库","类型","可用","在途","安全线"])
+                for r in _rows:
+                    ws.append([r[0], r[1], r[2], r[3], r[4], r[5], r[6]])
             filename = f"{type}_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}.xlsx"
             filepath = os.path.join(EXPORT_DIR, filename)
             wb.save(filepath)

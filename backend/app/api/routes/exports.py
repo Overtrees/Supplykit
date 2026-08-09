@@ -45,6 +45,22 @@ def create_export_task(type: str = 'purchase', mode: str = 'bbcc', days: int = 2
                 ws.append(["SKU", "商品", "库存", "无销售天数"])
                 for r in (items or []):
                     ws.append([r.get('sku',''), r.get('product_name',''), r.get('stock',0), r.get('days_since_last',0)])
+            elif type == 'orders':
+                from app.api.routes.replenishment import export_orders_excel
+                resp = export_orders_excel(channel=channel, db=get_db())
+                items = resp.get("data") if isinstance(resp, dict) and "data" in resp else resp
+                if isinstance(items, list):
+                    ws.append(["订单号", "SKU", "商品", "数量", "金额", "日期"])
+                    for r in items:
+                        ws.append([r.get('order_no',''), r.get('sku',''), r.get('product_name',''), r.get('quantity',0), r.get('total_amount',0), str(r.get('ordered_at',''))[:10]])
+            elif type == 'inventory':
+                from app.api.routes.replenishment import export_inventory_excel
+                resp = export_inventory_excel(channel=channel, db=get_db())
+                items = resp.get("data") if isinstance(resp, dict) and "data" in resp else resp
+                if isinstance(items, list):
+                    ws.append(["SKU", "商品", "仓库", "可用", "在途", "安全线"])
+                    for r in items:
+                        ws.append([r.get('sku',''), r.get('product_name',''), r.get('warehouse',''), r.get('available_qty',0), r.get('in_transit_qty',0), r.get('safety_qty',0)])
             filename = f"{type}_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}.xlsx"
             filepath = os.path.join(EXPORT_DIR, filename)
             wb.save(filepath)

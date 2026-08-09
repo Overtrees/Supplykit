@@ -27,15 +27,10 @@ export default function HammerOrders({ channel }: HammerOrdersProps) {
     setExporting(true)
     try {
       const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
-      const r = await fetch(API + '/api/insights/export-orders?channel=' + channel, {headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
-      if (!r.ok) throw new Error('HTTP ' + r.status)
-      const b = await r.blob()
-      const u = URL.createObjectURL(b)
-      const a = document.createElement('a')
-      a.href = u; a.download = 'orders_' + new Date().toISOString().slice(0,10) + '.xlsx'
-      document.body.appendChild(a); a.click(); a.remove()
-      URL.revokeObjectURL(u)
-      toast.success(t('export.order_success'))
+      const r = await fetch(API + '/api/exports?type=orders&channel=' + channel, {method:'POST', headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
+      const d = await r.json()
+      if (d.ok && d.task_id) toast.success('导出任务已提交，请到任务管理查看详情')
+      else throw new Error(d.error || '提交失败')
     } catch(e) { toast.error(t('export.failed')) }
     setExporting(false)
   }

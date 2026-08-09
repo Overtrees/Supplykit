@@ -17,6 +17,7 @@ import SettingsPage from './pages/SettingsPage'
 import LoginPage from './pages/LoginPage'
 import Sidebar from './components/Sidebar'
 import HistorySheet from './components/hammer/HistorySheet'
+import ExportProgress from './components/ExportProgress'
 import HammerProducts from './components/hammer/HammerProducts'
 import HammerInsights from './components/hammer/HammerInsights'
 import HammerCleansing from './components/hammer/HammerCleansing'
@@ -516,6 +517,7 @@ export default function App() {
       </main>
 
       {/* 变更历史底部弹窗 */}
+      <ExportProgress />
       <HistorySheet
         show={showHistory}
         loading={histLoading}

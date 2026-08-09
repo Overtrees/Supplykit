@@ -173,6 +173,23 @@ export default function SettingsPage() {
     } catch {}
   }, [])
 
+  // 种子填充任务轮询：完成后恢复按钮状态
+  useEffect(() => {
+    const seedTask = (() => { try { return localStorage.getItem('c_seed_task') } catch { return null } })()
+    if (!seedTask || !seeding) return
+    const poll = setInterval(async () => {
+      try {
+        const r = await fetch(API + '/api/seed/fill/status?task_id=' + seedTask, {headers:{'Authorization':'Bearer ' + (()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
+        const d = await r.json()
+        if (d.data?.status === 'done' || d.data?.status === 'error') {
+          clearInterval(poll); setSeeding(false)
+          if (d.data?.status === 'done') { try { localStorage.removeItem('c_seed_task') } catch {}; window.location.reload() }
+        }
+      } catch { clearInterval(poll); setSeeding(false) }
+    }, 3000)
+    return () => clearInterval(poll)
+  }, [seeding])
+
   const clearLocalCache = () => {
     const keys = []
     try {
@@ -197,11 +214,12 @@ export default function SettingsPage() {
       const r = await fetch(API + '/api/seed/fill', {method:'POST', headers:{'Authorization':'Bearer ' + (()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
       const d = await r.json()
       if (d.ok) {
-        if (d.data?.requires_reset) { toast.error('已有数据，请先重置'); setConfirm('reset'); return }
+        if (d.data?.requires_reset) { toast.error('已有数据，请先重置'); setSeeding(false); setConfirm('reset'); return }
+        const taskId = d.data?.task_id
+        if (taskId) { try { localStorage.setItem('c_seed_task', taskId) } catch {} }
         toast.success('填充任务已提交，请到任务管理查看详情')
-      } else toast.error('填充失败: ' + (d.error || ''))
-    } catch { toast.error('填充失败') }
-    setSeeding(false)
+      } else { toast.error('填充失败: ' + (d.error || '')); setSeeding(false) }
+    } catch { toast.error('填充失败'); setSeeding(false) }
   }
 
   const doReset = async () => {

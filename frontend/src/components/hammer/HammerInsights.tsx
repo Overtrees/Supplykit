@@ -74,6 +74,7 @@ export default function HammerInsights({ channel }: HammerInsightsProps) {
       toast.success('导出完成')
     } catch(e) { toast.error('导出失败: ' + e.message) }
     setExporting(false)
+    setExporting(false)
   }
 
   return (

@@ -188,7 +188,7 @@ export default function SettingsPage() {
       } catch { clearInterval(poll); setSeeding(false) }
     }, 3000)
     return () => clearInterval(poll)
-  }, [seeding])
+  }, [])
 
   const clearLocalCache = () => {
     const keys = []
@@ -205,7 +205,7 @@ export default function SettingsPage() {
     } catch { toast.error('无法访问本地存储') }
   }
 
-  const [seeding, setSeeding] = useState(false)
+  const [seeding, setSeeding] = useState(() => { try { return !!localStorage.getItem('c_seed_task') } catch { return false } })
   const [resetting, setResetting] = useState(false)
 
   const doSeed = async () => {

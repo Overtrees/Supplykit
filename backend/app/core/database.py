@@ -140,6 +140,9 @@ def update_task(task_id: str, **kwargs):
         if task_id in _task_results:
             _task_results[task_id].update(kwargs)
     _task_db_save(task_id, **kwargs)
+    # 如果 task_id 以 clean_ 开头，更新 task_type 为 cleansing
+    if task_id.startswith('clean_'):
+        _task_db_save(task_id, task_type='cleansing', channel=kwargs.get('channel', 'jd'), status=kwargs.get('status', 'running'))
 
 # 写入队列（串行化 SQLite 写操作，避免并发写入冲突）
 _write_lock = threading.Lock()

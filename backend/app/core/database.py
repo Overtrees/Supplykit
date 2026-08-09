@@ -117,6 +117,37 @@ def update_task(task_id: str, **kwargs):
             _task_results[task_id].update(kwargs)
     _task_db_save(task_id, **kwargs)
 
+# 写入队列（串行化 SQLite 写操作，避免并发写入冲突）
+_write_lock = threading.Lock()
+
+
+def write_execute(sql, params=None):
+    """串行化写操作，避免多线程并发写入 SQLite 冲突"""
+    with _write_lock:
+        conn = get_conn()
+        if params:
+            conn.execute(sql, params)
+        else:
+            conn.execute(sql)
+        conn.commit()
+
+
+class transaction:
+    """事务上下文管理器：with transaction(): ... 自动 commit/rollback"""
+    def __enter__(self):
+        self.conn = get_conn()
+        self.conn.execute("BEGIN")
+        return self.conn
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type:
+            try: self.conn.rollback()
+            except Exception: pass
+            return False
+        try: self.conn.commit()
+        except Exception: pass
+        return False
+
+
 def get_conn():
     if not hasattr(_local, "conn") or _local.conn is None:
         _local.conn = sqlite3.connect(DB_PATH)
@@ -304,6 +335,8 @@ class DeleteBuilder:
         return self
 
     def execute(self):
+        if not self._where:
+            raise Exception("DELETE without WHERE is not allowed")
         sql = f'DELETE FROM "{self.table}" WHERE {" AND ".join(self._where)}'
         self.conn.execute(sql, self._params)
         self.conn.commit()

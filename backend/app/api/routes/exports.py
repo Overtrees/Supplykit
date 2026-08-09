@@ -30,21 +30,37 @@ def create_export_task(type: str = 'purchase', mode: str = 'bbcc', days: int = 2
             if type == 'purchase_suggestions':
                 data = get_purchase_suggestions(days=days, channel=channel, db=get_db())
                 items = data.get("data") if isinstance(data, dict) else data
-                ws.append(["SKU", "商品", "建议采购量", "日销"])
-                for r in (items or []):
-                    ws.append([r.get('sku',''), r.get('product_name',''), r.get('purchase_qty',0), r.get('daily_sales',0)])
+                ws.append(["序号","SKU","69码","商品名称","仓库","系统总库存","系统可用","系统在途",
+                           "自有可用","自有在途","平台可用","平台在途","B仓可用",
+                           "日销(融合)","日销14","日销28","建议采购量","箱规","实购数量(含箱规取整)","补后周转","目标周转","可撑天数","采购时机","备注"])
+                for i, r in enumerate((items or []), 1):
+                    timing = '建议' if r.get('purchase_qty',0) > 0 else '充足'
+                    ws.append([i, r.get('sku',''), r.get('barcode','-'), r.get('product_name',''), r.get('warehouse',''),
+                        r.get('sys_total',0), r.get('sys_available',0), r.get('sys_transit',0),
+                        r.get('own_available',0), r.get('own_transit',0), r.get('plat_available',0), r.get('plat_transit',0), r.get('b_available',0),
+                        r.get('daily_sales',0), r.get('daily_sales_14',0), r.get('daily_sales_28',0),
+                        r.get('purchase_qty',0), r.get('box_qty',1), r.get('actual_purchase',0), r.get('after_turnover',0), r.get('target_turnover',15),
+                        r.get('days_to_empty',0) if r.get('days_to_empty',999) < 999 else '∞', timing, r.get('note','')])
             elif type == 'purchase':
                 data = get_purchase_suggestions(days=days, mode=mode, channel=channel, db=get_db())
                 items = data.get("data") if isinstance(data, dict) else data
-                ws.append(["SKU", "商品", "建议补货量", "日销"])
-                for r in (items or []):
-                    ws.append([r.get('sku',''), r.get('product_name',''), r.get('suggested_qty',0), r.get('daily_sales',0)])
+                ws.append(["序号","SKU","69码","商品名称","仓库","系统总库存","系统可用","系统在途",
+                           "自有可用","自有在途","平台可用","平台在途","B仓可用",
+                           "日销(融合)","日销14","日销28","建议采购量","箱规","实购数量(含箱规取整)","补后周转","目标周转","可撑天数","采购时机","备注"])
+                for i, r in enumerate((items or []), 1):
+                    timing = '建议' if r.get('suggested_qty',0) > 0 else '充足'
+                    ws.append([i, r.get('sku',''), r.get('barcode','-'), r.get('product_name',''), r.get('warehouse',''),
+                        r.get('sys_total',0), r.get('sys_available',0), r.get('sys_transit',0),
+                        r.get('own_available',0), r.get('own_transit',0), r.get('plat_available',0), r.get('plat_transit',0), r.get('b_available',0),
+                        r.get('daily_sales',0), r.get('daily_sales_14',0), r.get('daily_sales_28',0),
+                        r.get('suggested_qty',0), r.get('box_qty',1), r.get('actual_purchase',0), r.get('after_turnover',0), r.get('target_turnover',15),
+                        r.get('days_to_empty',0) if r.get('days_to_empty',999) < 999 else '∞', timing, r.get('note','')])
             elif type == 'slow':
                 data = detect_slow_moving_products(db=get_db(), create_alerts=False)
                 items = data.get("data") if isinstance(data, dict) else data
-                ws.append(["SKU", "商品", "库存", "无销售天数"])
+                ws.append(["SKU","69码","商品名称","最近下单","无销售天数","库存","级别","渠道"])
                 for r in (items or []):
-                    ws.append([r.get('sku',''), r.get('product_name',''), r.get('stock',0), r.get('days_since_last',0)])
+                    ws.append([r.get('sku',''), r.get('barcode',''), r.get('product_name',''), r.get('last_order_date',''), r.get('days_since_last',0), r.get('stock',0), r.get('level',''), r.get('channel','jd')])
             elif type == 'orders':
                 from app.core.database import get_conn
                 _conn = get_conn()
@@ -62,10 +78,16 @@ def create_export_task(type: str = 'purchase', mode: str = 'bbcc', days: int = 2
             elif type == 'inventory':
                 from app.core.database import get_conn
                 _conn = get_conn()
-                _rows = _conn.execute("SELECT sku, product_name, warehouse, warehouse_type, available_qty, in_transit_qty, safety_qty FROM inventory WHERE channel=?", (channel,)).fetchall()
-                ws.append(["SKU","商品","仓库","类型","可用","在途","安全线"])
+                _barcodes = {}
+                try:
+                    for _r in _conn.execute("SELECT sku, channel, barcode FROM products WHERE barcode!=''").fetchall():
+                        _barcodes[(_r[0], _r[1])] = _r[2] or ''
+                except Exception: pass
+                _rows = _conn.execute("SELECT sku,available_qty,in_transit_qty,safety_qty,warehouse,warehouse_type,channel,product_name FROM inventory WHERE channel=?", (channel,)).fetchall()
+                ws.append(["SKU","69码","商品名称","仓库","类型","渠道","可用","在途","安全线"])
                 for r in _rows:
-                    ws.append([r[0], r[1], r[2], r[3], r[4], r[5], r[6]])
+                    _bc = _barcodes.get((r[0], r[6]), '')
+                    ws.append([r[0], _bc, r[7], r[4], r[5], r[6], r[1], r[2], r[3]])
             filename = f"{type}_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}.xlsx"
             filepath = os.path.join(EXPORT_DIR, filename)
             wb.save(filepath)

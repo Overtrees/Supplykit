@@ -139,10 +139,16 @@ def update_task(task_id: str, **kwargs):
     with _task_lock:
         if task_id in _task_results:
             _task_results[task_id].update(kwargs)
-    _task_db_save(task_id, **kwargs)
-    # 如果 task_id 以 clean_ 开头，更新 task_type 为 cleansing
-    if task_id.startswith('clean_'):
-        _task_db_save(task_id, task_type='cleansing', channel=kwargs.get('channel', 'jd'), status=kwargs.get('status', 'running'))
+    # 读取已有 task_type/channel（避免覆盖成 background）
+    _tt = 'background'; _ch = 'jd'
+    try:
+        conn = get_conn()
+        r = conn.execute("SELECT task_type, channel FROM sync_tasks WHERE task_id=?", (task_id,)).fetchone()
+        if r:
+            _tt = r[0] or 'background'; _ch = r[1] or 'jd'
+    except Exception:
+        pass
+    _task_db_save(task_id, task_type=kwargs.get('task_type', _tt), channel=kwargs.get('channel', _ch), **kwargs)
 
 # 写入队列（串行化 SQLite 写操作，避免并发写入冲突）
 _write_lock = threading.Lock()

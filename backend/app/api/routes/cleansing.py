@@ -428,9 +428,9 @@ async def execute_cleansing_async(file: UploadFile = File(...), mapping: str = F
     import uuid
     content = await file.read()
     task_id = str(uuid.uuid4())[:8]
-    submit_task(task_id, _run_cleansing, content, file.filename, mapping, target, template_name, channel)
+    submit_task(task_id, _run_cleansing, content, file.filename, mapping, target, template_name, channel, channel=channel, task_type='cleansing')
     from app.core.database import update_task
-    update_task(task_id, progress=0)
+    update_task(task_id, progress=0, target=target)
     return {'ok': True, 'task_id': task_id, 'message': '任务已提交'}
 
 @router.get('/templates')

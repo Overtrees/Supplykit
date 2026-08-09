@@ -5,6 +5,7 @@ import { t } from '../locale'
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
 
 const EXPORT_TYPE_NAME = { orders: '订单明细', inventory: '库存明细', slow: '滞销明细', purchase: '补货建议', purchase_suggestions: '采购建议' }
+const CLEAN_TARGET_NAME = { order: '订单表', inventory: '库存表(自有)', platform_inv: '库存表(平台)', inventory_b: '库存表(B仓)', inbound: '入库记录表', outbound: '出库记录表', product: '商品表' }
 const TYPE_LABEL = {
   seed: { label: '种子数据填充', icon: '🔄' },
   cleansing: { label: '数据清洗导入', icon: '📋' },
@@ -58,7 +59,7 @@ export default function TaskPage() {
                     <span className="ellipsis">{meta.label}</span>
                     <span className={'task-status ' + st}>{STATUS_LABEL[st]}</span>
                   </div>
-                  <div className="task-card-sub">{task.task_type === "export" ? (EXPORT_TYPE_NAME[result?.type] || "导出") + " · " + task.task_id.slice(0,14) : task.task_id.slice(0,22)}</div>
+                  <div className="task-card-sub">{task.task_type === "export" ? (EXPORT_TYPE_NAME[result?.type] || "导出") + " · " + task.task_id.slice(0,14) : task.task_type === "cleansing" ? (CLEAN_TARGET_NAME[result?.target] || "导入") + " · " + task.task_id.slice(0,14) : task.task_id.slice(0,22)}</div>
                   {task.created_at && <div className="task-card-time">{toBeijing(task.created_at)}</div>}
                   {st === 'running' && <div className="hero-progress"><div className="hero-progress-bar" /></div>}
                 </div>

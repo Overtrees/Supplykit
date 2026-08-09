@@ -60,6 +60,8 @@ def create_export_task(type: str = 'purchase', mode: str = 'bbcc', days: int = 2
                 items = data.get("data") if isinstance(data, dict) else data
                 ws.append(["SKU","69码","商品名称","最近下单","无销售天数","库存","级别","渠道"])
                 for r in (items or []):
+                    # 按渠道隔离
+                    if r.get('channel','jd') != channel: continue
                     ws.append([r.get('sku',''), r.get('barcode',''), r.get('product_name',''), r.get('last_order_date',''), r.get('days_since_last',0), r.get('stock',0), r.get('level',''), r.get('channel','jd')])
             elif type == 'orders':
                 from app.core.database import get_conn

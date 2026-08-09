@@ -506,7 +506,7 @@ export default function App() {
                 var taskId = d.data?.task_id
                 if (taskId) {
                   try { localStorage.setItem('c_seed_task', taskId) } catch {}
-                  useToast().success('种子数据填充中，可前往设置页查看进度')
+                  useToast().success('种子数据填充中，可前往任务管理查看进度')
                 }
               } else useToast().error('填充失败: ' + (d.error || ''))
             } catch(e) {}

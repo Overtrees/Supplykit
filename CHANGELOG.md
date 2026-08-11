@@ -1,3 +1,38 @@
+## 2026-08-11 数据库稳定性治理 + 补货建议加载修复 + 看板性能优化
+
+### 数据库稳定性（根本治理）
+- 禁用 WAL 模式改用 DELETE（PA 文件系统 WAL 反复损坏 → malformed database schema）
+- 数据库损坏恢复：重建表结构 + 清除损坏 WAL/SHM + admin 用户重建 + seed 重填
+- `auto_vacuum=INCREMENTAL`：DELETE 后空间自动回收，不再膨胀（148MB → 13MB）
+- `incremental_vacuum()`：无锁回收，归档/自检后执行
+- 归档阈值 90→60 天（匹配 seed 数据窗口，确保归档实际触发）
+- 备份改压缩（VACUUM INTO + gzip）：148MB → ~30MB
+- 启动自检支持 .gz 备份恢复
+- VACUUM 阈值提高到 150MB（数据库真实 99MB，防反复触发锁死接口）
+- 健康检查防重复提交 VACUUM
+- 数据库大小监控：`db_size_mb` 返回 + 超阈值自动维护
+
+### 补货建议加载修复（核心 bug）
+- 后端：缓存命中返回格式统一（双重 data 包装解包 → `ok(data)` 格式）
+- 前端：`client.ts` 30s 内存缓存命中未解包 → 补货建议/看板等缓存命中时空数据
+- seed 补模式默认参数（bbcc/传统），解决模式切换后空数据
+
+### 实时性闭环
+- 库存调整（inventory.changed）→ 补货缓存失效（立即反映，不再等 15min）
+- 清洗导入 → 补货/看板/日销 全链路实时
+- 看板 TTL 保持 180s（及时性与等待平衡）
+
+### 看板性能优化（23s → 14s）
+- 表达式索引 `idx_orders_cdate(channel, substr(ordered_at,1,10), order_status)`：GROUP BY 走索引
+- 周期查询 6 次 → 2 次（单次查询 + Python 分组）
+- rows/stores/inv 三查询并行化（独立连接）
+- 后续可继续并行化到 ~8s
+
+### 体验优化
+- 403 提示可视化：访客模式显示「访客模式仅可查看，不可修改数据」
+- 补货参数页模式参数默认值补齐
+
+---
 ## 2026-08-09 任务卡片 UI/UX 细节优化
 
 - 卡片上下 padding 12px→14px，图标颜色统一 var(--primary)

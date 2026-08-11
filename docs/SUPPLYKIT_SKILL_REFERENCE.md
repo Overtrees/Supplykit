@@ -1,3 +1,21 @@
+## 数据库稳定性（2026-08-11）
+- **禁用 WAL**（PA 文件系统 WAL 反复损坏）→ DELETE 模式
+- **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收
+- 归档 60 天 + 压缩备份（gzip）+ 启动自愈（.gz 备份恢复）
+- VACUUM 阈值 150MB（真实数据 99MB，防反复触发）
+- 经验：SQLite on PA 的关键是禁用 WAL + auto_vacuum + 压缩备份
+
+## 补货建议缓存格式（2026-08-11）
+- 后端缓存命中：`ok(cached.get('data'))` 统一格式（防双重包装）
+- 前端 client.ts 缓存命中：解包 `{ok,data}`（与拦截器一致）
+- 库存调整 → invalidate 补货缓存（inventory.changed 事件）
+- 经验：缓存命中与 miss 的返回格式必须一致，前端缓存也要解包
+
+## 看板聚合优化（2026-08-11）
+- 表达式索引 `idx_orders_cdate`：GROUP BY substr(ordered_at,1,10) 走索引
+- 周期查询合并 + 大查询并行化（23s → 14s）
+- 看板 TTL 180s（invalidate 保证实时性，TTL 只是兜底）
+
 ## 任务管理页（2026-08-09）
 - 统一管理所有异步任务（种子填充/清洗导入/导出）
 - 入口：看板锤子菜单「任务管理」按钮

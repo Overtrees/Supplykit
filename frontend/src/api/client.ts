@@ -80,7 +80,12 @@ const apiGet = async <T = any>(url: string, config: Record<string, any> = {}): P
   // 1) 缓存命中
   const hit = cache.get(key)
   if (hit && Date.now() - hit.ts < CACHE_TTL) {
-    return { data: hit.data, status: 200, statusText: 'OK', headers: {}, config }
+    // 缓存命中也需解包统一格式 {ok,data}（与拦截器一致）
+    let _d = hit.data
+    if (_d && typeof _d === 'object' && 'ok' in _d && 'data' in _d) {
+      _d = _d.data
+    }
+    return { data: _d, status: 200, statusText: 'OK', headers: {}, config }
   }
   
   // 2) 在途去重

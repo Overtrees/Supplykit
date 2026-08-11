@@ -50,8 +50,10 @@ def health():
         _sz = get_db_size_mb()
         checks["db_size_mb"] = round(_sz, 1)
         if _sz >= VACUUM_THRESHOLD_MB:
-            from app.core.database import submit_task
-            submit_task("health_vacuum", lambda: __import__('app.core.db_maintenance', fromlist=['vacuum_database']).vacuum_database())
+            from app.core.database import submit_task, get_task
+            _tv = get_task("health_vacuum")
+            if not _tv or _tv.get('status') in ('done', 'error', 'not_found'):
+                submit_task("health_vacuum", lambda: __import__('app.core.db_maintenance', fromlist=['vacuum_database']).vacuum_database())
     except: pass
     
     # 数据库检查（含完整性快速检测 + 运行中自动修复）

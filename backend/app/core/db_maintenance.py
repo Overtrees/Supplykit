@@ -5,9 +5,9 @@ from app.core.database import DB_PATH
 logger = logging.getLogger("db_maintenance")
 
 # 数据库膨胀阈值（超过则触发强制 VACUUM）
-VACUUM_THRESHOLD_MB = 80
+VACUUM_THRESHOLD_MB = 150
 # 达到此阈值时预警
-WARN_THRESHOLD_MB = 60
+WARN_THRESHOLD_MB = 120
 
 
 def get_db_size_mb(path=None):

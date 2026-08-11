@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>SupplyKit · 供应链数据工作台</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: #f5f6fa;
+      color: #1a1d24;
+      min-height: 100vh;
+    }
+    /* 检测中 */
+    #loading {
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: #f5f6fa; z-index: 999;
+      gap: 16px;
+    }
+    .spinner {
+      width: 40px; height: 40px;
+      border: 3px solid #e2e8f0;
+      border-top-color: #1d4ed8;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg) } }
+    .loading-text { font-size: 14px; color: #64748b; }
+    /* 介绍页 */
+    #intro { display: none; max-width: 720px; margin: 0 auto; padding: 40px 20px calc(40px + env(safe-area-inset-bottom)); }
+    .hero { text-align: center; padding: 40px 0 32px; }
+    .logo {
+      width: 56px; height: 56px; margin: 0 auto 16px;
+      background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+      border-radius: 16px; display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 24px; font-weight: 800;
+      box-shadow: 0 8px 24px rgba(29,78,216,0.25);
+    }
+    h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px; }
+    .sub { font-size: 15px; color: #64748b; line-height: 1.6; }
+    .badge { display: inline-block; background: #eff6ff; color: #1d4ed8; font-size: 12px; padding: 4px 12px; border-radius: 99px; margin-top: 12px; font-weight: 600; }
+    .section { margin: 24px 0; }
+    .section-title { font-size: 15px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    @media (max-width: 480px) { .cards { grid-template-columns: 1fr } }
+    .card {
+      background: #fff; border-radius: 14px; padding: 16px;
+      border: 1px solid #e8ecf3; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .card-icon { font-size: 20px; margin-bottom: 8px; }
+    .card-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+    .card-desc { font-size: 12px; color: #64748b; line-height: 1.5; }
+    .tech { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tech-tag { background: #f1f5f9; font-size: 12px; padding: 6px 14px; border-radius: 99px; color: #334155; font-weight: 600; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      width: 100%; padding: 14px; border-radius: 14px;
+      background: linear-gradient(135deg, #1d4ed8, #3b82f6); color: #fff;
+      font-size: 15px; font-weight: 700; text-decoration: none;
+      box-shadow: 0 4px 16px rgba(29,78,216,0.25);
+      margin: 8px 0;
+    }
+    .note { text-align: center; font-size: 12px; color: #94a3b8; margin-top: 8px; }
+    /* 离线横幅 */
+    .offline-banner {
+      background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c;
+      font-size: 13px; padding: 12px 16px; border-radius: 12px; margin: 16px 0;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .demo { background: #fff; border-radius: 14px; border: 1px solid #e8ecf3; overflow: hidden; }
+    .demo-header { padding: 12px 16px; border-bottom: 1px solid #e8ecf3; font-size: 13px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+    .demo-body { padding: 16px; text-align: center; }
+    .demo-placeholder { background: #f8fafc; border-radius: 8px; padding: 24px; font-size: 12px; color: #94a3b8; }
+  </style>
+</head>
+<body>
+
+  <!-- 检测中 -->
+  <div id="loading">
+    <div class="spinner"></div>
+    <div class="loading-text">正在连接系统...</div>
+  </div>
+
+  <!-- 介绍页（后端离线时显示） -->
+  <div id="intro">
+    <div class="hero">
+      <div class="logo">S</div>
+      <h1>SupplyKit</h1>
+      <div class="sub">供应链数据清洗与补货决策看板</div>
+      <div><span class="badge">React 18 · FastAPI · SQLite</span></div>
+    </div>
+
+    <div class="offline-banner">⚠️ 系统暂不可用（维护中），以下为项目介绍</div>
+
+    <div class="section">
+      <div class="section-title">🚀 产品定位</div>
+      <div class="sub" style="font-size:14px">
+        面向电商供应链运营人员的轻量级数据工作台——从原始导出文件到补货建议，一条链路打通。
+        自动化数据清洗、补货计算、库存监控，让运营从 Excel 手工账中解放出来。
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">✨ 核心功能</div>
+      <div class="cards">
+        <div class="card"><div class="card-icon">📊</div><div class="card-title">多维看板</div><div class="card-desc">GMV、订单、库存健康度、趋势图表实时总览</div></div>
+        <div class="card"><div class="card-icon">📦</div><div class="card-title">补货建议</div><div class="card-desc">BBCC / 传统多仓双模式，安全库存 + 前置期自动计算</div></div>
+        <div class="card"><div class="card-icon">🛒</div><div class="card-title">采购建议</div><div class="card-desc">供应商维度 MOQ 汇总，采购量智能分摊</div></div>
+        <div class="card"><div class="card-icon">🧹</div><div class="card-title">数据清洗导入</div><div class="card-desc">Excel 批量导入、字段映射、异步任务管理</div></div>
+        <div class="card"><div class="card-icon">📈</div><div class="card-title">滞销预警</div><div class="card-desc">无销售天数监控，自动识别滞销 SKU</div></div>
+        <div class="card"><div class="card-icon">⚙️</div><div class="card-title">规则引擎</div><div class="card-desc">低库存/超卖/滞销规则可配置，实时告警</div></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">🛠️ 技术栈</div>
+      <div class="tech">
+        <span class="tech-tag">React 18</span><span class="tech-tag">TypeScript</span>
+        <span class="tech-tag">FastAPI</span><span class="tech-tag">SQLite</span>
+        <span class="tech-tag">Cloudflare Pages</span><span class="tech-tag">PythonAnywhere</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">🖼️ 界面预览</div>
+      <div class="demo">
+        <div class="demo-header"><span>看板页</span><span style="font-weight:400;color:#94a3b8">系统恢复后可直接体验</span></div>
+        <div class="demo-body"><div class="demo-placeholder">📊 看板总览 · GMV/订单/库存健康度</div></div>
+      </div>
+      <div class="demo" style="margin-top:12px">
+        <div class="demo-header"><span>补货建议页</span><span style="font-weight:400;color:#94a3b8">BBCC / 传统双模式</span></div>
+        <div class="demo-body"><div class="demo-placeholder">📦 补货建议 · 安全库存 + 箱规取整</div></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <a class="btn" href="https://overtrees.pythonanywhere.com" target="_blank">🔗 访问在线系统</a>
+      <div class="note">系统暂不可用，可稍后再试 · 感谢您的关注</div>
+    </div>
+  </div>
+
+  <script>
+    // 后端检测：在线跳转真实系统，离线显示介绍页
+    const API = 'https://overtrees.pythonanywhere.com';
+    const LIVE = API; // 真实系统地址
+
+    function showIntro() {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('intro').style.display = 'block';
+    }
+
+    // 3 秒超时检测后端健康
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3000);
+
+    fetch(API + '/api/health', { signal: controller.signal })
+      .then(r => {
+        clearTimeout(timer);
+        if (r.ok) {
+          // 后端在线 → 跳转真实系统
+          location.replace(LIVE);
+        } else {
+          showIntro();
+        }
+      })
+      .catch(() => { clearTimeout(timer); showIntro(); });
+  </script>
+</body>
+</html>

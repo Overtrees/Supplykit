@@ -29,7 +29,7 @@ export default function TaskPage() {
     setLoading(false)
   }
 
-  useEffect(() => { loadTasks() }, [channel])
+  useEffect(() => { setTasks([]); setLoading(true); loadTasks() }, [channel])
   useEffect(() => { const poll = setInterval(loadTasks, 5000); return () => clearInterval(poll) }, [channel])
 
   const download = async (taskId, filename) => { setDownloading(p => ({...p, [taskId]: true}));

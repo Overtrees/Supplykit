@@ -66,12 +66,15 @@ def _compute_health(inv):
     return {"own": _score(own), "platform": _score(plat), "platform_b": _score(platformB), "bc": _score(bc),
             "score": _score(inv)["score"], "level": _score(inv)["level"]}
 
+from app.core.database import DB_PATH as _DB_PATH
+
 def _rebuild(channel='jd'):
     """Full rebuild of dashboard data from database using SQL aggregation."""
     conn = get_conn()
     ch = channel
     # 90 天窗口：只聚合最近 90 天订单（配合数据归档策略）
     from datetime import timedelta
+    from concurrent.futures import ThreadPoolExecutor
     _today = datetime.utcnow().date()
     _cut90 = (_today - timedelta(days=90)).isoformat()
     
@@ -88,7 +91,32 @@ def _rebuild(channel='jd'):
     """, (ch, _cut90)).fetchone()
     gmv, pending, refund, total_orders = _agg[0], _agg[1], _agg[2], _agg[3]
     
-    rows = conn.execute("SELECT substr(ordered_at,1,10) as d, order_status, SUM(total_amount) as g, COUNT(*) as cnt FROM orders WHERE channel=? AND ordered_at>=? GROUP BY d, order_status", (ch, _cut90)).fetchall()
+    # 并行执行 3 个独立大查询（独立连接，互不阻塞）
+    def _q_rows():
+        import sqlite3
+        _c = sqlite3.connect(_DB_PATH)
+        _c.row_factory = sqlite3.Row
+        _c.execute("PRAGMA busy_timeout=30000")
+        return _c.execute("SELECT substr(ordered_at,1,10) as d, order_status, SUM(total_amount) as g, COUNT(*) as cnt FROM orders WHERE channel=? AND ordered_at>=? GROUP BY d, order_status", (ch, _cut90)).fetchall()
+    def _q_stores():
+        import sqlite3
+        _c = sqlite3.connect(_DB_PATH)
+        _c.row_factory = sqlite3.Row
+        _c.execute("PRAGMA busy_timeout=30000")
+        return _c.execute("SELECT store, COUNT(*) as cnt, SUM(CASE WHEN order_status='已完成' THEN total_amount ELSE 0 END) as g FROM orders WHERE channel=? AND ordered_at>=? GROUP BY store ORDER BY store", (ch, _cut90)).fetchall()
+    def _q_inv():
+        import sqlite3
+        _c = sqlite3.connect(_DB_PATH)
+        _c.row_factory = sqlite3.Row
+        _c.execute("PRAGMA busy_timeout=30000")
+        return _c.execute("SELECT sku, product_name, warehouse, warehouse_type, available_qty, safety_qty, store FROM inventory WHERE channel=?", (ch,)).fetchall()
+    with ThreadPoolExecutor(max_workers=3) as _ex:
+        _f_rows = _ex.submit(_q_rows)
+        _f_stores = _ex.submit(_q_stores)
+        _f_inv = _ex.submit(_q_inv)
+        rows = _f_rows.result()
+        store_rows = _f_stores.result()
+        inv = _f_inv.result()
     by_date = {}
     for r in rows:
         key = r[0][5:] if r[0] else '未知'
@@ -97,7 +125,6 @@ def _rebuild(channel='jd'):
         if r[1] == '已完成': by_date[key]["GMV"] += r[2]
     trend = [{"日期": k, **v} for k, v in sorted(by_date.items())]
     
-    store_rows = conn.execute("SELECT store, COUNT(*) as cnt, SUM(CASE WHEN order_status='已完成' THEN total_amount ELSE 0 END) as g FROM orders WHERE channel=? AND ordered_at>=? GROUP BY store ORDER BY store", (ch, _cut90)).fetchall()
     stores = [{"name": r[0], "orders": r[1], "gmv": r[2]} for r in store_rows]
     
     # 从 trend 原始数据聚合状态分布（避免独立 GROUP BY 查询）
@@ -107,7 +134,6 @@ def _rebuild(channel='jd'):
         _status_agg[_st] = _status_agg.get(_st, 0) + r[3]
     status_dist = [{"name": k, "value": v} for k, v in _status_agg.items()]
     
-    inv = conn.execute("SELECT sku, product_name, warehouse, warehouse_type, available_qty, safety_qty, store FROM inventory WHERE channel=?", (ch,)).fetchall()
     inv_list = [{"sku":r[0],"product_name":r[1],"warehouse":r[2],"warehouse_type":r[3],"available_qty":r[4],"safety_qty":r[5],"store":r[6]} for r in inv]
     
     low_stock = len([x for x in inv_list if int(x.get('available_qty') or 0) < int(x.get('safety_qty') or 0)])
@@ -134,17 +160,32 @@ def _rebuild(channel='jd'):
     today_str = bj_date.isoformat()
     period_stores = {}
     period_funnel = {}
+    # 单次查询 30 天数据，Python 按周期分组（替代 6 次独立 GROUP BY）
+    _month_cut = (bj_date - timedelta(days=29)).isoformat()
+    _pstore_rows = conn.execute("SELECT substr(ordered_at,1,10) as d, store, SUM(CASE WHEN order_status='已完成' THEN total_amount ELSE 0 END) FROM orders WHERE channel=? AND ordered_at>=? GROUP BY d, store", (ch, _month_cut)).fetchall()
+    _pfunnel_rows = conn.execute("SELECT substr(ordered_at,1,10) as d, order_status, COUNT(*) FROM orders WHERE channel=? AND ordered_at>=? GROUP BY d, order_status", (ch, _month_cut)).fetchall()
+    _ps_agg = {}
+    for r in _pstore_rows:
+        key = (r[0], r[1])
+        _ps_agg[key] = _ps_agg.get(key, 0) + (r[2] or 0)
+    _pf_agg = {}
+    for r in _pfunnel_rows:
+        key = (r[0], r[1])
+        _pf_agg[key] = _pf_agg.get(key, 0) + r[2]
     for pname, pdays in [('today', 1), ('week', 7), ('month', 30)]:
         cutoff = bj_date - timedelta(days=pdays - 1)
         cutoff_str = cutoff.isoformat()
-        prow = conn.execute("SELECT store, SUM(CASE WHEN order_status='已完成' THEN total_amount ELSE 0 END) FROM orders WHERE channel=? AND ordered_at>=? GROUP BY store", (ch, cutoff_str)).fetchall()
-        period_stores[pname] = [{"name": r[0], "gmv": r[1]} for r in prow]
-        pfrows = conn.execute("SELECT order_status, COUNT(*) FROM orders WHERE channel=? AND ordered_at>=? GROUP BY order_status", (ch, cutoff_str)).fetchall()
-        ptotal = sum(r[1] for r in pfrows)
-        pfunnel = dict(pfrows)
+        _store_gmv = {}
+        for (d, s), g in _ps_agg.items():
+            if d >= cutoff_str: _store_gmv[s] = _store_gmv.get(s, 0) + g
+        period_stores[pname] = [{"name": k, "gmv": v} for k, v in _store_gmv.items()]
+        _st_cnt = {}
+        for (d, st), c in _pf_agg.items():
+            if d >= cutoff_str: _st_cnt[st] = _st_cnt.get(st, 0) + c
+        ptotal = sum(_st_cnt.values())
         stages = [("总订单", ptotal, 100.0)]
         for name in ["待确认", "待发货", "已发货", "已完成"]:
-            v = pfunnel.get(name, 0)
+            v = _st_cnt.get(name, 0)
             stages.append((name, v, round(v / ptotal * 100, 1) if ptotal else 0))
         result = []
         for i, (name, count, pct) in enumerate(stages):

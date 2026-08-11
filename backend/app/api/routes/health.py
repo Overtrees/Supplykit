@@ -49,6 +49,12 @@ def health():
         from app.core.db_maintenance import get_db_size_mb, VACUUM_THRESHOLD_MB
         _sz = get_db_size_mb()
         checks["db_size_mb"] = round(_sz, 1)
+        # 临时诊断：orders 索引
+        try:
+            from app.core.database import get_conn
+            _c2 = get_conn()
+            checks["orders_idx"] = [r[0] for r in _c2.execute("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='orders'").fetchall()]
+        except Exception as _e: checks["orders_idx"] = str(_e)[:80]
         if _sz >= VACUUM_THRESHOLD_MB:
             from app.core.database import submit_task, get_task
             _tv = get_task("health_vacuum")

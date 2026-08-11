@@ -135,15 +135,14 @@ def _task_backup():
                 logger.info(f"Post-backup cleanup: removed {old}")
             except Exception as e:
                 logger.info(f"Post-backup cleanup error: {e}")
-        # 备份后 VACUUM 压缩数据库（回收碎片，减小体积）
+        # 备份后 VACUUM 压缩数据库（使用 db_maintenance 模块，带重试和降级）
         try:
-            import sqlite3
-            _c = sqlite3.connect(DB_PATH)
-            _c.execute("PRAGMA busy_timeout=30000")
-            _c.execute("VACUUM")
-            _c.close()
-            db_size = os.path.getsize(DB_PATH) / 1024 / 1024
-            logger.info(f"VACUUM done: db={db_size:.1f}MB")
+            from app.core.db_maintenance import vacuum_database
+            r = vacuum_database()
+            if r.get('ok'):
+                logger.info(f"VACUUM: {r.get('size_before')}MB → {r.get('size_after')}MB ({r.get('method','')})")
+            elif r.get('skipped'):
+                logger.info(f"VACUUM: 跳过（{r.get('size_before')}MB < 阈值）")
         except Exception as e:
             logger.info(f"VACUUM error: {e}")
     except Exception as e:
@@ -180,13 +179,14 @@ def _task_disk_cleanup():
             cleaned.append("wal_checkpoint")
         except Exception as e:
             logger.info(f"WAL checkpoint error: {e}")
-        # 4. VACUUM 压缩数据库（回收碎片，防止数据库膨胀）
+        # 4. VACUUM 压缩数据库（使用 db_maintenance 模块，带重试和降级）
         try:
-            conn = sqlite3.connect(DB_PATH)
-            conn.execute("PRAGMA busy_timeout=30000")
-            conn.execute("VACUUM")
-            conn.close()
-            cleaned.append("vacuum")
+            from app.core.db_maintenance import vacuum_database
+            r = vacuum_database()
+            if r.get('ok'):
+                cleaned.append(f"vacuum({r.get('size_before')}→{r.get('size_after')}MB)")
+            elif r.get('skipped'):
+                cleaned.append("vacuum(skip)")
         except Exception as e:
             logger.info(f"VACUUM error: {e}")
         # 5. 报告数据库和 WAL 大小

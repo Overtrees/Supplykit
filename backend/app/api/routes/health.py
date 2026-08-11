@@ -44,6 +44,16 @@ def health():
     status = "ok"
     checks = {}
     
+    # 数据库大小监控 + 自动 VACUUM（超过阈值后台执行）
+    try:
+        from app.core.db_maintenance import get_db_size_mb, VACUUM_THRESHOLD_MB
+        _sz = get_db_size_mb()
+        checks["db_size_mb"] = round(_sz, 1)
+        if _sz >= VACUUM_THRESHOLD_MB:
+            from app.core.database import submit_task
+            submit_task("health_vacuum", lambda: __import__('app.core.db_maintenance', fromlist=['vacuum_database']).vacuum_database())
+    except: pass
+    
     # 数据库检查（含完整性快速检测 + 运行中自动修复）
     try:
         db_path = os.getenv("SQLITE_PATH", os.path.join(os.path.dirname(__file__), "..", "supplykit.db"))

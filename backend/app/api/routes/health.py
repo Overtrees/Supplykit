@@ -5,6 +5,39 @@ import os, sqlite3
 
 router = APIRouter(tags=["health"])
 
+@router.get("/api/vacuum")
+def run_vacuum():
+    """后台执行 VACUUM 压缩数据库"""
+    from app.core.database import submit_task, DB_PATH
+    import os, logging
+    def _do_vacuum():
+        import sqlite3, os, time, shutil
+        _tmp = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'tmp', 'vacuumed.db')
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute("PRAGMA busy_timeout=120000")
+        try:
+            conn.execute("VACUUM INTO ?", (_tmp,))
+            conn.close()
+            if os.path.exists(_tmp) and os.path.getsize(_tmp) > 1024:
+                os.replace(_tmp, DB_PATH)
+                import logging; logging.info(f"[vacuum] VACUUM INTO done")
+        except Exception as e:
+            import logging; logging.warning(f"[vacuum] VACUUM INTO: {e}")
+            conn.close()
+            if os.path.exists(_tmp): os.remove(_tmp)
+        sz = os.path.getsize(DB_PATH) / 1024 / 1024
+        logging.info(f"[vacuum] done: {sz:.0f}MB")
+        return {"size_mb": round(sz, 1)}
+    submit_task("vacuum", _do_vacuum)
+    return {"ok": True, "message": "VACUUM 已在后台执行"}
+
+@router.get("/api/vacuum/status")
+def vacuum_status():
+    from app.core.database import get_task
+    t = get_task("vacuum")
+    if not t: return {"ok": False, "status": "not_found"}
+    return {"ok": True, "data": t}
+
 @router.get("/api/health")
 def health():
     """系统健康检查 + 缓存版本号"""

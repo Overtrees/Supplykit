@@ -185,7 +185,7 @@ def get_conn():
     if not hasattr(_local, "conn") or _local.conn is None:
         _local.conn = sqlite3.connect(DB_PATH)
         _local.conn.row_factory = sqlite3.Row
-        _local.conn.execute("PRAGMA journal_mode=WAL")
+        _local.conn.execute("PRAGMA journal_mode=DELETE")
         _local.conn.execute("PRAGMA busy_timeout=5000")
         _local.conn.execute("PRAGMA foreign_keys=ON")
     else:
@@ -194,7 +194,7 @@ def get_conn():
         except Exception:
             _local.conn = sqlite3.connect(DB_PATH)
             _local.conn.row_factory = sqlite3.Row
-            _local.conn.execute("PRAGMA journal_mode=WAL")
+            _local.conn.execute("PRAGMA journal_mode=DELETE")
             _local.conn.execute("PRAGMA busy_timeout=5000")
             _local.conn.execute("PRAGMA foreign_keys=ON")
     return _local.conn
@@ -468,7 +468,7 @@ def init_db(path=None):
     """初始化数据库表结构"""
     conn = sqlite3.connect(path or DB_PATH)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA journal_mode=DELETE")
     conn.execute("PRAGMA busy_timeout=5000")
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS orders (

@@ -15,6 +15,16 @@ class EventBus:
 bus = EventBus()
 
 
+def _invalidate_replenish(_):
+    """库存变化 → 补货缓存失效（下次请求重新计算）"""
+    try:
+        from app.core.replenishment_cache import invalidate_cache
+        from app.core.database import get_db
+        invalidate_cache(get_db())
+    except Exception:
+        pass
+
+
 def register_core_handlers():
     """Register core event handlers at startup.
     Called once from main.py. Handlers use lazy imports to avoid circular deps.
@@ -91,6 +101,7 @@ def register_core_handlers():
 
     bus.on('inventory.changed', _handle_inventory_event)
     bus.on('inventory.changed', lambda _: invalidate_dashboard())
+    bus.on('inventory.changed', _invalidate_replenish)
 
     # ─── data.cleaned ───────────────────────────────────────────────
     def _handle_cleansed_event(data):

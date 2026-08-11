@@ -115,12 +115,21 @@ try:
                 raise Exception("VACUUM 后仍损坏")
         except Exception as _ve:
             _logging.warning(f"[db] VACUUM 修复失败: {_ve}，尝试从备份恢复")
-            # 从最新备份恢复
+            # 从最新备份恢复（支持 .gz 压缩备份）
             _baks = sorted(_glob.glob(_DB_PATH + ".bak.*"), key=_os.path.getmtime, reverse=True)
             _restored = False
             for _bak in _baks:
                 try:
-                    _shutil.copy2(_bak, _DB_PATH)
+                    _src = _bak
+                    if _bak.endswith('.gz'):
+                        import gzip as _gzip
+                        _tmp_restore = _DB_PATH + ".restore_tmp"
+                        with _gzip.open(_bak, 'rb') as _fi, open(_tmp_restore, 'wb') as _fo:
+                            _shutil.copyfileobj(_fi, _fo, 1024*1024)
+                        _src = _tmp_restore
+                    _shutil.copy2(_src, _DB_PATH)
+                    if _bak.endswith('.gz') and _os.path.exists(_src):
+                        _os.remove(_src)
                     _c2 = _sqlite3.connect(_DB_PATH)
                     _c2.execute("PRAGMA quick_check").fetchone()
                     _c2.close()

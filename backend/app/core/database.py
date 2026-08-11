@@ -36,14 +36,31 @@ def _migrate_v2(conn):
 _local = threading.local()
 
 def backup_db():
-    """备份数据库到同目录下"""
-    import shutil
+    """备份数据库到同目录下（压缩备份，减少体积防撑爆配额）"""
+    import shutil, gzip
     bak_path = DB_PATH + f".bak.{datetime.utcnow().strftime('%Y%m%d')}"
     try:
+        # 优先用 VACUUM INTO 生成压缩副本（同时回收碎片）
+        _tmp = DB_PATH + ".bak.tmp"
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute("PRAGMA busy_timeout=30000")
+        conn.execute(f"VACUUM INTO '{_tmp}'")
+        conn.close()
+        if os.path.exists(_tmp) and os.path.getsize(_tmp) > 1024:
+            # gzip 压缩
+            with open(_tmp, 'rb') as fi, gzip.open(bak_path + ".gz", 'wb') as fo:
+                shutil.copyfileobj(fi, fo, 1024*1024)
+            os.remove(_tmp)
+            return bak_path + ".gz"
+        # VACUUM INTO 失败时降级为直接复制
         shutil.copy2(DB_PATH, bak_path)
         return bak_path
-    except Exception as e:
-        return None
+    except Exception:
+        try:
+            shutil.copy2(DB_PATH, bak_path)
+            return bak_path
+        except Exception:
+            return None
 
 # ─── 轻量异步任务队列 ──────────────────────────────────────────────────────
 
@@ -178,6 +195,17 @@ class transaction:
             return False
         try: self.conn.commit()
         except Exception: pass
+        return False
+
+
+def incremental_vacuum(db=None):
+    """增量回收空间（不需要独占锁，auto_vacuum=INCREMENTAL 时生效）"""
+    try:
+        conn = db or get_conn()
+        conn.execute("PRAGMA incremental_vacuum")
+        conn.commit()
+        return True
+    except Exception:
         return False
 
 
@@ -470,6 +498,11 @@ def init_db(path=None):
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=DELETE")
     conn.execute("PRAGMA busy_timeout=5000")
+    # 增量自动回收：DELETE 后空间自动归还，避免数据库膨胀（需在创建表前设置）
+    try:
+        conn.execute("PRAGMA auto_vacuum=INCREMENTAL")
+    except Exception:
+        pass
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS orders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

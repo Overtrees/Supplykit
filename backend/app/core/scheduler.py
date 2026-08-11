@@ -43,7 +43,7 @@ def _task_archive_orders():
     try:
         from app.core.database import get_db, get_conn
         from datetime import timedelta
-        cutoff = (datetime.utcnow() - timedelta(days=90)).strftime('%Y-%m-%d')
+        cutoff = (datetime.utcnow() - timedelta(days=60)).strftime('%Y-%m-%d')
         db = get_db()
         # 用 SQL 只取超期订单（避免全表加载）
         conn = get_conn()
@@ -81,6 +81,11 @@ def _task_archive_orders():
             except Exception as e: logger.info(f"{e}")
         logger.info(f"Order archive: {len(old_orders)} orders → {len(agg)} daily stats rows")
         conn.close()
+        # 归档后立即增量回收空间（不需要独占锁）
+        try:
+            from app.core.database import incremental_vacuum
+            incremental_vacuum()
+        except Exception: pass
     except Exception as e:
         logger.info(f"Order archive error: {e}")
 
@@ -179,14 +184,11 @@ def _task_disk_cleanup():
             cleaned.append("wal_checkpoint")
         except Exception as e:
             logger.info(f"WAL checkpoint error: {e}")
-        # 4. VACUUM 压缩数据库（使用 db_maintenance 模块，带重试和降级）
+        # 4. 增量回收空间（不需要独占锁，auto_vacuum=INCREMENTAL 生效）
         try:
-            from app.core.db_maintenance import vacuum_database
-            r = vacuum_database()
-            if r.get('ok'):
-                cleaned.append(f"vacuum({r.get('size_before')}→{r.get('size_after')}MB)")
-            elif r.get('skipped'):
-                cleaned.append("vacuum(skip)")
+            from app.core.database import incremental_vacuum
+            if incremental_vacuum():
+                cleaned.append("vacuum(incremental)")
         except Exception as e:
             logger.info(f"VACUUM error: {e}")
         # 5. 报告数据库和 WAL 大小

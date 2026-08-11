@@ -375,6 +375,12 @@ def _seed_config(db, conn):
             ('purchase_lead_days', '14'), ('purchase_safety_days', '3'), ('moq', '50'),
             ('b_to_c_days', '3'), ('c_safety_days', '0'), ('active_factor', '1.0'),
             ('target_turnover', '15'), ('_cache_version', '0'),
+            # 模式参数（BBCC/传统独立配置）
+            ('mode_bbcc_b_to_c_days', '3'), ('mode_bbcc_c_safety_days', '3'),
+            ('mode_bbcc_safety_multiplier', '3'), ('mode_bbcc_ship_to_b_days', '3'),
+            ('mode_bbcc_turnover_warning_15', '15'), ('mode_bbcc_turnover_warning_90', '90'),
+            ('mode_traditional_lead_time_days', '6'), ('mode_traditional_safety_multiplier', '3'),
+            ('mode_traditional_turnover_warning_90', '90'),
         ]
         for k,v in configs:
             conn.execute("INSERT OR REPLACE INTO replenishment_config(key,value,channel) VALUES(?,?,?)", (k,v,ch))

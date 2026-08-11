@@ -18,7 +18,8 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     from app.core.replenishment_cache import get_cached, set_cache
     cached, hit = get_cached(mode, channel, days, db)
     if hit:
-        return cached
+        # 缓存存储格式为 {"data": suggestions}，解包后统一返回 ok 格式
+        return ok(cached.get("data", []) if isinstance(cached, dict) else cached)
 
     try: db.table("alerts").update({"status": "inactive"}).eq("alert_type", "storage_fee").eq("status", "active").execute()
     except Exception as e: logger.warning(f"clear storage_fee alerts: {e}")

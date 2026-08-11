@@ -10,6 +10,7 @@ def get_tasks(channel: str = 'jd', limit: int = 20):
     """返回指定渠道的异步任务列表（按创建时间倒序）"""
     try:
         conn = get_conn()
+        # 过滤内部维护任务（vacuum/health_ 等系统自动任务，不显示给用户）
         rows = conn.execute(
             "SELECT task_id, task_type, status, result, channel, created_at, updated_at "
             "FROM sync_tasks WHERE channel=? ORDER BY id DESC LIMIT ?",
@@ -17,8 +18,12 @@ def get_tasks(channel: str = 'jd', limit: int = 20):
         ).fetchall()
         tasks = []
         for r in rows:
+            _tid = r[0] or ''
+            # 跳过内部维护任务（数据库 VACUUM 等）
+            if _tid.startswith('vacuum') or _tid.startswith('health_') or _tid.startswith('inv_sync'):
+                continue
             tasks.append({
-                "task_id": r[0], "task_type": r[1], "status": r[2],
+                "task_id": _tid, "task_type": r[1], "status": r[2],
                 "result": r[3], "channel": r[4],
                 "created_at": r[5], "updated_at": r[6],
             })

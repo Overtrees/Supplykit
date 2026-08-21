@@ -70,7 +70,8 @@ def load_daily_sales(cutoff_days, db, sku_barcode_map=None, channel=None, wareho
             dt = str(o.get('ordered_at', ''))[:10]
             qty = int(o.get('quantity', 0) or 0)
             if dt >= cutoff:
-                daily_by_sku.setdefault(key, {})[dt] = daily_by_sku[key].get(dt, 0) + qty
+                d = daily_by_sku.setdefault(key, {})
+                d[dt] = d.get(dt, 0) + qty
     except Exception as e:
         logger.warning(f"[sales] today orders: {e}")
     
@@ -205,7 +206,8 @@ def calc_sales(orders, cutoff_days, source='', wh_name=None, sku_barcode_map=Non
             dt = str(o.get('ordered_at', ''))[:10]
             qty = int(o.get('quantity', 0) or 0)
             if dt >= cutoff:
-                daily_by_sku.setdefault(key, {})[dt] = daily_by_sku[key].get(dt, 0) + qty
+                d = daily_by_sku.setdefault(key, {})
+                d[dt] = d.get(dt, 0) + qty
         return calc_sales_from_daily(daily_by_sku, cutoff_days, orders=orders, sku_barcode_map=sku_barcode_map)
 
 

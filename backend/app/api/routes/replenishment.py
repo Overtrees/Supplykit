@@ -284,6 +284,19 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                 "note": note,
             })
 
+    # 排序：需要补货的排最前（suggested_qty>0 或 b_suggested>0），
+    # 其次缺口越大越优先，再按日销降序，最后 SKU 稳定排序
+    # （避免 6900+ 条"库存充足"排在前面，首屏全是建议补 - 被误解为无数据）
+    def _needs(s):
+        return 1 if (s.get('suggested_qty') or 0) > 0 or (s.get('b_suggested') or 0) > 0 else 0
+    suggestions.sort(key=lambda s: (
+        -_needs(s),
+        -(s.get('suggested_qty') or 0),
+        -(s.get('b_suggested') or 0),
+        -(s.get('daily_sales') or 0),
+        s.get('sku', ''),
+    ))
+
     # 写入缓存
     try:
         from app.core.replenishment_cache import set_cache

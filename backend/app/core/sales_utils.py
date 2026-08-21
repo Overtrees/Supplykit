@@ -233,7 +233,8 @@ def build_daily_sales_snapshot(db):
         max_row = db.table("daily_sales_snapshot").select("MAX(date) as m").execute().data
         max_date = (max_row[0]['m'] or '') if max_row else ''
     except Exception as e:
-        import logging; logging.warning(f"[sales] snapshot max date: {e}")
+        import logging, traceback
+        logging.warning(f"[sales] snapshot max date: {e}\n{traceback.format_exc()}")
         max_date = ''
     # 增量窗口：max_date 之后到昨天
     cutoff = (datetime.utcnow() - timedelta(days=90)).strftime('%Y-%m-%d')

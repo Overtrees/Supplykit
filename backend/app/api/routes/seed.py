@@ -31,6 +31,8 @@ SUP = [
 ]
 
 def make_skus(sfx, count=1000, shared=None):
+    """生成 SKU 列表。shared: 前 N 个共享 SKU 的内容模板（字典列表），
+    复制其商品字段但 SKU 字符串独立命名（带本渠道后缀），避免跨渠道同名互相覆盖。"""
     r = []
     for i in range(1, count + 1):
         c = cat_names[(i-1)%len(cat_names)]
@@ -40,7 +42,15 @@ def make_skus(sfx, count=1000, shared=None):
         elif price_type == 'high': p = round(random.uniform(100, 299), 1)
         else: p = round(random.uniform(5.8, 99.9), 1)
         unit = '包' if c in ['薯片','虾条','爆米花','坚果','瓜子','花生','饼干','威化','巧克力','糖果','纸巾','湿巾','垃圾袋','保鲜膜','保鲜袋'] else ('瓶' if c in ['洗衣液','洗洁精','洗手液','消毒液'] else '瓶')
-        sku = shared[i-1] if shared and i <= len(shared) and shared[i-1] is not None else f'SKU-{i:04d}{sfx}'
+        sku = f'SKU-{i:04d}{sfx}'
+        shared_src = shared[i-1] if shared and i <= len(shared) and shared[i-1] is not None else None
+        if shared_src:
+            # 共享 SKU：内容与另一个渠道相同，但命名独立（防 products upsert 互相覆盖）
+            item = dict(shared_src)
+            item['sku'] = sku
+            item['store'] = s
+            r.append(item)
+            continue
         r.append({'sku':sku,'name':f'{c}{i}','store':s,'cat':c,'price':p,'box':random.choice([6,12,24]),'unit':unit,'barcode':f'690{i:010d}','weight':round(random.uniform(5,25),1),'volume':round(random.uniform(0.02,0.12),3),'status':'active'})
     return r
 
@@ -98,8 +108,9 @@ def _seed_fill_async():
     steps = []
 
     # 先统一生成 SKU，确保各步骤数据一致
+    # 共享 SKU：jd 前 200 个作为内容模板传入（make_skus 会复制字段但独立命名）
     jd_s = make_skus('-J', 1000)
-    shared_skus = [s['sku'] for s in jd_s[:200]]
+    shared_skus = jd_s[:200]
     ot_s = make_skus('-O', 1000, shared=shared_skus + [None] * 800)
     skus_data = {'jd': jd_s, 'other': ot_s}
 

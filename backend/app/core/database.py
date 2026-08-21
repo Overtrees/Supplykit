@@ -548,7 +548,7 @@ def init_db(path=None):
         );
         CREATE TABLE IF NOT EXISTS products (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            sku TEXT UNIQUE NOT NULL,
+            sku TEXT NOT NULL,
             product_name TEXT DEFAULT '',
             store TEXT DEFAULT '',
             category TEXT DEFAULT '',
@@ -558,7 +558,13 @@ def init_db(path=None):
             supplier_code TEXT DEFAULT '',
             owner_id TEXT DEFAULT '',
             created_at TEXT DEFAULT (datetime('now')),
-            updated_at TEXT DEFAULT (datetime('now'))
+            updated_at TEXT DEFAULT (datetime('now')),
+            barcode TEXT DEFAULT '',
+            weight REAL DEFAULT 0,
+            volume REAL DEFAULT 0,
+            channel TEXT DEFAULT 'jd',
+            unit TEXT DEFAULT '',
+            UNIQUE(sku, channel)
         );
         CREATE TABLE IF NOT EXISTS suppliers (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -906,7 +912,97 @@ def init_db(path=None):
         conn.execute("INSERT OR REPLACE INTO _schema_version(key,value) VALUES('version',?)", (str(SCHEMA_VERSION),))
         conn.commit()
         logging.info(f"[DB] Schema migrated: {ver} → {SCHEMA_VERSION}")
+    # 自愈前先确保 products 为 (sku, channel) 复合唯一（旧库是 sku 单列 UNIQUE，两渠道互斥）
+    try:
+        _ensure_products_composite_unique(conn)
+    except Exception as e:
+        logging.warning(f"[DB] ensure products composite unique: {e}")
+    # 自愈：跨渠道共享 SKU 在 products 表缺行时补齐（历史版本 seed 共享 SKU 被 upsert 覆盖）
+    try:
+        _heal_shared_products(conn)
+    except Exception as e:
+        logging.warning(f"[DB] heal shared products: {e}")
     conn.close()
+
+def _ensure_products_composite_unique(conn):
+    """幂等：将 products 的 sku 唯一约束升级为 (sku, channel) 复合唯一。
+    旧表（sku TEXT UNIQUE）两渠道无法共存同 SKU → 重建表。返回 True 表示执行了重建。"""
+    row = conn.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='products'").fetchone()
+    if not row:
+        return False
+    sql = row[0] or ''
+    if 'UNIQUE(sku, channel)' in sql or 'UNIQUE (sku, channel)' in sql:
+        return False
+    conn.execute("""
+        CREATE TABLE products_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sku TEXT NOT NULL,
+            product_name TEXT DEFAULT '',
+            store TEXT DEFAULT '',
+            category TEXT DEFAULT '',
+            price REAL DEFAULT 0,
+            box_qty INTEGER DEFAULT 1,
+            status TEXT DEFAULT 'active',
+            supplier_code TEXT DEFAULT '',
+            owner_id TEXT DEFAULT '',
+            created_at TEXT DEFAULT (datetime('now')),
+            updated_at TEXT DEFAULT (datetime('now')),
+            barcode TEXT DEFAULT '',
+            weight REAL DEFAULT 0,
+            volume REAL DEFAULT 0,
+            channel TEXT DEFAULT 'jd',
+            unit TEXT DEFAULT '',
+            UNIQUE(sku, channel)
+        )
+    """)
+    conn.execute("""
+        INSERT OR IGNORE INTO products_new
+            (sku, product_name, store, category, price, box_qty, status, supplier_code, owner_id, created_at, updated_at, barcode, weight, volume, channel, unit)
+        SELECT sku, product_name, store, category, price, box_qty, status, supplier_code, owner_id, created_at, updated_at,
+               COALESCE(barcode,''), COALESCE(weight,0), COALESCE(volume,0), COALESCE(channel,'jd'), COALESCE(unit,'')
+        FROM products
+    """)
+    conn.execute("DROP TABLE products")
+    conn.execute("ALTER TABLE products_new RENAME TO products")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_products_sku_ch ON products(sku, channel)")
+    conn.commit()
+    return True
+
+def _heal_shared_products(conn):
+    """幂等自愈：products 表中跨渠道同 SKU 缺行时补齐（从已有渠道行复制 + supplier 渠道后缀替换）。
+
+    背景：历史 seed 的 200 个共享 SKU 共用 jd 的 '-J' 字符串，products.sku 单一 UNIQUE +
+    upsert(INSERT OR REPLACE) 导致两渠道互相覆盖，只剩后写入渠道(channel)一行
+    → jd 渠道搜不到自己商品、sku_to_channel 推断错误。此函数检测 inventory 双渠道都存在
+    但 products 只有单渠道行的 SKU，补齐缺失渠道行（幂等，不修改已有行）。
+    """
+    try:
+        # jd 缺行 ← 从 other 行复制（supplier_code 后缀 -OTHER → -JD）
+        conn.execute("""
+            INSERT OR IGNORE INTO products
+                (sku, product_name, store, category, price, box_qty, barcode, weight, volume, unit, status, supplier_code, channel)
+            SELECT p.sku, p.product_name, p.store, p.category, p.price, p.box_qty, p.barcode, p.weight, p.volume, p.unit, p.status,
+                   REPLACE(p.supplier_code, '-OTHER', '-JD'), 'jd'
+            FROM products p
+            WHERE p.channel = 'other'
+              AND EXISTS (SELECT 1 FROM inventory i WHERE i.sku = p.sku AND i.channel = 'jd')
+              AND NOT EXISTS (SELECT 1 FROM products p2 WHERE p2.sku = p.sku AND p2.channel = 'jd')
+        """)
+        # other 缺行 ← 从 jd 行复制（supplier_code 后缀 -JD → -OTHER）
+        conn.execute("""
+            INSERT OR IGNORE INTO products
+                (sku, product_name, store, category, price, box_qty, barcode, weight, volume, unit, status, supplier_code, channel)
+            SELECT p.sku, p.product_name, p.store, p.category, p.price, p.box_qty, p.barcode, p.weight, p.volume, p.unit, p.status,
+                   REPLACE(p.supplier_code, '-JD', '-OTHER'), 'other'
+            FROM products p
+            WHERE p.channel = 'jd'
+              AND EXISTS (SELECT 1 FROM inventory i WHERE i.sku = p.sku AND i.channel = 'other')
+              AND NOT EXISTS (SELECT 1 FROM products p2 WHERE p2.sku = p.sku AND p2.channel = 'other')
+        """)
+        conn.commit()
+    except Exception as e:
+        import logging
+        logging.warning(f"[DB] heal shared products: {e}")
 def _seed_builtin_rules():
     try:
         _local.conn = get_conn()

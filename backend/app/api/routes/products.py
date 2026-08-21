@@ -6,10 +6,15 @@ router = APIRouter(prefix="/api/products", tags=["products"])
 
 @router.get("")
 def list_products(db = get_db(), search: str = "", channel: str = 'jd'):
-    q = db.table("products").select("*").eq("channel", channel)
     if search:
         like = f"%{search}%"
-        q = q.ilike("product_name", like).or_(q.ilike("sku", like))
+        # 独立构造两个条件再 or_ 合并（or_ 会把两个 builder 的 WHERE 分别 AND 后 OR，
+        # 若在同一个 q 上链式调用会把 channel 与两个 LIKE 全部 AND 到一起 → 永远空）
+        q1 = db.table("products").select("*").eq("channel", channel).ilike("product_name", like)
+        q2 = db.table("products").select("*").eq("channel", channel).ilike("sku", like)
+        q = q1.or_(q2)
+    else:
+        q = db.table("products").select("*").eq("channel", channel)
     data = q.order("id", desc=True).execute().data
     return ok(data)
 

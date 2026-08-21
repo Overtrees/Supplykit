@@ -73,6 +73,21 @@ export default function TaskPage() {
                     <span className={'task-status ' + st}>{STATUS_LABEL[st]}</span>
                   </div>
                   <div className="task-card-sub">{task.task_type === "export" ? EXPORT_TYPE_NAME[result?.result?.type || result?.type] || "导出" : task.task_type === "cleansing" ? CLEAN_TARGET_NAME[result?.result?.target || result?.target] || "导入" : task.task_id.slice(0,22)}</div>
+                  {Array.isArray(task.steps) && task.steps.length > 0 && (
+                    <div style={{marginTop:6,display:'flex',flexDirection:'column',gap:3}}>
+                      {task.steps.map((s, i) => (
+                        <div key={i} style={{display:'flex',alignItems:'center',gap:6,fontSize:11}}>
+                          <span style={{color: s.status === 'ok' ? 'var(--success)' : s.status === 'error' ? 'var(--danger)' : 'var(--muted2)'}}>
+                            {s.status === 'ok' ? '✓' : s.status === 'error' ? '✗' : '…'}
+                          </span>
+                          <span style={{color:'var(--text)',flex:1}}>{s.name}</span>
+                          {s.status === 'ok' && <span style={{color:'var(--muted2)',fontSize:10}}>{s.elapsed}s</span>}
+                          {s.status === 'error' && <span style={{color:'var(--danger)',fontSize:10}}>{String(s.error||'').slice(0,30)}</span>}
+                          {s.status === 'running' && <span className="hammer-spinner" style={{width:10,height:10,borderWidth:1.5}} />}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <div className="task-card-sub-row">
                     <div className="task-card-time">{task.created_at ? toBeijing(task.created_at) : ''}</div>
                     {st === 'done' && filename && task.task_type === 'export' && (

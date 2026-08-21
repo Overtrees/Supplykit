@@ -1,5 +1,6 @@
 """统一任务管理接口 — 查询所有异步任务状态（种子/清洗/导出），按渠道隔离"""
 import sqlite3
+import json
 from fastapi import APIRouter
 from app.core.database import get_conn, get_db, DB_PATH as _DB_PATH
 
@@ -38,9 +39,15 @@ def get_tasks(channel: str = 'jd', limit: int = 20):
             # 跳过内部维护任务（数据库 VACUUM 等）
             if _tid.startswith('vacuum') or _tid.startswith('health_') or _tid.startswith('inv_sync'):
                 continue
+            _steps = []
+            try:
+                _rj = json.loads(_result) if _result else {}
+                _steps = _rj.get('steps', []) if isinstance(_rj, dict) else []
+            except Exception:
+                pass
             tasks.append({
                 "task_id": _tid, "task_type": _type, "status": _status,
-                "result": _result, "channel": _ch,
+                "result": _result, "channel": _ch, "steps": _steps,
                 "created_at": _created, "updated_at": _updated,
             })
         try: conn.close()

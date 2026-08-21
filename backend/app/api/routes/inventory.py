@@ -10,6 +10,9 @@ def list_inventory(db = get_db(), channel: str = 'jd', store: str = '', warehous
                    page: int = 0, page_size: int = 0):
     """库存列表 — 支持分页、渠道过滤、店铺过滤、仓库类型过滤"""
     q = db.table("inventory").select("*").eq("channel", channel)
+    # B 仓（platform_b）是京东主体专属概念，其他渠道强制排除
+    if channel != 'jd':
+        q = q.neq("warehouse_type", "platform_b")
     # 联表查询商品价格
     products = {p['sku']: p for p in (db.table("products").select("*").eq("channel", channel).execute().data or [])}
     if store:

@@ -59,7 +59,7 @@ export const useAppStore = create((set, get) => ({
   hammerSearch: '',
   setHammerSearch: (text) => set({ hammerSearch: text }),
   hammerData: safeGetJSON('c_hammer_data_' + (safeGet('c_channel') || 'jd')) || {},
-  hammerWhType: safeGet('c_wh_type_' + (safeGet('c_channel') || 'jd')) || 'own',
+  hammerWhType: (() => { const _ch0 = safeGet('c_channel') || 'jd'; const _wh0 = safeGet('c_wh_type_' + _ch0) || 'own'; return (_ch0 !== 'jd' && _wh0 === 'platform_b') ? 'own' : _wh0 })(),
   setHammerWhType: (v) => { try { localStorage.setItem('c_wh_type_' + get().channel, v) } catch {} set({ hammerWhType: v }) },
   hammerInsightsTab: 'replen',
   setHammerInsightsTab: (t) => set({ hammerInsightsTab: t }),
@@ -87,7 +87,7 @@ export const useAppStore = create((set, get) => ({
     try { localStorage.setItem('c_hammer_data', JSON.stringify(hd)) } catch {}
     set({ hammerData: hd })
   },
-  setChannel: (ch) => { try { localStorage.setItem('c_channel', ch) } catch {} clearCache(); clearInflight(); set({ channel: ch, dataLoaded: false, loading: true, hammerWhType: safeGet('c_wh_type_' + ch) || 'own', hammerDashPeriod: safeGet('c_dash_period_' + ch) || 'month', hammerReplenMode: safeGet('c_replen_mode_' + ch) || (ch === 'jd' ? 'bbcc' : 'traditional'), hammerRulesMode: safeGet('c_replen_mode_' + ch) || (ch === 'jd' ? 'bbcc' : 'traditional'), hammerCleansingChannel: ch }); get().loadAll() },
+  setChannel: (ch) => { try { localStorage.setItem('c_channel', ch) } catch {} clearCache(); clearInflight(); const _wh = safeGet('c_wh_type_' + ch) || 'own'; set({ channel: ch, dataLoaded: false, loading: true, hammerWhType: (ch !== 'jd' && _wh === 'platform_b') ? 'own' : _wh, hammerDashPeriod: safeGet('c_dash_period_' + ch) || 'month', hammerReplenMode: safeGet('c_replen_mode_' + ch) || (ch === 'jd' ? 'bbcc' : 'traditional'), hammerRulesMode: safeGet('c_replen_mode_' + ch) || (ch === 'jd' ? 'bbcc' : 'traditional'), hammerCleansingChannel: ch }); get().loadAll() },
 
   async loadAll(page) {
     set({ loading: true, orderLoading: true })

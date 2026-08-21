@@ -398,35 +398,35 @@ def _seed_config(db, conn):
 
 @router.post("/reset")
 def seed_reset(db=get_db()):
-    conn = get_conn()
-    # 临时切 DELETE 模式（避免 WAL 膨胀触发 disk I/O error）
-    try: conn.execute("PRAGMA journal_mode=DELETE")
-    except Exception: pass
-    for t in ['orders','inventory','products','suppliers','alerts','quality_logs','events','purchase_orders','replenishment_config_history','cleansing_templates','custom_fields','replenishment_config','rules']:
-        try:
-            if t == 'orders':
-                # orders 大表分批删除（每批 5000 行）
-                while True:
-                    cur = conn.execute("DELETE FROM orders WHERE id IN (SELECT id FROM orders LIMIT 5000)")
+    import uuid
+    task_id = 'reset_' + uuid.uuid4().hex[:8]
+    def _do_reset():
+        conn = get_conn()
+        try: conn.execute("PRAGMA journal_mode=DELETE")
+        except Exception: pass
+        for t in ['orders','inventory','products','suppliers','alerts','quality_logs','events','purchase_orders','replenishment_config_history','cleansing_templates','custom_fields','replenishment_config','rules']:
+            try:
+                if t == 'orders':
+                    while True:
+                        cur = conn.execute("DELETE FROM orders WHERE id IN (SELECT id FROM orders LIMIT 5000)")
+                        conn.commit()
+                        if cur.rowcount == 0: break
+                else:
+                    conn.execute(f'DELETE FROM "{t}"')
                     conn.commit()
-                    if cur.rowcount == 0: break
-            else:
-                conn.execute(f'DELETE FROM "{t}"')
-                conn.commit()
-        except Exception as _e: import logging; logging.warning(f'[seed] reset {t}: {_e}')
-    # 恢复 jwt_secret（避免重置后 token 失效，用户需重新登录）
-    try:
-        _secret = os.getenv("JWT_SECRET", "")
-        if _secret:
-            conn.execute("INSERT OR REPLACE INTO replenishment_config(key,value,channel) VALUES('jwt_secret',?,'jd')", (_secret,))
-    except Exception as _e:
-        import logging; logging.warning(f'[seed] restore jwt_secret: {_e}')
-    conn.commit()
-    invalidate()
-    from app.core.replenishment_cache import invalidate_cache
-    try: invalidate_cache(db)
-    except Exception as _e: import logging; logging.warning(f'[seed] invalidate: {_e}')
-    from app.core.database import _seed_builtin_rules
-    try: _seed_builtin_rules()
-    except Exception as _e: import logging; logging.warning(f'[seed] builtin rules: {_e}')
-    return ok({"reset": True})
+            except Exception as _e: import logging; logging.warning(f'[seed] reset {t}: {_e}')
+        try:
+            _secret = os.getenv("JWT_SECRET", "")
+            if _secret:
+                conn.execute("INSERT OR REPLACE INTO replenishment_config(key,value,channel) VALUES('jwt_secret',?,'jd')", (_secret,))
+        except Exception as _e: pass
+        conn.commit()
+        invalidate()
+        from app.core.replenishment_cache import invalidate_cache
+        try: invalidate_cache(db)
+        except Exception: pass
+        from app.core.database import _seed_builtin_rules
+        try: _seed_builtin_rules()
+        except Exception: pass
+    submit_task(task_id, _do_reset, task_type='reset')
+    return ok({"task_id": task_id, "reset": True})

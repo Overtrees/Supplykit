@@ -226,13 +226,29 @@ export default function SettingsPage() {
     setConfirm(null)
     setResetting(true)
     try {
-      await fetch(API + '/api/seed/reset', {method:'POST', headers:{'Authorization':'Bearer ' + (()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
-      clearCache(); clearInflight()
-      useAppStore.setState({ dashboard: null, alerts: [], stockRisk: [] })
-      toast.success('数据已重置，即将刷新')
-      setTimeout(() => window.location.reload(), 1500)
-    } catch { toast.error('重置失败') }
-    setResetting(false)
+      const r = await fetch(API + '/api/seed/reset', {method:'POST', headers:{'Authorization':'Bearer ' + (()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
+      const d = await r.json()
+      if (d.ok && d.data?.task_id) {
+        toast.success('重置任务已提交，后台清理中...')
+        // 轮询等待重置完成
+        const poll = setInterval(async () => {
+          try {
+            const sr = await fetch(API + '/api/seed/fill/status?task_id=' + d.data.task_id, {headers:{'Authorization':'Bearer ' + (()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
+            const sd = await sr.json()
+            if (sd.data?.status === 'done' || sd.data?.status === 'error') {
+              clearInterval(poll)
+              clearCache(); clearInflight()
+              useAppStore.setState({ dashboard: null, alerts: [], stockRisk: [] })
+              toast.success('数据已重置，即将刷新')
+              setTimeout(() => window.location.reload(), 1500)
+            }
+          } catch { clearInterval(poll); setResetting(false) }
+        }, 2000)
+      } else {
+        toast.error('重置失败: ' + (d.error || ''))
+        setResetting(false)
+      }
+    } catch { toast.error('重置失败'); setResetting(false) }
   }
 
   return <>

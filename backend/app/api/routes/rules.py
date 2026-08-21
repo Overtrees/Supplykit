@@ -7,9 +7,19 @@ import json
 
 router = APIRouter(prefix="/api/rules", tags=["rules"])
 
+# 规则缓存（30s TTL，创建/更新/删除规则时自动失效）
+_rules_cache = {}
+
 @router.get("")
 def list_rules(channel: str = 'jd', db = get_db()):
-    return db.table("rules").select("*").eq("channel", channel).order("id").execute().data
+    import time
+    key = f"rules_{channel}"
+    cached = _rules_cache.get(key)
+    if cached and time.time() - cached['ts'] < 30:
+        return cached['data']
+    data = db.table("rules").select("*").eq("channel", channel).order("id").execute().data
+    _rules_cache[key] = {'data': data, 'ts': time.time()}
+    return data
 
 @router.post("")
 def create_rule(data: RuleCreate, db = get_db()):

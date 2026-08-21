@@ -41,7 +41,7 @@ def update_config(data: dict, mode: str = '', channel: str = 'jd', db=get_db()):
                 db.table("replenishment_config_history").insert({
                     'key': full_key, 'old_value': str(old_val), 'new_value': str(v),
                     'channel': channel, 'mode': mode, 'created_at': now
-                })
+                }).execute()
             db.table("replenishment_config").upsert({"key": full_key, "value": str(v), "channel": channel, "updated_at": now}, conflict_col='key')
     else:
         for k, v in data.items():
@@ -51,7 +51,7 @@ def update_config(data: dict, mode: str = '', channel: str = 'jd', db=get_db()):
                 db.table("replenishment_config_history").insert({
                     'key': k, 'old_value': str(old_val), 'new_value': str(v),
                     'channel': channel, 'mode': '', 'created_at': now
-                })
+                }).execute()
             db.table("replenishment_config").upsert({"key": k, "value": str(v), "channel": channel, "updated_at": now}, conflict_col='key')
     return ok({'mode': mode, 'channel': channel})
 
@@ -89,7 +89,7 @@ def update_seasons(data: dict, mode: str = 'bbcc', channel: str = 'jd', db=get_d
         db.table("replenishment_config_history").insert({
             'key': key, 'old_value': old_val, 'new_value': val,
             'channel': channel, 'mode': mode, 'created_at': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-        })
+        }).execute()
     db.table("replenishment_config").upsert({"key": key, "value": val, "channel": channel, "updated_at": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}, conflict_col='key')
     return ok(items)
 @router.get('/calculate')

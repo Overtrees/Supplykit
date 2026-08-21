@@ -1,7 +1,7 @@
 """统一任务管理接口 — 查询所有异步任务状态（种子/清洗/导出），按渠道隔离"""
 import sqlite3
 from fastapi import APIRouter
-from app.core.database import get_conn, get_db
+from app.core.database import get_conn, get_db, DB_PATH as _DB_PATH
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
@@ -10,7 +10,10 @@ router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 def get_tasks(channel: str = 'jd', limit: int = 20):
     """返回指定渠道的异步任务列表（按创建时间倒序）"""
     try:
-        conn = get_conn()
+        # 用独立连接 + 更长 busy_timeout（避免与 seed 填充写锁冲突）
+        conn = sqlite3.connect(_DB_PATH)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA busy_timeout=10000")
         # 过滤内部维护任务（vacuum/health_ 等系统自动任务，不显示给用户）
         # 直接用 * 查询 + 按列名取值（兼容表结构差异）
         _cols = [r[1] for r in conn.execute("PRAGMA table_info(sync_tasks)").fetchall()]
@@ -40,6 +43,8 @@ def get_tasks(channel: str = 'jd', limit: int = 20):
                 "result": _result, "channel": _ch,
                 "created_at": _created, "updated_at": _updated,
             })
+        try: conn.close()
+        except Exception: pass
         return {"ok": True, "data": tasks}
     except Exception as e:
         return {"ok": False, "error": str(e)}

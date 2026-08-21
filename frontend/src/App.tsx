@@ -138,9 +138,10 @@ export default function App() {
     // 重置任务轮询
     const resetTask = (() => { try { return localStorage.getItem('c_reset_task') } catch { return null } })()
     if (resetTask) {
+      const _api = 'https://overtrees.pythonanywhere.com'
       const poll = setInterval(async () => {
         try {
-          const r = await fetch(API + '/api/seed/fill/status?task_id=' + resetTask, {headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
+          const r = await fetch(_api + '/api/seed/fill/status?task_id=' + resetTask, {headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
           const d = await r.json()
           if (d.data?.status === 'done' || d.data?.status === 'error') {
             clearInterval(poll); try { localStorage.removeItem('c_reset_task') } catch {}

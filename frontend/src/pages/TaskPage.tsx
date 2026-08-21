@@ -21,12 +21,14 @@ export default function TaskPage() {
   const [downloading, setDownloading] = useState({})
   const [loading, setLoading] = useState(true)
 
+  const [loadErr, setLoadErr] = useState('')
   const loadTasks = async () => {
     try {
       const r = await fetch(API + '/api/tasks?channel=' + channel, { headers: { 'Authorization': 'Bearer ' + (() => { try { return localStorage.getItem('c_token') } catch { return '' } })() } })
       const d = await r.json()
-      if (d.ok && d.data) setTasks(d.data)
-    } catch {}
+      if (d.ok && Array.isArray(d.data)) { setTasks(d.data); setLoadErr('') }
+      else setLoadErr(d.error || ('HTTP ' + r.status))
+    } catch (e) { setLoadErr(e.message || '网络错误') }
     setLoading(false)
   }
 
@@ -46,7 +48,7 @@ export default function TaskPage() {
       <div className="section-title">任务管理</div>
       <div className="small muted" style={{ padding: '0 0 8px 0', fontSize: 12 }}>{channel === 'jd' ? '京东' : '其他渠道'} · 异步任务</div>
       {loading ? <div className="skeleton" style={{ height: 40 }} /> :
-        tasks.length === 0 ? <div className="small muted" style={{ padding: 24, textAlign: 'center' }}>暂无任务</div> :
+        tasks.length === 0 ? <div className="small muted" style={{ padding: 24, textAlign: 'center' }}>{loadErr ? '加载失败: ' + loadErr : '暂无任务'}</div> :
           tasks.map(task => {
             const type = task.task_type === 'export' ? 'export' :
               task.task_type === 'seed' ? 'seed' :

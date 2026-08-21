@@ -60,7 +60,7 @@ def seed_fill():
         pass
     task_id = 'seed_fill_' + uuid.uuid4().hex[:8]
     _current_task_id = task_id
-    submit_task(task_id, _seed_fill_async, task_type='seed')
+    submit_task(task_id, _seed_fill_async, task_type='seed', channel='all')
     return ok({"task_id": task_id, "message": "种子数据填充已开始"})
 
 @router.get("/fill/status")
@@ -428,5 +428,5 @@ def seed_reset(db=get_db()):
         from app.core.database import _seed_builtin_rules
         try: _seed_builtin_rules()
         except Exception: pass
-    submit_task(task_id, _do_reset, task_type='reset')
+    submit_task(task_id, _do_reset, task_type='reset', channel='all')
     return ok({"task_id": task_id, "reset": True})

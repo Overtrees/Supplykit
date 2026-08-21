@@ -16,7 +16,7 @@ def get_tasks(channel: str = 'jd', limit: int = 20):
         _cols = [r[1] for r in conn.execute("PRAGMA table_info(sync_tasks)").fetchall()]
         _has_ch = 'channel' in _cols
         _sql = "SELECT * FROM sync_tasks"
-        if _has_ch: _sql += " WHERE channel=?"
+        if _has_ch: _sql += " WHERE channel=? OR channel='all'"
         _sql += " ORDER BY id DESC LIMIT ?"
         _params = (channel, limit) if _has_ch else (limit,)
         conn.row_factory = sqlite3.Row

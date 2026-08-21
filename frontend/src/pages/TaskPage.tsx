@@ -49,7 +49,8 @@ export default function TaskPage() {
         tasks.length === 0 ? <div className="small muted" style={{ padding: 24, textAlign: 'center' }}>暂无任务</div> :
           tasks.map(task => {
             const type = task.task_type === 'export' ? 'export' :
-              task.task_type === 'seed' ? 'seed' : 'cleansing'
+              task.task_type === 'seed' ? 'seed' :
+              task.task_type === 'reset' || task.task_id.startsWith('reset_') ? 'reset' : 'cleansing'
             const meta = TYPE_LABEL[type] || { label: '任务', Icon: IconClipboard }
             const st = task.status
             const result = task.result ? (typeof task.result === 'string' ? safeParse(task.result) : task.result) : null

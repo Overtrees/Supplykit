@@ -1,4 +1,45 @@
-## 2026-08-21 变更历史修复 + 全流程重测通过
+## 2026-08-21 补货建议根因修复 + 渠道隔离完整闭环（6 个提交）
+
+### 补货建议"无数据"双根因修复（bdf8593，后端已部署）
+- **当天订单日销静默丢失**：`daily_by_sku.setdefault(key,{})[dt] = daily_by_sku[key].get(dt,0) + qty` 的 RHS 先于 setdefault 求值 → KeyError 被 except 吞掉（sales_utils.py 两处）→ 当天订单销量从不计入日销 → 无快照覆盖的 SKU 日销=0、建议补=0
+- **建议结果未按需补优先排序**：48 条有效建议排在 6900+ 条"库存充足"之后，首屏全是"建议补 -"被误解为无数据 → 排序规则：suggested_qty>0（或 b_suggested>0）最前 → 建议量降序 → 日销降序 → SKU 稳定
+- 新增 tests/test_replenish_order.py（2）：需补排前 + 全 0 稳定
+
+### 共享 SKU 渠道隔离 + products 搜索修复（d53b436，后端已部署）
+- **根因链**：seed 共享 SKU 复用 jd 的 `-J` 字符串 → products.sku 单一 UNIQUE + upsert(INSERT OR REPLACE) 两渠道互相覆盖，200 个共享 SKU 只剩 1 行（channel=other 后写胜出）→ jd 渠道搜不到自己商品、sku_to_channel 恒判 other
+- **三层修复**：
+  1. products 约束升级 `UNIQUE(sku)` → `UNIQUE(sku, channel)`（新库建表直接新结构，旧库 `_ensure_products_composite_unique` 幂等重建）
+  2. 启动自愈 `_heal_shared_products`：跨渠道同 SKU 缺行时从已有行复制 + supplier_code 渠道后缀替换（幂等）
+  3. seed make_skus 共享 SKU 独立命名（-O/-J 各归各渠道，内容复制共享）→ 下次填充彻底无跨渠道同名
+- **搜索回归修复**：products.py `q.ilike(name).or_(q.ilike(sku))` 链式调用把 channel 与两个 LIKE 全部 AND → 按 SKU/名称搜索永远空（8-07 修过再次回归）→ 独立构造 q1/q2 再 or_
+- 新增 tests/test_shared_sku.py（4）+ test_products_search.py（3）
+
+### 仓储维护
+- 移除 db 文件跟踪（8e16cf8）：app/supplykit.db 146MB 不入版本库（git rm --cached，本地文件保留）
+
+### 补货加载失败错误可见化（3fdda9e，前端已部署）
+- loadReplen catch 不再静默置空：失败显示具体原因（网络/token/超时/格式），空态区分"加载失败"与"库存健康暂无补货建议"
+- 防双重包装兜底：r.data 非数组时尝试再解一层 data
+
+### 采购建议 B 仓跨渠道隔离（b42122f，前后端已部署）
+- **问题**：seed 对两个渠道都生成 '京东B仓'(platform_b) 库存行，purchase 汇总 sys_total 无条件累加 → 其他渠道采购建议出现 B 仓数据（线上 963/1000 行）
+- 修复：purchase.py 其他渠道 platform_b 行完全跳过（总库存/安全库存/b_available 全不含）；seed 不为 other 生成 B 仓；前端采购列"B仓x"段仅京东渲染
+- 新增 tests/test_purchase_channel.py（2）：other 排除 B 仓(sys_total=150) / jd 保留(b=20)
+
+### 渠道隔离收尾：其余 B 仓渗透点清空（e63da40，前后端已部署）
+- inventory.py：`channel != 'jd'` 强制排除 platform_b（显式查 B 仓也返空）
+- RulesPage：条件仓库筛选"B仓"选项仅京东渠道渲染
+- useAppStore：hammerWhType 对非 jd 渠道残留 platform_b 时回退 'own'（初始化 + setChannel 两处）
+- 看板健康卡片确认无需改（other 本来就只有 自有/平台）
+- 新增 tests/test_inventory_channel.py（3）
+
+### 验证
+- 48 个后端测试逐文件单独跑全过（组合跑受多文件共用 DB_PATH 的 pre-existing 基建问题干扰，不可用）
+- 线上验证：补货首屏 50 条全有建议（修复前 0）；other 采购 b_available>0 963→0；other 查 B 仓 0 行 / jd 1000 行保留；SKU-0130-J 双渠道各自可查
+- PA 存储配额超限清理（未压缩备份 + tmp 残留 + 调试文件，第二次发生）
+- 本地一次性重置+填充全流程跑通（单进程直调 seed 函数，iSH 下 uvicorn HTTP 全链路会被系统 kill）
+
+---## 2026-08-21 变更历史修复 + 全流程重测通过
 
 ### 修复
 - 变更历史（replenishment_config_history）3 处 insert 缺 `.execute()` → 历史从未写入

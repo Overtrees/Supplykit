@@ -1,3 +1,13 @@
+## 规则页加载优化（2026-08-21）
+- 首屏加载 5 请求→3 请求（flat 合并 mode/seasons，PA 单 worker 排队从 8.5s→5.1s）
+- rules/replenishment-config 加 30s 内存缓存（保存时自动失效，实时性不受影响）
+- loadSeasons 从 cfg 缓存读取，tab 切换少 1 请求（3.2s→1.6s）
+
+## 任务列表修复（2026-08-21）
+- tasks.py 缺少 `import sqlite3` 导致 `sqlite3.Row` 未定义，任务列表空
+- 内部维护任务（vacuum/health_/inv_sync）不再显示给用户
+- 切渠道立即清空旧数据 + loading
+
 ## 数据库稳定性（2026-08-11）
 - **禁用 WAL**（PA 文件系统 WAL 反复损坏）→ DELETE 模式
 - **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收

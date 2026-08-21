@@ -470,7 +470,7 @@ class SQLiteDB:
             _local.conn.close()
 def _seed_builtin_rules():
     try:
-        _local.conn = sqlite3.connect(DB_PATH)
+        _local.conn = get_conn()
         existing = _local.conn.execute("SELECT COUNT(*) FROM rules").fetchone()[0]
         if existing > 0:
             return
@@ -909,7 +909,7 @@ def init_db(path=None):
     conn.close()
 def _seed_builtin_rules():
     try:
-        _local.conn = sqlite3.connect(DB_PATH)
+        _local.conn = get_conn()
         existing = _local.conn.execute("SELECT COUNT(*) FROM rules").fetchone()[0]
         if existing > 0:
             return

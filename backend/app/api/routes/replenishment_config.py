@@ -7,18 +7,29 @@ from collections import defaultdict
 
 router = APIRouter(prefix="/api/replenishment-config", tags=["replenishment"])
 
+# 缓存（30s TTL，配置保存时 invalidate）
+_cfg_cache = {}
+
 @router.get("")
 def get_config(mode: str = None, channel: str = 'jd', db=get_db()):
+    import time
+    key = f"{channel}:{mode or 'all'}"
+    cached = _cfg_cache.get(key)
+    if cached and time.time() - cached['ts'] < 30:
+        return cached['data']
     rows = db.table("replenishment_config").select("*").eq("channel", channel).execute().data
-    # 过滤补货建议缓存（_cache_replen_*），避免返回 6MB+ 缓存数据拖慢接口
     all_config = {r['key']: r['value'] for r in rows if not r['key'].startswith('_cache_replen_')}
     if mode:
         prefix = f'mode_{mode}_'
-        return ok({k[len(prefix):]: v for k, v in all_config.items() if k.startswith(prefix)})
-    return ok(all_config)
+        result = ok({k[len(prefix):]: v for k, v in all_config.items() if k.startswith(prefix)})
+    else:
+        result = ok(all_config)
+    _cfg_cache[key] = {'data': result, 'ts': time.time()}
+    return result
 
 @router.put("")
 def update_config(data: dict, mode: str = '', channel: str = 'jd', db=get_db()):
+    _cfg_cache.clear()  # 配置变更，清空缓存
     now = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
     if mode:
         prefix = f'mode_{mode}_'

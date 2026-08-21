@@ -68,7 +68,7 @@ _task_queue = []
 _task_results = {}
 _task_lock = threading.Lock()
 # 线程池（限制最大并发任务数，避免无限创建线程）
-_task_executor = concurrent.futures.ThreadPoolExecutor(max_workers=2, thread_name_prefix="bg_task")
+_task_executor = concurrent.futures.ThreadPoolExecutor(max_workers=4, thread_name_prefix="bg_task")
 
 def _task_db_save(task_id, task_type='background', channel='jd', **fields):
     """持久化任务状态到 sync_tasks 表（跨重启可查）"""

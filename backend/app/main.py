@@ -95,6 +95,19 @@ from app.core.monitor import record as monitor_record
 
 init_db()
 
+# 启动时清理卡死的后台任务（running 超过 10 分钟视为线程已死，标记 error 释放线程池）
+try:
+    import sqlite3 as _s3
+    from app.core.database import DB_PATH as _DP
+    _c = _s3.connect(_DP)
+    _c.execute("PRAGMA busy_timeout=10000")
+    _c.execute("UPDATE sync_tasks SET status='error', result='{\"error\":\"stale task cleaned on restart\"}', updated_at=datetime('now') "
+        "WHERE status='running' AND updated_at < datetime('now', '-10 minutes')")
+    _c.commit()
+    _c.close()
+except Exception:
+    pass
+
 # 数据库完整性自动恢复（启动时检测损坏，自动 VACUUM 或从备份恢复）
 try:
     import sqlite3 as _sqlite3, glob as _glob, os as _os, shutil as _shutil

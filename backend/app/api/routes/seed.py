@@ -284,6 +284,9 @@ def _seed_inventory(db, skus_data):
             low = random.random() < 0.18
             seen_own = False
             for wn,wt in WH:
+                if wt == 'platform_b' and skus is not jd_s:
+                    # B 仓（京东B仓）是京东主体 BBCC 专属，其他渠道不生成 B 仓库存
+                    continue
                 if wt == 'own':
                     # WH 里有两个 own 仓（集货仓/三方仓），只保留一个避免重复行
                     if seen_own: continue

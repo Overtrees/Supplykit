@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useAppStore } from '../store/useAppStore'
-import { IconRefresh, IconBroom, IconExport, IconClipboard } from '../components/Icons'
+import { IconRefresh, IconBroom, IconExport, IconClipboard, IconUndo } from '../components/Icons'
 import { t } from '../locale'
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'

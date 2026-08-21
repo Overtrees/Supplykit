@@ -54,6 +54,8 @@ def health():
             from app.core.database import get_conn
             _c2 = get_conn()
             checks["orders_idx"] = [r[0] for r in _c2.execute("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='orders'").fetchall()]
+        checks["sync_tasks_cols"] = [r[1] for r in _c2.execute("PRAGMA table_info(sync_tasks)").fetchall()]
+        checks["sync_tasks_cnt"] = _c2.execute("SELECT COUNT(*) FROM sync_tasks").fetchone()[0]
         except Exception as _e: checks["orders_idx"] = str(_e)[:80]
         if _sz >= VACUUM_THRESHOLD_MB:
             from app.core.database import submit_task, get_task

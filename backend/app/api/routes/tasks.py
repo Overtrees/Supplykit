@@ -1,4 +1,5 @@
 """统一任务管理接口 — 查询所有异步任务状态（种子/清洗/导出），按渠道隔离"""
+import sqlite3
 from fastapi import APIRouter
 from app.core.database import get_conn, get_db
 
@@ -11,21 +12,33 @@ def get_tasks(channel: str = 'jd', limit: int = 20):
     try:
         conn = get_conn()
         # 过滤内部维护任务（vacuum/health_ 等系统自动任务，不显示给用户）
-        rows = conn.execute(
-            "SELECT task_id, task_type, status, result, channel, created_at, updated_at "
-            "FROM sync_tasks WHERE channel=? ORDER BY id DESC LIMIT ?",
-            (channel, limit)
-        ).fetchall()
+        # 直接用 * 查询 + 按列名取值（兼容表结构差异）
+        _cols = [r[1] for r in conn.execute("PRAGMA table_info(sync_tasks)").fetchall()]
+        _has_ch = 'channel' in _cols
+        _sql = "SELECT * FROM sync_tasks"
+        if _has_ch: _sql += " WHERE channel=?"
+        _sql += " ORDER BY id DESC LIMIT ?"
+        _params = (channel, limit) if _has_ch else (limit,)
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(_sql, _params).fetchall()
         tasks = []
+        import logging
+        logging.info(f'[tasks] rows={len(rows)} cols={_cols}')
         for r in rows:
-            _tid = r[0] or ''
+            _tid = r['task_id'] if 'task_id' in r.keys() else ''
+            _type = r['task_type'] if 'task_type' in r.keys() else ''
+            _status = r['status'] if 'status' in r.keys() else ''
+            _result = r['result'] if 'result' in r.keys() else ''
+            _ch = r['channel'] if 'channel' in r.keys() else 'jd'
+            _created = r['created_at'] if 'created_at' in r.keys() else ''
+            _updated = r['updated_at'] if 'updated_at' in r.keys() else ''
             # 跳过内部维护任务（数据库 VACUUM 等）
             if _tid.startswith('vacuum') or _tid.startswith('health_') or _tid.startswith('inv_sync'):
                 continue
             tasks.append({
-                "task_id": _tid, "task_type": r[1], "status": r[2],
-                "result": r[3], "channel": r[4],
-                "created_at": r[5], "updated_at": r[6],
+                "task_id": _tid, "task_type": _type, "status": _status,
+                "result": _result, "channel": _ch,
+                "created_at": _created, "updated_at": _updated,
             })
         return {"ok": True, "data": tasks}
     except Exception as e:

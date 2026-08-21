@@ -1,3 +1,19 @@
+## 任务系统重构（2026-08-21）
+- 一键重置异步化（submit_task）+ 前端轮询
+- seed/reset 任务 channel='all'（全局任务，jd/other 可见）
+- 任务卡片显示后端执行步骤（✓ 完成/… 进行中/✗ 失败 + 耗时）
+- 页面回前台即时刷新（visibilitychange + focus）
+- 经验：线程池 4 worker + 启动清理卡死任务（running 超 10 分钟标记 error）
+
+## 数据库并发治理（2026-08-21）
+- **恢复 WAL 模式**：DELETE 模式读写互斥，seed 填充 2 分钟所有页面锁死；WAL 读写并发解决
+- WAL 安全护栏：VACUUM 阈值 150MB + 启动自检 + .gz 备份自动恢复
+- `_seed_builtin_rules` 必须用 get_conn()（直接 sqlite3.connect 无 row_factory → dict(r) 报错）
+
+## 规则页优化（2026-08-21）
+- 5 请求→3 请求（flat 合并 mode/seasons）
+- rules/replenishment-config 30s 内存缓存
+
 ## 规则页加载优化（2026-08-21）
 - 首屏加载 5 请求→3 请求（flat 合并 mode/seasons，PA 单 worker 排队从 8.5s→5.1s）
 - rules/replenishment-config 加 30s 内存缓存（保存时自动失效，实时性不受影响）

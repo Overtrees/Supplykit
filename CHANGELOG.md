@@ -1,3 +1,34 @@
+## 2026-08-21 任务系统重构 + 数据库并发治理 + 规则页优化
+
+### 任务系统（一键重置/填充全流程）
+- 一键重置改异步（submit_task），前端轮询等待完成，不阻塞 worker
+- 重置/填充任务 `channel='all'`（全局任务），jd/other 渠道都能看到
+- 任务列表过滤内部维护任务（vacuum/health_/inv_sync）
+- TaskPage 识别 reset 类型（显示"数据重置"，不再误显示"清洗导入"）
+- 任务卡片显示后端执行步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）
+- 任务管理页切渠道立即清空旧数据 + loading
+- 页面回前台即时刷新任务进度（visibilitychange + focus 事件）
+- TaskPage 错误处理：区分"暂无任务"与"加载失败(具体错误)"
+
+### 数据库并发治理（核心）
+- **恢复 WAL 模式**：seed 填充写 12 万订单期间读操作不被写锁阻塞（DELETE 模式读写互斥导致任务页/其他页面全卡）
+- **线程池 2→4**：减少卡死任务占满 worker 的影响
+- **启动清理卡死任务**：running 超 10 分钟标记 error，释放线程池
+- **`_seed_builtin_rules` row_factory 污染修复**：改用 get_conn()（之前直接 sqlite3.connect 无 row_factory → 主线程 dict(r) 报错 "cannot convert..." → 日销快照构建失败）
+- 任务查询独立连接 + busy_timeout=10000（避免写锁冲突）
+- 日销快照构建成功（seed 8/8 步全部通过）
+
+### 规则页优化
+- 首屏加载 5 请求→3 请求（flat 合并 mode/seasons，PA 单 worker 排队从 8.5s→5.1s）
+- rules / replenishment-config 加 30s 内存缓存（保存时自动失效）
+- loadSeasons 复用 cfg 缓存，tab 切换少 1 请求（3.2s→1.6s）
+
+### 修复
+- tasks.py 缺少 `import sqlite3` 导致任务列表空
+- API 恢复环境变量配置（VITE_API_BASE_URL）
+- TaskPage 模块级 IconUndo 未导入导致 JS 加载失败页面空白
+
+---
 ## 2026-08-21 规则页加载优化 + 任务列表修复
 
 ### 性能优化

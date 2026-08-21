@@ -154,15 +154,28 @@ export default function InsightsPage() {
     if (saved) setSlowVisCols(saved)
     else setSlowVisCols(SLOW_COLS.map(c => c.id))
   }, [hammerCols, globalChannel])
+  const [replenError, setReplenError] = useState('')
   const loadReplen = async (mode, ch) => {
     const seq = ++replenSeq.current
     setReplenLoading(true)
+    setReplenError('')
     try {
       const r = await api.get('/api/insights/replenishment?days=28&mode=' + mode)
-      if (seq === replenSeq.current) setReplen(Array.isArray(r.data) ? r.data : [])
+      if (seq !== replenSeq.current) return
+      let data = r.data
+      // 防双重包装兜底：{ok,data:{...}} 或 {data:[...]} 结构再解一层
+      if (!Array.isArray(data) && data && typeof data === 'object') {
+        if (Array.isArray(data.data)) data = data.data
+        else if (Array.isArray(data.data && data.data.data)) data = data.data.data
+      }
+      setReplen(Array.isArray(data) ? data : [])
+      if (!Array.isArray(data)) setReplenError('返回数据格式异常: ' + (r && r.status || '') + ' ' + String(r.data).slice(0, 120))
     } catch(e) {
       console.error('loadReplen:', e)
-      if (seq === replenSeq.current) setReplen([])
+      if (seq === replenSeq.current) {
+        setReplen([])
+        setReplenError((e && (e.message || e.statusText)) ? String(e.message || e.statusText) : String(e))
+      }
     }
     if (seq === replenSeq.current) setReplenLoading(false)
   }
@@ -246,7 +259,16 @@ export default function InsightsPage() {
               {[1,2,3,4,5].map(i => <Skeleton key={i} height={36} style={{ marginBottom: 4 }} />)}
             </div>
           ) : !Array.isArray(replen) || replen.length === 0 ? (
-            <div className="muted" style={{ padding: 12, textAlign: 'center' }}>{t("insights.no_replenish")}</div>
+            <div style={{ padding: 12, textAlign: 'center' }}>
+              {replenError ? (
+                <div className="muted2" style={{ fontSize: 12 }}>
+                  <div style={{ color: 'var(--danger)', marginBottom: 4 }}>⚠️ 加载失败：{replenError}</div>
+                  <div>请下拉刷新重试，或到设置页检查「API 连接状态」</div>
+                </div>
+              ) : (
+                <div className="muted">{t("insights.no_replenish")}</div>
+              )}
+            </div>
           ) : (
             <div style={{overflow:'auto',maxHeight:'calc(100vh - 180px)'}}>
               <table>

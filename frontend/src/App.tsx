@@ -168,7 +168,11 @@ export default function App() {
       }, 5000)
       polls.push(poll)
     }
-    return () => polls.forEach(p => clearInterval(p))
+    // 页面从后台回到前台时立即检查任务状态（不等下一次轮询）
+    const onVis = () => { if (document.visibilityState === 'visible') setTaskVersion(v => v + 1) }
+    document.addEventListener('visibilitychange', onVis)
+    window.addEventListener('focus', onVis)
+    return () => { polls.forEach(p => clearInterval(p)); document.removeEventListener('visibilitychange', onVis); window.removeEventListener('focus', onVis) }
   }, [taskVersion])
   const [apiStatus, setApiStatus] = useState('checking')
   const [showHistory, setShowHistory] = useState(false)

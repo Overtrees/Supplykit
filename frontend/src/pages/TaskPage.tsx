@@ -34,6 +34,13 @@ export default function TaskPage() {
 
   useEffect(() => { setTasks([]); setLoading(true); loadTasks() }, [channel])
   useEffect(() => { const poll = setInterval(loadTasks, 5000); return () => clearInterval(poll) }, [channel])
+  // 页面从后台回到前台时立即刷新（不等下一次轮询）
+  useEffect(() => {
+    const onVis = () => { if (document.visibilityState === 'visible') loadTasks() }
+    document.addEventListener('visibilitychange', onVis)
+    window.addEventListener('focus', onVis)
+    return () => { document.removeEventListener('visibilitychange', onVis); window.removeEventListener('focus', onVis) }
+  }, [channel])
 
   const download = async (taskId, filename) => { setDownloading(p => ({...p, [taskId]: true}));
     try {

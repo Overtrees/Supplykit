@@ -11,6 +11,7 @@ const TYPE_LABEL = {
   seed: { label: '种子数据填充', Icon: IconRefresh },
   cleansing: { label: '数据清洗导入', Icon: IconBroom },
   export: { label: '导出任务', Icon: IconExport },
+  reset: { label: '数据重置', Icon: IconUndo },
 }
 const STATUS_LABEL = { pending: '等待中', running: '进行中', done: '已完成', error: '失败' }
 

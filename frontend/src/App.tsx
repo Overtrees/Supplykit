@@ -135,6 +135,21 @@ export default function App() {
       }, 5000)
       polls.push(poll)
     }
+    // 重置任务轮询
+    const resetTask = (() => { try { return localStorage.getItem('c_reset_task') } catch { return null } })()
+    if (resetTask) {
+      const poll = setInterval(async () => {
+        try {
+          const r = await fetch(API + '/api/seed/fill/status?task_id=' + resetTask, {headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
+          const d = await r.json()
+          if (d.data?.status === 'done' || d.data?.status === 'error') {
+            clearInterval(poll); try { localStorage.removeItem('c_reset_task') } catch {}
+            if (d.data?.status === 'done') { window.location.reload() }
+          }
+        } catch {}
+      }, 3000)
+      polls.push(poll)
+    }
     // 导出任务轮询
     const exportTask = (() => { try { return JSON.parse(localStorage.getItem('c_export_task') || 'null') } catch { return null } })()
     if (exportTask && exportTask.task_id) {

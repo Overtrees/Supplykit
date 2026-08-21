@@ -229,6 +229,7 @@ export default function SettingsPage() {
       const r = await fetch(API + '/api/seed/reset', {method:'POST', headers:{'Authorization':'Bearer ' + (()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
       const d = await r.json()
       if (d.ok && d.data?.task_id) {
+        try { localStorage.setItem('c_reset_task', d.data.task_id) } catch {}
         toast.success('重置任务已提交，后台清理中...')
         // 轮询等待重置完成
         const poll = setInterval(async () => {
@@ -237,6 +238,7 @@ export default function SettingsPage() {
             const sd = await sr.json()
             if (sd.data?.status === 'done' || sd.data?.status === 'error') {
               clearInterval(poll)
+              try { localStorage.removeItem('c_reset_task') } catch {}
               clearCache(); clearInflight()
               useAppStore.setState({ dashboard: null, alerts: [], stockRisk: [] })
               toast.success('数据已重置，即将刷新')

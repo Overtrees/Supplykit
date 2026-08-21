@@ -35,10 +35,10 @@ def vacuum_database(timeout=120, max_retry=3):
     for attempt in range(max_retry):
         try:
             conn = sqlite3.connect(DB_PATH, timeout=timeout)
-            conn.execute("PRAGMA journal_mode=DELETE")
+            conn.execute("PRAGMA journal_mode=WAL")
             conn.execute("VACUUM")
             conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-            conn.execute("PRAGMA journal_mode=DELETE")
+            conn.execute("PRAGMA journal_mode=WAL")
             conn.close()
             sz_after = get_db_size_mb()
             logger.info(f"[db] VACUUM ok: {sz_before:.0f}MB → {sz_after:.0f}MB")

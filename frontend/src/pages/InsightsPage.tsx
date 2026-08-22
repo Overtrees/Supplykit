@@ -203,12 +203,16 @@ export default function InsightsPage() {
     if (isOrdered) {
       setOrderedKeys(prev => prev.filter(k => k !== key))
       setOrderedItems(prev => prev.filter(x => x.sku !== sku || x.store !== store))
-      api.delete('/api/purchase-orders?sku=' + encodeURIComponent(sku) + '&store=' + encodeURIComponent(store) + '&channel=' + globalChannel).catch(() => loadOrdered())
+      api.delete('/api/purchase-orders?sku=' + encodeURIComponent(sku) + '&store=' + encodeURIComponent(store) + '&channel=' + globalChannel)
+        .then(() => toast.success('已取消下单'))
+        .catch(() => { toast.error('取消失败'); loadOrdered() })
     } else {
       const newItem = {sku, store, product_name: product_name || '', suggested_qty: suggested_qty || 0, arrival_date: ''}
       setOrderedKeys(prev => [...prev, key])
       setOrderedItems(prev => [...prev, newItem])
-      api.post('/api/purchase-orders?sku=' + encodeURIComponent(sku) + '&store=' + encodeURIComponent(store) + '&product_name=' + encodeURIComponent(product_name || '') + '&suggested_qty=' + (suggested_qty || 0) + '&channel=' + globalChannel).catch(() => loadOrdered())
+      api.post('/api/purchase-orders?sku=' + encodeURIComponent(sku) + '&store=' + encodeURIComponent(store) + '&product_name=' + encodeURIComponent(product_name || '') + '&suggested_qty=' + (suggested_qty || 0) + '&channel=' + globalChannel)
+        .then(() => toast.success('已下单'))
+        .catch(() => { toast.error('下单失败'); loadOrdered() })
     }
   }
 

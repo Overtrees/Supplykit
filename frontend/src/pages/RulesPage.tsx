@@ -121,6 +121,8 @@ export default function RulesPage() {
       if (!r.ok) { const err = await r.json().catch(()=>({})); throw new Error(err.detail || 'HTTP '+r.status) }
       toast.success(isNew ? '规则已创建' : '规则已更新')
       clearCache(); cancelEdit(); load(globalChannel)
+      // 本地即时更新 mode 显示，不等 API 返回（避免旧 state 渲染导致 mode 显示"全部"）
+      if (!isNew) setRules(prev => prev.map(rl => rl.id === editing.id ? {...rl, mode: f.mode||''} : rl))
     } catch(e) { toast.error('保存失败: '+e.message) }
     setSaveLoading(false)
   }

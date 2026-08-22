@@ -168,9 +168,14 @@ try:
     _c.close()
 except Exception:
     pass
-bak = backup_db()
-if bak:
-    import logging; logging.info(f"Database backed up to {bak}")
+# 启动备份（后台线程执行，不阻塞冷启动——PA 20s 超时检测）
+import threading as _th
+def _do_backup():
+    _bak = backup_db()
+    if _bak:
+        import logging
+        logging.info(f"Database backed up to {_bak}")
+_th.Thread(target=_do_backup, daemon=True).start()
 register_core_handlers()
 start_scheduler()
 

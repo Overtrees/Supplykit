@@ -252,7 +252,12 @@ def get_disposal_suggestions(channel: str = 'jd', db = get_db()):
                 b_storage = {"days_stored": days_stored, "free_days": b_free, "volume_m3": vol_m3, "over_days": over, "billed_months": months}
                 reason.append(f"B仓在库{days_stored}天超免费期{over}天(约{months}计费月, 费率待定)")
         # ③ 滞销主判据（观察线 = 滞销线一半，对齐旧"冷淡"30天观察阶段）
-        observe_days = max(slow_days // 2, 15)
+        # 观察线: 条目可配 observe_days, 留空自动 = 滞销线一半(下限15)
+        try:
+            observe_days = int(str(match.get('observe_days') or '').strip()) if match and match.get('observe_days') not in (None, '', 0) else max(slow_days // 2, 15)
+            observe_days = max(observe_days, 1)
+        except Exception:
+            observe_days = max(slow_days // 2, 15)
         if days_zero >= slow_days:
             if level is None:
                 level = 'yellow'

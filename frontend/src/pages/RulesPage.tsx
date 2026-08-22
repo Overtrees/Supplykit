@@ -362,6 +362,9 @@ export default function RulesPage() {
           <label style={{fontSize:12,flex:1,minWidth:80}}>滞销线(天)
             <input type='number' value={s.slow_days} onChange={e=>setSlowCats(p=>p.map((x,j)=>j===i?{...x,slow_days:parseInt(e.target.value)||30}:x))} style={{...IS,marginTop:2}}/>
           </label>
+          <label style={{fontSize:12,flex:1,minWidth:80}}>观察线(天) <span style={{color:'var(--muted2)'}}>留空自动</span>
+            <input type='number' value={s.observe_days ?? ''} placeholder={String(Math.max(Math.floor(parseInt(s.slow_days||30) / 2), 15))} onChange={e=>setSlowCats(p=>p.map((x,j)=>j===i?{...x,observe_days: e.target.value===''?'':parseInt(e.target.value)||''}:x))} style={{...IS,marginTop:2}}/>
+          </label>
           <label style={{fontSize:12,flex:1,minWidth:80}}>临期线(月)
             <input type='number' value={s.shelf_months} onChange={e=>setSlowCats(p=>p.map((x,j)=>j===i?{...x,shelf_months:parseInt(e.target.value)||3}:x))} style={{...IS,marginTop:2}}/>
           </label>
@@ -371,7 +374,7 @@ export default function RulesPage() {
         </label>
       </div>)}
       <div style={{marginTop:12}}>
-        <button onClick={()=>setSlowCats(p=>[...p,{key:'new'+Date.now(),name:'新品类',slow_days:30,shelf_months:3,cats:'',enabled:true}])} className="btn btn-ghost clickable" style={{fontSize:13,padding:'8px 16px',width:'100%',minHeight:40}}>+ 添加品类</button>
+        <button onClick={()=>setSlowCats(p=>[...p,{key:'new'+Date.now(),name:'新品类',slow_days:30,observe_days:'',shelf_months:3,cats:'',enabled:true}])} className="btn btn-ghost clickable" style={{fontSize:13,padding:'8px 16px',width:'100%',minHeight:40}}>+ 添加品类</button>
       </div>
       <div style={{marginTop:12}}>
         <button disabled={saving} onClick={async()=>{setSaving(true);const ch=globalChannel;try{const r=await api.put('/api/replenishment-config/slow-cats?channel='+ch,{items:slowCats});toast.success('已保存')}catch(e){saveErr(e)}setSaving(false)}} className="btn btn-primary" style={{width:'100%',display:'inline-flex',alignItems:'center',gap:4,justifyContent:'center',minHeight:42}}>{saving?<><IconLoading size={14} /> 保存中...</>:<><IconSave size={14} /> 保存</>}</button>

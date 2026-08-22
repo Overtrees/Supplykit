@@ -12,10 +12,241 @@ SupplyKit 是**电商供应链数据清洗与补货决策看板**，定位为 ER
 
 ---
 
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+
+
 ## 二、技术栈
 
 | 层级 | 技术 | 版本 |
-|------|------|------|
+|---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+|---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+|---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+|
 | 前端框架 | React | 18 |
 | 语言 | TypeScript | — |
 | 构建工具 | Vite | 5 |
@@ -29,6 +260,39 @@ SupplyKit 是**电商供应链数据清洗与补货决策看板**，定位为 ER
 | 国际化 | 自建 i18n（无外部依赖） | — |
 
 ---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+
 
 ## 三、项目结构
 
@@ -82,6 +346,39 @@ Supplykit/
 
 ---
 
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+
+
 ## 四、代码规范
 
 ### 4.1 TypeScript
@@ -116,7 +413,205 @@ export default function ComponentName({ prop1, prop2 }: { prop1: string; prop2?:
 **CSS 工具类（50+ 个）**
 
 | 类别 | 类名 | 说明 |
-|------|------|------|
+|---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+|---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+|---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+|
 | 布局 | `.flex` `.flex-center` `.flex-between` `.flex-1` `.flex-col` `.flex-wrap` | Flex 布局 |
 | 间距 | `.gap-4/6/8` `.mb-4/8/12/16` `.mt-8/12` `.p-4/8/12/16` | 边距 |
 | 文字 | `.text-10/11/12/13/14/15/16` `.font-400/500/600/700` | 字号/字重 |
@@ -155,6 +650,39 @@ export default function ComponentName({ prop1, prop2 }: { prop1: string; prop2?:
 
 ---
 
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+
+
 ## 五、数据流规范
 
 ### 5.1 API 缓存
@@ -170,6 +698,39 @@ export default function ComponentName({ prop1, prop2 }: { prop1: string; prop2?:
 - 每天凌晨 1 点执行
 
 ---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+
 
 ## 六、部署规范
 
@@ -196,6 +757,39 @@ UptimeRobot 每 5 分钟 ping `https://overtrees.pythonanywhere.com/api/insights
 
 ---
 
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+
+
 ## 七、测试规范（严格标准）
 
 ### 7.0 核心原则：测试先于代码
@@ -209,7 +803,337 @@ UptimeRobot 每 5 分钟 ping `https://overtrees.pythonanywhere.com/api/insights
 ### 7.1 测试覆盖要求
 
 | 变更类型 | 必须覆盖的测试 | 最低要求 |
-|---------|-------------|---------|
+|---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+|---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+-|---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+|
 | 新增功能 | 单元测试 + 集成测试 | 核心路径 100% 覆盖 |
 | Bug 修复 | 先写复现测试 → 再修 bug | 修复后测试通过 |
 | 重构 | 已有测试全部通过 | 新增测试覆盖重构逻辑 |
@@ -232,7 +1156,238 @@ cd frontend && npm test
 当前 15 个测试用例（Vitest + React Testing Library）：
 
 | 文件 | 测试内容 | 数量 |
-|------|---------|------|
+|---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+|---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+|---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+|
 | `configs.test.ts` | 列配置完整性验证（商品/订单/进销存/BBCC/传统等） | 8 |
 | `Toast.test.tsx` | Toast 显示/自动消失/撤销按钮 | 3 |
 | `utils.test.ts` | 默认列选择/仓库标签/订单状态 | 4 |
@@ -248,6 +1403,39 @@ cd frontend && npm test
 ```
 
 ---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+
 
 ## 八、提交前自动化检查（严格标准）
 
@@ -316,6 +1504,39 @@ git status --short
 
 ---
 
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+
+
 ## 九、代码审查（严格标准）
 
 ### 9.1 审查流程
@@ -327,7 +1548,172 @@ git status --short
 ### 9.2 审查 checklist
 
 | 审查项 | 必须通过 |
-|--------|---------|
+|---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+--|---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+|
 | 功能正确性 | 功能按预期工作 |
 | 测试覆盖 | 新功能/修复有对应测试 |
 | 国际化 | 所有新增文本使用 `t()` |
@@ -350,9 +1736,75 @@ git status --short
 
 ---
 
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+
+
 ## 十、国际化规范
 
 ---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+
 
 
 ## 十一、版本控制
@@ -371,6 +1823,39 @@ feat: 新功能 | fix: Bug | refactor: 重构 | docs: 文档 | test: 测试 | st
 
 ---
 
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+
+
 ## 十二、提交前核对清单（手动备用）
 
 > 自动化检查尚未完全实现时，手动执行以下命令作为替代。
@@ -378,7 +1863,271 @@ feat: 新功能 | fix: Bug | refactor: 重构 | docs: 文档 | test: 测试 | st
 ### 12.1 JSX 内联样式常见错误
 
 | 错误写法 | 正确写法 | 报错 |
-|---------|---------|------|
+|---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+|---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+|---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+|
 | `height:26px` | `height:26` 或 `height:'26px'` | `Syntax error "p"` |
 | `borderRadius:32px` | `borderRadius:32` 或 `borderRadius:'32px'` | 同上 |
 | `padding:'0 2px'` | 字符串值正确，注意引号 | 无 |
@@ -423,10 +2172,241 @@ grep -rn "import.*from.*locale" src/ | sort | uniq -d
 
 ---
 
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+
+
 ## 十三、常见问题
 
 | 问题 | 原因 | 解决 |
-|------|------|------|
+|---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+|---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+|---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+|
 | 页面空白 | `import.meta.env` 被 sed 误改 | 检查 `import.meta.env` |
 | API 500 错误 | 后端 `import os` 缺失 | 加 `import os` |
 | 深色模式文字看不清 | Chart series label 未注入颜色 | Chart 组件已自动处理 |
@@ -434,6 +2414,39 @@ grep -rn "import.*from.*locale" src/ | sort | uniq -d
 | 按钮高度不一致 | `box-sizing` 不一致 | 统一 `box-sizing:border-box` |
 | 玻璃态模糊不生效 | 缺少 `-webkit-backdrop-filter` | 同时写两个属性 |
 ---
+
+## 十、开发经验总结（2026-08-21）
+
+### 数据库
+1. **WAL vs DELETE 模式**：WAL 读写并发（seed 填充写 12 万订单期间读不阻塞），DELETE 读写互斥（页面全卡）。PA 环境 WAL 有文件损坏风险，用启动自检 + .gz 备份自动恢复兜底。
+2. **auto_vacuum=INCREMENTAL**：DELETE 后空间自动回收，不需要独占锁（规避 VACUUM 被锁问题）。
+3. **VACUUM 阈值**：数据库真实大小 99MB，阈值设 80MB 太小会导致反复触发 VACUUM 锁死所有接口。应设 > 数据库真实大小（如 150MB）。
+4. **线程池 `max_workers`**：`max_workers=2` 太小，1 个卡死任务就堵死。应设 4+，配合启动时清理 running 超 10 分钟的任务。
+5. **`_seed_builtin_rules` 必须用 `get_conn()`**：直接 `sqlite3.connect` 无 `row_factory`，污染主线程连接导致 `dict(r)` 报错（"cannot convert dictionary update sequence element #0 to a sequence"）。
+6. **压缩备份**：VACUUM INTO + gzip，备份体积减半，防止撑爆 PA 配额。
+
+### ORM / Builder 模式
+7. **`insert({...})` 必须调 `.execute()`**：`db.table().insert({...})` 只创建 Builder，不执行 INSERT。必须 `.execute()`（3 处变更历史 insert 缺 execute 导致从未写入）。
+
+### 任务系统
+8. **任务类型 `channel='all'`**：全局任务（seed/reset）不区分渠道，标记 `channel='all'`，查询时 `WHERE channel=? OR channel='all'`。
+9. **任务卡片步骤可视化**：`/api/tasks` 返回 steps 字段（`result` 中解析），前端卡片显示步骤明细（✓ 完成/… 进行中/✗ 失败 + 耗时）。
+10. **页面回前台即时刷新**：`visibilitychange` + `focus` 事件触发数据刷新，不等 setInterval（挂后台回来时立即看到最新进度）。
+
+### 缓存
+11. **缓存命中与 miss 返回格式必须一致**：后端缓存命中返回 `ok(cached['data'])` 统一格式；前端缓存命中也要解包 `{ok,data}`（与拦截器一致），否则 `Array.isArray` 判断失败。
+12. **内存缓存注意保存时失效**：rules/replenishment-config 加 30s 内存缓存，创建/更新/删除时清空缓存。
+
+### 前端
+13. **模块级代码不能引用未导入的变量**：`TYPE_LABEL` 引用未 import 的 `IconUndo` → 模块加载时抛 ReferenceError → 整个 JS bundle 加载失败 → 页面空白（连登录页都不显示）。
+14. **API 变量用 `import.meta.env`**：不要硬编码，保持与所有文件一致的环境变量配置。
+
+### PA 环境
+15. **免费版 512MB 配额 + 不稳定文件系统**：WAL 损坏、write error 是环境问题，非代码 bug。需要启动自检 + 自动恢复 + 压缩备份兜底。长期建议升级付费版或迁移轻量服务器。
+
+---
+
+
 
 ## 十四、2026-08-07 关键改进记录
 

@@ -130,7 +130,7 @@ def get_disposal_suggestions(channel: str = 'jd', db = get_db()):
         'deep_ratio': float(cfg('slow_deep_ratio', 85)), 'deep_noorder': int(cfg('slow_deep_noorder', 14)),
         'shelf_food': int(cfg('slow_shelf_food', 3)), 'shelf_nonfood': int(cfg('slow_shelf_nonfood', 6)),
         'abc_a': float(cfg('abc_a_ratio', 20)) / 100, 'abc_b': float(cfg('abc_b_ratio', 50)) / 100,
-        'b_free': int(cfg('b_free_days', 15)), 'fee_rate': float(cfg('b_storage_fee_rate', 1.0)),
+        'b_free': int(cfg('b_free_days', 15)),
     }
 
     # ── 品类映射：调味+零食=食品类 / 日化=家清类 ──
@@ -279,10 +279,12 @@ def get_disposal_suggestions(channel: str = 'jd', db = get_db()):
             if sku in b_arrival:
                 days_stored = max((today - b_arrival[sku]).days, 0)
             if days_stored > FC['b_free']:
+                # 超过免费期按整月计费(每月初出上个月账单), 费率未明确→只报超期+预估计费月数
                 vol_m3 = round(avail * p['volume'], 3)
-                fee = round(vol_m3 * (days_stored - FC['b_free']) * FC['fee_rate'], 2)
-                b_storage = {"days_stored": days_stored, "free_days": FC['b_free'], "volume_m3": vol_m3, "fee_est": fee, "fee_rate": FC['fee_rate']}
-                reason.append(f"B仓在库{days_stored}天超{FC['b_free']}天免费期(日仓储费约¥{fee})")
+                over_days = days_stored - FC['b_free']
+                billed_months = max((over_days + 29) // 30, 1)  # 满30天≈1个计费月(自然月账单口径近似)
+                b_storage = {"days_stored": days_stored, "free_days": FC['b_free'], "volume_m3": vol_m3, "over_days": over_days, "billed_months": billed_months, "fee_rate_confirmed": False}
+                reason.append(f"B仓在库{days_stored}天超{FC['b_free']}天免费期{over_days}天(约{billed_months}个计费月, 费率待定)")
                 if level is None and days_stored > FC['b_free'] + 7:
                     level = 'deep'
         # ③ 深度积压

@@ -533,7 +533,7 @@ export default function InsightsPage() {
                           </div>
                           <div style={{fontSize:11,color:'var(--muted2)',marginTop:4}}>
                             <b style={{color:'var(--text)'}}>{d.warehouse}</b> · 库存 {d.stock} · 周转 {d.turnover_days==999?'∞':d.turnover_days}天 · 占用 ¥{d.fund_occupied}
-                            {d.b_storage && <span style={{color:'var(--danger)'}}> · 在库{d.b_storage.days_stored}天({d.b_storage.volume_m3}方) · 日仓储费约¥{d.b_storage.fee_est}</span>}
+                            {d.b_storage && <span style={{color:'var(--danger)'}}> · 在库{d.b_storage.days_stored}天({d.b_storage.volume_m3}方) · 超期{d.b_storage.over_days}天 ≈{d.b_storage.billed_months}计费月(费率待定)</span>}
                           </div>
                           <div style={{fontSize:11,marginTop:4,color:'var(--text)'}}>
                             {(d.reason||[]).join(' · ')}

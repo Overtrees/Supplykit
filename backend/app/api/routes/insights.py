@@ -70,7 +70,7 @@ def detect_slow_moving_products(db=None, create_alerts=False):
         inv = inventory_map.get(sku)
         bc = sku_barcode_map.get(sku, '')
         key = f"{sku}|{bc}" if bc else sku
-        last_date = last_order.get(key, "")
+        last_date = last_order.get(key, "") or last_order.get(sku, "")
         days = 999
         if last_date:
             try: days = (now - datetime.strptime(last_date[:10], "%Y-%m-%d")).days

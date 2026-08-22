@@ -1,3 +1,30 @@
+## 种子填充提速（2026-08-22）
+- **batch_size 500→5000**：fsync 360 次→36 次，慢磁盘下 10 倍提速
+- **流式写入**：`_seed_orders` 边生成边 flush（5000/批），内存峰值 18 万→5000 条，防 OOM
+- **快照 UPSERT 分批 5000/commit**：16 万行单事务→33 小批，防单事务卡死
+- **cache_size + temp_store**：提高页缓存，临时表存内存
+- 实测：生成订单 630.5s→**36.0s**，全流程 ~1min21s
+
+## 任务系统稳定性（2026-08-22）
+- **并发保护 `_check_busy`**：seed/reset 提交时检测存活任务（25 分钟内有更新=活着），拒绝并发提交；卡死任务（超 25 分钟无更新）自动标记 error 放行新任务
+- **get_tasks 卡死自愈**：running 超 30 分钟无更新自动标记 error
+- **get_tasks 锁容错**：database is locked 时返回 `database_busy` 标记而非 500，前端继续轮询
+- **TaskPage 15s 超时移除**：3s 轮询本身就在重试，AbortController 反导致 seed 运行时请求被掐断报"网络异常"
+
+## 规则编辑页修复（2026-08-22，3 个问题）
+- **mode 不持久**：线上 `rules` 表缺 `mode` 列（SQLite 静默忽略），`init_db` 加 `ALTER TABLE` 迁移补列
+- **其他渠道显示 BBCC**：补货模式选择器加 `filter`，仅京东显示 BBCC
+- **保存无反馈**：`save()` 加 loading 状态 + toast 成功/失败提示 + 错误处理
+- **保存后 mode 显示不刷新**：后端 `_rules_cache` + 前端 `client.ts` 双重缓存未清除，全部 CRUD 操作清缓存 + 前端 `save` 后本地即时更新 mode
+
+## 启动加速（2026-08-22）
+- **移除启动 `backup_db`**：后台线程 VACUUM INTO 在 GIL 下阻塞所有请求数分钟，scheduler 已有每日 02:00 备份，启动备份冗余
+- PA reload 成功率恢复（不再 409 slow_startup）
+
+## 诊断方法更新（2026-08-22）
+- 获取 admin token（`admin/admin123`），直接调 API 诊断，不再下载 134MB 数据库
+- 验证：实测 health 响应 1.5-2.3s（正常）
+
 ## 任务系统重构（2026-08-21）
 - 一键重置异步化（submit_task）+ 前端轮询
 - seed/reset 任务 channel='all'（全局任务，jd/other 可见）

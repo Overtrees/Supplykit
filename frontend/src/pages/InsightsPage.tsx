@@ -97,17 +97,9 @@ export default function InsightsPage() {
   const [dispNote, setDispNote] = useState('')
   const [dispBusy, setDispBusy] = useState(false)
   const [showDisposed, setShowDisposed] = useState(false)
-  useEffect(() => { setDispSel([]) }, [globalChannel, tab])
-
-  // 各区块加载状态
-  const [replenLoading, setReplenLoading] = useState(true)
-  const [purchaseLoading, setPurchaseLoading] = useState(true)
-  const [slowLoading, setSlowLoading] = useState(true)
-  const [replenLimit, setReplenLimit] = useState(50)
-  const [purchaseLimit, setPurchaseLimit] = useState(50)
-  const [slowLimit, setSlowLimit] = useState(50)
 
   const { channel: globalChannel, hammerInsightsTab: tab, hammerReplenMode, setHammerReplenMode, hammerCols, hammerData } = useAppStore()
+  useEffect(() => { setDispSel([]) }, [globalChannel, tab])
   const replenMode = (globalChannel !== 'jd' && hammerReplenMode === 'bbcc') ? 'traditional' : hammerReplenMode
   const currentCols = replenMode === 'bbcc' ? BBCC_COLS : TRAD_COLS
   const [visCols, setVisCols] = useState(() => {

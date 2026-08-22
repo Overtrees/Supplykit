@@ -83,9 +83,6 @@ export default function RulesPage() {
   const [seasons, setSeasons] = useState([])
   // 滞销品类配置（自定义条目，仿活动系数）
   const [slowCats, setSlowCats] = useState([])
-  useEffect(() => {
-    api.get('/api/replenishment-config/slow-cats?channel=' + globalChannel).then(r => { if (Array.isArray(r.data)) setSlowCats(r.data) }).catch(() => {})
-  }, [globalChannel])
   const reqSeq = useRef(0)
   const [selectedSupplier, setSelectedSupplier] = useState('')
   // 保存错误统一提示（403 访客模式显示后端 detail）
@@ -101,6 +98,9 @@ export default function RulesPage() {
   const [f, setF] = useState(defaultF)
   const [cond, setCond] = useState({left:'inv.available_qty', op:'<', right:'inv.safety_qty', rightType:'field', pctValue:100, warehouse:''})
   const { channel: globalChannel, setChannel: setGlobalChannel, hammerRulesTab: tab, hammerRuleNewVersion, hammerRulesMode, hammerSearch, prodBatch, setProdBatch } = useAppStore()
+  useEffect(() => {
+    api.get('/api/replenishment-config/slow-cats?channel=' + globalChannel).then(r => { if (Array.isArray(r.data)) setSlowCats(r.data) }).catch(() => {})
+  }, [globalChannel])
   const [selIds, setSelIds] = useState([])
   useEffect(()=>{ if(!prodBatch) setSelIds([]) },[prodBatch])
   const doBatch = async (action, label) => {

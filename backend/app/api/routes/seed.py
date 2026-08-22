@@ -141,10 +141,8 @@ def _seed_fill_async():
     conn = get_conn()
     steps = []
 
-    # 高速写入模式：seed 是模拟数据（可重跑），关闭同步 fsync + 加大页缓存，
-    # 彻底消除慢磁盘下 fsync 放大（630s 根因）。结束后恢复 synchronous=NORMAL 保证正常运行安全。
+    # 提高写入速度：加大页缓存 + 临时表存内存，写入由 batch 5000 控制 fsync 频率
     try:
-        conn.execute("PRAGMA synchronous=OFF")
         conn.execute("PRAGMA cache_size=-64000")
         conn.execute("PRAGMA temp_store=MEMORY")
     except Exception:
@@ -254,9 +252,8 @@ def _seed_fill_async():
              f"种子填充{'完成' if not err_steps else '部分失败'}: {len(ok_steps)}/{len(steps)} 步成功",
              f"步骤: {[s['name'] for s in err_steps]} 失败: {[s.get('error','')[:100] for s in err_steps]}",
              "seed_engine"))
-        # 恢复 synchronous=NORMAL + checkpoint 防膨胀（填充产生大量写入，合并 WAL 到主库释放空间）
+        # checkpoint 防膨胀（填充产生大量写入，合并 WAL 到主库释放空间）
         try:
-            conn.execute("PRAGMA synchronous=NORMAL")
             conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
         except Exception:
             pass

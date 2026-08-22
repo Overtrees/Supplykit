@@ -7,7 +7,7 @@ import { useAppStore } from '../store/useAppStore'
 import { t } from "../locale"
 const COLS = [
   {id:'barcode',label:'69码'},{id:'channel',label:'平台'},{id:'sku',label:'SKU'},{id:'name',label:'名称'},{id:'store',label:'店铺'},
-  {id:'cat',label:'分类'},{id:'price',label:'单价'},{id:'box',label:'箱规'},{id:'unit',label:'单位'},{id:'weight',label:'箱重/KG'},{id:'volume',label:'体积/方'},{id:'status',label:'状态'},
+  {id:'cat',label:'分类'},{id:'price',label:'单价'},{id:'box',label:'箱规'},{id:'unit',label:'单位'},{id:'weight',label:'箱重/KG'},{id:'volume',label:'体积/方'},{id:'batch_days',label:'总效期/天'},{id:'status',label:'状态'},
 ]
 const COL_KEY = () => 'c_cols_products_' + (useAppStore.getState().channel || 'jd')
 const getVis = () => { try { return JSON.parse(localStorage.getItem(COL_KEY())||'null') } catch{return null} }
@@ -74,6 +74,7 @@ return<div className='card' style={{containerType:'inline-size'}}>
   if(col.id==='unit')return <td key={col.id} className='col-qty' style={{fontSize:12}}>{x.unit||'瓶'}</td>
   if(col.id==='weight')return <td key={col.id} className='col-qty' style={{fontSize:12}}>{x.weight||'-'}</td>
   if(col.id==='volume')return <td key={col.id} className='col-qty' style={{fontSize:12}}>{x.volume||'-'}</td>
+  if(col.id==='batch_days')return <td key={col.id} className='col-qty' style={{fontSize:12}}>{x.batch_days||'-'}</td>
   if(col.id==='status')return <td key={col.id}><span className={'pill '+(x.status==='active'?'success':'warning')}>{x.status==='active'?'在售':x.status}</span></td>
   return <td key={col.id} className="small muted" style={{fontSize:11}}>-</td>
 })}

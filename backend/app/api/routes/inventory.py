@@ -44,6 +44,7 @@ def list_inventory(db = get_db(), channel: str = 'jd', store: str = '', warehous
                 item['batch_exp_date'] = _bs[1]
                 item['batch_status'] = _bs[2]
                 item['batch_pct'] = _bs[3]
+                item['batch_days'] = _bs[5]
             else:
                 item['batch_prod_date'] = item['batch_exp_date'] = item['batch_status'] = ''
                 item['batch_pct'] = 0
@@ -69,6 +70,7 @@ def list_inventory(db = get_db(), channel: str = 'jd', store: str = '', warehous
             item['batch_exp_date'] = _bs[1]
             item['batch_status'] = _bs[2]
             item['batch_pct'] = _bs[3]
+            item['batch_days'] = _bs[5]
         else:
             item['batch_prod_date'] = item['batch_exp_date'] = item['batch_status'] = ''
             item['batch_pct'] = 0
@@ -115,7 +117,7 @@ def _get_batch_summary(channel='jd'):
                     if consumed >= total_days:
                         status = 'expired'
                 except Exception: pass
-            out[(sku, wh, ch)] = (prod, exp, status, pct, transit)
+            out[(sku, wh, ch)] = (prod, exp, status, pct, transit, total_days if total_days > 0 else 0)
         return out
     except Exception:
         return {}

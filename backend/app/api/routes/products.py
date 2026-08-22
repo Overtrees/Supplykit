@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from app.core.database import get_db
 from app.core.response import ok, fail
+from datetime import datetime
 
 router = APIRouter(prefix="/api/products", tags=["products"])
 
@@ -34,6 +35,24 @@ def list_products(db = get_db(), search: str = "", channel: str = 'jd', include_
     else:
         q = base
     data = q.order("id", desc=True).execute().data
+    # 注入批次总效期（SKU 维度最早批次）
+    try:
+        from app.core.database import get_conn
+        _conn = get_conn()
+        _brows = _conn.execute("SELECT sku, MIN(prod_date), MIN(exp_date) FROM batches WHERE channel=? GROUP BY sku", (channel,)).fetchall()
+        _bmap = {}
+        for _r in _brows:
+            _s = str(_r[0]); _pd = str(_r[1] or '')[:10]; _ed = str(_r[2] or '')[:10]
+            if _pd and _ed:
+                _d1 = 0; _d2 = 0
+                try:
+                    _d1 = int((datetime.strptime(_ed, '%Y-%m-%d') - datetime.strptime(_pd, '%Y-%m-%d')).days)
+                except Exception: pass
+                _bmap[_s] = _d1
+        for item in data:
+            _b = _bmap.get(item.get('sku', ''))
+            item['batch_days'] = _b or 0
+    except Exception: pass
     return ok(data)
 
 

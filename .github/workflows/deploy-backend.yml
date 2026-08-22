@@ -23,14 +23,25 @@ jobs:
           for f in $FILES; do
             rel="${f#backend/}"
             url="https://www.pythonanywhere.com/api/v0/user/Overtrees/files/path/home/Overtrees/Supplykit/backend/$rel"
-            code=$(curl -sS -o /dev/null -w "%{http_code}" -X POST \
-              -H "Authorization: Token $PA_TOKEN" \
-              -F "content=@$f" "$url")
+            code=""
+            # 429 限流重试（最多 3 次），文件间延迟 1s
+            for attempt in 1 2 3; do
+              code=$(curl -sS -o /dev/null -w "%{http_code}" -X POST \
+                -H "Authorization: Token $PA_TOKEN" \
+                -F "content=@$f" "$url")
+              if [ "$code" = "429" ]; then
+                echo "$rel → 429, 等待 ${attempt}0s 重试"
+                sleep ${attempt}0
+                continue
+              fi
+              break
+            done
             echo "$rel → HTTP $code"
             if [ "$code" != "200" ] && [ "$code" != "201" ]; then
               echo "上传失败: $rel"
               exit 1
             fi
+            sleep 1
           done
 
       - name: Reload webapp

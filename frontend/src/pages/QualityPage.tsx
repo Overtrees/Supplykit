@@ -30,7 +30,7 @@ export default function QualityPage() {
     rows.push(
       <div key={day} style={{marginBottom:12}}>
         <div style={{fontSize:11,fontWeight:600,color:'var(--muted2)',marginBottom:4}}>{day} · {items.length} 条</div>
-        <div style={{overflowY:'auto',overflowX:'hidden',maxHeight:'calc(100vh - 180px)'}}>
+        <div style={{overflow:'auto',maxHeight:'calc(100vh - 180px)'}}>
         <table style={{minWidth:400}}><tbody>
           {items.map(x => (
             <tr key={x.id}>

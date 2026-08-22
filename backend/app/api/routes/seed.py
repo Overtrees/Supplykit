@@ -274,8 +274,8 @@ def _update_steps(steps):
         try:
             from app.core.database import update_task
             update_task(_current_task_id, steps=list(steps))
-        except Exception:
-            pass
+        except Exception as e:
+            import logging; logging.error(f"[seed] 步骤进度持久化失败 {_current_task_id}: {e}")
 
 def _seed_products_suppliers(db, skus_data):
     for skus,ch in [(skus_data['jd'],'jd'),(skus_data['other'],'other')]:

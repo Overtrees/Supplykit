@@ -18,8 +18,8 @@ def list_rules(channel: str = 'jd', db = get_db()):
     if cached and time.time() - cached['ts'] < 30:
         return cached['data']
     data = db.table("rules").select("*").eq("channel", channel).order("id").execute().data
-    _rules_cache[key] = {'data': data, 'ts': time.time()}
-    return data
+    _rules_cache[key] = {'data': ok(data), 'ts': time.time()}
+    return ok(data)
 
 @router.post("")
 def create_rule(data: RuleCreate, db = get_db()):

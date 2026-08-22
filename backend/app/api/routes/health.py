@@ -135,6 +135,32 @@ def health():
     except Exception as e:
         import logging; logging.warning(f"[health] disk check error: {e}")
         checks["disk"] = "unknown"
+
+    # 备份状态（最近一次备份结果 + 备份文件时间）
+    try:
+        import glob as _glob
+        from app.core.database import DB_PATH as _BDB
+        _baks = sorted(_glob.glob(_BDB + ".bak.*.gz"), key=os.path.getmtime, reverse=True)
+        if _baks:
+            checks["last_backup"] = os.path.basename(_baks[0])
+            import datetime as _dt
+            checks["last_backup_time"] = _dt.datetime.fromtimestamp(os.path.getmtime(_baks[0])).strftime('%Y-%m-%d %H:%M')
+        else:
+            checks["last_backup"] = "none"
+        # 最近备份是否失败（查 quality_logs）
+        try:
+            from app.core.database import get_conn
+            _c3 = get_conn()
+            _row = _c3.execute("SELECT message, created_at FROM quality_logs WHERE log_type='backup' ORDER BY id DESC LIMIT 1").fetchone()
+            if _row:
+                checks["last_backup_result"] = f"{_row[0]} @ {_row[1]}"
+                if '失败' in _row[0]:
+                    checks["backup"] = "warning"
+                    if status == "ok": status = "degraded"
+        except Exception:
+            pass
+    except Exception as e:
+        checks["last_backup"] = f"error: {e}"
     
     # 缓存版本号（用于前端轮询）
     version = 0

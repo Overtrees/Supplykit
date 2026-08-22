@@ -99,8 +99,8 @@ def _task_db_save(task_id, task_type='background', channel='jd', **fields):
             conn.execute("INSERT INTO sync_tasks(task_id, task_type, status, result, channel, created_at, updated_at) VALUES(?,?,?,?,?,datetime('now'),datetime('now'))",
                 (task_id, task_type, status, json.dumps(payload, ensure_ascii=False, default=str), _ch))
         conn.commit()
-    except Exception:
-        pass
+    except Exception as e:
+        import logging; logging.error(f"[tasks] 持久化任务状态失败 {task_id}: {e}")
 
 def submit_task(task_id: str, fn, *args, **kwargs):
     # 提取 channel 和 task_type 参数

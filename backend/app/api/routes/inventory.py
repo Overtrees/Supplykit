@@ -46,7 +46,7 @@ def list_inventory(db = get_db(), channel: str = 'jd', store: str = '', warehous
     for item in data:
         p = products.get(item.get('sku', ''))
         if p: item['price'] = p.get('price', 0)
-    return data
+    return ok(data)
 
 
 @router.post("")
@@ -71,8 +71,8 @@ def create_inventory(body: dict, db = get_db()):
                 'action': 'create',
                 'quantity': inv.get('available_qty'),
             })
-        except Exception:
-            pass
+        except Exception as e:
+            import logging; logging.warning(f"[inventory] 事件触发失败: {e}")
     return inv or {"ok": True}
 
 

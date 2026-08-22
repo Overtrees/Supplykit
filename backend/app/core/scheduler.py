@@ -129,8 +129,24 @@ def _task_backup():
         path = backup_db()
         if path:
             logger.info(f"Backup: {path}")
+            try:
+                from app.core.database import get_conn
+                _c = get_conn()
+                _c.execute("INSERT INTO quality_logs(log_type,level,message,details,source) VALUES(?,?,?,?,?)",
+                    ("backup", "info", f"数据库备份成功: {path}", "", "scheduler"))
+                _c.commit()
+            except Exception as _e:
+                logger.warning(f"Backup log write error: {_e}")
         else:
             logger.error("Backup failed")
+            try:
+                from app.core.database import get_conn
+                _c = get_conn()
+                _c.execute("INSERT INTO quality_logs(log_type,level,message,details,source) VALUES(?,?,?,?,?)",
+                    ("backup", "error", "数据库备份失败", "backup_db 返回 None（VACUUM INTO 与复制均失败）", "scheduler"))
+                _c.commit()
+            except Exception as _e:
+                logger.warning(f"Backup log write error: {_e}")
         # 备份后复查配额，超限则继续清理
         baks = sorted(glob.glob(DB_PATH + ".bak.*.gz"), key=os.path.getmtime, reverse=True)
         while len(baks) > 2:

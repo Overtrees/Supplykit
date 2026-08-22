@@ -117,7 +117,7 @@ def _task_backup():
         from app.core.database import backup_db, DB_PATH
         import glob, os
         # 备份前检查配额：如果已有 2 个备份，先删最旧的再备份
-        baks = sorted(glob.glob(DB_PATH + ".bak.*"), key=os.path.getmtime, reverse=True)
+        baks = sorted(glob.glob(DB_PATH + ".bak.*.gz"), key=os.path.getmtime, reverse=True)
         while len(baks) >= 2:
             old = baks.pop()
             try:
@@ -132,7 +132,7 @@ def _task_backup():
         else:
             logger.error("Backup failed")
         # 备份后复查配额，超限则继续清理
-        baks = sorted(glob.glob(DB_PATH + ".bak.*"), key=os.path.getmtime, reverse=True)
+        baks = sorted(glob.glob(DB_PATH + ".bak.*.gz"), key=os.path.getmtime, reverse=True)
         while len(baks) > 2:
             old = baks.pop()
             try:
@@ -160,7 +160,7 @@ def _task_disk_cleanup():
         import glob, os
         cleaned = []
         # 1. 旧备份只保留 2 个
-        baks = sorted(glob.glob(DB_PATH + ".bak.*"), key=os.path.getmtime, reverse=True)
+        baks = sorted(glob.glob(DB_PATH + ".bak.*.gz"), key=os.path.getmtime, reverse=True)
         for old in baks[2:]:
             try:
                 os.remove(old)

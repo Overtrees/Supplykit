@@ -52,9 +52,15 @@ def backup_db():
                 shutil.copyfileobj(fi, fo, 1024*1024)
             os.remove(_tmp)
             return bak_path + ".gz"
-        # VACUUM INTO 失败时降级为直接复制
-        shutil.copy2(DB_PATH, bak_path)
-        return bak_path
+        # VACUUM INTO 失败时降级为直接复制 + 压缩
+        _raw = bak_path + ".raw"
+        shutil.copy2(DB_PATH, _raw)
+        # 立即压缩原始文件，然后删掉未压缩版（防撑爆配额）
+        _gz = bak_path + ".gz"
+        with open(_raw, 'rb') as fi, gzip.open(_gz, 'wb') as fo:
+            shutil.copyfileobj(fi, fo, 1024*1024)
+        os.remove(_raw)
+        return _gz
     except Exception:
         try:
             shutil.copy2(DB_PATH, bak_path)
@@ -213,7 +219,10 @@ def get_conn():
     if not hasattr(_local, "conn") or _local.conn is None:
         _local.conn = sqlite3.connect(DB_PATH)
         _local.conn.row_factory = sqlite3.Row
-        _local.conn.execute("PRAGMA journal_mode=WAL")
+        try:
+            _local.conn.execute("PRAGMA journal_mode=WAL")
+        except Exception:
+            _local.conn.execute("PRAGMA journal_mode=DELETE")
         _local.conn.execute("PRAGMA busy_timeout=5000")
         _local.conn.execute("PRAGMA foreign_keys=ON")
     else:
@@ -222,7 +231,10 @@ def get_conn():
         except Exception:
             _local.conn = sqlite3.connect(DB_PATH)
             _local.conn.row_factory = sqlite3.Row
-            _local.conn.execute("PRAGMA journal_mode=WAL")
+            try:
+                _local.conn.execute("PRAGMA journal_mode=WAL")
+            except Exception:
+                _local.conn.execute("PRAGMA journal_mode=DELETE")
             _local.conn.execute("PRAGMA busy_timeout=5000")
             _local.conn.execute("PRAGMA foreign_keys=ON")
     return _local.conn
@@ -496,7 +508,10 @@ def init_db(path=None):
     """初始化数据库表结构"""
     conn = sqlite3.connect(path or DB_PATH)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
+    try:
+        conn.execute("PRAGMA journal_mode=WAL")
+    except Exception:
+        conn.execute("PRAGMA journal_mode=DELETE")
     conn.execute("PRAGMA busy_timeout=5000")
     # 增量自动回收：DELETE 后空间自动归还，避免数据库膨胀（需在创建表前设置）
     try:

@@ -255,6 +255,28 @@ export default function SettingsPage() {
 
   const [seeding, setSeeding] = useState(() => { try { return !!localStorage.getItem('c_seed_task') } catch { return false } })
   const [resetting, setResetting] = useState(false)
+  // 告警推送 webhook 配置（全局，存 replenishment_config.webhook_url）
+  const [webhookUrl, setWebhookUrl] = useState('')
+  const [webhookSaving, setWebhookSaving] = useState(false)
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await fetch(API + '/api/replenishment-config?channel=jd', { headers: { 'Authorization': 'Bearer ' + (() => { try { return localStorage.getItem('c_token') } catch { return '' } })() } })
+        const d = await r.json()
+        if (d?.data?.webhook_url) setWebhookUrl(d.data.webhook_url)
+      } catch {}
+    })()
+  }, [])
+  const saveWebhook = async () => {
+    setWebhookSaving(true)
+    try {
+      const r = await fetch(API + '/api/replenishment-config?channel=jd', { method: 'PUT', headers: { 'Authorization': 'Bearer ' + (() => { try { return localStorage.getItem('c_token') } catch { return '' } })(), 'Content-Type': 'application/json' }, body: JSON.stringify({ webhook_url: webhookUrl.trim() }) })
+      const d = await r.json()
+      if (d.ok) toast.success(webhookUrl.trim() ? '已保存，新告警将推送到该地址' : '已保存，告警推送已关闭')
+      else toast.error('保存失败: ' + (d.error || ''))
+    } catch(e) { toast.error('保存失败: ' + e.message) }
+    setWebhookSaving(false)
+  }
 
   const doSeed = async () => {
     setConfirm(null); setSeeding(true)
@@ -329,6 +351,17 @@ export default function SettingsPage() {
       <Group title="种子数据">
         <Row label="一键填充" sub="生成 2,000 SKU × 60 天 × 10 万条模拟数据" onClick={() => setConfirm('fill')} loading={seeding} />
         <LastRow label="一键重置" sub="清空所有数据恢复初始状态" onClick={() => setConfirm('reset')} danger loading={resetting} />
+      </Group>
+
+      <Group title="告警推送">
+        <div style={{padding:14}}>
+          <div style={{fontSize:13,fontWeight:600,marginBottom:4}}>Webhook 地址</div>
+          <div className="small muted" style={{fontSize:11,marginBottom:8}}>钉钉/企业微信机器人地址，新告警每 30 分钟推送到该地址（留空不推送）</div>
+          <div style={{display:'flex',gap:8}}>
+            <input value={webhookUrl} onChange={e=>setWebhookUrl(e.target.value)} placeholder="https://oapi.dingtalk.com/robot/send?access_token=..." style={{flex:1,fontSize:14,padding:'10px 12px',borderRadius:99,border:'1px solid var(--border)',background:'var(--card)',outline:'none',minWidth:0}} />
+            <button onClick={saveWebhook} disabled={webhookSaving} className="btn btn-primary" style={{flexShrink:0,minHeight:40,padding:'0 18px',fontSize:14}}>{webhookSaving?'保存中...':'保存'}</button>
+          </div>
+        </div>
       </Group>
 
       <div style={{textAlign:'center',marginTop:24,fontSize:12,color:'var(--muted2)'}}>

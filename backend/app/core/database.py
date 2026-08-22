@@ -10,7 +10,7 @@ from collections import defaultdict
 from typing import Any, Optional
 
 DB_PATH = os.getenv("SQLITE_PATH", os.path.join(os.path.dirname(__file__), "..", "supplykit.db"))
-SCHEMA_VERSION = 3  # 当前 schema 版本，每次改表结构+1
+SCHEMA_VERSION = 4  # 当前 schema 版本，每次改表结构+1
 
 # 版本化迁移注册表：{目标版本: 迁移函数}
 # 迁移函数签名: def migrate(conn): 执行该版本的 schema 变更
@@ -61,7 +61,17 @@ def _migrate_v3(conn):
         try:
             conn.execute(sql)
         except sqlite3.OperationalError:
-            pass  # 列已存在则跳过（幂等）)
+            pass  # 列已存在则跳过（幂等）
+
+
+# 迁移 v4：alerts 表加 pushed 列（告警推送去重标记）
+@_register_migration(4)
+def _migrate_v4(conn):
+    import sqlite3
+    try:
+        conn.execute("ALTER TABLE alerts ADD COLUMN pushed INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass  # 列已存在则跳过（幂等）)
 
 _local = threading.local()
 

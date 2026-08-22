@@ -242,6 +242,43 @@ def _task_cleanup_recycle():
     except Exception as e:
         logger.warning(f"Recycle cleanup error: {e}")
 
+def _task_push_alerts():
+    """推送新告警到 Webhook（钉钉/企业微信机器人，设置页配置 webhook_url）。
+
+    只推送最近 60 分钟新增且未推送过的 active 告警；推送成功后标记 pushed=1，
+    避免重复推送。格式兼容钉钉/企业微信（均为 POST JSON {"msgtype":"text",...}）。
+    """
+    try:
+        from app.core.database import get_conn
+        import requests, json
+        conn = get_conn()
+        _cfg = conn.execute("SELECT value FROM replenishment_config WHERE key='webhook_url'").fetchone()
+        if not _cfg or not (_cfg[0] or '').strip():
+            return  # 未配置 webhook，跳过
+        url = _cfg[0].strip()
+        # 最近 60 分钟新增、未推送的 active 告警
+        rows = conn.execute(
+            "SELECT id, alert_type, title, description, severity, channel, related_sku FROM alerts "
+            "WHERE status='active' AND (pushed IS NULL OR pushed=0) AND created_at >= datetime('now','-60 minutes')"
+        ).fetchall()
+        if not rows:
+            return
+        lines = [f"【SupplyKit 告警】"]
+        for r in rows:
+            _ch = '京东' if r[5] == 'jd' else '其他'
+            lines.append(f"{r[4]}: {r[2]}{(' - ' + str(r[3])) if r[3] else ''} ({_ch}{' / ' + r[6] if r[6] else ''})")
+        payload = {"msgtype": "text", "text": {"content": "\n".join(lines)}}
+        resp = requests.post(url, json=payload, timeout=15)
+        if resp.status_code in (200, 201, 204):
+            conn.execute("UPDATE alerts SET pushed=1 WHERE id IN (%s)" % ','.join('?' * len(rows)),
+                tuple(r[0] for r in rows))
+            conn.commit()
+            logger.info(f"Alert push: {len(rows)} alerts to webhook")
+        else:
+            logger.warning(f"Alert push failed: HTTP {resp.status_code} {resp.text[:200]}")
+    except Exception as e:
+        logger.warning(f"Alert push error: {e}")
+
 def start():
     global _started
     if _started:
@@ -254,6 +291,7 @@ def start():
     scheduler.add_job(_task_backup, CronTrigger(hour=2, minute=0), id='db_backup')
     scheduler.add_job(_task_daily_rules, CronTrigger(hour=4, minute=0), id='daily_rules')
     scheduler.add_job(_task_cleanup_recycle, CronTrigger(hour=4, minute=30), id='recycle_cleanup')
+    scheduler.add_job(_task_push_alerts, IntervalTrigger(minutes=30), id='push_alerts')
     scheduler.add_job(_task_disk_cleanup, CronTrigger(hour=3, minute=20), id='disk_cleanup')
     scheduler.start()
     logger.info(f"Started at {datetime.utcnow().isoformat()}")

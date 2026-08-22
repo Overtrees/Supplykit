@@ -10,7 +10,7 @@ from collections import defaultdict
 from typing import Any, Optional
 
 DB_PATH = os.getenv("SQLITE_PATH", os.path.join(os.path.dirname(__file__), "..", "supplykit.db"))
-SCHEMA_VERSION = 2  # 当前 schema 版本，每次改表结构+1
+SCHEMA_VERSION = 3  # 当前 schema 版本，每次改表结构+1
 
 # 版本化迁移注册表：{目标版本: 迁移函数}
 # 迁移函数签名: def migrate(conn): 执行该版本的 schema 变更
@@ -32,6 +32,36 @@ def _migrate_v2(conn):
         "version INTEGER NOT NULL,"
         "applied_at TEXT DEFAULT (datetime('now')),"
         "description TEXT DEFAULT '')")
+
+
+# 迁移 v3：将 init_db 中硬编码的 ALTER TABLE 补列迁移至版本化系统
+@_register_migration(3)
+def _migrate_v3(conn):
+    import sqlite3
+    _alters = [
+        "ALTER TABLE products ADD COLUMN box_qty INTEGER DEFAULT 1",
+        "ALTER TABLE products ADD COLUMN barcode TEXT DEFAULT ''",
+        "ALTER TABLE products ADD COLUMN weight REAL DEFAULT 0",
+        "ALTER TABLE products ADD COLUMN volume REAL DEFAULT 0",
+        "ALTER TABLE products ADD COLUMN channel TEXT DEFAULT 'jd'",
+        "ALTER TABLE products ADD COLUMN unit TEXT DEFAULT ''",
+        "ALTER TABLE suppliers ADD COLUMN channel TEXT DEFAULT 'jd'",
+        "ALTER TABLE orders ADD COLUMN channel TEXT DEFAULT 'jd'",
+        "ALTER TABLE orders ADD COLUMN paid_at TEXT DEFAULT ''",
+        "ALTER TABLE orders ADD COLUMN barcode TEXT DEFAULT ''",
+        "ALTER TABLE inventory ADD COLUMN channel TEXT DEFAULT 'jd'",
+        "ALTER TABLE inventory ADD COLUMN beginning_stock INTEGER DEFAULT 0",
+        "ALTER TABLE inventory ADD COLUMN month_inbound INTEGER DEFAULT 0",
+        "ALTER TABLE inventory ADD COLUMN month_outbound INTEGER DEFAULT 0",
+        "ALTER TABLE rules ADD COLUMN mode TEXT DEFAULT ''",
+        "ALTER TABLE daily_sales_snapshot ADD COLUMN warehouse TEXT DEFAULT ''",
+        "ALTER TABLE daily_sales_snapshot ADD COLUMN channel TEXT DEFAULT 'jd'",
+    ]
+    for sql in _alters:
+        try:
+            conn.execute(sql)
+        except sqlite3.OperationalError:
+            pass  # 列已存在则跳过（幂等）)
 
 _local = threading.local()
 

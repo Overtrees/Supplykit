@@ -280,6 +280,7 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                 "barcode": str(data.get('barcode', ''))[:100],
                 "weight": float(data.get('weight', 0)),
                 "volume": float(data.get('volume', 0)),
+                "best_before": str(data.get('best_before', ''))[:50],
             })
             success += 1
         elif not is_inv and not is_inbound and not is_outbound:

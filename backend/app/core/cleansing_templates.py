@@ -113,6 +113,7 @@ SYSTEM_FIELDS = {
         {'key': 'barcode', 'label': '69码', 'type': 'string'},
         {'key': 'weight', 'label': '箱重/KG', 'type': 'number'},
         {'key': 'volume', 'label': '体积/方', 'type': 'number'},
+        {'key': 'best_before', 'label': '保质期日期', 'type': 'date', 'format': 'YMD'},
     ],
 }
 

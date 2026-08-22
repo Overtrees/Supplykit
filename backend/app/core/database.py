@@ -10,7 +10,7 @@ from collections import defaultdict
 from typing import Any, Optional
 
 DB_PATH = os.getenv("SQLITE_PATH", os.path.join(os.path.dirname(__file__), "..", "supplykit.db"))
-SCHEMA_VERSION = 6  # 当前 schema 版本，每次改表结构+1
+SCHEMA_VERSION = 7  # 当前 schema 版本，每次改表结构+1
 
 # 版本化迁移注册表：{目标版本: 迁移函数}
 # 迁移函数签名: def migrate(conn): 执行该版本的 schema 变更
@@ -100,6 +100,16 @@ def _migrate_v6(conn):
         note TEXT DEFAULT '',
         created_at TEXT DEFAULT (datetime('now'))
     )""")
+
+
+# 迁移 v7：products 加 best_before（保质期/临期判断，清洗导入可映射）
+@_register_migration(7)
+def _migrate_v7(conn):
+    import sqlite3
+    try:
+        conn.execute("ALTER TABLE products ADD COLUMN best_before TEXT DEFAULT ''")
+    except sqlite3.OperationalError:
+        pass  # 列已存在则跳过（幂等）
 
 _local = threading.local()
 

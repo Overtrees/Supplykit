@@ -173,6 +173,34 @@ export default function RulesPage() {
   const bParams = isBBCC ? [{k:'ship_to_b_days',l:'自有仓→B仓时效(天)'},{k:'safety_multiplier',l:'安全库存天数'},{k:'turnover_warning_15',l:'仓储费阈值(天)'},{k:'turnover_warning_90',l:'周转考核红线(天)'}] : []
   const paramFields = isBBCC ? [] : [{k:'lead_time_days',l:'前置期(天)'},{k:'safety_multiplier',l:'安全库存天数'},{k:'turnover_warning_90',l:'周转考核红线(天)'}]
   const purchaseFields = [{k:'purchase_lead_days',l:'采购前置(天)'},{k:'purchase_safety_days',l:'采购安全库存(天)'},{k:'moq',l:'MOQ最小起订(件)'},{k:'max_turnover_days',l:'目标周转(天)'}]
+  // 滞销参数（分组配置，key 存 replenishment_config，判定逻辑读取同 key）
+  const slowFieldGroups = [
+    { group: '预警分级', items: [
+      {k:'slow_alert_days',l:'预警零销售天数',h:'连续 N 天零销售即预警'},
+      {k:'slow_potential_food',l:'食品潜在线(天)',h:'食品类连续 N 天零销售 + 超周转线 = 潜在滞销'},
+      {k:'slow_potential_nonfood',l:'家清潜在线(天)',h:'个护家清类连续 N 天零销售 + 超周转线'},
+      {k:'slow_confirm_food',l:'食品确认线(天)',h:'连续 N 天零销售 且 存销比超阈值 = 确认滞销'},
+      {k:'slow_confirm_nonfood',l:'家清确认线(天)',h:''},
+      {k:'slow_ratio_confirm',l:'确认滞销存销比',h:'库存/日均销超过该值判定确认滞销'},
+    ]},
+    { group: '动销效率', items: [
+      {k:'slow_turnover_food',l:'食品周转线(天)',h:'潜在滞销判定的周转阈值(快消)'},
+      {k:'slow_turnover_nonfood',l:'家清周转线(天)',h:'潜在滞销判定的周转阈值(日化大件)'},
+      {k:'slow_turnrate_food',l:'食品动销率线(%)',h:'近45天销量/库存 < 该值 = 动销差'},
+      {k:'slow_turnrate_nonfood',l:'家清动销率线(%)',h:'近60天销量/库存 < 该值 = 动销差'},
+      {k:'slow_turn_window',l:'动销窗口(天)',h:'计算动销率的时间窗口(食品/家清共用, 默认45)'},
+    ]},
+    { group: '深度积压', items: [
+      {k:'slow_deep_ratio',l:'库存占比线(%)',h:'SKU 库存/总销量占比超该值'},
+      {k:'slow_deep_noorder',l:'连续无订单天数',h:'叠加深度积压判定'},
+    ]},
+    { group: '临期与ABC', items: [
+      {k:'slow_shelf_food',l:'食品临期月数',h:'距保质期不足 N 月 = 临期高风险'},
+      {k:'slow_shelf_nonfood',l:'个护临期月数',h:''},
+      {k:'abc_a_ratio',l:'A类比例(%)',h:'按近90天销售额, 前 N% 为 A 类(核心单品不轻易处置)'},
+      {k:'abc_b_ratio',l:'A+B类比例(%)',h:'前 N% 为止 A+B 类, 其余 C 类(滞销重点监控)'},
+    ]},
+  ]
 
   if (loading) return <div className='card'><div className='section-title'><div className="skeleton" style={{width:120,height:20}}/></div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>{[1,2,3,4,5,6].map(i=><div key={i}><div className="skeleton" style={{width:64,height:12,marginBottom:6}}/><div className="skeleton" style={{width:'100%',height:36}}/></div>)}</div><div style={{marginTop:16}}><div className="skeleton" style={{width:80,height:36,borderRadius:99}}/></div></div>
 
@@ -334,6 +362,24 @@ export default function RulesPage() {
         })}
       </div>
       <button disabled={saving} onClick={async()=>{setSaving(true);const ch=globalChannel;try{const toSave={};purchaseFields.forEach(f=>{const isSupKey = f.k === 'moq' || f.k === 'purchase_lead_days' || f.k === 'purchase_safety_days'; const k=selectedSupplier&&isSupKey?`${f.k}_${selectedSupplier}`:f.k;if(cfg[k]!==undefined)toSave[k]=cfg[k]});await api.put('/api/replenishment-config?channel='+ch,toSave);setCfg(p=>({...p,...toSave}));toast.success('已保存')}catch(e){saveErr(e)}setSaving(false)}} className="btn btn-primary" style={{width:'100%',display:'inline-flex',alignItems:'center',gap:4,justifyContent:'center',minHeight:42}}>{saving?<><IconLoading size={14} /> 保存中...</>:<><IconSave size={14} /> 保存</>}</button>
+    </div>}
+
+    {/* ── 滞销参数 ── */}
+    {tab === 'slow' && <div>
+      {slowFieldGroups.map(g => (
+        <div key={g.group} style={{marginBottom:20}}>
+          <div style={{fontWeight:600,fontSize:13,marginBottom:10,color:'var(--muted2)'}}>{g.group}</div>
+          <div className="hammer-params-grid">
+            {g.items.map(({k,l,h}) => (
+              <label key={k} style={{fontSize:13}}>{l}
+                <input value={cfg[k] ?? ''} onChange={e=>setCfg(p=>({...p,[k]:e.target.value}))} style={IS}/>
+                {h && <div className='small muted' style={{fontSize:11,marginTop:2}}>{h}</div>}
+              </label>
+            ))}
+          </div>
+        </div>
+      ))}
+      <button disabled={saving} onClick={async()=>{setSaving(true);const ch=globalChannel;try{const toSave={};slowFieldGroups.forEach(g=>g.items.forEach(f=>{if(cfg[f.k]!==undefined)toSave[f.k]=cfg[f.k]}));await api.put('/api/replenishment-config?channel='+ch,toSave);setCfg(p=>({...p,...toSave}));toast.success('已保存')}catch(e){saveErr(e)}setSaving(false)}} className="btn btn-primary" style={{width:'100%',display:'inline-flex',alignItems:'center',gap:4,justifyContent:'center',minHeight:42}}>{saving?<><IconLoading size={14} /> 保存中...</>:<><IconSave size={14} /> 保存</>}</button>
     </div>}
 
     {/* ── 活动系数 ── */}

@@ -446,6 +446,14 @@ def _seed_config(db, conn):
             ('turnover_warning_15', '15'), ('turnover_warning_90', '90'),
             ('purchase_lead_days', '14'), ('purchase_safety_days', '3'), ('moq', '50'),
             ('b_to_c_days', '3'), ('c_safety_days', '0'), ('active_factor', '1.0'), ('b_free_days', '15'), ('b_storage_fee_rate', '1.0'),
+            # 滞销判定参数（预警分级/动销效率/深度积压/临期ABC）
+            ('slow_alert_days', '14'), ('slow_potential_food', '30'), ('slow_potential_nonfood', '60'),
+            ('slow_confirm_food', '60'), ('slow_confirm_nonfood', '90'), ('slow_ratio_confirm', '2.5'),
+            ('slow_turnover_food', '45'), ('slow_turnover_nonfood', '60'),
+            ('slow_turnrate_food', '8'), ('slow_turnrate_nonfood', '3'), ('slow_turn_window', '45'),
+            ('slow_deep_ratio', '85'), ('slow_deep_noorder', '14'),
+            ('slow_shelf_food', '3'), ('slow_shelf_nonfood', '6'),
+            ('abc_a_ratio', '20'), ('abc_b_ratio', '50'),
             ('target_turnover', '15'), ('_cache_version', '0'),
             # 模式参数（BBCC/传统独立配置）
             ('mode_bbcc_b_to_c_days', '3'), ('mode_bbcc_c_safety_days', '3'),

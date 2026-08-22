@@ -56,6 +56,32 @@ def make_skus(sfx, count=1000, shared=None):
 
 _current_task_id = None
 
+def _check_busy(conn):
+    """并发保护：返回正在进行的 seed/reset 任务（running/pending 且 15 分钟内有过更新 = 活着）。
+    卡死任务（超 15 分钟无更新，线程被 PA 重启/OOM 杀）自动标记 error 并放行。"""
+    try:
+        rows = conn.execute(
+            "SELECT task_id FROM sync_tasks WHERE task_type IN ('seed','reset') AND status IN ('running','pending') "
+            "AND updated_at >= datetime('now','-15 minutes')").fetchall()
+        if rows:
+            return rows[0][0]
+        # 卡死的 running 任务标记 error
+        stale = conn.execute(
+            "SELECT task_id FROM sync_tasks WHERE task_type IN ('seed','reset') AND status IN ('running','pending') "
+            "AND updated_at < datetime('now','-15 minutes')").fetchall()
+        for _s in stale:
+            try:
+                _payload = json.dumps({"error": "任务卡死超时，已自动标记失败（可能因服务器资源受限）"}, ensure_ascii=False)
+                conn.execute("UPDATE sync_tasks SET status='error', result=?, updated_at=datetime('now') WHERE task_id=?",
+                    (_payload, _s[0]))
+                conn.commit()
+            except Exception:
+                pass
+    except Exception:
+        pass
+    return None
+
+
 @router.post("/fill")
 def seed_fill():
     global _current_task_id
@@ -66,6 +92,10 @@ def seed_fill():
         has_data = n > 0
         if has_data:
             return ok({"requires_reset": True, "task_id": "", "message": "已有数据，请先一键重置"})
+        # 并发保护：已有正在执行的 seed/reset 任务时拒绝新提交（防止并发抢锁互相拖死）
+        busy = _check_busy(conn)
+        if busy:
+            return ok({"task_id": "", "message": f"已有任务进行中: {busy}，请等待完成"})
     except Exception:
         pass
     task_id = 'seed_fill_' + uuid.uuid4().hex[:8]
@@ -266,11 +296,11 @@ def _seed_orders(db, today, skus_data):
                 if random.random() < 0.03: st = '已退货'
                 paid_dt = dt + timedelta(days=random.randint(1,3))
                 orders.append({'order_no':f'{label.upper()}-{ch}{d:03d}-{len(orders):03d}','store':sk['store'],'warehouse':random.choice(WH)[0],'sku':sk['sku'],'product_name':sk['name'],'quantity':q,'unit_price':sk['price'],'total_amount':round(q*sk['price'],2),'order_status':st,'ordered_at':dt.strftime('%Y-%m-%d'),'paid_at':paid_dt.strftime('%Y-%m-%d'),'channel':ch,'platform':'京东' if label=='jd' else '天猫'})
-    # 批量写入：executemany + 分批 commit（每 500 条一次 fsync，替代逐条 commit）
+    # 批量写入：executemany + 分批 commit（每 5000 条一次 fsync，减少慢磁盘下 fsync 次数）
     conn = get_conn()
     cols = ['order_no','store','warehouse','sku','product_name','quantity','unit_price','total_amount',
             'order_status','ordered_at','paid_at','channel','platform']
-    batch_size = 500
+    batch_size = 5000
     for i in range(0, len(orders), batch_size):
         batch = orders[i:i+batch_size]
         conn.executemany(
@@ -425,6 +455,14 @@ def _seed_config(db, conn):
 @router.post("/reset")
 def seed_reset(db=get_db()):
     import uuid
+    # 并发保护：已有正在执行的 seed/reset 任务时拒绝新提交
+    try:
+        conn = get_conn()
+        busy = _check_busy(conn)
+        if busy:
+            return ok({"task_id": "", "message": f"已有任务进行中: {busy}，请等待完成"})
+    except Exception:
+        pass
     task_id = 'reset_' + uuid.uuid4().hex[:8]
     def _do_reset():
         conn = get_conn()

@@ -256,16 +256,19 @@ def build_daily_sales_snapshot(db):
         warehouse = o.get('warehouse','') or '未知'
         qty = int(o.get('quantity', 0) or 0)
         agg[(date, channel, sku, warehouse)] += qty
-    # 批量 UPSERT（executemany 减少 IO）
+    # 批量 UPSERT（分批 commit，避免单事务 16 万行在慢磁盘下 commit 过慢/被杀）
     from app.core.database import get_conn
     conn = get_conn()
     rows = [(d, ch, s, w, q) for (d, ch, s, w), q in agg.items()]
-    conn.executemany(
-        "INSERT INTO daily_sales_snapshot(date, channel, sku, warehouse, order_count) VALUES(?,?,?,?,?) "
-        "ON CONFLICT(date, channel, sku, warehouse) DO UPDATE SET order_count=excluded.order_count",
-        rows
-    )
-    conn.commit()
+    _batch = 5000
+    for i in range(0, len(rows), _batch):
+        part = rows[i:i+_batch]
+        conn.executemany(
+            "INSERT INTO daily_sales_snapshot(date, channel, sku, warehouse, order_count) VALUES(?,?,?,?,?) "
+            "ON CONFLICT(date, channel, sku, warehouse) DO UPDATE SET order_count=excluded.order_count",
+            part
+        )
+        conn.commit()
     count = len(rows)
     # 清理超出 100 天的旧快照
     try:

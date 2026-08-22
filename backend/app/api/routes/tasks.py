@@ -15,6 +15,20 @@ def get_tasks(channel: str = 'jd', limit: int = 20):
         conn = sqlite3.connect(_DB_PATH, timeout=15)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA busy_timeout=15000")
+        # 卡死任务自愈：running/pending 超 30 分钟无更新 → 标记 error（线程被 PA 重启/OOM 杀死的场景）
+        try:
+            _cols0 = [r[1] for r in conn.execute("PRAGMA table_info(sync_tasks)").fetchall()]
+            if 'updated_at' in _cols0:
+                stale = conn.execute(
+                    "SELECT task_id, updated_at FROM sync_tasks WHERE status IN ('running','pending') "
+                    "AND updated_at < datetime('now','-30 minutes')").fetchall()
+                for _s in stale:
+                    _payload = json.dumps({"error": "任务超时未完成，已自动标记失败（可能因服务器资源受限）"}, ensure_ascii=False)
+                    conn.execute("UPDATE sync_tasks SET status='error', result=?, updated_at=datetime('now') WHERE task_id=?",
+                        (_payload, _s['task_id']))
+                    conn.commit()
+        except Exception:
+            pass
         # 过滤内部维护任务（vacuum/health_ 等系统自动任务，不显示给用户）
         # 直接用 * 查询 + 按列名取值（兼容表结构差异）
         _cols = [r[1] for r in conn.execute("PRAGMA table_info(sync_tasks)").fetchall()]

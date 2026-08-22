@@ -141,6 +141,15 @@ def _seed_fill_async():
     conn = get_conn()
     steps = []
 
+    # 高速写入模式：seed 是模拟数据（可重跑），关闭同步 fsync + 加大页缓存，
+    # 彻底消除慢磁盘下 fsync 放大（630s 根因）。结束后恢复 synchronous=NORMAL 保证正常运行安全。
+    try:
+        conn.execute("PRAGMA synchronous=OFF")
+        conn.execute("PRAGMA cache_size=-64000")
+        conn.execute("PRAGMA temp_store=MEMORY")
+    except Exception:
+        pass
+
     # 先统一生成 SKU，确保各步骤数据一致
     # 共享 SKU：jd 前 200 个作为内容模板传入（make_skus 会复制字段但独立命名）
     jd_s = make_skus('-J', 1000)
@@ -245,9 +254,12 @@ def _seed_fill_async():
              f"种子填充{'完成' if not err_steps else '部分失败'}: {len(ok_steps)}/{len(steps)} 步成功",
              f"步骤: {[s['name'] for s in err_steps]} 失败: {[s.get('error','')[:100] for s in err_steps]}",
              "seed_engine"))
-        # WAL checkpoint 防膨胀（填充产生大量写入，合并 WAL 到主库释放空间）
-        try: conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-        except Exception: pass
+        # 恢复 synchronous=NORMAL + checkpoint 防膨胀（填充产生大量写入，合并 WAL 到主库释放空间）
+        try:
+            conn.execute("PRAGMA synchronous=NORMAL")
+            conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        except Exception:
+            pass
         conn.commit()
     except Exception as e:
         pass
@@ -282,7 +294,21 @@ def _seed_products_suppliers(db, skus_data):
 
 def _seed_orders(db, today, skus_data):
     jd_s, ot_s = skus_data['jd'], skus_data['other']
-    orders = []
+    conn = get_conn()
+    cols = ['order_no','store','warehouse','sku','product_name','quantity','unit_price','total_amount',
+            'order_status','ordered_at','paid_at','channel','platform']
+    batch_size = 5000
+    total = 0
+    batch = []
+    def flush():
+        nonlocal batch
+        if not batch: return
+        conn.executemany(
+            f"INSERT INTO orders({','.join(cols)}) VALUES({','.join(['?']*len(cols))})",
+            [[o.get(c) for c in cols] for o in batch]
+        )
+        conn.commit()
+        batch = []
     for ch,label,skus,base in [('jd','jd',jd_s,1100),('other','other',ot_s,550)]:
         promo = {'618':list(range(5,20)),'月末':list(range(45,55))}
         for d in range(60):
@@ -295,19 +321,12 @@ def _seed_orders(db, today, skus_data):
                 st = random.choices(['已完成','已发货','待发货','待确认','申请退款'],[45,18,15,10,7])[0]
                 if random.random() < 0.03: st = '已退货'
                 paid_dt = dt + timedelta(days=random.randint(1,3))
-                orders.append({'order_no':f'{label.upper()}-{ch}{d:03d}-{len(orders):03d}','store':sk['store'],'warehouse':random.choice(WH)[0],'sku':sk['sku'],'product_name':sk['name'],'quantity':q,'unit_price':sk['price'],'total_amount':round(q*sk['price'],2),'order_status':st,'ordered_at':dt.strftime('%Y-%m-%d'),'paid_at':paid_dt.strftime('%Y-%m-%d'),'channel':ch,'platform':'京东' if label=='jd' else '天猫'})
-    # 批量写入：executemany + 分批 commit（每 5000 条一次 fsync，减少慢磁盘下 fsync 次数）
-    conn = get_conn()
-    cols = ['order_no','store','warehouse','sku','product_name','quantity','unit_price','total_amount',
-            'order_status','ordered_at','paid_at','channel','platform']
-    batch_size = 5000
-    for i in range(0, len(orders), batch_size):
-        batch = orders[i:i+batch_size]
-        conn.executemany(
-            f"INSERT INTO orders({','.join(cols)}) VALUES({','.join(['?']*len(cols))})",
-            [[o.get(c) for c in cols] for o in batch]
-        )
-        conn.commit()
+                batch.append({'order_no':f'{label.upper()}-{ch}{d:03d}-{total:03d}','store':sk['store'],'warehouse':random.choice(WH)[0],'sku':sk['sku'],'product_name':sk['name'],'quantity':q,'unit_price':sk['price'],'total_amount':round(q*sk['price'],2),'order_status':st,'ordered_at':dt.strftime('%Y-%m-%d'),'paid_at':paid_dt.strftime('%Y-%m-%d'),'channel':ch,'platform':'京东' if label=='jd' else '天猫'})
+                total += 1
+                if len(batch) >= batch_size:
+                    flush()
+    flush()
+    return total
 
 def _seed_inventory(db, skus_data):
     jd_s, ot_s = skus_data["jd"], skus_data["other"]

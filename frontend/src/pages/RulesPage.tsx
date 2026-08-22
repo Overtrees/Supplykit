@@ -378,7 +378,7 @@ export default function RulesPage() {
       <div style={{marginTop:16}}>
         <label style={{fontSize:13,display:'flex',alignItems:'center',gap:10}}>物流在途(天)
           <input value={transitDays} onChange={e=>setTransitDays(e.target.value)} style={{...IS,width:80,fontSize:14,textAlign:'center'}}/>
-          <span className="small muted" style={{fontSize:11}}>库存出库到客户/入仓的运输天数，默认 3（用于效期预警：已消耗 + 在途 > 1/3 标临近）</span>
+          <span className="small muted" style={{fontSize:11}}>库存出库到客户/入仓的运输天数，默认 3（用于效期预警：已消耗 + 在途 &gt; 1/3 标临近）</span>
         </label>
       </div>
       <div style={{marginTop:12}}>
@@ -386,6 +386,8 @@ export default function RulesPage() {
       </div>
       <div style={{marginTop:12}}>
         <button disabled={saving} onClick={async()=>{setSaving(true);const ch=globalChannel;try{const r=await api.put('/api/replenishment-config/slow-cats?channel='+ch,{items:slowCats});await api.put('/api/replenishment-config?channel='+ch,{transit_days:transitDays||''});toast.success('已保存')}catch(e){saveErr(e)}setSaving(false)}} className="btn btn-primary" style={{width:'100%',display:'inline-flex',alignItems:'center',gap:4,justifyContent:'center',minHeight:42}}>{saving?<><IconLoading size={14} /> 保存中...</>:<><IconSave size={14} /> 保存</>}</button>
+        </div>
+      </div>}
     {tab === 'params' && <><div className='section-title' style={{marginTop:16,marginBottom:8,display:'flex',alignItems:'center',gap:4}}><IconTag size={14} /> 活动系数</div>
       {seasons.map((s,i)=><div key={s.key||i} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',border:'1px solid var(--border)',borderRadius:32,marginBottom:8}}>
         <input value={s.name} onChange={e=>setSeasons(p=>p.map((x,j)=>j===i?{...x,name:e.target.value}:x))} placeholder='618大促' style={{flex:1,minWidth:80,fontSize:16,padding:'6px 10px',border:'1px solid var(--border)',borderRadius:32,outline:'none'}}/>

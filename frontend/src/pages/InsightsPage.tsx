@@ -160,7 +160,7 @@ export default function InsightsPage() {
     setReplenLoading(true)
     setReplenError('')
     try {
-      const r = await api.get('/api/insights/replenishment?days=28&mode=' + mode)
+      const r = await api.get('/api/insights/replenishment?days=28&mode=' + mode, {timeout: 90000})
       if (seq !== replenSeq.current) return
       let data = r.data
       // 防双重包装兜底：{ok,data:{...}} 或 {data:[...]} 结构再解一层

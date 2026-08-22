@@ -41,7 +41,43 @@
 
 ---
 
-## 2026-08-22 数据库稳定性根治 + 补货超时优化 + 清洗导入 WAL 加固
+## 2026-08-22 P2 完成：Sentry/规则调试/回收站/告警推送/批量操作联动
+
+### Sentry 接入（EU 区坑多）
+- DSN: de.sentry.io（欧盟区）；**sentryVitePlugin 默认连美区 → sourcemap 上传失败**，需环境变量 `SENTRY_URL=https://de.sentry.io/`
+- **CF 账户 ID 修正**：实际 `4c3178949cce0a3db4f993a3e14712a6`（此前记忆截断错误导致 Authentication error，token 权限其实够用）
+- sourcemap 上传为 artifact bundle 新格式，不走 release files API；验证看构建日志 "[sentry-vite-plugin] Info: Successfully uploaded source maps"
+- filesToDeleteAfterUpload 未生效 → vite closeBundle 钩子删除本地 .map（防源码泄露）
+- CF Pages 环境变量：SENTRY_AUTH_TOKEN / SENTRY_ORG=canopies / SENTRY_PROJECT=supplykit / SENTRY_URL / VITE_API_BASE_URL
+
+### 规则引擎可视化调试
+- 后端 `POST /api/rules/{id}/test`：传模拟 inv/order 数据 → 返回 triggered + 左右值计算明细（left_value/right_value/op）
+- 前端规则列表每条约"测试"按钮 → 底部 sheet 输入可用量/安全线/在途/滞销天数/订单数/仓库主体 → 显示 ✓触发/✗未触发 + 告警内容
+
+### 回收站增强
+- RecycleBin 改勾选模式：checkbox + 全选 + 批量恢复/批量永久删除（confirm 确认），规则/订单分组操作
+- scheduler `_task_cleanup_recycle` 每日 04:30 永久删除软删除超 30 天的 orders/rules
+
+### 告警推送（Webhook）
+- scheduler `_task_push_alerts` 每 30 分钟推送最近 60 分钟新增且未推送（pushed=0）的 active 告警
+- 钉钉/企业微信兼容（POST JSON msgtype:text）；alerts 表加 pushed 列（迁移 v4）
+- 设置页"告警推送"分组配置 webhook（存 replenishment_config.webhook_url），留空不推送
+
+### 批量操作 + 建议页联动闭环（核心）
+- **products 软删除**：迁移 v5 加 deleted_at；products.py 重构（软删除/restore/permanent-delete/批量 `POST /api/products/batch`，action: delete/restore/active/inactive/purge）
+- **联动链**：products.changed 事件 → `_invalidate_all_caches`（补货+采购+看板缓存全失效）+ replenishment/purchase/insights 查 products 过滤 `deleted_at=''`
+- 效果：删商品 → 建议页秒级去除；回收站恢复 → 即时回来；库存表不连带删（实物可能在库需盘点）
+- rules 批量接口 `POST /api/rules/batch`（delete/restore/active/inactive）
+- 前端：锤子菜单"批量操作"按钮（store `prodBatch` 全局复用）→ checkbox 多选 + 全选 + 批量启用/停用/删除 + 退出
+
+### 已确认不做
+- 看板卡片自定义（拖拽排序）：收益低风险高，如需要只做显隐开关（30 分钟）
+- 定时导出：单用户场景价值低
+
+### 提交
+P2: 447dc49(Sentry DSN) / 3a925d0(规则测试) / e9447b8(回收站) / 717265f(告警推送) / 56917c5(批量+联动) / 32c2d95(sourcemap清理) / 2b0c177(迁移v3)
+
+---
 
 ### 数据库崩溃恢复（存储配额第三次超限）
 - **根因链**：备份策略漏洞（`backup_db` 降级路径只生成未压缩版 125MB → 不删除 → 两次累积撑爆 512MB 配额）→ WAL 写不了 → `disk I/O error` 启动崩溃 → 删 WAL 文件导致数据库损坏 → 备份文件也在 I/O 错误期间生成同样损坏

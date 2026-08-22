@@ -226,6 +226,22 @@ def _task_daily_rules():
     except Exception as e:
         logger.info(f"Daily rules error: {e}")
 
+def _task_cleanup_recycle():
+    """每天清理回收站：永久删除软删除超过 30 天的订单和规则（防数据无限累积）"""
+    try:
+        from app.core.database import get_conn
+        conn = get_conn()
+        # orders: deleted_at 不为空且超过 30 天
+        cur1 = conn.execute("DELETE FROM orders WHERE deleted_at IS NOT NULL AND deleted_at < datetime('now','-30 days')")
+        # rules: is_active=0 且 deleted_at 超过 30 天
+        cur2 = conn.execute("DELETE FROM rules WHERE is_active=0 AND deleted_at IS NOT NULL AND deleted_at < datetime('now','-30 days')")
+        conn.commit()
+        _n = (cur1.rowcount or 0) + (cur2.rowcount or 0)
+        if _n > 0:
+            logger.info(f"Recycle cleanup: purged {_n} items (>30 days)")
+    except Exception as e:
+        logger.warning(f"Recycle cleanup error: {e}")
+
 def start():
     global _started
     if _started:
@@ -237,6 +253,7 @@ def start():
     scheduler.add_job(_task_cleanup_logs, CronTrigger(hour=3, minute=0), id='cleanup_logs')
     scheduler.add_job(_task_backup, CronTrigger(hour=2, minute=0), id='db_backup')
     scheduler.add_job(_task_daily_rules, CronTrigger(hour=4, minute=0), id='daily_rules')
+    scheduler.add_job(_task_cleanup_recycle, CronTrigger(hour=4, minute=30), id='recycle_cleanup')
     scheduler.add_job(_task_disk_cleanup, CronTrigger(hour=3, minute=20), id='disk_cleanup')
     scheduler.start()
     logger.info(f"Started at {datetime.utcnow().isoformat()}")

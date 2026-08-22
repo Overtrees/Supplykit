@@ -64,6 +64,9 @@ function RecycleBin({ onClose }) {
   }, [])
   var [orders, setOrders] = useState([])
   var [loading, setLoading] = useState(true)
+  // 批量操作：selected = {rules: Set<id>, orders: Set<id>}
+  var [selected, setSelected] = useState({ rules: new Set(), orders: new Set() })
+  var [batchBusy, setBatchBusy] = useState(false)
 
   useEffect(function() {
     setLoading(true)
@@ -80,10 +83,68 @@ function RecycleBin({ onClose }) {
     }).catch(function() { setLoading(false) })
   }, [])
 
-  var restore = async function(type, id) {
-    await fetch(API + '/api/' + type + '/' + id + '/restore', {method:'POST', headers:{'Authorization':'Bearer ' + (()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
-    if (type === 'rules') setRules(rules.filter(function(x) { return x.id !== id }))
-    else setOrders(orders.filter(function(x) { return x.id !== id }))
+  var toggleSel = function(type, id) {
+    setSelected(function(prev) {
+      var next = new Set(prev[type])
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return { ...prev, [type]: next }
+    })
+  }
+  var toggleAll = function(type, items) {
+    setSelected(function(prev) {
+      var all = items.length > 0 && items.every(function(x) { return prev[type].has(x.id) })
+      var next = new Set()
+      if (!all) items.forEach(function(x) { next.add(x.id) })
+      return { ...prev, [type]: next }
+    })
+  }
+  var batchAction = async function(type, action, label) {
+    var ids = Array.from(selected[type])
+    if (ids.length === 0) { toast.error('请先勾选要' + label + '的项'); return }
+    setBatchBusy(true)
+    try {
+      var _auth = {'Authorization':'Bearer ' + (()=>{try{return localStorage.getItem('c_token')}catch{return ''}})(), 'Content-Type':'application/json'}
+      await Promise.all(ids.map(function(id) {
+        return fetch(API + '/api/' + type + '/' + id + '/' + action, { method:'POST', headers:_auth })
+      }))
+      toast.success(label + '完成: ' + ids.length + ' 项')
+      if (type === 'rules') setRules(rules.filter(function(x) { return !ids.includes(x.id) }))
+      else setOrders(orders.filter(function(x) { return !ids.includes(x.id) }))
+      setSelected(function(prev) {
+        var next = new Set(prev[type]); ids.forEach(function(id) { next.delete(id) })
+        return { ...prev, [type]: next }
+      })
+    } catch(e) { toast.error(label + '失败: ' + e.message) }
+    setBatchBusy(false)
+  }
+  var confirmPurge = function(type) {
+    var ids = Array.from(selected[type])
+    if (ids.length === 0) { toast.error('请先勾选要永久删除的项'); return }
+    if (window.confirm('永久删除 ' + ids.length + ' 项？此操作不可撤销')) batchAction(type, 'permanent-delete', '永久删除')
+  }
+
+  var renderList = function(type, items) {
+    if (items.length === 0) return <div className="small muted" style={{padding:'20px',textAlign:'center',fontSize:13}}>{type==='rules'?t("recycle.empty_rules"):t("recycle.empty_orders")}</div>
+    var allSelected = items.length > 0 && items.every(function(x) { return selected[type].has(x.id) })
+    return <>
+      <div style={{display:'flex',gap:6,padding:'8px 4px',flexWrap:'wrap'}}>
+        <span onClick={function(){toggleAll(type, items)}} className="clickable" style={{fontSize:12,padding:'5px 12px',borderRadius:99,border:'1px solid var(--border)',background:'var(--card)',color:'var(--primary)',cursor:'pointer'}}>{allSelected ? '取消全选' : '全选'}</span>
+        <span onClick={function(){batchAction(type, 'restore', '恢复')}} className="clickable" style={{fontSize:12,padding:'5px 12px',borderRadius:99,border:'1px solid var(--border)',background:'var(--card)',color:'var(--success)',cursor:'pointer'}}>批量恢复 ({selected[type].size})</span>
+        <span onClick={function(){confirmPurge(type)}} className="clickable" style={{fontSize:12,padding:'5px 12px',borderRadius:99,border:'1px solid var(--border)',background:'var(--card)',color:'var(--danger)',cursor:'pointer'}}>永久删除 ({selected[type].size})</span>
+      </div>
+      <div style={{background:'var(--card)',borderRadius:32,overflow:'hidden'}}>
+        {items.map(function(x) {
+          var isSel = selected[type].has(x.id)
+          return <div key={x.id} onClick={function(){toggleSel(type, x.id)}} className="clickable" style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 16px',borderBottom:'1px solid var(--border)',background:isSel?'rgba(29,78,216,0.08)':'transparent'}}>
+            <span style={{display:'flex',alignItems:'center',gap:10,flex:1,minWidth:0}}>
+              <span style={{width:18,height:18,borderRadius:6,border:'1.5px solid',borderColor:isSel?'var(--primary)':'var(--border)',background:isSel?'var(--primary)':'transparent',display:'inline-flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:11,flexShrink:0}}>{isSel?'✓':''}</span>
+              <span style={{fontSize:14,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{type==='rules'?x.name:(x.order_no + ' - ' + (x.product_name||''))}</span>
+            </span>
+            {!isSel && <span style={{fontSize:11,color:'var(--muted2)',flexShrink:0,marginLeft:8}}>{x.deleted_at ? String(x.deleted_at).slice(0,10) : ''}</span>}
+          </div>
+        })}
+      </div>
+    </>
   }
 
   return <div style={{display:'flex',flexDirection:'column',minHeight:'100%',background:'var(--bg)',padding:'0 0 calc(0px + env(safe-area-inset-bottom, 20px))',boxSizing:'border-box'}}>
@@ -101,23 +162,10 @@ function RecycleBin({ onClose }) {
       </div>
     })}</div> : <>
       <div style={{fontSize:13,fontWeight:600,color:'var(--muted2)',textTransform:'uppercase',letterSpacing:0.3,padding:'0 4px 6px 4px',marginBottom:0}}>{t("recycle.deleted_rules")}</div>
-      <div style={{background:'var(--card)',borderRadius:32,overflow:'hidden'}}>
-      {rules.length === 0 ? <div className="small muted" style={{padding:'20px',textAlign:'center',fontSize:13}}>{t("recycle.empty_rules")}</div> : rules.map(function(r) {
-        return <div key={r.id} onClick={function(){restore('rules', r.id)}} className="clickable" style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 16px',borderBottom:'1px solid var(--border)'}}>
-          <span style={{fontSize:14,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{r.name}</span>
-          <span style={{fontSize:12,fontWeight:600,color:'#fff',background:'var(--primary)',padding:'4px 12px',borderRadius:99,flexShrink:0}}>{t("common.restore")}</span>
-        </div>
-      })}
-      </div>
+      {renderList('rules', rules)}
       <div style={{fontSize:13,fontWeight:600,color:'var(--muted2)',textTransform:'uppercase',letterSpacing:0.3,padding:'0 4px 6px 4px',marginTop:16,marginBottom:0}}>{t("recycle.deleted_orders")}</div>
-      <div style={{background:'var(--card)',borderRadius:32,overflow:'hidden'}}>
-      {orders.length === 0 ? <div className="small muted" style={{padding:'20px',textAlign:'center',fontSize:13}}>{t("recycle.empty_orders")}</div> : orders.map(function(o) {
-        return <div key={o.id} onClick={function(){restore('orders', o.id)}} className="clickable" style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 16px',borderBottom:'1px solid var(--border)'}}>
-          <span style={{fontSize:14,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{o.order_no} - {o.product_name}</span>
-          <span style={{fontSize:12,fontWeight:600,color:'#fff',background:'var(--primary)',padding:'4px 12px',borderRadius:99,flexShrink:0}}>{t("common.restore")}</span>
-        </div>
-      })}
-      </div>
+      {renderList('orders', orders)}
+      {batchBusy && <div style={{textAlign:'center',padding:16,fontSize:12,color:'var(--muted2)'}}>处理中...</div>}
     </>}
     </div>
   </div>

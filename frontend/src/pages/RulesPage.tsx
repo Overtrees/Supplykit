@@ -56,6 +56,7 @@ const pc = j => {
 
 export default function RulesPage() {
   const toast = useToast()
+  const [saveLoading, setSaveLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [seasonsSaving, setSeasonsSaving] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -107,15 +108,21 @@ export default function RulesPage() {
   const cancelEdit = () => { setEditing(null); setF(defaultF); setCond({left:'inv.available_qty', op:'<', right:'inv.safety_qty', rightType:'field', pctValue:100, warehouse:''}) }
 
   const save = async () => {
-    let rv = cond.right
-    if (cond.rightType === 'number') rv = parseFloat(cond.right) || 0
-    else if (cond.rightType === 'field') rv = cond.right
-    else if (cond.rightType === 'pct') rv = `max(1,${cond.right}*${(cond.pctValue||100)/100})`
-    const cj = JSON.stringify({left:cond.left, op:cond.op, right:rv, rightType:cond.rightType, warehouse:cond.warehouse})
-    const isNew = !editing || !editing.id
-    const url = isNew ? API+'/api/rules' : API+'/api/rules/'+editing.id
-    await fetch(url, {method: isNew?'POST':'PUT', headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})(), 'Content-Type':'application/json'}, body:JSON.stringify({...f, mode: f.mode||'', channel:globalChannel, condition_json:cj})})
-    cancelEdit(); load(globalChannel)
+    setSaveLoading(true)
+    try {
+      let rv = cond.right
+      if (cond.rightType === 'number') rv = parseFloat(cond.right) || 0
+      else if (cond.rightType === 'field') rv = cond.right
+      else if (cond.rightType === 'pct') rv = `max(1,${cond.right}*${(cond.pctValue||100)/100})`
+      const cj = JSON.stringify({left:cond.left, op:cond.op, right:rv, rightType:cond.rightType, warehouse:cond.warehouse})
+      const isNew = !editing || !editing.id
+      const url = isNew ? API+'/api/rules' : API+'/api/rules/'+editing.id
+      const r = await fetch(url, {method: isNew?'POST':'PUT', headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})(), 'Content-Type':'application/json'}, body:JSON.stringify({...f, mode: f.mode||'', channel:globalChannel, condition_json:cj})})
+      if (!r.ok) { const err = await r.json().catch(()=>({})); throw new Error(err.detail || 'HTTP '+r.status) }
+      toast.success(isNew ? '规则已创建' : '规则已更新')
+      cancelEdit(); load(globalChannel)
+    } catch(e) { toast.error('保存失败: '+e.message) }
+    setSaveLoading(false)
   }
   const del = async (id) => {
     await fetch(API+'/api/rules/'+id, {headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()},method:'DELETE'})
@@ -159,7 +166,7 @@ export default function RulesPage() {
             </div>
           </label>
           <label style={{fontSize:12}}>补货模式
-            <select value={f.mode||''} onChange={e=>setF({...f,mode:e.target.value})} style={{...IS,fontSize:13,marginTop:4,width:'100%',minWidth:80}}>{MODES.map(m=><option key={m.v} value={m.v}>{m.l}</option>)}</select>
+            <select value={f.mode||''} onChange={e=>setF({...f,mode:e.target.value})} style={{...IS,fontSize:13,marginTop:4,width:'100%',minWidth:80}}>{MODES.filter(m => m.v !== 'bbcc' || globalChannel === 'jd').map(m=><option key={m.v} value={m.v}>{m.l}</option>)}</select>
           </label>
         </div>
 
@@ -218,7 +225,7 @@ export default function RulesPage() {
         </div>
 
         <div style={{marginTop:16,display:'flex',gap:10}}>
-          <button onClick={save} className="btn btn-primary" style={{flex:1,display:'inline-flex',alignItems:'center',gap:4,justifyContent:'center',minHeight:40}}><IconSave size={14} /> {t("common.save")}</button>
+          <button onClick={save} disabled={saveLoading} className="btn btn-primary" style={{flex:1,display:'inline-flex',alignItems:'center',gap:4,justifyContent:'center',minHeight:40}}>{saveLoading ? <><IconLoading size={14} /> 保存中...</> : <><IconSave size={14} /> {t("common.save")}</>}</button>
           <button onClick={cancelEdit} className="btn btn-ghost" style={{flex:1,background:'var(--warning)',color:'#fff',minHeight:40}}>{t("common.cancel")}</button>
         </div>
       </div>}

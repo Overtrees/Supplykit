@@ -484,7 +484,7 @@ def seed_reset(db=get_db()):
         conn = get_conn()
         try: conn.execute("PRAGMA journal_mode=DELETE")
         except Exception: pass
-        for t in ['orders','inventory','products','suppliers','alerts','quality_logs','events','purchase_orders','replenishment_config_history','cleansing_templates','custom_fields','replenishment_config','rules']:
+        for t in ['orders','inventory','products','suppliers','alerts','quality_logs','events','purchase_orders','replenishment_config_history','cleansing_templates','custom_fields','daily_sales_snapshot','daily_stats','inbound_records','outbound_records','replenishment_config','rules']:
             try:
                 if t == 'orders':
                     while True:

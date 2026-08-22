@@ -11,6 +11,7 @@ class RuleCreate(BaseModel):
     alert_desc: str = ""
     severity: str = "warning"
     channel: str = "jd"
+    mode: str = ""
     is_active: bool = True
 
 class RuleUpdate(BaseModel):
@@ -21,6 +22,7 @@ class RuleUpdate(BaseModel):
     alert_title: Optional[str] = None
     alert_desc: Optional[str] = None
     severity: Optional[str] = None
+    mode: Optional[str] = None
     is_active: Optional[bool] = None
 
 class InventoryCreate(BaseModel):

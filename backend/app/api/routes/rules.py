@@ -31,6 +31,7 @@ def create_rule(data: RuleCreate, db = get_db()):
         "alert_desc": data.alert_desc,
         "severity": data.severity,
         "channel": data.channel,
+        "mode": data.mode,
         "is_active": 1 if data.is_active else 0,
     }
     db.table("rules").insert(payload).execute()
@@ -48,6 +49,7 @@ def update_rule(rule_id: int, data: RuleUpdate, db = get_db()):
     if data.alert_desc is not None: update["alert_desc"] = data.alert_desc
     if data.severity is not None: update["severity"] = data.severity
     if data.condition is not None: update["condition_json"] = json.dumps(data.condition)
+    if data.mode is not None: update["mode"] = data.mode
     if data.is_active is not None: update["is_active"] = 1 if data.is_active else 0
     if update:
         db.table("rules").update(update).eq("id", rule_id).execute()

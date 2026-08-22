@@ -10,6 +10,7 @@ export default defineConfig({
       org: process.env.SENTRY_ORG || '',
       project: process.env.SENTRY_PROJECT || '',
       authToken: process.env.SENTRY_AUTH_TOKEN || '',
+      url: process.env.SENTRY_URL || 'https://sentry.io/',  // EU 区 org 需设 https://de.sentry.io/
       sourcemaps: { filesToDeleteAfterUpload: 'dist/assets/**/*.map' },
       disable: !process.env.SENTRY_AUTH_TOKEN,
     }),

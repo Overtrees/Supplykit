@@ -445,7 +445,7 @@ def _seed_config(db, conn):
             ('lead_time_days', '10'), ('safety_multiplier', '1.5'), ('max_turnover_days', '17'),
             ('turnover_warning_15', '15'), ('turnover_warning_90', '90'),
             ('purchase_lead_days', '14'), ('purchase_safety_days', '3'), ('moq', '50'),
-            ('b_to_c_days', '3'), ('c_safety_days', '0'), ('active_factor', '1.0'),
+            ('b_to_c_days', '3'), ('c_safety_days', '0'), ('active_factor', '1.0'), ('b_free_days', '15'), ('b_storage_fee_rate', '1.0'),
             ('target_turnover', '15'), ('_cache_version', '0'),
             # 模式参数（BBCC/传统独立配置）
             ('mode_bbcc_b_to_c_days', '3'), ('mode_bbcc_c_safety_days', '3'),

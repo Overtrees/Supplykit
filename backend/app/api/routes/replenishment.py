@@ -163,8 +163,10 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                 c_cover = round((avail + transit) / sel_ds, 1) if sel_ds > 0 else 0
                 b_idle = max(round(c_cover - b_ship_days, 1), 0)
             else: b_idle = 0
-            if b_idle > 15: parts.append("🔴 超15天免费期有仓储费")
-            elif b_idle > 10: parts.append("⚠️ 接近15天免费期")
+            # B 仓免费期天数（配置 b_free_days，默认 15，与处置建议同源）
+            b_free = int(cfg.get('b_free_days', '15'))
+            if b_idle > b_free: parts.append(f"🔴 超{b_free}天免费期有仓储费")
+            elif b_idle > b_free - 5: parts.append(f"⚠️ 接近{b_free}天免费期")
             tw90_val = int(cfg.get('turnover_warning_90', '90'))
             has_replen = (suggested > 0 or b_box_qty > 0)
             turn_check = combined_turnover if has_replen and combined_turnover is not None else combined_turnover_current

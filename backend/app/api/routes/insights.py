@@ -122,13 +122,22 @@ def get_disposal_suggestions(channel: str = 'jd', db = get_db()):
         import logging; logging.warning(f"[disposal] sales: {e}")
         sales_28 = {}
     # 配置：B仓费率（元/方/天）、免费期
+    # 配置（与补货计算同源）：90 天红线读 turnover_warning_90(补货参数页可配)，
+    # B 仓免费期读 b_free_days(默认15)，警示线 = 红线-15(同补货 tw90_val-15 逻辑)
     fee_rate = 1.0
     try:
         _r = conn.execute("SELECT value FROM replenishment_config WHERE key='b_storage_fee_rate' AND channel=?", (channel,)).fetchone()
         if _r and _r[0]: fee_rate = float(_r[0])
     except Exception: pass
+    TW_DISPOSE = 90.0
     FREE_DAYS_B = 15
-    TW_WARN, TW_DISPOSE = 75.0, 90.0
+    try:
+        _r90 = conn.execute("SELECT value FROM replenishment_config WHERE key='turnover_warning_90' AND channel=?", (channel,)).fetchone()
+        if _r90 and _r90[0]: TW_DISPOSE = float(_r90[0])
+        _rfb = conn.execute("SELECT value FROM replenishment_config WHERE key='b_free_days' AND channel=?", (channel,)).fetchone()
+        if _rfb and _rfb[0]: FREE_DAYS_B = int(_rfb[0])
+    except Exception: pass
+    TW_WARN = TW_DISPOSE - 15
     # 已处置记录（最近 30 天，用于去重）
     disposed = {}
     try:

@@ -70,9 +70,9 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', channel: str = 
             b_avail[s] = 0
         qty = int(i.get('available_qty',0) or 0); tty = int(i.get('in_transit_qty',0) or 0)
         wt = i.get('warehouse_type','platform')
-        # B 仓（platform_b）是京东主体 BBCC 专属概念：其他渠道的 B 仓行完全跳过，
-        # 不计入系统总库存/在途/安全库存，也不返回 b_available
-        if wt == 'platform_b' and channel != 'jd':
+        # B 仓（platform_b）仅京东 BBCC 模式参与链路：传统模式(京东)与其他渠道全部跳过，
+        # 不计入系统总库存/在途/安全库存，也不返回 b_available（补货模式二选一，口径对齐）
+        if wt == 'platform_b' and (channel != 'jd' or mode != 'bbcc'):
             continue
         stock_by_sku[s]['available'] += qty; stock_by_sku[s]['transit'] += tty
         stock_by_sku[s]['safety'] += int(i.get('safety_qty',0) or 0)

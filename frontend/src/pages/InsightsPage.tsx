@@ -241,7 +241,7 @@ export default function InsightsPage() {
     const mode = globalChannel === 'jd' ? replenMode : 'traditional'
     if (globalChannel !== 'jd' && replenMode === 'bbcc') setHammerReplenMode('traditional')
     loadReplen(mode, globalChannel)
-    api.get('/api/insights/purchase?days=28&channel=' + globalChannel).then(r => {
+    api.get('/api/insights/purchase?days=28&mode=' + replenMode + '&channel=' + globalChannel).then(r => {
       if (seq !== reqSeq.current) { setPurchaseLoading(false); return }
       setPurchase(r.data?.suggestions || r.data || [])
       setPurchaseLoading(false)
@@ -413,6 +413,7 @@ export default function InsightsPage() {
         <div className="card">
           <div className="section-title" style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
             <span>采购建议</span>
+            {globalChannel==='jd' && <span className="pill" style={{fontSize:10,padding:'2px 8px',minHeight:'auto',lineHeight:'18px'}}>{replenMode==='bbcc'?'BBCC 口径(含B仓)':'传统口径(不含B仓)'}</span>}
             <span className="muted2" style={{fontSize:11,fontWeight:400}}>显示 {purchaseVisCols.length}/{PURCHASE_COLS.length} 列 · 已加载 {Math.min(purchaseLimit, filteredPurchase.length)}/{filteredPurchase.length} 条{insightSearch ? ` · "${insightSearch}"` : ''}</span>
           </div>
           {purchaseLoading ? (

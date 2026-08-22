@@ -2,7 +2,7 @@
 import sqlite3
 import json
 from fastapi import APIRouter
-from app.core.database import get_conn, get_db, DB_PATH as _DB_PATH
+from app.core.database import get_conn, get_db, DB_PATH as _DB_PATH, get_task
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
@@ -12,9 +12,9 @@ def get_tasks(channel: str = 'jd', limit: int = 20):
     """返回指定渠道的异步任务列表（按创建时间倒序）"""
     try:
         # 用独立连接 + 更长 busy_timeout（避免与 seed 填充写锁冲突）
-        conn = sqlite3.connect(_DB_PATH)
+        conn = sqlite3.connect(_DB_PATH, timeout=15)
         conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA busy_timeout=10000")
+        conn.execute("PRAGMA busy_timeout=15000")
         # 过滤内部维护任务（vacuum/health_ 等系统自动任务，不显示给用户）
         # 直接用 * 查询 + 按列名取值（兼容表结构差异）
         _cols = [r[1] for r in conn.execute("PRAGMA table_info(sync_tasks)").fetchall()]
@@ -26,8 +26,6 @@ def get_tasks(channel: str = 'jd', limit: int = 20):
         conn.row_factory = sqlite3.Row
         rows = conn.execute(_sql, _params).fetchall()
         tasks = []
-        import logging
-        logging.info(f'[tasks] rows={len(rows)} cols={_cols}')
         for r in rows:
             _tid = r['task_id'] if 'task_id' in r.keys() else ''
             _type = r['task_type'] if 'task_type' in r.keys() else ''
@@ -39,16 +37,22 @@ def get_tasks(channel: str = 'jd', limit: int = 20):
             # 跳过内部维护任务（数据库 VACUUM 等）
             if _tid.startswith('vacuum') or _tid.startswith('health_') or _tid.startswith('inv_sync'):
                 continue
+            # 运行中任务优先从内存取 steps（seed 填充期间实时进度，避免锁竞争）；已完成任务从 DB result 解析
             _steps = []
-            try:
-                _rj = json.loads(_result) if _result else {}
-                if isinstance(_rj, dict):
-                    _steps = _rj.get('steps', [])
-                    # 兼容完成态：submit_task 结束时保存 result={"steps":[...]}，steps 嵌套在 result 里
-                    if not _steps and isinstance(_rj.get('result'), dict):
-                        _steps = _rj['result'].get('steps', [])
-            except Exception:
-                pass
+            if _status == 'running':
+                _mem = get_task(_tid) if _tid else None
+                if _mem and _mem.get('steps'):
+                    _steps = _mem['steps']
+            if not _steps:
+                try:
+                    _rj = json.loads(_result) if _result else {}
+                    if isinstance(_rj, dict):
+                        _steps = _rj.get('steps', [])
+                        # 兼容完成态：submit_task 结束时保存 result={"steps":[...]}，steps 嵌套在 result 里
+                        if not _steps and isinstance(_rj.get('result'), dict):
+                            _steps = _rj['result'].get('steps', [])
+                except Exception:
+                    pass
             tasks.append({
                 "task_id": _tid, "task_type": _type, "status": _status,
                 "result": _result, "channel": _ch, "steps": _steps,
@@ -57,6 +61,12 @@ def get_tasks(channel: str = 'jd', limit: int = 20):
         try: conn.close()
         except Exception: pass
         return {"ok": True, "data": tasks}
+    except sqlite3.OperationalError as e:
+        # 数据库繁忙（seed 填充清空阶段 DELETE journal 读写互斥）→ 返回可重试标记，前端继续轮询
+        _msg = str(e)
+        if 'locked' in _msg or 'busy' in _msg:
+            return {"ok": False, "error": "database_busy", "data": []}
+        return {"ok": False, "error": str(e)}
     except Exception as e:
         return {"ok": False, "error": str(e)}
 

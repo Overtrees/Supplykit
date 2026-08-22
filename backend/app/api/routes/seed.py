@@ -130,6 +130,12 @@ def _seed_fill_async():
         for t in ['inventory','products','suppliers','alerts','quality_logs','events','purchase_orders','replenishment_config_history','cleansing_templates','custom_fields','daily_sales_snapshot','daily_stats','inbound_records','outbound_records','rules','replenishment_config']:
             try: conn.execute(f'DELETE FROM "{t}"')
             except Exception: pass
+        # 立即恢复 jwt_secret（replenishment_config 被清空后，若此时 PA 重启会生成新密钥导致旧 token 全失效 401）
+        try:
+            _secret = os.getenv("JWT_SECRET", "")
+            if _secret:
+                conn.execute("INSERT OR REPLACE INTO replenishment_config(key,value,channel) VALUES('jwt_secret',?,'jd')", (_secret,))
+        except Exception: pass
         # orders 大表分批删除（每批 5000 行 commit，避免单事务过大）
         try:
             while True:
@@ -381,6 +387,13 @@ def _seed_records(db, skus_data):
 
 def _seed_config(db, conn):
     conn.execute("DELETE FROM replenishment_config")
+    # 恢复 jwt_secret（防止清空后重启导致 token 失效）
+    try:
+        _secret = os.getenv("JWT_SECRET", "")
+        if _secret:
+            conn.execute("INSERT OR REPLACE INTO replenishment_config(key,value,channel) VALUES('jwt_secret',?,'jd')", (_secret,))
+    except Exception:
+        pass
     for ch in ['jd','other']:
         configs = [
             ('lead_time_days', '10'), ('safety_multiplier', '1.5'), ('max_turnover_days', '17'),

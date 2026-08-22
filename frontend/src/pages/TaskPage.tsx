@@ -24,11 +24,17 @@ export default function TaskPage() {
   const [loadErr, setLoadErr] = useState('')
   const loadTasks = async () => {
     try {
-      const r = await fetch(API + '/api/tasks?channel=' + channel, { headers: { 'Authorization': 'Bearer ' + (() => { try { return localStorage.getItem('c_token') } catch { return '' } })() } })
+      // 15s 超时：seed 填充期间 PA 单 worker 排队，避免请求无限挂起
+      const ctrl = new AbortController()
+      const timer = setTimeout(() => ctrl.abort(), 15000)
+      const r = await fetch(API + '/api/tasks?channel=' + channel, { headers: { 'Authorization': 'Bearer ' + (() => { try { return localStorage.getItem('c_token') } catch { return '' } })() }, signal: ctrl.signal })
+      clearTimeout(timer)
       const d = await r.json()
       if (d.ok && Array.isArray(d.data)) { setTasks(d.data); setLoadErr('') }
-      else setLoadErr(d.error || ('HTTP ' + r.status))
-    } catch (e) { setLoadErr(e.message || '网络错误') }
+      else if (r.status === 401) setLoadErr('登录已失效，请重新登录')
+      else if (d.error === 'database_busy') { /* 种子填充清空阶段库忙，保留已有任务列表，下轮轮询重试 */ if (tasks.length === 0) setLoadErr('数据正在处理中...') }
+      else setLoadErr('加载失败: ' + (d.error || ('HTTP ' + r.status)))
+    } catch (e) { /* 超时/网络错误：保留已有任务，下轮重试 */ if (tasks.length === 0) setLoadErr('网络异常，自动重试中...') }
     setLoading(false)
   }
 

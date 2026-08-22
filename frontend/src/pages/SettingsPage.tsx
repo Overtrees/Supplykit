@@ -217,7 +217,7 @@ export default function SettingsPage() {
         if (d.data?.requires_reset) { toast.error('已有数据，请先重置'); setSeeding(false); setConfirm('reset'); return }
         const taskId = d.data?.task_id
         if (taskId) { try { localStorage.setItem('c_seed_task', taskId) } catch {} }
-        toast.success('填充任务已提交，请到任务管理查看详情')
+        toast.add({type:'success', title:'填充任务已提交', duration:6000, action:{label:'查看进度 →', handler:()=>{ window.__setPage && window.__setPage('tasks') }}})
       } else { toast.error('填充失败: ' + (d.error || '')); setSeeding(false) }
     } catch { toast.error('填充失败'); setSeeding(false) }
   }

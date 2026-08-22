@@ -24,7 +24,7 @@ const fl=s?list.filter(x=>(x.supplier_name||x.name||'').toLowerCase().includes(s
 return<div className='card'><div className='section-title' style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
   <span>供应商管理 <span className='small muted'>{t("common.total")} {list.length} {t("common.items")}</span></span>
 </div>
-{fl.length===0?<EmptyState icon='factory' title={s?t("supplier.empty_matched"):t("supplier.empty")}/>:<div style={{overflow:'auto',maxHeight:"calc(100vh - 180px)"}}>
+{fl.length===0?<EmptyState icon='factory' title={s?t("supplier.empty_matched"):t("supplier.empty")} desc={s?'换个关键词试试':'通过清洗页导入供应商数据'} action={!s&&<button className="btn btn-primary" onClick={()=>window.__setPage&&window.__setPage('cleansing')}>去导入数据 →</button>}/>:<div style={{overflow:'auto',maxHeight:"calc(100vh - 180px)"}}>
 <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>{t("common.showing")} {visCols.length}/{COLS.length} {t("common.columns")}</div>
 <table><colgroup>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>
 <thead style={{position:"sticky",top:0,background:"var(--card)",zIndex:1}}><tr>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<th key={col.id}>{col.label}</th>:null})}</tr></thead>

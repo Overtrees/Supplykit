@@ -57,7 +57,10 @@ export default function TaskPage() {
       <div className="section-title">任务管理</div>
       <div className="small muted" style={{ padding: '0 0 8px 0', fontSize: 12 }}>{channel === 'jd' ? '京东' : '其他渠道'} · 异步任务</div>
       {loading ? <div className="skeleton" style={{ height: 40 }} /> :
-        tasks.length === 0 ? <div className="small muted" style={{ padding: 24, textAlign: 'center' }}>{loadErr ? '加载失败: ' + loadErr : '暂无任务'}</div> :
+        tasks.length === 0 ? <div className="small muted" style={{ padding: 24, textAlign: 'center' }}>
+          {loadErr ? '加载失败: ' + loadErr : <><div style={{marginBottom:10}}>暂无任务</div>
+          <button className="btn btn-primary" onClick={()=>window.__setPage&&window.__setPage('settings')}>去一键填充种子数据 →</button></>}
+        </div> :
           tasks.map(task => {
             const type = task.task_type === 'export' ? 'export' :
               task.task_type === 'seed' ? 'seed' :

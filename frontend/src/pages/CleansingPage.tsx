@@ -163,7 +163,7 @@ export default function CleansingPage() {
       let finished = false; let threshold = setTimeout(() => {
         if (!finished) {
           finished = true
-          toast.success('导入任务已提交，请到任务管理查看详情')
+          toast.add({type:'success', title:'导入任务已提交', duration:6000, action:{label:'查看进度 →', handler:()=>{ window.__setPage && window.__setPage('tasks') }}})
           setBs(''); execLock.current = false
         }
       }, 8000)

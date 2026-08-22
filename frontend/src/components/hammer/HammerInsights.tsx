@@ -58,7 +58,7 @@ export default function HammerInsights({ channel }: HammerInsightsProps) {
         {method:'POST', headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
       const d = await r.json()
       if (d.ok && d.task_id) {
-        toast.success('导出任务已提交，请到任务管理查看详情')
+        toast.add({type:'success', title:'导出任务已提交', duration:6000, action:{label:'查看进度 →', handler:()=>{ window.__setPage && window.__setPage('tasks') }}})
       } else {
         throw new Error(d.error || '提交失败')
       }

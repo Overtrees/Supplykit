@@ -1,4 +1,28 @@
-## 2026-08-21 补货建议根因修复 + 渠道隔离完整闭环（6 个提交）
+## 2026-08-22 数据库稳定性根治 + 补货超时优化 + 清洗导入 WAL 加固
+
+### 数据库崩溃恢复（存储配额第三次超限）
+- **根因链**：备份策略漏洞（`backup_db` 降级路径只生成未压缩版 125MB → 不删除 → 两次累积撑爆 512MB 配额）→ WAL 写不了 → `disk I/O error` 启动崩溃 → 删 WAL 文件导致数据库损坏 → 备份文件也在 I/O 错误期间生成同样损坏
+- **恢复**：清空所有损坏文件 + 备份，重建空库，重建账号（setup）
+- **`backup_db` 降级路径加固**：VACUUM INTO 失败时复制原始文件后立即 gzip 压缩，删除未压缩版（`ba1942b`，后端已部署）
+- **scheduler 清理只认压缩版**：glob 从 `.bak.*` 改为 `.bak.*.gz`，不再把未压缩版算进配额（`ba1942b`）
+- **WAL 失败自动降级 DELETE**：`PRAGMA journal_mode=WAL` 加 try/except，配额满时自动切 DELETE 模式，启动不崩溃（`ba1942b`，后端已部署）
+
+### 补货 other 渠道超时修复
+- **前端超时 30s → 90s**：PA 单 worker 排队 + 其他渠道首次无缓存计算 > 30s（`40bca78`，CF 已部署）
+- **后端传统模式 7 次独立 SQL 合并为 1 次批量加载**：传统模式对每个仓库独立调 `load_daily_sales`（7 次 SQL 查询），合并为 1 次 `warehouse IN (...)` + 内存分组，计算时间从 15s+ 降至 5s 内（`b6ca6cb`，后端已部署）
+- **错误可见化**：已部署（`3fdda9e`），之前静默"库存健康暂无补货建议"现在显示具体错误原因
+
+### 种子填充 / 清洗导入 WAL 加固
+- **seed 清空前强制恢复 WAL**：`_clear_all` 开头 `PRAGMA journal_mode=WAL`（`b6ca6cb`，后端已部署）
+- **清洗导入主函数开头强制恢复 WAL**：`_run_cleansing` 开头 `PRAGMA journal_mode=WAL` + 补全 `get_conn` 导入（`b6ca6cb`，后端已部署）
+- 原因：配额满时 WAL 降级为 DELETE，此时批量写入极慢（10 万订单在 DELETE 模式下写入远超 PA 进程回收超时）
+
+### 验证
+- 后端 48 个测试逐文件通过（组合跑受 DB_PATH 多文件污染干扰，pre-existing）
+- 线上：health 正常，db 0.2MB（空库待填充），WAL 模式已恢复
+- 备份策略：`db_size_mb` 检查正常，VACUUM 阈值 150MB
+
+---## 2026-08-21 补货建议根因修复 + 渠道隔离完整闭环（6 个提交）
 
 ### 补货建议"无数据"双根因修复（bdf8593，后端已部署）
 - **当天订单日销静默丢失**：`daily_by_sku.setdefault(key,{})[dt] = daily_by_sku[key].get(dt,0) + qty` 的 RHS 先于 setdefault 求值 → KeyError 被 except 吞掉（sales_utils.py 两处）→ 当天订单销量从不计入日销 → 无快照覆盖的 SKU 日销=0、建议补=0

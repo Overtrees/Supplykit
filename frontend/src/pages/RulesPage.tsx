@@ -59,6 +59,23 @@ export default function RulesPage() {
   const [saveLoading, setSaveLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [seasonsSaving, setSeasonsSaving] = useState(false)
+  // 规则测试（可视化调试）：testRule 当前测试的规则 / testInv 模拟库存 / testResult 测试结果
+  const [testRule, setTestRule] = useState(null)
+  const [testInv, setTestInv] = useState({ available_qty: 0, safety_qty: 0, in_transit_qty: 0, warehouse_type: '', days_since_last: 0, order_quantity: 0 })
+  const [testResult, setTestResult] = useState(null)
+  const [testLoading, setTestLoading] = useState(false)
+
+  const runTest = async () => {
+    if (!testRule) return
+    setTestLoading(true)
+    try {
+      const r = await fetch(API + '/api/rules/' + testRule.id + '/test', { method: 'POST', headers: { 'Authorization': 'Bearer ' + (() => { try { return localStorage.getItem('c_token') } catch { return '' } })(), 'Content-Type': 'application/json' }, body: JSON.stringify({ inv: { available_qty: Number(testInv.available_qty)||0, safety_qty: Number(testInv.safety_qty)||0, in_transit_qty: Number(testInv.in_transit_qty)||0, warehouse_type: testInv.warehouse_type, days_since_last: Number(testInv.days_since_last)||0 }, order: { quantity: Number(testInv.order_quantity)||0 } }) })
+      const d = await r.json()
+      if (d.ok) setTestResult(d.data)
+      else toast.error('测试失败: ' + (d.error || ''))
+    } catch(e) { toast.error('测试失败: ' + e.message) }
+    setTestLoading(false)
+  }
   const [loading, setLoading] = useState(true)
   const [rules, setRules] = useState([])
   const [editing, setEditing] = useState(null)
@@ -255,6 +272,7 @@ export default function RulesPage() {
           </div>
         </div>
         <div style={{display:'flex',gap:8,flexShrink:0,alignItems:'flex-start'}}>
+          <button onClick={()=>{setTestRule(rule);setTestInv({available_qty:0,safety_qty:0,in_transit_qty:0,warehouse_type:condInfo.warehouse||'',days_since_last:0,order_quantity:0});setTestResult(null)}} className="clickable" style={{fontSize:13,padding:'6px 14px',minHeight:36,borderRadius:99,border:'1px solid var(--border)',background:'var(--card)',color:'var(--primary)',cursor:'pointer',fontWeight:600}}>测试</button>
           <button onClick={()=>{const c=pc(rule.condition_json||'{}');setEditing(rule);setF({name:rule.name,event:rule.event,alert_type:rule.alert_type||'low_stock',alert_title:rule.alert_title||'',alert_desc:rule.alert_desc||'',severity:rule.severity||'warning',mode:rule.mode||'',condition_json:rule.condition_json||'{}'});setCond(c)}} className="clickable" style={{fontSize:13,padding:'6px 14px',minHeight:36,borderRadius:99,border:'none',background:'var(--primary)',color:'#fff',cursor:'pointer',fontWeight:600}}>编辑</button>
           <button onClick={()=>del(rule.id)} className="clickable" style={{fontSize:13,padding:'6px 14px',minHeight:36,borderRadius:99,border:'none',background:'var(--danger)',color:'#fff',cursor:'pointer',fontWeight:600}}>删除</button>
         </div>
@@ -324,5 +342,49 @@ export default function RulesPage() {
         <button disabled={seasonsSaving} onClick={async()=>{setSeasonsSaving(true);const m=cfg.replenishment_mode||'bbcc';const ch=globalChannel;try{await api.put('/api/replenishment-config/seasons?mode='+m+'&channel='+ch,{items:seasons});await loadCfg(m,ch);toast.success('已保存')}catch(e){saveErr(e)}setSeasonsSaving(false)}} className="btn btn-primary" style={{width:'100%',display:'inline-flex',alignItems:'center',gap:4,justifyContent:'center',minHeight:42,opacity:seasonsSaving?0.6:1}}>{seasonsSaving?<><IconLoading size={14} /> 保存中...</>:<><IconSave size={14} /> 保存</>}</button>
       </div>
     </>}
+
+    {/* ── 规则测试弹窗（可视化调试：输入模拟数据判断是否触发） ── */}
+    {testRule && <div style={{position:'fixed',inset:0,zIndex:4000}}>
+      <div onClick={()=>setTestRule(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.3)'}} />
+      <div className="material-regular" style={{position:'fixed',left:14,right:14,bottom:'calc(env(safe-area-inset-bottom) + 14px)',maxWidth:560,margin:'0 auto',borderRadius:32,padding:'18px 16px calc(16px + env(safe-area-inset-bottom))',boxShadow:'var(--shadow-sheet)',maxHeight:'75vh',overflowY:'auto'}}>
+        <div style={{fontWeight:700,fontSize:16,marginBottom:4,textAlign:'center'}}>规则测试</div>
+        <div style={{textAlign:'center',fontSize:12,color:'var(--muted2)',marginBottom:14}}>{testRule.name}</div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+          <label style={{fontSize:12}}>可用量<input type="number" value={testInv.available_qty} onChange={e=>setTestInv(p=>({...p,available_qty:e.target.value}))} style={IS}/></label>
+          <label style={{fontSize:12}}>安全线<input type="number" value={testInv.safety_qty} onChange={e=>setTestInv(p=>({...p,safety_qty:e.target.value}))} style={IS}/></label>
+          <label style={{fontSize:12}}>在途<input type="number" value={testInv.in_transit_qty} onChange={e=>setTestInv(p=>({...p,in_transit_qty:e.target.value}))} style={IS}/></label>
+          <label style={{fontSize:12}}>滞销天数<input type="number" value={testInv.days_since_last} onChange={e=>setTestInv(p=>({...p,days_since_last:e.target.value}))} style={IS}/></label>
+          <label style={{fontSize:12}}>订单数量<input type="number" value={testInv.order_quantity} onChange={e=>setTestInv(p=>({...p,order_quantity:e.target.value}))} style={IS}/></label>
+          <label style={{fontSize:12}}>仓库主体
+            <select value={testInv.warehouse_type} onChange={e=>setTestInv(p=>({...p,warehouse_type:e.target.value}))} style={IS}>
+              <option value="">全部</option>
+              <option value="platform">C仓</option>
+              {globalChannel==='jd' && <option value="platform_b">B仓</option>}
+              <option value="own">自有仓</option>
+            </select>
+          </label>
+        </div>
+        <div style={{display:'flex',gap:10,marginTop:14}}>
+          <button onClick={runTest} disabled={testLoading} className="btn btn-primary" style={{flex:1,display:'inline-flex',alignItems:'center',gap:4,justifyContent:'center',minHeight:42}}>{testLoading ? <><IconLoading size={14}/> 测试中...</> : '运行测试'}</button>
+          <button onClick={()=>setTestRule(null)} className="btn btn-ghost" style={{flex:1,minHeight:42}}>关闭</button>
+        </div>
+        {testResult && (
+          <div style={{marginTop:14,padding:'12px 14px',borderRadius:24,background: testResult.triggered ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.08)',border:'1px solid',borderColor: testResult.triggered ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.3)'}}>
+            <div style={{fontWeight:700,fontSize:15,color: testResult.triggered ? 'var(--success)' : 'var(--danger)',marginBottom:6}}>
+              {testResult.triggered ? '✓ 触发告警' : '✗ 未触发'}
+            </div>
+            {testResult.triggered && <div style={{fontSize:12,color:'var(--text)'}}>
+              <div><b>{testResult.alert_title}</b></div>
+              <div className="small muted">{testResult.alert_desc}</div>
+            </div>}
+            {testResult.detail && <div style={{fontSize:11,color:'var(--muted2)',marginTop:8,borderTop:'1px dashed var(--border)',paddingTop:8}}>
+              条件: 当 <b>{testResult.detail.warehouse ? (testResult.detail.warehouse==='platform_b'?'B仓':testResult.detail.warehouse==='platform'?'C仓':'自有仓') : '全部'}</b> {testResult.detail.left} {testResult.detail.op} {testResult.detail.right}
+              <br/>计算: 左侧值 = {String(testResult.detail.left_value)}
+              {String(testResult.detail.right_value).startsWith('max(') ? <>，右侧 = {testResult.detail.right_value}</> : <>，右侧值 = {String(testResult.detail.right_value)}</>}
+            </div>}
+          </div>
+        )}
+      </div>
+    </div>}
   </div>
 }

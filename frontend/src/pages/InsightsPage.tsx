@@ -533,7 +533,7 @@ export default function InsightsPage() {
                           if (col.id === 'warehouse') return <td key={id} style={{fontSize:12}}>{x.warehouse}</td>
                           if (col.id === 'days') return <td key={id} style={{fontWeight:600,color:x.days_zero>=90?'#ef4444':(x.days_zero>=30?'var(--warning)':'var(--muted)'),fontSize:12}}>{x.days_zero==999?'∞':x.days_zero}天</td>
                           if (col.id === 'stock') return <td key={id} style={{fontSize:12}}>{x.stock}</td>
-                          if (col.id === 'level') return <td key={id}><span className={`pill ${x.level==='black'?'danger':x.level==='red'?'danger':'warning'}`} style={{fontSize:10,padding:'2px 8px',minHeight:'auto',lineHeight:'18px'}}>{x.level==='black'?'紧急':x.level==='red'?'处置':'滞销'}</span></td>
+                          if (col.id === 'level') return <td key={id}><span className={`pill ${x.level==='black'?'danger':x.level==='red'?'danger':x.level==='yellow'?'warning':'info'}`} style={{fontSize:10,padding:'2px 8px',minHeight:'auto',lineHeight:'18px'}}>{x.level==='black'?'紧急':x.level==='red'?'处置':x.level==='yellow'?'滞销':'观察'}</span></td>
                           if (col.id === 'note') return <td key={id} style={{fontSize:11,color:'var(--muted2)'}}>{(x.reason||[]).join(' · ')}<span style={{color:'var(--text)',fontWeight:600}}> → {x.suggestion}</span></td>
                           return <td key={id}></td>
                         })}

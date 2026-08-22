@@ -192,8 +192,8 @@ def get_disposal_suggestions(channel: str = 'jd', db = get_db()):
         import logging; logging.warning(f"[disposal] pseudo: {e}")
 
     suggestions = []
-    LEVEL = {'black': 0, 'red': 1, 'yellow': 2}
-    SUG = {'black': '临期紧急处理(促销/退供)', 'red': '退货供应商/清仓甩卖', 'yellow': '补货降量/持续跟踪'}
+    LEVEL = {'black': 0, 'red': 1, 'yellow': 2, 'observe': 3}
+    SUG = {'black': '临期紧急处理(促销/退供)', 'red': '退货供应商/清仓甩卖', 'yellow': '补货降量/持续跟踪', 'observe': '继续观察/补货降量'}
     for r in conn.execute("SELECT sku, warehouse, warehouse_type, available_qty FROM inventory WHERE channel=?", (channel,)).fetchall():
         sku, wh, wht = str(r[0]), str(r[1] or ''), str(r[2] or '')
         avail = int(r[3] or 0)
@@ -251,11 +251,16 @@ def get_disposal_suggestions(channel: str = 'jd', db = get_db()):
                 vol_m3 = round(avail * p['volume'], 3)
                 b_storage = {"days_stored": days_stored, "free_days": b_free, "volume_m3": vol_m3, "over_days": over, "billed_months": months}
                 reason.append(f"B仓在库{days_stored}天超免费期{over}天(约{months}计费月, 费率待定)")
-        # ③ 滞销主判据
+        # ③ 滞销主判据（观察线 = 滞销线一半，对齐旧"冷淡"30天观察阶段）
+        observe_days = max(slow_days // 2, 15)
         if days_zero >= slow_days:
             if level is None:
                 level = 'yellow'
             reason.append(f"{cat_name}: {days_zero}天未销售(超{slow_days}天线)")
+        elif days_zero >= observe_days:
+            if level is None:
+                level = 'observe'
+            reason.append(f"{cat_name}: {days_zero}天未销售(接近{slow_days}天线, 建议观察)")
         else:
             if level is None and b_storage:
                 level = 'yellow'

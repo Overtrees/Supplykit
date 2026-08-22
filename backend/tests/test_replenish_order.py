@@ -32,12 +32,12 @@ products = [
 ]
 for p in products: db.table("products").insert(p).execute()
 
-# 订单：NEED 高销量（今天 90 件 → 日销 30+），FULL 无销量
+# 订单：NEED 高销量（今天 90 件 → 日销 30+），FULL 无销量（订单带 warehouse 匹配库存仓）
 _today = today.strftime("%Y-%m-%d")
 for o in [("O-N1","SKU-NEED",30,0),("O-N2","SKU-NEED",30,0),("O-N3","SKU-NEED",30,0)]:
     db.table("orders").insert({"order_no":o[0],"sku":o[1],"quantity":o[2],
         "ordered_at":(today-timedelta(days=o[3])).strftime("%Y-%m-%d"),
-        "order_status":"已完成","channel":"jd"}).execute()
+        "order_status":"已完成","channel":"jd","warehouse":"北京"}).execute()
 
 # 库存：FULL 充足（avail=500），NEED 低（avail=10）
 for i in [("SKU-FULL","北京","platform",500,0,0),("SKU-NEED","北京","platform",10,0,0)]:

@@ -146,6 +146,14 @@ export default function CleansingPage() {
         setBs(''); execLock.current = false; return
       }
     }
+    // 订单类型同样必须映射 warehouse 列（否则传统补货按仓库维度算日销，该订单销量会丢失）
+    if (tt === 'order') {
+      const hasWh = Object.values(mp || {}).some(m => m && (m.target === 'warehouse' || m.t === 'warehouse'))
+      if (!hasWh) {
+        toast.error('导入订单必须映射「仓库」列，否则传统补货模式按仓库维度核算日销时会丢失该订单销量')
+        setBs(''); execLock.current = false; return
+      }
+    }
     const fd = new FormData(); fd.append('file', f); fd.append('mapping', JSON.stringify(mp)); fd.append('target', tt); fd.append('channel', ch)
     try {
       const r = await api.post('/api/cleansing/execute-async', fd)

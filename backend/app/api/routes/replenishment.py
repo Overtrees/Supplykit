@@ -231,15 +231,8 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                     "SELECT sku, warehouse, quantity, ordered_at FROM orders WHERE ordered_at>=? AND channel=?",
                     (today, channel)
                 ).fetchall()
-                # 订单无 warehouse 时，按该 SKU 的 platform 仓推断（单仓场景归入该仓，避免日销丢失）
-                _sku_wh_fallback = {}
-                for _inv0 in _inv_wh:
-                    _s0 = _inv0.get('sku', ''); _w0 = _inv0.get('warehouse', '')
-                    if _s0 and _w0 and _s0 not in _sku_wh_fallback:
-                        _sku_wh_fallback[_s0] = _w0
                 for _o in _today_rows:
-                    _wh = _o[1] or _sku_wh_fallback.get(_o[0], '') or ''
-                    _sku = _o[0]; _key = f"{_sku}|{sku_barcode_map.get(_sku,'')}" if sku_barcode_map and sku_barcode_map.get(_sku) else _sku
+                    _wh = _o[1] or ''; _sku = _o[0]; _key = f"{_sku}|{sku_barcode_map.get(_sku,'')}" if sku_barcode_map and sku_barcode_map.get(_sku) else _sku
                     _dt = str(_o[3] or '')[:10]
                     if _dt >= cutoff:
                         _d = _wh_raw.setdefault(_wh, {}).setdefault(_key, {})

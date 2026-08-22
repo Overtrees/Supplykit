@@ -1,4 +1,12 @@
-"""采购记录（补货/采购"已下单"标记）持久化"""
+"""采购记录（BBCC 模式「已下单」标记）持久化
+
+业务含义：京东 BBCC 补货模式下，给 SKU 打上「已下单到 B 仓」的入库批次标记，
+配合 arrival_date（到 B 仓日期）监控在库天数，避免超储被京东收取仓储费。
+- 创建（POST）：标记 SKU 已下单（upsert，sku+store 维度）
+- 更新（PUT）：设置 arrival_date（到 B 仓日期，在库天数计算的起点）
+- 删除（DELETE）：取消已下单标记
+仅京东 BBCC 模式使用（前端 replenMode==='bbcc' 控制），按 channel 隔离。
+"""
 from fastapi import APIRouter
 from app.core.database import get_db
 from app.core.response import ok, fail

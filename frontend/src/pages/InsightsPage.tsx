@@ -196,6 +196,10 @@ export default function InsightsPage() {
   const [orderedKeys, setOrderedKeys] = useState([])
   const [orderedItems, setOrderedItems] = useState([])
 
+  // ─── BBCC 模式「已下单」功能 ──────────────────────────────────────────
+  // 业务含义：京东 B 仓入库批次标记。点击「下单」= 给该 SKU 打上 B 仓入库批次
+  // 标记，再填写「到 B 仓日期」，用于监控在库天数（避免超储被京东收取仓储费）。
+  // 仅 BBCC 模式展示（replenMode==='bbcc' 控制），按渠道隔离持久化。
   const toggleOrdered = async (sku, store, product_name, suggested_qty) => {
     const key = sku + '|' + store
     const isOrdered = orderedKeys.includes(key)
@@ -216,7 +220,7 @@ export default function InsightsPage() {
     }
   }
 
-  // 设置到B仓日期
+  // 设置到 B 仓日期（入库批次生效日，用于计算在库天数监控超储）
   const setArrivalDate = async (item, date) => {
     // 乐观更新
     setOrderedItems(prev => prev.map(x => x.id === item.id ? {...x, arrival_date: date} : x))
@@ -356,7 +360,7 @@ export default function InsightsPage() {
               )}
             </div>
           )}
-          {/* 已下单明细（仅BBCC模式） */}
+          {/* 已下单明细（仅BBCC模式）：B 仓入库批次 + 在库天数监控，超储预警用 */}
           {replenMode==='bbcc' && orderedItems.length > 0 && <details style={{marginTop:12}} open>
             <summary className="small muted" style={{cursor:'pointer',fontSize:12,fontWeight:600}}>📦 已下单 {orderedItems.length} 项 · 点击查看入库日期与仓储天数</summary>
             <div style={{fontSize:12,marginTop:8}}>

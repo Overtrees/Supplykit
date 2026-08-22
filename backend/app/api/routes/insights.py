@@ -91,6 +91,122 @@ def get_slow_moving_products(db = get_db()):
     return detect_slow_moving_products(db, create_alerts=False)
 
 
+@router.get('/disposal-suggestions')
+def get_disposal_suggestions(channel: str = 'jd', db = get_db()):
+    """滞销品自动处置建议 — SKU×仓库粒度
+
+    分级（对齐补货考核线，replenishment.py 同口径）：
+    - 周转 = 可用库存 / 28天日销（融合口径简化为单窗口）
+    - 处置(dispose): 周转 > 90天 或 BBCC B仓在库 > 15天免费期
+    - 警示(warn): 周转 75~90天 或 B仓在库 11~15天
+    - 观察(observe): 其余有库存的滞销方向
+    仓储费（仅京东 BBCC B仓）: 占用方数(可用×volume) × 超免费期天数 × 费率(可配)
+    """
+    from datetime import datetime, timedelta
+    from app.core.database import get_conn
+    from app.core.sales_utils import load_daily_sales, calc_sales_from_daily
+    conn = get_conn()
+    today = datetime.utcnow()
+    # 商品信息（单价/体积/名称）
+    products = {}
+    try:
+        for r in conn.execute("SELECT sku, product_name, price, volume, channel FROM products WHERE (deleted_at IS NULL OR deleted_at='') AND channel=?", (channel,)).fetchall():
+            products[r[0]] = {"name": r[1], "price": float(r[2] or 0), "volume": float(r[3] or 0), "channel": r[4] or 'jd'}
+    except Exception as e:
+        import logging; logging.warning(f"[disposal] products: {e}")
+    # 日销（28 天窗口）
+    try:
+        db_sales = load_daily_sales(28, db, channel=channel)
+        sales_28 = calc_sales_from_daily(db_sales, 28)
+    except Exception as e:
+        import logging; logging.warning(f"[disposal] sales: {e}")
+        sales_28 = {}
+    # 配置：B仓费率（元/方/天）、免费期
+    fee_rate = 1.0
+    try:
+        _r = conn.execute("SELECT value FROM replenishment_config WHERE key='b_storage_fee_rate' AND channel=?", (channel,)).fetchone()
+        if _r and _r[0]: fee_rate = float(_r[0])
+    except Exception: pass
+    FREE_DAYS_B = 15
+    TW_WARN, TW_DISPOSE = 75.0, 90.0
+    # 已处置记录（最近 30 天，用于去重）
+    disposed = {}
+    try:
+        cutoff30 = (today - timedelta(days=30)).strftime('%Y-%m-%d %H:%M:%S')
+        for r in conn.execute("SELECT sku, warehouse, action FROM disposal_records WHERE channel=? AND created_at >= ?", (channel, cutoff30)).fetchall():
+            disposed[(r[0], r[1])] = r[2] or ''
+    except Exception as e:
+        import logging; logging.warning(f"[disposal] records: {e}")
+    # B 仓入库批次（在库天数）
+    b_arrival = {}
+    try:
+        for r in conn.execute("SELECT sku, arrival_date FROM purchase_orders WHERE channel=? AND arrival_date != ''", (channel,)).fetchall():
+            if r[1]:
+                try:
+                    d = datetime.strptime(str(r[1])[:10], "%Y-%m-%d")
+                    b_arrival.setdefault(r[0], d)
+                except Exception: pass
+    except Exception as e:
+        import logging; logging.warning(f"[disposal] purchase_orders: {e}")
+    suggestions = []
+    # 按 SKU×仓库 遍历
+    for r in conn.execute("SELECT sku, warehouse, warehouse_type, available_qty, in_transit_qty FROM inventory WHERE channel=?", (channel,)).fetchall():
+        sku, wh, wht = r[0], r[1] or '', r[2] or ''
+        avail = int(r[3] or 0)
+        if avail <= 0:
+            continue  # 无可用库存不处置
+        p = products.get(sku)
+        if not p:
+            continue  # 商品已删/不在渠道
+        daily = float(sales_28.get(sku, 0) or 0)
+        turnover = round(avail / daily, 1) if daily > 0 else 999.0
+        fund = round(avail * p["price"], 0)
+        reason = []
+        level = 'observe'
+        b_storage = None
+        # B 仓（京东专属）：15 天免费期 + 仓储费
+        if wht == 'platform_b' and channel == 'jd':
+            days_stored = 0
+            if sku in b_arrival:
+                days_stored = max((today - b_arrival[sku]).days, 0)
+            if days_stored > FREE_DAYS_B:
+                level = 'dispose'
+                reason.append(f"B仓在库{days_stored}天超{FREE_DAYS_B}天免费期")
+                vol_m3 = round(avail * p["volume"], 3)
+                fee = round(vol_m3 * (days_stored - FREE_DAYS_B) * fee_rate, 2)
+                b_storage = {"days_stored": days_stored, "free_days": FREE_DAYS_B, "volume_m3": vol_m3, "fee_est": fee, "fee_rate": fee_rate}
+                reason.append(f"预计仓储费约 ¥{fee}")
+            elif days_stored > FREE_DAYS_B - 4:
+                if level != 'dispose':
+                    level = 'warn'
+                reason.append(f"B仓在库{days_stored}天接近{FREE_DAYS_B}天免费期")
+        # 周转考核（两模式共用 90 天红线）
+        if turnover > TW_DISPOSE:
+            if level != 'dispose' or wht != 'platform_b':
+                level = 'dispose'
+            reason.append(f"周转{turnover}天超{TW_DISPOSE:.0f}天红线")
+        elif turnover > TW_WARN:
+            if level != 'dispose':
+                level = 'warn'
+            reason.append(f"周转{turnover}天接近{TW_WARN:.0f}天红线")
+        if not reason:
+            continue  # 无风险不输出
+        suggestion = {'dispose': '退货供应商 / 清仓甩卖', 'warn': '降价促销 / 调整策略', 'observe': '继续观察，补货降量'}[level]
+        disposed_key = (sku, wh)
+        suggestions.append({
+            "sku": sku, "product_name": p["name"], "channel": channel,
+            "warehouse": wh, "warehouse_type": wht,
+            "stock": avail, "turnover_days": turnover, "fund_occupied": fund,
+            "daily_sales": round(daily, 1),
+            "level": level, "reason": reason, "suggestion": suggestion,
+            "b_storage": b_storage,
+            "disposed": disposed_key in disposed, "disposed_action": disposed.get(disposed_key, ''),
+        })
+    order_w = {'dispose': 0, 'warn': 1, 'observe': 2}
+    suggestions.sort(key=lambda x: (order_w.get(x['level'], 3), -x['turnover_days']))
+    return ok(suggestions)
+
+
 @router.get('/export-slow-moving')
 def export_slow_moving_excel(channel: str = 'jd', db = get_db()):
     """导出滞销预警为 Excel"""

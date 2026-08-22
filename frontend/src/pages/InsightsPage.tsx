@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { api } from '../api/client'
+import { useToast } from '../components/Toast'
 import { useAppStore } from '../store/useAppStore'
 import { IconTrendUp, IconTrendDown, IconTrendFlat, IconUndo } from '../components/Icons'
 import { t } from "../locale"
@@ -84,9 +85,19 @@ function Skeleton({ height = 16, width = '100%', style }) {
 }
 
 export default function InsightsPage() {
+  const toast = useToast()
   const [replen, setReplen] = useState([])
   const [purchase, setPurchase] = useState([])
   const [slowMoving, setSlowMoving] = useState([])
+  // 滞销处置建议（SKU×仓库粒度 + 批量处置）
+  const [disposals, setDisposals] = useState([])
+  const [disposalsLoading, setDisposalsLoading] = useState(true)
+  const [dispSel, setDispSel] = useState([])
+  const [dispAction, setDispAction] = useState('return')
+  const [dispNote, setDispNote] = useState('')
+  const [dispBusy, setDispBusy] = useState(false)
+  const [showDisposed, setShowDisposed] = useState(false)
+  useEffect(() => { setDispSel([]) }, [globalChannel, tab])
 
   // 各区块加载状态
   const [replenLoading, setReplenLoading] = useState(true)
@@ -248,7 +259,27 @@ export default function InsightsPage() {
       setSlowMoving(r.data || [])
       setSlowLoading(false)
     }).catch(() => setSlowLoading(false))
+    api.get('/api/insights/disposal-suggestions?channel=' + globalChannel).then(r => {
+      if (seq !== reqSeq.current) { setDisposalsLoading(false); return }
+      setDisposals(r.data || [])
+      setDisposalsLoading(false)
+    }).catch(() => setDisposalsLoading(false))
   }, [globalChannel, replenMode])
+
+  const doDispose = async () => {
+    if (dispSel.length === 0) { toast.error('请先勾选要处置的项'); return }
+    setDispBusy(true)
+    try {
+      const items = dispSel
+        .map(key => { const parts = key.split('|'); const d = disposals.find(x => (x.sku + '|' + x.warehouse) === key); return d ? { sku: parts[0], warehouse: parts[1], warehouse_type: d.warehouse_type, level: d.level, turnover_days: d.turnover_days, reason: d.reason } : null })
+        .filter(Boolean)
+      await api.post('/api/disposals/batch', { channel: globalChannel, action: dispAction, note: dispNote, items })
+      toast.success('已标记 ' + items.length + ' 项处置')
+      setDispSel([]); setDispNote('')
+      api.get('/api/insights/disposal-suggestions?channel=' + globalChannel).then(r => setDisposals(r.data || [])).catch(() => {})
+    } catch(e) { toast.error('处置失败: ' + (e.message||'')) }
+    setDispBusy(false)
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -471,6 +502,63 @@ export default function InsightsPage() {
           <div className="section-title" style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
             <span>滞销预警</span>
             <span className="muted2" style={{fontSize:11,fontWeight:400}}>显示 {slowVisCols.length}/{SLOW_COLS.length} 列 · 共 {filteredSlow.length} 条{insightSearch ? ` · "${insightSearch}"` : ''}</span>
+          </div>
+
+          {/* 处置建议（SKU×仓库 + 批量处置） */}
+          <div style={{marginBottom:14,padding:14,borderRadius:24,border:'1px solid var(--border)',background:'var(--bg-thin)'}}>
+            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8,flexWrap:'wrap'}}>
+              <span style={{fontWeight:700,fontSize:14}}>自动处置建议</span>
+              <span className="muted2" style={{fontSize:11}}>按 SKU×仓库 · 对齐 90 天周转红线 + B仓15天免费期</span>
+              <span onClick={()=>setShowDisposed(!showDisposed)} className="clickable" style={{marginLeft:'auto',fontSize:12,padding:'4px 12px',borderRadius:99,border:'1px solid var(--border)',background:'var(--card)',cursor:'pointer'}}>{showDisposed?'隐藏已处置':'查看已处置'}</span>
+            </div>
+            {disposalsLoading ? (
+              <div className="muted" style={{padding:12,textAlign:'center',fontSize:12}}>计算中...</div>
+            ) : (
+              <>
+                {disposals.filter(x => showDisposed || !x.disposed).length === 0 ? (
+                  <div className="muted" style={{padding:12,textAlign:'center',fontSize:12}}>{showDisposed ? '暂无处置记录' : '暂无需要处置的积压库存 🎉'}</div>
+                ) : (
+                  <div style={{maxHeight:'calc(100vh - 260px)',overflowY:'auto'}}>
+                    {disposals.filter(x => showDisposed || !x.disposed).map(d => {
+                      const key = d.sku + '|' + d.warehouse
+                      const isSel = dispSel.includes(key)
+                      return <div key={key} onClick={()=>setDispSel(prev => isSel ? prev.filter(k=>k!==key) : [...prev, key])} style={{display:'flex',gap:10,alignItems:'flex-start',padding:'10px 12px',marginBottom:6,borderRadius:16,border:'1px solid var(--border)',background:isSel?'rgba(29,78,216,0.08)':'var(--card)',cursor: d.disposed ? 'default':'pointer',opacity:d.disposed?0.6:1}}>
+                        <span style={{width:18,height:18,borderRadius:6,border:'1.5px solid',borderColor:isSel?'var(--primary)':'var(--border)',background:isSel?'var(--primary)':'transparent',display:'inline-flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:11,flexShrink:0,marginTop:2}}>{isSel?'✓':''}</span>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+                            <span className={`pill ${d.level==='dispose'?'danger':d.level==='warn'?'warning':'info'}`} style={{fontSize:10,padding:'2px 8px',minHeight:'auto',lineHeight:'18px'}}>{d.level==='dispose'?'处置':d.level==='warn'?'警示':'观察'}</span>
+                            <span style={{fontWeight:600,fontSize:13}}>{d.sku}</span>
+                            <span style={{fontSize:12,marginLeft:4}}>{d.product_name}</span>
+                            {d.disposed && <span style={{fontSize:11,color:'var(--muted2)'}}>✓ 已处置({d.disposed_action||'已标记'})</span>}
+                          </div>
+                          <div style={{fontSize:11,color:'var(--muted2)',marginTop:4}}>
+                            <b style={{color:'var(--text)'}}>{d.warehouse}</b> · 库存 {d.stock} · 周转 {d.turnover_days==999?'∞':d.turnover_days}天 · 占用 ¥{d.fund_occupied}
+                            {d.b_storage && <span style={{color:'var(--danger)'}}> · 在库{d.b_storage.days_stored}天({d.b_storage.volume_m3}方) · 日仓储费约¥{d.b_storage.fee_est}</span>}
+                          </div>
+                          <div style={{fontSize:11,marginTop:4,color:'var(--text)'}}>
+                            {(d.reason||[]).join(' · ')}
+                            <span style={{fontWeight:600}}> → {d.suggestion}</span>
+                          </div>
+                        </div>
+                      </div>
+                    })}
+                  </div>
+                )}
+                {/* 批量处置操作栏 */}
+                {!showDisposed && dispSel.length > 0 && (
+                  <div style={{display:'flex',gap:6,flexWrap:'wrap',marginTop:10,padding:'8px 10px',borderRadius:16,background:'var(--card)',border:'1px solid var(--border)',alignItems:'center'}}>
+                    <span style={{fontSize:12,fontWeight:600}}>已选 {dispSel.length} 项</span>
+                    <select value={dispAction} onChange={e=>setDispAction(e.target.value)} style={{fontSize:12,padding:'6px 8px',borderRadius:99,border:'1px solid var(--border)',background:'var(--card)'}}>
+                      <option value="return">退货供应商</option>
+                      <option value="clearance">清仓甩卖</option>
+                      <option value="promo">降价促销</option>
+                    </select>
+                    <input value={dispNote} onChange={e=>setDispNote(e.target.value)} placeholder="备注(可选)" style={{flex:1,minWidth:80,fontSize:12,padding:'6px 10px',borderRadius:99,border:'1px solid var(--border)',background:'var(--card)',outline:'none'}} />
+                    <button onClick={doDispose} disabled={dispBusy} className="btn btn-primary" style={{minHeight:32,padding:'0 14px',fontSize:12,flexShrink:0}}>{dispBusy?'处理中...':'批量标记处置'}</button>
+                  </div>
+                )}
+              </>
+            )}
           </div>
           {slowLoading ? (
             <div>

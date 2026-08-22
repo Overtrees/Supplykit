@@ -10,7 +10,7 @@ from collections import defaultdict
 from typing import Any, Optional
 
 DB_PATH = os.getenv("SQLITE_PATH", os.path.join(os.path.dirname(__file__), "..", "supplykit.db"))
-SCHEMA_VERSION = 5  # 当前 schema 版本，每次改表结构+1
+SCHEMA_VERSION = 6  # 当前 schema 版本，每次改表结构+1
 
 # 版本化迁移注册表：{目标版本: 迁移函数}
 # 迁移函数签名: def migrate(conn): 执行该版本的 schema 变更
@@ -81,7 +81,25 @@ def _migrate_v5(conn):
     try:
         conn.execute("ALTER TABLE products ADD COLUMN deleted_at TEXT DEFAULT ''")
     except sqlite3.OperationalError:
-        pass  # 列已存在则跳过（幂等）)
+        pass  # 列已存在则跳过（幂等）
+
+
+# 迁移 v6：处置记录表（滞销处置闭环：批量标记已处置，避免重复建议）
+@_register_migration(6)
+def _migrate_v6(conn):
+    conn.execute("""CREATE TABLE IF NOT EXISTS disposal_records (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sku TEXT DEFAULT '',
+        warehouse TEXT DEFAULT '',
+        warehouse_type TEXT DEFAULT '',
+        channel TEXT DEFAULT 'jd',
+        level TEXT DEFAULT '',
+        turnover_days REAL DEFAULT 0,
+        reason TEXT DEFAULT '',
+        action TEXT DEFAULT '',
+        note TEXT DEFAULT '',
+        created_at TEXT DEFAULT (datetime('now'))
+    )""")
 
 _local = threading.local()
 

@@ -42,7 +42,11 @@ def get_tasks(channel: str = 'jd', limit: int = 20):
             _steps = []
             try:
                 _rj = json.loads(_result) if _result else {}
-                _steps = _rj.get('steps', []) if isinstance(_rj, dict) else []
+                if isinstance(_rj, dict):
+                    _steps = _rj.get('steps', [])
+                    # 兼容完成态：submit_task 结束时保存 result={"steps":[...]}，steps 嵌套在 result 里
+                    if not _steps and isinstance(_rj.get('result'), dict):
+                        _steps = _rj['result'].get('steps', [])
             except Exception:
                 pass
             tasks.append({

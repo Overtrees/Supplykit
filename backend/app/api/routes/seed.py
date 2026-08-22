@@ -82,14 +82,18 @@ def seed_fill_status(task_id: str = 'seed_fill'):
     if t.get('result'): r['result'] = t['result']
     return ok(r)
 
-def _run_step(step_name, fn):
+def _run_step(step_name, fn, steps):
+    """添加步骤到列表（先设为 running），执行 fn，完成后更新为 ok/error"""
     import time as _t
+    steps.append({"name": step_name, "status": "running"})
+    _update_steps(steps)
     start = _t.time()
     try:
         fn()
-        return {"name": step_name, "status": "ok", "elapsed": round(_t.time() - start, 1)}
+        steps[-1] = {"name": step_name, "status": "ok", "elapsed": round(_t.time() - start, 1)}
     except Exception as e:
         err = str(e)[:500]
+        steps[-1] = {"name": step_name, "status": "error", "error": err, "elapsed": round(_t.time() - start, 1)}
         # 持久化异常到 quality_logs（可跨重启查看）
         try:
             conn = get_conn()
@@ -98,7 +102,7 @@ def _run_step(step_name, fn):
             conn.commit()
         except Exception as le:
             pass
-        return {"name": step_name, "status": "error", "error": err, "elapsed": round(_t.time() - start, 1)}
+    _update_steps(steps)
 
 def _seed_fill_async():
     global _current_task_id
@@ -157,36 +161,28 @@ def _seed_fill_async():
         # 恢复 WAL 模式
         try: conn.execute("PRAGMA journal_mode=WAL")
         except Exception: pass
-    steps.append(_run_step('清空旧数据', _clear_all))
-    _update_steps(steps)
+    _run_step('清空旧数据', _clear_all, steps)
 
     # 步骤2: 写入商品/供应商
-    steps.append(_run_step('写入商品/供应商', lambda: _seed_products_suppliers(db, skus_data)))
-    _update_steps(steps)
+    _run_step('写入商品/供应商', lambda: _seed_products_suppliers(db, skus_data), steps)
 
     # 步骤3: 生成订单
-    steps.append(_run_step('生成订单', lambda: _seed_orders(db, today, skus_data)))
-    _update_steps(steps)
+    _run_step('生成订单', lambda: _seed_orders(db, today, skus_data), steps)
 
     # 步骤4: 生成库存
-    steps.append(_run_step('生成库存', lambda: _seed_inventory(db, skus_data)))
-    _update_steps(steps)
+    _run_step('生成库存', lambda: _seed_inventory(db, skus_data), steps)
 
     # 步骤5: 生成当月出入库记录（进销存页展示）
-    steps.append(_run_step('生成出入库记录', lambda: _seed_records(db, skus_data)))
-    _update_steps(steps)
+    _run_step('生成出入库记录', lambda: _seed_records(db, skus_data), steps)
 
     # 步骤6: 写入补货参数和规则
-    steps.append(_run_step('写入补货参数/规则', lambda: _seed_config(db, conn)))
-    _update_steps(steps)
+    _run_step('写入补货参数/规则', lambda: _seed_config(db, conn), steps)
 
     # 步骤7: 触发规则引擎
-    steps.append(_run_step('触发规则引擎', lambda: _seed_rules(db, skus_data)))
-    _update_steps(steps)
+    _run_step('触发规则引擎', lambda: _seed_rules(db, skus_data), steps)
 
     # 步骤8: 构建日销快照（新数据实时纳入日销计算，不等次日凌晨）
-    steps.append(_run_step('构建日销快照', lambda: build_daily_sales_snapshot(db)))
-    _update_steps(steps)
+    _run_step('构建日销快照', lambda: build_daily_sales_snapshot(db), steps)
 
     # 刷新缓存
     try:

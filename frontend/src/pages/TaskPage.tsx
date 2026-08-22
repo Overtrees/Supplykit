@@ -33,7 +33,7 @@ export default function TaskPage() {
   }
 
   useEffect(() => { setTasks([]); setLoading(true); loadTasks() }, [channel])
-  useEffect(() => { const poll = setInterval(loadTasks, 5000); return () => clearInterval(poll) }, [channel])
+  useEffect(() => { const poll = setInterval(loadTasks, 3000); return () => clearInterval(poll) }, [channel])
   // 页面从后台回到前台时立即刷新（不等下一次轮询）
   useEffect(() => {
     const onVis = () => { if (document.visibilityState === 'visible') loadTasks() }
@@ -78,12 +78,12 @@ export default function TaskPage() {
                       {task.steps.map((s, i) => (
                         <div key={i} style={{display:'flex',alignItems:'center',gap:6,fontSize:11}}>
                           <span style={{color: s.status === 'ok' ? 'var(--success)' : s.status === 'error' ? 'var(--danger)' : 'var(--muted2)'}}>
-                            {s.status === 'ok' ? '✓' : s.status === 'error' ? '✗' : '…'}
+                            {s.status === 'ok' ? '✓' : s.status === 'error' ? '✗' : ''}
                           </span>
                           <span style={{color:'var(--text)',flex:1}}>{s.name}</span>
                           {s.status === 'ok' && <span style={{color:'var(--muted2)',fontSize:10}}>{s.elapsed}s</span>}
                           {s.status === 'error' && <span style={{color:'var(--danger)',fontSize:10}}>{String(s.error||'').slice(0,30)}</span>}
-                          {s.status === 'running' && <span className="hammer-spinner" style={{width:10,height:10,borderWidth:1.5}} />}
+                          {s.status === 'running' && <><span style={{color:'var(--primary)',fontSize:10}}>进行中</span><span className="hammer-spinner" style={{width:10,height:10,borderWidth:1.5}} /></>}
                         </div>
                       ))}
                     </div>

@@ -526,13 +526,13 @@ export default function InsightsPage() {
                         <span style={{width:18,height:18,borderRadius:6,border:'1.5px solid',borderColor:isSel?'var(--primary)':'var(--border)',background:isSel?'var(--primary)':'transparent',display:'inline-flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:11,flexShrink:0,marginTop:2}}>{isSel?'✓':''}</span>
                         <div style={{flex:1,minWidth:0}}>
                           <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
-                            <span className={`pill ${d.level==='dispose'?'danger':d.level==='warn'?'warning':'info'}`} style={{fontSize:10,padding:'2px 8px',minHeight:'auto',lineHeight:'18px'}}>{d.level==='dispose'?'处置':d.level==='warn'?'警示':'观察'}</span>
+                            <span className={`pill ${d.level==='black'?'danger':d.level==='red'?'danger':d.level==='yellow'?'warning':'info'}`} style={{fontSize:10,padding:'2px 8px',minHeight:'auto',lineHeight:'18px',background:d.level==='black'?'#7c3aed':'',border:d.level==='black'?'1px solid #7c3aed':''}}>{d.level==='black'?'紧急':d.level==='red'?'处置':'滞销'}</span>
                             <span style={{fontWeight:600,fontSize:13}}>{d.sku}</span>
                             <span style={{fontSize:12,marginLeft:4}}>{d.product_name}</span>
                             {d.disposed && <span style={{fontSize:11,color:'var(--muted2)'}}>✓ 已处置({d.disposed_action||'已标记'})</span>}
                           </div>
                           <div style={{fontSize:11,color:'var(--muted2)',marginTop:4}}>
-                            <b style={{color:'var(--text)'}}>{d.warehouse}</b> · 库存 {d.stock} · 周转 {d.turnover_days==999?'∞':d.turnover_days}天 · 占用 ¥{d.fund_occupied}
+                            <b style={{color:'var(--text)'}}>{d.warehouse}</b> · {d.cat_line} · {d.days_zero}天未销售 · 库存 {d.stock} · 占用 ¥{d.fund_occupied}
                             {d.b_storage && <span style={{color:'var(--danger)'}}> · 在库{d.b_storage.days_stored}天({d.b_storage.volume_m3}方) · 超期{d.b_storage.over_days}天 ≈{d.b_storage.billed_months}计费月(费率待定)</span>}
                           </div>
                           <div style={{fontSize:11,marginTop:4,color:'var(--text)'}}>

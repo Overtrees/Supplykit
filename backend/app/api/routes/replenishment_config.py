@@ -92,6 +92,43 @@ def update_seasons(data: dict, mode: str = 'bbcc', channel: str = 'jd', db=get_d
         }).execute()
     db.table("replenishment_config").upsert({"key": key, "value": val, "channel": channel, "updated_at": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}, conflict_col='key')
     return ok(items)
+@router.get('/slow-cats')
+def get_slow_cats(channel: str = 'jd', db=get_db()):
+    """滞销品类配置（自定义条目: 名称/滞销线/临期线/品类名单/开关）"""
+    import json
+    val = db.table("replenishment_config").select('*').eq('key', 'slow_cats_config').eq('channel', channel).execute().data
+    if val and val[0].get('value'):
+        try:
+            d = json.loads(val[0]['value'])
+            if isinstance(d, list):
+                return ok(d)
+        except Exception:
+            pass
+    # 默认：食品 + 个护家清两类
+    return ok([
+        {'key': 'food', 'name': '食品', 'slow_days': 30, 'shelf_months': 3,
+         'cats': '酱油,酱料,调味汁,食用油,醋,料酒,蚝油,芝麻油,辣椒酱,拌面酱,老抽,生抽,陈醋,香醋,白醋,米醋,花椒油,藤椒油,辣椒油,芥末油,番茄酱,甜辣酱,沙拉酱,芝麻酱,花生酱,豆瓣酱,豆豉,腐乳,糟卤,鱼露,咖喱块,咖喱粉,五香粉,孜然粉,花椒粉,辣椒粉,胡椒粉,十三香,卤料包,炖肉料,鸡精,味精,白糖,冰糖,红糖,麦芽糖,蜂蜜,黄酒,米酒,薯片,虾条,爆米花,坚果,瓜子,花生,饼干,威化,巧克力,糖果', 'enabled': True},
+        {'key': 'home', 'name': '个护家清', 'slow_days': 60, 'shelf_months': 6,
+         'cats': '洗衣液,洗洁精,洗手液,消毒液,纸巾,湿巾,垃圾袋,保鲜膜,保鲜袋,收纳盒', 'enabled': True},
+    ])
+
+
+@router.put('/slow-cats')
+def update_slow_cats(data: dict, channel: str = 'jd', db=get_db()):
+    import json
+    items = data.get('items', [])
+    val = json.dumps(list(items), ensure_ascii=False)
+    existing = db.table("replenishment_config").select('value').eq('key', 'slow_cats_config').eq('channel', channel).execute().data
+    old_val = existing[0]['value'] if existing else ''
+    if old_val != val:
+        db.table("replenishment_config_history").insert({
+            'key': 'slow_cats_config', 'old_value': old_val, 'new_value': val,
+            'channel': channel, 'mode': '', 'created_at': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+        }).execute()
+    db.table("replenishment_config").upsert({"key": "slow_cats_config", "value": val, "channel": channel, "updated_at": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}, conflict_col='key')
+    return ok(items)
+
+
 @router.get('/calculate')
 def calculate(mode: str = 'bbcc', db=get_db()):
     prefix = f'mode_{mode}_'

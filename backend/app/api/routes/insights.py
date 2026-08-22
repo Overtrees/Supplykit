@@ -93,128 +93,96 @@ def get_slow_moving_products(db = get_db()):
 
 @router.get('/disposal-suggestions')
 def get_disposal_suggestions(channel: str = 'jd', db = get_db()):
-    """滞销品自动处置建议 v6 — 组合判定（SKU×仓库粒度）
+    """滞销品自动处置建议（精简版）— SKU×仓库粒度
 
-    维度（全部可配，参数页「滞销参数」tab）：
-    - 时间: 连续零销售天数（最后销售日-今天）
-    - 动销率: 近N天销售件数/当前库存（食品45天<8%, 家清60天<3%）
-    - 周转/存销比: 库存/28天日均销
-    - 深度: SKU库存/近90天总销量占比 + 连续无订单天数
-    - 临期: best_before 距今天数（食品<3月/个护<6月=高风险）
-    - B仓仓储费: 超免费期天数×占用方数×费率（京东BBCC）
-    - ABC: 近90天销售额分档（A核心不轻处置 / C类重点监控）
-    等级: 临期(black) > 深度积压(deep) > 确认滞销(confirm) > 潜在(potential) > 预警(warn)
+    核心: 卖不动(零销售超品类滞销线) + 成本压力(临期/B仓超免费期)
+    品类配置: 规则页「滞销参数」自定义条目(名称/滞销线/临期线/品类名单开关), 仿活动系数
+    等级: black紧急(临期) > red处置(滞销+B仓超期或高占用) > yellow滞销(超过滞销线)
+    B仓超期按整月计费口径展示(超期天数+预估计费月数, 费率待定)
     """
     from datetime import datetime, timedelta
     from app.core.database import get_conn
     from app.core.sales_utils import load_daily_sales, calc_sales_from_daily
+    import json
     conn = get_conn()
     today = datetime.utcnow()
-    today_s = today.strftime('%Y-%m-%d')
 
-    # ── 配置读取（与滞销参数页同 key）──
-    def cfg(key, default):
+    # ── 品类配置（自定义条目列表）──
+    def load_json(key, default):
         try:
             r = conn.execute("SELECT value FROM replenishment_config WHERE key=? AND channel=?", (key, channel)).fetchone()
-            return r[0] if r and r[0] else default
+            if r and r[0]:
+                d = json.loads(r[0])
+                if isinstance(d, list): return d
         except Exception:
-            return default
-    FC = {  # food config / nonfood config 简化: 先按品类取通用值
-        'alert_days': int(cfg('slow_alert_days', 14)),
-        'pot_food': int(cfg('slow_potential_food', 30)), 'pot_nonfood': int(cfg('slow_potential_nonfood', 60)),
-        'conf_food': int(cfg('slow_confirm_food', 60)), 'conf_nonfood': int(cfg('slow_confirm_nonfood', 90)),
-        'ratio_confirm': float(cfg('slow_ratio_confirm', 2.5)),
-        'turn_food': float(cfg('slow_turnover_food', 45)), 'turn_nonfood': float(cfg('slow_turnover_nonfood', 60)),
-        'rate_food': float(cfg('slow_turnrate_food', 8)), 'rate_nonfood': float(cfg('slow_turnrate_nonfood', 3)),
-        'window': int(cfg('slow_turn_window', 45)),
-        'deep_ratio': float(cfg('slow_deep_ratio', 85)), 'deep_noorder': int(cfg('slow_deep_noorder', 14)),
-        'shelf_food': int(cfg('slow_shelf_food', 3)), 'shelf_nonfood': int(cfg('slow_shelf_nonfood', 6)),
-        'abc_a': float(cfg('abc_a_ratio', 20)) / 100, 'abc_b': float(cfg('abc_b_ratio', 50)) / 100,
-        'b_free': int(cfg('b_free_days', 15)),
-    }
+            pass
+        return default
+    cat_cfg = load_json('slow_cats_config', [])
+    if not cat_cfg:
+        cat_cfg = [{'name':'食品','slow_days':30,'shelf_months':3,'cats':'酱油,酱料,调味汁,食用油,醋,料酒,蚝油,芝麻油,辣椒酱,拌面酱,老抽,生抽,陈醋,香醋,白醋,米醋,花椒油,藤椒油,辣椒油,芥末油,番茄酱,甜辣酱,沙拉酱,芝麻酱,花生酱,豆瓣酱,豆豉,腐乳,糟卤,鱼露,咖喱块,咖喱粉,五香粉,孜然粉,花椒粉,辣椒粉,胡椒粉,十三香,卤料包,炖肉料,鸡精,味精,白糖,冰糖,红糖,麦芽糖,蜂蜜,黄酒,米酒,薯片,虾条,爆米花,坚果,瓜子,花生,饼干,威化,巧克力,糖果','enabled':True},
+                   {'name':'个护家清','slow_days':60,'shelf_months':6,'cats':'洗衣液,洗洁精,洗手液,消毒液,纸巾,湿巾,垃圾袋,保鲜膜,保鲜袋,收纳盒','enabled':True}]
+    b_free = 15
+    try:
+        r = conn.execute("SELECT value FROM replenishment_config WHERE key='b_free_days' AND channel=?", (channel,)).fetchone()
+        if r and r[0]: b_free = int(r[0])
+    except Exception:
+        pass
 
-    # ── 品类映射：调味+零食=食品类 / 日化=家清类 ──
-    FOOD_KEYWORDS = ('酱油','酱','醋','油','料酒','蚝油','辣椒','调味','花椒','藤椒','芥末','番茄','沙拉',
-                     '芝麻','花生','豆瓣','豆豉','腐乳','糟卤','鱼露','咖喱','五香','孜然','胡椒','十三香',
-                     '卤料','炖肉','鸡精','味精','白糖','冰糖','红糖','麦芽糖','蜂蜜','黄酒','米酒','薯片',
-                     '虾条','爆米花','坚果','瓜子','饼干','威化','巧克力','糖果')
-
-    # 商品信息（价格/体积/品类/保质期）
+    # 商品信息
     products = {}
     try:
         for r in conn.execute("SELECT sku, product_name, price, volume, category, best_before, channel FROM products WHERE (deleted_at IS NULL OR deleted_at='') AND channel=?", (channel,)).fetchall():
-            cat = str(r[4] or '')
-            is_food = cat.lower() in ('food','食品') or any(k in cat for k in FOOD_KEYWORDS)
             products[str(r[0])] = {"name": str(r[1] or ''), "price": float(r[2] or 0), "volume": float(r[3] or 0),
-                              "food": is_food, "best_before": str(r[5] or '')[:10]}
+                                   "category": str(r[4] or ''), "best_before": str(r[5] or '')[:10]}
     except Exception as e:
         import logging; logging.warning(f"[disposal] products: {e}")
-
-    # 日销（28 天）
+    # 日销（28天）+ 近90天销售（最后销售日/动销参考）
     try:
         sales_28 = calc_sales_from_daily(load_daily_sales(28, db, channel=channel), 28)
     except Exception as e:
         import logging; logging.warning(f"[disposal] sales: {e}")
         sales_28 = {}
-    # 近 N 天销量（动销率分子）与近 90 天（深度分母 + ABC 销售额）
-    sale_90 = {}; sale_win = {}; sale_days = {}  # sku -> {total, days_with_sale}
+    sale_90 = {}
     try:
         cutoff90 = (today - timedelta(days=90)).strftime('%Y-%m-%d')
-        cutoff_w = (today - timedelta(days=FC['window'])).strftime('%Y-%m-%d')
-        rows = conn.execute("SELECT sku, ordered_at, quantity, total_amount FROM orders WHERE channel=? AND ordered_at>=?", (channel, cutoff90)).fetchall()
-        for r in rows:
-            sk = str(r[0]); dt = str(r[1])[:10]; qty = int(r[2] or 0)
-            amt = float(r[3] or 0)
-            s90 = sale_90.setdefault(sk, {'qty': 0, 'amt': 0, 'days': set()})
-            s90['qty'] += qty; s90['amt'] += amt; s90['days'].add(dt)
-            if dt >= cutoff_w:
-                sw = sale_win.setdefault(sk, 0); sale_win[sk] = sw + qty
+        for r in conn.execute("SELECT sku, ordered_at, quantity, total_amount FROM orders WHERE channel=? AND ordered_at>=?", (channel, cutoff90)).fetchall():
+            sk = str(r[0]); dt = str(r[1])[:10]
+            s90 = sale_90.setdefault(sk, {'qty':0,'amt':0,'days':set()})
+            s90['qty'] += int(r[2] or 0); s90['amt'] += float(r[3] or 0)
+            if dt: s90['days'].add(str(dt))
     except Exception as e:
-        import logging; logging.warning(f"[disposal] order agg: {e}")
-    # 最后销售日（快照 MAX + sale_90 已遍历的当天/近90天订单，避免重复全表查询）
+        import logging; logging.warning(f"[disposal] sale90: {e}")
+    # 最后销售日
     last_order = {}
     try:
         for r in conn.execute("SELECT sku, MAX(date) FROM daily_sales_snapshot WHERE channel=? GROUP BY sku", (channel,)).fetchall():
             last_order[str(r[0])] = str(r[1] or '')[:10]
     except Exception as e:
-        import logging; logging.warning(f"[disposal] snapshot date: {e}")
+        import logging; logging.warning(f"[disposal] snap date: {e}")
     for sk, v in sale_90.items():
         if v['days']:
-            _mx = max(v['days'])
-            if _mx > last_order.get(sk, ''):
-                last_order[sk] = _mx
-    # ABC 分档（近90天销售额）
-    abc_map = {}
-    try:
-        ranked = sorted(sale_90.items(), key=lambda kv: -kv[1]['amt'])
-        total_amt = sum(v['amt'] for _, v in ranked) or 1
-        cum = 0.0
-        for sk, v in ranked:
-            cum += v['amt'] / total_amt
-            abc_map[sk] = 'a' if cum <= FC['abc_a'] else ('b' if cum <= FC['abc_b'] else 'c')
-    except Exception as e:
-        import logging; logging.warning(f"[disposal] abc: {e}")
+            mx = max(v['days'])
+            if mx > last_order.get(sk, ''):
+                last_order[sk] = mx
     # B 仓入库批次
     b_arrival = {}
     try:
         for r in conn.execute("SELECT sku, arrival_date FROM purchase_orders WHERE channel=? AND arrival_date != ''", (channel,)).fetchall():
             if r[1]:
                 try:
-                    d = datetime.strptime(str(r[1])[:10], "%Y-%m-%d")
-                    b_arrival.setdefault(str(r[0]), d)
+                    b_arrival.setdefault(str(r[0]), datetime.strptime(str(r[1])[:10], "%Y-%m-%d"))
                 except Exception: pass
     except Exception as e:
         import logging; logging.warning(f"[disposal] po: {e}")
-    # 已处置记录（30 天去重）
+    # 已处置（30天去重）
     disposed = {}
     try:
         cutoff30 = (today - timedelta(days=30)).strftime('%Y-%m-%d %H:%M:%S')
-
         for r in conn.execute("SELECT sku, warehouse, action FROM disposal_records WHERE channel=? AND created_at >= ?", (channel, cutoff30)).fetchall():
             disposed[(str(r[0]), str(r[1]))] = str(r[2] or '')
     except Exception as e:
         import logging; logging.warning(f"[disposal] disposed: {e}")
-    # 近14天补货建议（伪滞销线索）
+    # 伪滞销线索（近14天有补货建议）
     pseudo = set()
     try:
         c14 = (today - timedelta(days=14)).strftime('%Y-%m-%d %H:%M:%S')
@@ -224,10 +192,9 @@ def get_disposal_suggestions(channel: str = 'jd', db = get_db()):
         import logging; logging.warning(f"[disposal] pseudo: {e}")
 
     suggestions = []
-    LEVEL_ORDER = {'black': 0, 'deep': 1, 'confirm': 2, 'potential': 3, 'warn': 4}
-    SUG = {'black': '临期商品紧急处理(退供/促销)', 'deep': '深度积压: 退货/清仓', 'confirm': '确认滞销: 退货供应商/清仓甩卖',
-           'potential': '潜在滞销: 降价促销/调整策略', 'warn': '预警: 补货降量/持续跟踪'}
-    for r in conn.execute("SELECT sku, warehouse, warehouse_type, available_qty, in_transit_qty FROM inventory WHERE channel=?", (channel,)).fetchall():
+    LEVEL = {'black': 0, 'red': 1, 'yellow': 2}
+    SUG = {'black': '临期紧急处理(促销/退供)', 'red': '退货供应商/清仓甩卖', 'yellow': '补货降量/持续跟踪'}
+    for r in conn.execute("SELECT sku, warehouse, warehouse_type, available_qty FROM inventory WHERE channel=?", (channel,)).fetchall():
         sku, wh, wht = str(r[0]), str(r[1] or ''), str(r[2] or '')
         avail = int(r[3] or 0)
         if avail <= 0:
@@ -235,104 +202,83 @@ def get_disposal_suggestions(channel: str = 'jd', db = get_db()):
         p = products.get(sku)
         if not p:
             continue
-        # 品类线
-        food = p['food']
-        pot_line = FC['pot_food'] if food else FC['pot_nonfood']
-        conf_line = FC['conf_food'] if food else FC['conf_nonfood']
-        turn_line = FC['turn_food'] if food else FC['turn_nonfood']
-        rate_line = FC['rate_food'] if food else FC['rate_nonfood']
-        shelf_m = FC['shelf_food'] if food else FC['shelf_nonfood']
-        # 空安全的销售计算
-        def safe(fn, d=0.0):
-            try: return fn()
-            except Exception: return d
-        daily = safe(lambda: float(sales_28.get(sku, 0) or 0))
-        turnover = round(avail / daily, 1) if daily > 0 else 999.0
+        # 品类归类：匹配启用的配置条目（cats 包含 category）
+        match = None
+        cat = p['category']
+        for c in cat_cfg:
+            if c.get('enabled') is False: continue
+            ck = str(c.get('cats') or '')
+            if any(word.strip() and word.strip() in cat for word in ck.split(',')):
+                match = c
+                break
+        slow_days = int(match.get('slow_days', 30)) if match else 30
+        shelf_m = int(match.get('shelf_months', 3)) if match else 3
+        cat_name = match.get('name', '未归类') if match else '未归类(默认食品线)'
+        # 滞销天数
         days_zero = 999
         ld = last_order.get(sku, '')
         if ld:
-            try: days_zero = (datetime.strptime(ld[:10], "%Y-%m-%d") - today).days * -1
+            try:
+                days_zero = (today - datetime.strptime(ld[:10], "%Y-%m-%d")).days
+                days_zero = max(days_zero, 0)
             except Exception: pass
-        s90 = sale_90.get(sku)
-        s90_days = len(s90['days']) if s90 else 0
-        s90_qty = s90['qty'] if s90 else 0
-        win_qty = sale_win.get(sku, 0)
-        turn_rate = round(win_qty / avail * 100, 1) if avail > 0 else 0
-        deep_ratio = round(avail / s90_qty * 100, 1) if s90_qty > 0 else 999.0
+        daily = 0.0
+        try: daily = float(sales_28.get(sku, 0) or 0)
+        except Exception: pass
+        turnover = round(avail / daily, 1) if daily > 0 else 999.0
         fund = round(avail * p['price'], 0)
-        abc = abc_map.get(sku, 'c')
         reason = []
         level = None
         b_storage = None
-        # ① 临期风险（有保质期数据）
+        # ① 临期风险（black 紧急）
         bb = p['best_before']
+        shelf_days = shelf_m * 30
         if bb:
             try:
                 dd = (datetime.strptime(bb[:10], "%Y-%m-%d") - today).days
-                if dd <= shelf_m * 30:
+                if dd <= shelf_days:
                     level = 'black'
-                    reason.append(f"距保质期{max(dd,0)}天(<{shelf_m}月线临期)")
+                    reason.append(f"距保质期{max(dd,0)}天(<{shelf_m}月临期线)")
             except Exception: pass
-        # ② B仓仓储费（京东BBCC）
+        # ② B 仓超免费期（仓储费成本, 按整月计费口径）
         if wht == 'platform_b' and channel == 'jd':
             days_stored = 0
             if sku in b_arrival:
                 days_stored = max((today - b_arrival[sku]).days, 0)
-            if days_stored > FC['b_free']:
-                # 超过免费期按整月计费(每月初出上个月账单), 费率未明确→只报超期+预估计费月数
+            if days_stored > b_free:
+                over = days_stored - b_free
+                months = max((over + 29) // 30, 1)
                 vol_m3 = round(avail * p['volume'], 3)
-                over_days = days_stored - FC['b_free']
-                billed_months = max((over_days + 29) // 30, 1)  # 满30天≈1个计费月(自然月账单口径近似)
-                b_storage = {"days_stored": days_stored, "free_days": FC['b_free'], "volume_m3": vol_m3, "over_days": over_days, "billed_months": billed_months, "fee_rate_confirmed": False}
-                reason.append(f"B仓在库{days_stored}天超{FC['b_free']}天免费期{over_days}天(约{billed_months}个计费月, 费率待定)")
-                if level is None and days_stored > FC['b_free'] + 7:
-                    level = 'deep'
-        # ③ 深度积压
-        if level is None and days_zero >= FC['deep_noorder'] and deep_ratio > FC['deep_ratio']:
-            level = 'deep'
-            reason.append(f"深度积压: 库存占销量{deep_ratio}% 且 {days_zero}天无订单")
-        # ④ 确认滞销（零销售超品类确认线 且 存销比超阈值）
-        if level is None and days_zero >= conf_line:
-            sales_ratio = round(avail / (daily or 1), 1) if daily > 0 else 999.0
-            if sales_ratio > FC['ratio_confirm']:
-                level = 'confirm'
-                reason.append(f"连续{days_zero}天零销售 且 存销比{sales_ratio} 超{FC['ratio_confirm']}")
-        # ⑤ 潜在滞销（零销售超潜在线 且 周转超品类线 或 动销率低于线）
-        if level is None and days_zero >= pot_line:
-            if turnover > turn_line:
-                level = 'potential'
-                reason.append(f"潜在滞销: {days_zero}天无销售 周转{turnover}天超{turn_line}天线")
-            elif turn_rate < rate_line:
-                level = 'potential'
-                reason.append(f"潜在滞销: 动销率{turn_rate}% 低于{rate_line}%线(近{FC['window']}天)")
-        # ⑥ 预警（零销售超预警线）
-        if level is None and days_zero >= FC['alert_days']:
-            level = 'warn'
-            reason.append(f"预警: 连续{days_zero}天零销售")
-        # ABC 加权 + 伪滞销
-        if level is not None:
-            if abc == 'a' and LEVEL_ORDER.get(level, 9) < 3:
-                level = 'potential'  # A类核心单品, 不轻易确认/深度处置
-                reason.append(f"A类核心单品, 降级为潜在")
-            elif abc == 'c' and level == 'warn':
-                level = 'potential'  # C类提高一级监控
-                reason.append(f"C类小单品, 升级为潜在")
-        if level is None:
-            continue
-        if sku in pseudo and level in ('confirm', 'deep', 'black'):
-            reason.append("近14天有补货建议(疑似缺货伪滞销, 建议先核实库存)")
+                b_storage = {"days_stored": days_stored, "free_days": b_free, "volume_m3": vol_m3, "over_days": over, "billed_months": months}
+                reason.append(f"B仓在库{days_stored}天超免费期{over}天(约{months}计费月, 费率待定)")
+        # ③ 滞销主判据
+        if days_zero >= slow_days:
+            if level is None:
+                level = 'yellow'
+            reason.append(f"{cat_name}: {days_zero}天未销售(超{slow_days}天线)")
+        else:
+            if level is None and b_storage:
+                level = 'yellow'
+            if level is None:
+                continue  # 没过线且无临期/B仓 → 正常
+        # ④ 升级: 滞销 + B仓超期 或 高资金占用 → red 处置
+        if level == 'yellow' and (b_storage or fund >= 10000):
+            level = 'red'
+            reason.append('有成本压力(仓储费或占用¥' + str(fund) + '), 建议尽快处置')
+        # 伪滞销提示（不降级, 仅提示核实）
+        if sku in pseudo and level in ('red',):
+            reason.append('近14天有补货建议, 疑似缺货伪滞销, 建议先核实库存')
         suggestions.append({
             "sku": sku, "product_name": p['name'], "channel": channel,
-            "warehouse": wh, "warehouse_type": wht,
+            "warehouse": wh, "warehouse_type": wht, "category": cat,
             "stock": avail, "turnover_days": turnover, "fund_occupied": fund,
-            "daily_sales": round(daily, 1),
-            "days_zero": days_zero, "turnover_rate": turn_rate, "deep_ratio": deep_ratio,
-            "abc": abc, "food": food, "best_before": bb,
+            "daily_sales": round(daily, 1), "days_zero": days_zero,
+            "cat_line": cat_name, "slow_days": slow_days,
             "level": level, "reason": reason, "suggestion": SUG.get(level, ''),
-            "b_storage": b_storage,
+            "b_storage": b_storage, "best_before": bb,
             "disposed": (sku, wh) in disposed, "disposed_action": disposed.get((sku, wh), ''),
         })
-    suggestions.sort(key=lambda x: (LEVEL_ORDER.get(x['level'], 9), -x['turnover_days']))
+    suggestions.sort(key=lambda x: (LEVEL.get(x['level'], 9), -x['days_zero']))
     return ok(suggestions)
 
 

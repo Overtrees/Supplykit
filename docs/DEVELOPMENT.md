@@ -2505,3 +2505,42 @@ grep -rn "import.*from.*locale" src/ | sort | uniq -d
 - 填充后立即构建日销快照
 - seed 前检测已有数据（requires_reset 保护）
 - 供应商 code 渠道后缀
+
+---
+
+## 十五、2026-08-22 关键改进记录
+
+### 15.1 性能优化（PA 资源受限日 630s→36s）
+- **batch_size 500→5000**：`_seed_orders` 每批 500→5000 条 commit，fsync 360 次→36 次
+- **流式写入**：`_seed_orders` 边生成边 flush（5000/批），内存峰值 18 万→5000 条，防 OOM
+- **快照 UPSERT 分批 5000/commit**：`build_daily_sales_snapshot` 16 万行单事务→33 小批，防单事务 commit 过慢/线程被杀
+- **cache_size + temp_store**：seed 期间 PRAGMA cache_size=-64000 + temp_store=MEMORY
+- 实测：生成订单 630.5s→36.0s，全流程约 1min21s
+
+### 15.2 种子填充稳定性
+- **并发保护 `_check_busy`**：seed/reset 提交时检测存活任务（25 分钟内有更新=活着），拒绝并发提交；卡死任务（超 25 分钟无更新）自动标记 error 放行新任务
+- **get_tasks 卡死自愈**：running 超 30 分钟无更新自动标记 error
+- **get_tasks 锁容错**：database is locked 时返回 `database_busy` 标记而非 500，前端继续轮询
+- **reset 补全漏表**：`_do_reset` 表列表增加 `daily_sales_snapshot`/`daily_stats`/`inbound_records`/`outbound_records`
+
+### 15.3 规则编辑页修复（3 个问题）
+- **mode 列迁移**：线上 `rules` 表缺 `mode` 列（SQLite 静默忽略），`init_db` 加 `ALTER TABLE rules ADD COLUMN mode` 迁移
+- **后端 CRUD 持久化**：`rules.py` 创建/更新规则 payload 加 `mode` 字段，`schemas.py` RuleCreate/RuleUpdate 加 `mode` 字段
+- **其他渠道隐藏 BBCC**：补货模式选择器加 `filter(m => m.v !== 'bbcc' || globalChannel === 'jd')`
+- **保存反馈**：`save()` 加 loading 状态 + toast 成功/失败提示 + 错误处理
+- **缓存清除**：后端 `_rules_cache` 全部 CRUD 操作清缓存（create/update/delete/restore/permanent-delete），前端 `save` 后调 `clearCache()`
+- **本地即时更新**：`save` 后直接 `setRules(prev => prev.map(...))` 更新 mode，不等 API 返回
+
+### 15.4 启动加速
+- **移除启动 `backup_db`**：后台线程 VACUUM INTO 在 GIL 下阻塞所有请求数分钟（health 30s+ timeout），scheduler 已有每日 02:00 备份，启动备份冗余
+- PA reload 恢复 HTTP 200（不再 409 slow_startup）
+
+### 15.5 前端体验优化
+- **TaskPage 轮询 5s→3s**：步骤进度更及时
+- **步骤进行中显示**：running 步骤显示"进行中"+spinner 文字，而非仅 spinner
+- **删除死代码**：`SeedProgress.tsx`/`ExportProgress.tsx`（已迁移任务管理页）
+- **TaskPage 错误友好化**：401 → "登录已失效"；库忙/网络异常 → "数据正在处理中/自动重试中"
+- **TaskPage 移除 AbortController 15s 超时**：3s 轮询本身在重试，超时反导致 seed 运行时请求被掐断报"网络异常"
+
+### 15.6 已知问题
+- 规则保存后 `load()` 的冗余 API 调用可去掉（数据已写入后端），可简化为纯本地更新

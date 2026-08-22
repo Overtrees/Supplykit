@@ -95,7 +95,18 @@ export default function RulesPage() {
   const defaultF = {name:'', event:'inventory.changed', alert_type:'low_stock', alert_title:'', alert_desc:'', severity:'warning', condition_json:'{}'}
   const [f, setF] = useState(defaultF)
   const [cond, setCond] = useState({left:'inv.available_qty', op:'<', right:'inv.safety_qty', rightType:'field', pctValue:100, warehouse:''})
-  const { channel: globalChannel, setChannel: setGlobalChannel, hammerRulesTab: tab, hammerRuleNewVersion, hammerRulesMode, hammerSearch } = useAppStore()
+  const { channel: globalChannel, setChannel: setGlobalChannel, hammerRulesTab: tab, hammerRuleNewVersion, hammerRulesMode, hammerSearch, prodBatch, setProdBatch } = useAppStore()
+  const [selIds, setSelIds] = useState([])
+  useEffect(()=>{ if(!prodBatch) setSelIds([]) },[prodBatch])
+  const doBatch = async (action, label) => {
+    if (selIds.length === 0) { toast.error('请先勾选规则'); return }
+    if (action === 'delete' && !window.confirm('删除 ' + selIds.length + ' 条规则？可在回收站恢复')) return
+    try {
+      await api.post('/api/rules/batch', { action, ids: selIds })
+      toast.success(label + '完成: ' + selIds.length + ' 项')
+      setSelIds([]); setProdBatch(false); load(globalChannel)
+    } catch(e) { toast.error(label + '失败: ' + (e.message||'')) }
+  }
 
   const load = async (ch) => { try { const c=ch||globalChannel; const r = await api.get('/api/rules?channel='+c); setRules(r.data||[]) } catch(e) {} }
   const loadCfg = async (mode, ch) => { try { const m=mode||cfg.replenishment_mode||'bbcc'; const c=ch||globalChannel; const r=await api.get('/api/replenishment-config?mode='+m+'&channel='+c);if(r.data&&Object.keys(r.data).length>0)setCfg(p=>({...p, ...r.data, replenishment_mode:m}));else if(c!=='jd'){const fallback=await api.get('/api/replenishment-config?mode='+m+'&channel=jd');if(fallback.data)setCfg(p=>({...p,...fallback.data,replenishment_mode:m}))}setCfg(p => ({...p, replenishment_mode: m}));return r.data||{} } catch(e) { return {} } }
@@ -249,12 +260,22 @@ export default function RulesPage() {
         </div>
       </div>}
 
+      {prodBatch && <div style={{position:'sticky',top:0,zIndex:5,padding:'8px 10px',marginBottom:8,background:'var(--bg-thin)',backdropFilter:'var(--blur-thin)',borderRadius:24,border:'1px solid var(--border)',display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
+          <span style={{fontSize:12,fontWeight:600,color:'var(--text)'}}>已选 {selIds.length}/{filteredRules.length}</span>
+          <span onClick={()=>{const all=filteredRules.map(r=>r.id);setSelIds(selIds.length===filteredRules.length?[]:all)}} className="clickable" style={{fontSize:12,padding:'5px 12px',borderRadius:99,border:'1px solid var(--border)',background:'var(--card)',cursor:'pointer'}}>{selIds.length===filteredRules.length&&filteredRules.length>0?'取消全选':'全选'}</span>
+          <span onClick={()=>doBatch('active','启用')} className="clickable" style={{fontSize:12,padding:'5px 12px',borderRadius:99,border:'1px solid var(--border)',background:'var(--card)',color:'var(--success)',cursor:'pointer'}}>批量启用</span>
+          <span onClick={()=>doBatch('inactive','停用')} className="clickable" style={{fontSize:12,padding:'5px 12px',borderRadius:99,border:'1px solid var(--border)',background:'var(--card)',color:'var(--warning)',cursor:'pointer'}}>批量停用</span>
+          <span onClick={()=>doBatch('delete','删除')} className="clickable" style={{fontSize:12,padding:'5px 12px',borderRadius:99,border:'1px solid var(--border)',background:'var(--card)',color:'var(--danger)',cursor:'pointer'}}>批量删除</span>
+          <button onClick={()=>setProdBatch(false)} className="clickable" style={{fontSize:12,padding:'5px 12px',borderRadius:99,border:'1px solid var(--border)',background:'var(--card)',cursor:'pointer',marginLeft:'auto'}}>退出</button>
+        </div>}
+
       {filteredRules.map(rule => {
         const condInfo = pc(rule.condition_json||'{}')
         const whLbl = WHS.find(w=>w.v===condInfo.warehouse)?.l||'全部'
         const modeLbl = MODES.find(m=>m.v===(rule.mode||''))?.l||'全部'
         const condText = `当 ${whLbl} ${fieldLbl(condInfo.left)} ${opLbl(condInfo.op)} ${condInfo.rightType==='pct'?fieldLbl(condInfo.right)+'的'+condInfo.pctValue+'%':(condInfo.rightType==='field'?fieldLbl(condInfo.right):condInfo.right)}`
-        return <div key={rule.id} style={{padding:'14px 16px',border:'1px solid var(--border)',borderRadius:32,marginBottom:8}}>
+        return <div key={rule.id} style={{padding:'14px 16px',border:'1px solid var(--border)',borderRadius:32,marginBottom:8,background:prodBatch&&selIds.includes(rule.id)?'rgba(29,78,216,0.08)':'transparent'}}>
+        {prodBatch && <span onClick={()=>setSelIds(prev=>prev.includes(rule.id)?prev.filter(i=>i!==rule.id):[...prev,rule.id])} className="clickable" style={{display:'inline-flex',alignItems:'center',gap:8,marginBottom:8}}><span style={{width:18,height:18,borderRadius:6,border:'1.5px solid',borderColor:selIds.includes(rule.id)?'var(--primary)':'var(--border)',background:selIds.includes(rule.id)?'var(--primary)':'transparent',display:'inline-flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:11}}>{selIds.includes(rule.id)?'✓':''}</span><span style={{fontSize:12,color:'var(--muted2)'}}>选择</span></span>}
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:10}}>
         <div style={{flex:1,minWidth:0}}>
           <div style={{fontWeight:600,fontSize:15,display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>

@@ -58,7 +58,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     for k, v in raw.items():
         if not k.startswith('mode_') and k not in cfg: cfg[k] = v
 
-    products = {p["sku"]: p for p in db.table("products").select("*").execute().data}
+    products = {p["sku"]: p for p in db.table("products").select("*").eq("deleted_at", "").execute().data}
 
     # 构建 barcode 映射，用于日销复合 key（sku|barcode），提高匹配精度
     sku_barcode_map = {sku: p.get('barcode', '') or '' for sku, p in products.items()}

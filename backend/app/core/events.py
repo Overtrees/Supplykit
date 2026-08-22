@@ -25,6 +25,19 @@ def _invalidate_replenish(_):
         pass
 
 
+def _invalidate_all_caches(_):
+    """商品变化 → 补货/采购/看板缓存全部失效（建议页联动去除已删商品）"""
+    try:
+        from app.core.replenishment_cache import invalidate_cache
+        from app.core.dashboard_cache import invalidate as invalidate_dashboard
+        from app.core.database import get_db
+        db = get_db()
+        invalidate_cache(db)
+        invalidate_dashboard()
+    except Exception:
+        pass
+
+
 def register_core_handlers():
     """Register core event handlers at startup.
     Called once from main.py. Handlers use lazy imports to avoid circular deps.
@@ -102,6 +115,10 @@ def register_core_handlers():
     bus.on('inventory.changed', _handle_inventory_event)
     bus.on('inventory.changed', lambda _: invalidate_dashboard())
     bus.on('inventory.changed', _invalidate_replenish)
+
+    # ─── products.changed ──────────────────────────────────────────────
+    # 商品删除/停用/修改 → 补货/采购/看板缓存全失效，建议页联动去除
+    bus.on('products.changed', _invalidate_all_caches)
 
     # ─── data.cleaned ───────────────────────────────────────────────
     def _handle_cleansed_event(data):

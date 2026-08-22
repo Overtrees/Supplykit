@@ -4,19 +4,38 @@ from app.core.response import ok, fail
 
 router = APIRouter(prefix="/api/products", tags=["products"])
 
+
+def _emit_products_changed(payload=None):
+    """商品变化 → 补货/采购/看板缓存失效（联动建议页即时去除）"""
+    try:
+        from app.core.events import bus
+        bus.emit('products.changed', payload or {})
+    except Exception as e:
+        import logging; logging.warning(f"[products] event emit: {e}")
+
+
+def _valid(q):
+    """过滤软删除商品：deleted_at 为空（迁移默认值 ''）"""
+    return q.eq("deleted_at", "")
+
+
 @router.get("")
-def list_products(db = get_db(), search: str = "", channel: str = 'jd'):
+def list_products(db = get_db(), search: str = "", channel: str = 'jd', include_deleted: str = ''):
+    if include_deleted:
+        base = db.table("products").select("*").eq("channel", channel)
+    else:
+        base = _valid(db.table("products").select("*").eq("channel", channel))
     if search:
         like = f"%{search}%"
-        # 独立构造两个条件再 or_ 合并（or_ 会把两个 builder 的 WHERE 分别 AND 后 OR，
-        # 若在同一个 q 上链式调用会把 channel 与两个 LIKE 全部 AND 到一起 → 永远空）
-        q1 = db.table("products").select("*").eq("channel", channel).ilike("product_name", like)
-        q2 = db.table("products").select("*").eq("channel", channel).ilike("sku", like)
+        # 独立构造两个带 channel+deleted 过滤的条件再 or_（避免 channel 被 AND 进 LIKE）
+        q1 = _valid(db.table("products").select("*").eq("channel", channel)).ilike("product_name", like)
+        q2 = _valid(db.table("products").select("*").eq("channel", channel)).ilike("sku", like)
         q = q1.or_(q2)
     else:
-        q = db.table("products").select("*").eq("channel", channel)
+        q = base
     data = q.order("id", desc=True).execute().data
     return ok(data)
+
 
 @router.post("")
 def create_product(body: dict, db = get_db()):
@@ -29,22 +48,65 @@ def create_product(body: dict, db = get_db()):
         "spec": body.get("spec", ""),
         "price": float(body.get("price", 0)),
         "status": body.get("status", "active"),
+        "channel": body.get("channel", "jd"),
         "raw_data": json.dumps(body, ensure_ascii=False),
     }).execute().data
+    _emit_products_changed({"action": "create", "sku": body.get("sku")})
     return ok(data[0]) if data else ok({})
+
 
 @router.put("/{pid}")
 def update_product(pid: int, body: dict, db = get_db()):
     db.table("products").update(body).eq("id", pid).execute()
+    _emit_products_changed({"action": "update", "id": pid})
     return ok({})
+
+
+@router.post("/{pid}/restore")
+def restore_product(pid: int, db = get_db()):
+    db.table("products").update({"deleted_at": ""}).eq("id", pid).execute()
+    _emit_products_changed({"action": "restore", "id": pid})
+    return ok({})
+
+
+@router.post("/{pid}/permanent-delete")
+def permanent_delete_product(pid: int, db = get_db()):
+    db.table("products").delete().eq("id", pid).execute()
+    _emit_products_changed({"action": "purge", "id": pid})
+    return ok({})
+
 
 @router.delete("/{pid}")
 def delete_product(pid: int, db = get_db()):
-    db.table("products").delete().eq("id", pid).execute()
+    # 软删除（关联建议/看板通过 products.changed 事件联动剔除）
+    from datetime import datetime
+    db.table("products").update({"deleted_at": datetime.utcnow().isoformat()}).eq("id", pid).execute()
+    _emit_products_changed({"action": "delete", "id": pid})
     return ok({})
 
-@router.delete("")
-def batch_delete_products(ids: str, db = get_db()):
-    id_list = [int(x.strip()) for x in ids.split(",") if x.strip().isdigit()]
-    data = db.table("products").delete().in_("id", id_list).execute().data
-    return ok({"deleted": len(data)})
+
+@router.post("/batch")
+def batch_products(body: dict, db = get_db()):
+    """批量操作: {action: 'delete'|'restore'|'active'|'inactive'|'purge', ids: [...]}"""
+    from datetime import datetime
+    action = body.get("action", "")
+    ids = [int(x) for x in (body.get("ids") or []) if isinstance(x, int) or str(x).isdigit()]
+    if not ids:
+        return ok({"updated": 0})
+    if action in ('delete', 'restore', 'purge'):
+        if action == 'delete':
+            val = {"deleted_at": datetime.utcnow().isoformat()}
+        elif action == 'restore':
+            val = {"deleted_at": ""}
+        else:
+            # purge 硬删除
+            db.table("products").delete().in_("id", ids).execute()
+            _emit_products_changed({"action": "batch_purge", "ids": ids})
+            return ok({"updated": len(ids)})
+        db.table("products").update(val).in_("id", ids).execute()
+    elif action in ('active', 'inactive'):
+        db.table("products").update({"status": 'active' if action == 'active' else 'inactive'}).in_("id", ids).execute()
+    else:
+        return fail(f"未知操作: {action}")
+    _emit_products_changed({"action": f"batch_{action}", "ids": ids})
+    return ok({"updated": len(ids)})

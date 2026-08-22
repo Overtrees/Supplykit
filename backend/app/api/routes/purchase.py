@@ -31,7 +31,7 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', channel: str = 
             active_factor = float(s['factor'])
 
     # 获取 barcode 映射，用于日销复合 key
-    products_map = {p["sku"]: p for p in db.table("products").select("*").execute().data}
+    products_map = {p["sku"]: p for p in db.table("products").select("*").eq("deleted_at", "").execute().data}
     sku_barcode_map = {sku: p.get('barcode', '') or '' for sku, p in products_map.items()}
 
     # 统一数据源：快照(历史) + 当天orders(实时)
@@ -84,7 +84,7 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', channel: str = 
             if not stock_by_sku[s]['own_warehouse']: stock_by_sku[s]['own_warehouse'] = i.get('warehouse','')
         else: stock_by_sku[s]['plat_avail'] += qty; stock_by_sku[s]['plat_transit'] += tty
 
-    products = {p["sku"]: p for p in db.table("products").select("*").execute().data}
+    products = {p["sku"]: p for p in db.table("products").select("*").eq("deleted_at", "").execute().data}
 
     # 供应商特定参数缓存（前置期/安全天数/MOQ 按供应商独立）
     _sup_params = {}

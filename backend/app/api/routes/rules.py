@@ -77,6 +77,28 @@ def permanent_delete_rule(rule_id: int, db = get_db()):
     db.table("rules").delete().eq("id", rule_id).execute()
     return ok({"message": "已永久删除", "id": rule_id})
 
+@router.post("/batch")
+def batch_rules(body: dict, db = get_db()):
+    """批量操作: {action: 'delete'|'restore'|'active'|'inactive', ids: [...]}"""
+    from datetime import datetime
+    action = body.get("action", "")
+    ids = [int(x) for x in (body.get("ids") or []) if isinstance(x, int) or str(x).isdigit()]
+    if not ids:
+        return ok({"updated": 0})
+    _rules_cache.clear()
+    if action == 'delete':
+        db.table("rules").update({"is_active": 0, "deleted_at": datetime.utcnow().isoformat()}).in_("id", ids).execute()
+    elif action == 'restore':
+        db.table("rules").update({"is_active": 1, "deleted_at": None}).in_("id", ids).execute()
+    elif action == 'active':
+        db.table("rules").update({"is_active": 1}).in_("id", ids).execute()
+    elif action == 'inactive':
+        db.table("rules").update({"is_active": 0}).in_("id", ids).execute()
+    else:
+        return fail(f"未知操作: {action}")
+    return ok({"updated": len(ids)})
+
+
 @router.post("/{rule_id}/test")
 def test_rule(rule_id: int, body: dict, db = get_db()):
     """规则引擎可视化调试：传入模拟数据(库存/订单), 判断该规则条件是否触发"""

@@ -27,6 +27,8 @@ export default function HammerProducts({ channel }: HammerProductsProps) {
           className="btn-ghost hammer-btn">{t('common.columns')} ({visCols.length}/{PRODUCT_COLS.length})</button>
         <button onClick={() => { setHammerPanel(hammerPanel === 'search' ? null : 'search'); if (hammerPanel !== 'search') setTimeout(() => document.getElementById('hm-search-prod')?.focus(), 100) }}
           className="btn-ghost hammer-btn">{t('common.search')}</button>
+        <button onClick={() => useAppStore.getState().setProdBatch(!useAppStore.getState().prodBatch)}
+          className="btn-ghost hammer-btn" style={useAppStore.getState().prodBatch?{borderColor:'var(--danger)',color:'var(--danger)'}:undefined}>批量操作</button>
       </div>
       {hammerPanel === 'columns' && (
         <div className="hammer-panel hammer-panel-scroll">

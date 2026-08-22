@@ -4,7 +4,7 @@ import { useDebouncedSearch } from "../../hooks/useDebounce"
 interface HammerRulesProps { channel: string; onShowHistory?: (ch: string) => void }
 
 export default function HammerRules({ channel, onShowHistory }: HammerRulesProps) {
-  const { hammerRulesTab, setHammerRulesTab, bumpHammerRuleNew, hammerRulesMode, setHammerRulesMode, hammerSearch, setHammerSearch } = useAppStore()
+  const { hammerRulesTab, setHammerRulesTab, bumpHammerRuleNew, hammerRulesMode, setHammerRulesMode, hammerSearch, setHammerSearch, prodBatch, setProdBatch } = useAppStore()
   const [localSearch, setLocalSearch] = useDebouncedSearch(hammerSearch, setHammerSearch)
   const [searchOpen, setSearchOpen] = useState(false)
 
@@ -34,6 +34,10 @@ export default function HammerRules({ channel, onShowHistory }: HammerRulesProps
           <button onClick={() => { onShowHistory && onShowHistory(channel) }} className="hammer-btn btn-ghost"
             style={{display:'flex',alignItems:'center',justifyContent:'center',gap:4}}>
             变更历史
+          </button>
+          <button onClick={() => setProdBatch(!prodBatch)} className="hammer-btn btn-ghost"
+            style={{display:'flex',alignItems:'center',justifyContent:'center',gap:4,color:prodBatch?'var(--danger)':undefined, borderColor:prodBatch?'var(--danger)':undefined}}>
+            批量操作
           </button>
         </div>
         {searchOpen && <div className="hammer-panel">

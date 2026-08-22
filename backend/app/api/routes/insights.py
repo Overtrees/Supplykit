@@ -44,7 +44,7 @@ def detect_slow_moving_products(db=None, create_alerts=False):
     try:
         from app.core.database import get_conn
         _conn = get_conn()
-        for r in _conn.execute("SELECT sku, product_name, barcode, channel FROM products").fetchall():
+        for r in _conn.execute("SELECT sku, product_name, barcode, channel FROM products WHERE deleted_at IS NULL OR deleted_at=''").fetchall():
             products_map[r[0]] = {"sku": r[0], "product_name": r[1], "barcode": r[2] or '', "channel": r[3] or 'jd'}
     except Exception as e:
         import logging; logging.warning(f"[slow-moving] products: {e}")

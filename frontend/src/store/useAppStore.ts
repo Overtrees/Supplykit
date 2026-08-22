@@ -15,6 +15,7 @@ interface AppState {
   wsStatus: string; ws: WebSocket | null; importLogs: any[]
   hammerPanel: string | null; hammerSearch: string; hammerData: Record<string, any>
   hammerCols: Record<string, string[]> | null
+  prodBatch: boolean
   hammerDashPeriod: string; hammerInsightsTab: string; hammerReplenMode: string
   hammerRulesTab: string; hammerRuleNewVersion: number; hammerRulesMode: string
   hammerWhType: string
@@ -80,6 +81,8 @@ export const useAppStore = create((set, get) => ({
   setHammerReplenMode: (m) => { try { localStorage.setItem('c_replen_mode_' + get().channel, m) } catch {} set({ hammerReplenMode: m }) },
   hammerCols: {},
   setHammerCols: (pageKey, cols) => set((s) => ({ hammerCols: { ...s.hammerCols, [pageKey]: cols } })),
+  prodBatch: false,
+  setProdBatch: (v) => set({ prodBatch: v }),
   setHammerData: (page, data) => {
     const ch = get().channel
     const channelData = get().hammerData[ch] || {}

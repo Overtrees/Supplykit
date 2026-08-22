@@ -27,7 +27,7 @@ def detect_slow_moving_products(db=None, create_alerts=False):
     last_order = {}
     try:
         rows = get_conn().execute("SELECT sku, MAX(date) FROM daily_sales_snapshot WHERE date >= ? GROUP BY sku", (cutoff,)).fetchall()
-        last_order = {r[0]: (r[1] or '')[:10] for r in rows}
+        last_order = {str(r[0]): str(r[1] or '')[:10] for r in rows}
     except Exception as e:
         import logging; logging.warning(f"[slow-moving] snapshot agg: {e}")
     # 当天 orders 补充（快照不含今天）
@@ -35,8 +35,8 @@ def detect_slow_moving_products(db=None, create_alerts=False):
         today = datetime.utcnow().strftime('%Y-%m-%d')
         rows = get_conn().execute("SELECT sku, MAX(ordered_at) FROM orders WHERE ordered_at >= ? GROUP BY sku", (today,)).fetchall()
         for r in rows:
-            if r[0] and (r[1] or '')[:10] > last_order.get(r[0], ''):
-                last_order[r[0]] = (r[1] or '')[:10]
+            if r[0] and str(r[1] or '')[:10] > last_order.get(str(r[0]), ''):
+                last_order[str(r[0])] = str(r[1] or '')[:10]
     except Exception as e:
         import logging; logging.warning(f"[slow-moving] today orders: {e}")
     # 只加载需要的字段，避免全量 select("*") 导致 10 万 SKU 时 OOM
@@ -45,14 +45,14 @@ def detect_slow_moving_products(db=None, create_alerts=False):
         from app.core.database import get_conn
         _conn = get_conn()
         for r in _conn.execute("SELECT sku, product_name, barcode, channel FROM products WHERE deleted_at IS NULL OR deleted_at=''").fetchall():
-            products_map[r[0]] = {"sku": r[0], "product_name": r[1], "barcode": r[2] or '', "channel": r[3] or 'jd'}
+            products_map[str(r[0])] = {"sku": str(r[0]), "product_name": str(r[1] or ''), "barcode": str(r[2] or ''), "channel": str(r[3] or 'jd')}
     except Exception as e:
         import logging; logging.warning(f"[slow-moving] products: {e}")
     sku_barcode_map = {s: (p.get('barcode', '') or '') for s, p in products_map.items()}
     inventory_map = {}
     try:
         for r in _conn.execute("SELECT sku, available_qty, product_name, channel FROM inventory").fetchall():
-            inventory_map[r[0]] = {"sku": r[0], "available_qty": r[1], "product_name": r[2] or r[0], "channel": r[3] or 'jd'}
+            inventory_map[str(r[0])] = {"sku": str(r[0]), "available_qty": r[1], "product_name": str(r[2] or '') or str(r[0]), "channel": str(r[3] or 'jd')}
     except Exception as e:
         import logging; logging.warning(f"[slow-moving] inventory: {e}")
     # SKU → channel（优先 products 主表，回退 inventory）

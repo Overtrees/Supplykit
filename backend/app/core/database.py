@@ -10,7 +10,7 @@ from collections import defaultdict
 from typing import Any, Optional
 
 DB_PATH = os.getenv("SQLITE_PATH", os.path.join(os.path.dirname(__file__), "..", "supplykit.db"))
-SCHEMA_VERSION = 7  # 当前 schema 版本，每次改表结构+1
+SCHEMA_VERSION = 8  # 当前 schema 版本，每次改表结构+1
 
 # 版本化迁移注册表：{目标版本: 迁移函数}
 # 迁移函数签名: def migrate(conn): 执行该版本的 schema 变更
@@ -110,6 +110,23 @@ def _migrate_v7(conn):
         conn.execute("ALTER TABLE products ADD COLUMN best_before TEXT DEFAULT ''")
     except sqlite3.OperationalError:
         pass  # 列已存在则跳过（幂等）
+
+
+# 迁移 v8：批次表（多批次效期管理：生产日期/截止日期/数量）
+@_register_migration(8)
+def _migrate_v8(conn):
+    conn.execute("""CREATE TABLE IF NOT EXISTS batches (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sku TEXT DEFAULT '',
+        warehouse TEXT DEFAULT '',
+        warehouse_type TEXT DEFAULT '',
+        channel TEXT DEFAULT 'jd',
+        prod_date TEXT DEFAULT '',
+        exp_date TEXT DEFAULT '',
+        qty INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT (datetime('now'))
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_batches_sku_wh ON batches(sku, warehouse, channel)")
 
 _local = threading.local()
 

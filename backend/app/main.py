@@ -76,6 +76,7 @@ from app.api.routes.rules import router as rules_router
 from app.api.routes.replenishment_config import router as replenishment_config_router
 from app.api.routes.products import router as products_router
 from app.api.routes.suppliers import router as suppliers_router
+from app.api.routes.batches import router as batches_router
 from app.api.routes.disposal_records import router as disposals_router
 from app.api.routes.insights import router as insights_router
 from app.api.routes.purchase_orders import router as purchase_orders_router
@@ -259,6 +260,7 @@ app.include_router(rules_router)
 app.include_router(replenishment_config_router)
 app.include_router(products_router)
 app.include_router(suppliers_router)
+app.include_router(batches_router)
 app.include_router(disposals_router)
 
 app.include_router(records_router)

@@ -164,7 +164,7 @@ def _seed_fill_async():
         # 临时切到 DELETE journal 模式（清空期间避免 WAL 文件膨胀导致 disk I/O error）
         try: conn.execute("PRAGMA journal_mode=DELETE")
         except Exception: pass
-        for t in ['inventory','products','suppliers','alerts','quality_logs','events','purchase_orders','replenishment_config_history','cleansing_templates','custom_fields','daily_sales_snapshot','daily_stats','inbound_records','outbound_records','rules','replenishment_config']:
+        for t in ['inventory','products','suppliers','alerts','quality_logs','events','purchase_orders','replenishment_config_history','cleansing_templates','custom_fields','daily_sales_snapshot','daily_stats','inbound_records','outbound_records','rules','replenishment_config','batches']:
             try: conn.execute(f'DELETE FROM "{t}"')
             except Exception: pass
         # 立即恢复 jwt_secret（replenishment_config 被清空后，若此时 PA 重启会生成新密钥导致旧 token 全失效 401）
@@ -217,6 +217,7 @@ def _seed_fill_async():
 
     # 步骤5: 生成当月出入库记录（进销存页展示）
     _run_step('生成出入库记录', lambda: _seed_records(db, skus_data), steps)
+    _run_step('生成批次效期', lambda: _seed_batches(db, skus_data), steps)
 
     # 步骤6: 写入补货参数和规则
     _run_step('写入补货参数/规则', lambda: _seed_config(db, conn), steps)
@@ -284,12 +285,7 @@ def _seed_products_suppliers(db, skus_data):
             _sup_idx = i % 10
             _sup_code = f"SUP-{_sup_idx+1:03d}-{ch.upper()}"
             _prow = {'sku':p['sku'],'product_name':p['name'],'store':p['store'],'category':p['cat'],'price':p['price'],'box_qty':p['box'],'barcode':p['barcode'],'weight':p['weight'],'volume':p['volume'],'status':p['status'],'channel':ch,'supplier_code':_sup_code}
-            # 临期场景: 2% 商品带 best_before 且处于临期窗口(20~80天后到期 → 触发 black 紧急)
-            if i % 50 < 1:
-                from datetime import timedelta as _td
-                _exp = (datetime.utcnow() + _td(days=random.randint(20,80))).strftime('%Y-%m-%d')
-                _prow['best_before'] = _exp
-            db.table("products").upsert(_prow, conflict_col='sku')
+            db.table('products').upsert(_prow, conflict_col='sku')
     for s in SUP:
         for ch in ['jd','other']:
             # supplier_code 加渠道后缀，避免两渠道共用同一 code 导致 upsert 互相覆盖
@@ -374,6 +370,63 @@ def _seed_inventory(db, skus_data):
                     q = random.randint(50, 800)
                 inv.append({'sku':sk['sku'],'product_name':sk['name'],'warehouse':wh_name,'warehouse_type':wt,'available_qty':q,'in_transit_qty':random.randint(0,80) if low else random.randint(0,200),'safety_qty':random.randint(30,200),'channel':'jd' if skus is jd_s else 'other'})
     db.table("inventory").insert(inv).execute()
+
+def _seed_batches(db, skus_data):
+    """生成批次效期数据（SKU×仓库 1~3 批，16% 批次临期/受损用于演示预警）
+
+    批次: prod_date(生产) + exp_date(截止) = prod + 总效期(随机)
+    总效期: 按品类 60~240 天（食品短/家清长）
+    16% 批次剩余效期 < 1/3(临近/否档)  → 预警演示
+    同时回写 products.best_before = 该 SKU 最早批次截止日(风险最高)
+    """
+    from datetime import timedelta as _td
+    today = datetime.utcnow()
+    conn = get_conn()
+    rows = conn.execute("SELECT sku, warehouse, warehouse_type, channel, available_qty FROM inventory WHERE available_qty > 0").fetchall()
+    bdata = []
+    _pcat = {}
+    try:
+        for r in conn.execute("SELECT sku, category, channel FROM products").fetchall():
+            _pcat[(str(r[0]), str(r[2] or 'jd'))] = str(r[1] or '')
+    except Exception: pass
+    best_map = {}
+    for r in rows:
+        sku, wh, wht, ch, qty = str(r[0]), str(r[1] or ''), str(r[2] or ''), str(r[3] or 'jd'), int(r[4] or 0)
+        if qty <= 0: continue
+        cat = _pcat.get((sku, ch), '')
+        # 总效期: 食品(调味/零食) 60~120天, 家清 120~240天
+        foodish = any(k in cat for k in ['酱油','酱','醋','油','酒','糖','蜂','咖','粉','薯','坚果','饼干','巧克力','糖果','麻辣','椒'] ) if cat else False
+        shelf = random.randint(60, 120) if foodish else random.randint(120, 240)
+        n_batch = random.randint(1, 3)
+        # 拆 1~3 批（数量按比例）
+        parts = [0.6, 0.3, 0.1][:n_batch]
+        qty_left = qty
+        for bi, ratio in enumerate(parts):
+            bq = int(qty * ratio) if bi < n_batch - 1 else qty_left
+            qty_left -= bq
+            if bq <= 0: continue
+            # 生产日期: 距今天 5~shelf 天前
+            prod = today - _td(days=random.randint(5, max(shelf - 15, 10)))
+            exp = prod + _td(days=shelf)
+            # 16% 批次: 临期(剩余 < shelf/3)
+            if random.random() < 0.16:
+                exp = today + _td(days=random.randint(-5, max(shelf // 3 - 1, 2)))
+            bdata.append({'sku': sku, 'warehouse': wh, 'warehouse_type': wht, 'channel': ch,
+                          'prod_date': prod.strftime('%Y-%m-%d'), 'exp_date': exp.strftime('%Y-%m-%d'), 'qty': bq})
+            # 记录 SKU 最早截止
+            if sku not in best_map or exp < best_map[sku]:
+                best_map[sku] = exp
+    if bdata:
+        conn.executemany("INSERT INTO batches(sku, warehouse, warehouse_type, channel, prod_date, exp_date, qty) VALUES(?,?,?,?,?,?,?)",
+                         [[b['sku'], b['warehouse'], b['warehouse_type'], b['channel'], b['prod_date'], b['exp_date'], b['qty']] for b in bdata])
+    # 回写 products.best_before = SKU 最早批次截止日
+    for sku, exp in best_map.items():
+        try:
+            conn.execute("UPDATE products SET best_before=? WHERE sku=? AND (best_before='' OR best_before IS NULL)", (exp.strftime('%Y-%m-%d'), sku))
+        except Exception: pass
+    conn.commit()
+    return len(bdata)
+
 
 def _seed_rules(db, skus_data):
     """触发规则引擎：SQL 级聚合 + 条件筛选，批量生成告警
@@ -504,7 +557,7 @@ def seed_reset(db=get_db()):
         conn = get_conn()
         try: conn.execute("PRAGMA journal_mode=DELETE")
         except Exception: pass
-        for t in ['orders','inventory','products','suppliers','alerts','quality_logs','events','purchase_orders','replenishment_config_history','cleansing_templates','custom_fields','daily_sales_snapshot','daily_stats','inbound_records','outbound_records','replenishment_config','rules']:
+        for t in ['orders','inventory','products','suppliers','alerts','quality_logs','events','purchase_orders','replenishment_config_history','cleansing_templates','custom_fields','daily_sales_snapshot','daily_stats','inbound_records','outbound_records','replenishment_config','rules','batches']:
             try:
                 if t == 'orders':
                     while True:

@@ -34,6 +34,17 @@ def list_inventory(db = get_db(), channel: str = 'jd', store: str = '', warehous
         for item in data:
             p = products.get(item.get('sku', ''))
             if p: item['price'] = p.get('price', 0)
+        # 批量注入批次摘要
+        _batch_summary = _get_batch_summary(channel)
+        for item in data:
+            _key = (item.get('sku',''), item.get('warehouse',''), item.get('channel','jd'))
+            _bs = _batch_summary.get(_key)
+            if _bs:
+                item['batch_prod_date'] = _bs[0]
+                item['batch_exp_date'] = _bs[1]
+            else:
+                item['batch_prod_date'] = ''
+                item['batch_exp_date'] = ''
         return ok({
             'items': data,
             'total': total,
@@ -46,7 +57,29 @@ def list_inventory(db = get_db(), channel: str = 'jd', store: str = '', warehous
     for item in data:
         p = products.get(item.get('sku', ''))
         if p: item['price'] = p.get('price', 0)
+    # 批量注入批次摘要（最早生产日/截止日/效期状态）
+    _batch_summary = _get_batch_summary(channel)
+    for item in data:
+        _key = (item.get('sku',''), item.get('warehouse',''), item.get('channel','jd'))
+        _bs = _batch_summary.get(_key)
+        if _bs:
+            item['batch_prod_date'] = _bs[0]
+            item['batch_exp_date'] = _bs[1]
+        else:
+            item['batch_prod_date'] = ''
+            item['batch_exp_date'] = ''
     return ok(data)
+
+
+def _get_batch_summary(channel='jd'):
+    """返回 {(sku, warehouse, channel): (min(prod_date), min(exp_date))} 批次摘要"""
+    try:
+        from app.core.database import get_conn
+        conn = get_conn()
+        rows = conn.execute("SELECT sku, warehouse, channel, MIN(prod_date), MIN(exp_date) FROM batches WHERE channel=? GROUP BY sku, warehouse, channel", (channel,)).fetchall()
+        return {(str(r[0]), str(r[1]), str(r[2] or 'jd')): (str(r[3] or '')[:10], str(r[4] or '')[:10]) for r in rows}
+    except Exception:
+        return {}
 
 
 @router.post("")

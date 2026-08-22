@@ -40,8 +40,8 @@ const PURCHASE_COLS = [
   {id:'note',label:'备注'},{id:'timing',label:'采购时机'},
 ]
 const SLOW_COLS = [
-  {id:'barcode',label:'69码'},{id:'sku',label:'SKU'},{id:'name',label:'商品'},{id:'store',label:'店铺'},{id:'category',label:'分类'},
-  {id:'last_order_date',label:'最近下单'},{id:'days',label:'天数'},{id:'stock',label:'库存'},{id:'level',label:'状态'},
+  {id:'processed',label:'处理'},{id:'sku',label:'SKU'},{id:'name',label:'商品'},{id:'warehouse',label:'仓库'},
+  {id:'days',label:'未售天数'},{id:'stock',label:'库存'},{id:'level',label:'等级'},{id:'note',label:'备注'},
 ]
 
 function renderNote(text) {
@@ -93,7 +93,7 @@ export default function InsightsPage() {
   const [disposals, setDisposals] = useState([])
   const [disposalsLoading, setDisposalsLoading] = useState(true)
   const [dispSel, setDispSel] = useState([])
-  const [dispAction, setDispAction] = useState('return')
+  const [dispAction, setDispAction] = useState('mark')
   const [dispNote, setDispNote] = useState('')
   const [dispBusy, setDispBusy] = useState(false)
   const [showDisposed, setShowDisposed] = useState(false)
@@ -136,6 +136,9 @@ export default function InsightsPage() {
   const filteredReplen = filterBySearch(Array.isArray(replen) ? replen : [])
   const filteredPurchase = filterBySearch(Array.isArray(purchase) ? purchase : [])
   const filteredSlow = filterBySearch(Array.isArray(slowMoving) ? slowMoving : [])
+  // 滞销处置数据（SKU×仓库）融合进表格: 过滤已处理(除非查看已处置)
+  const filteredDisp = (Array.isArray(disposals) ? disposals : []).filter(x => showDisposed || !x.disposed)
+    .filter(x => { if (!insightSearch) return true; const q = insightSearch.toLowerCase(); return (x.sku||'').toLowerCase().includes(q) || (x.product_name||'').toLowerCase().includes(q) })
   const [purchaseVisCols, setPurchaseVisCols] = useState(() => PURCHASE_COLS.map(c => c.id))
   const [slowVisCols, setSlowVisCols] = useState(() => SLOW_COLS.map(c => c.id))
   const reqSeq = useRef(0)
@@ -244,7 +247,6 @@ export default function InsightsPage() {
     loadOrdered()
     setReplenLoading(true)
     setPurchaseLoading(true)
-    setSlowLoading(true)
     const seq = ++reqSeq.current
     const mode = globalChannel === 'jd' ? replenMode : 'traditional'
     if (globalChannel !== 'jd' && replenMode === 'bbcc') setHammerReplenMode('traditional')
@@ -254,11 +256,7 @@ export default function InsightsPage() {
       setPurchase(r.data?.suggestions || r.data || [])
       setPurchaseLoading(false)
     }).catch(() => setPurchaseLoading(false))
-    api.get('/api/insights/slow-moving').then(r => {
-      if (seq !== reqSeq.current) { setSlowLoading(false); return }
-      setSlowMoving(r.data || [])
-      setSlowLoading(false)
-    }).catch(() => setSlowLoading(false))
+
     api.get('/api/insights/disposal-suggestions?channel=' + globalChannel).then(r => {
       if (seq !== reqSeq.current) { setDisposalsLoading(false); return }
       setDisposals(r.data || [])
@@ -502,109 +500,67 @@ export default function InsightsPage() {
         <div className="card">
           <div className="section-title" style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
             <span>滞销预警</span>
-            <span className="muted2" style={{fontSize:11,fontWeight:400}}>显示 {slowVisCols.length}/{SLOW_COLS.length} 列 · 共 {filteredSlow.length} 条{insightSearch ? ` · "${insightSearch}"` : ''}</span>
+            <span className="muted2" style={{fontSize:11,fontWeight:400}}>显示 {slowVisCols.length}/{SLOW_COLS.length} 列 · 共 {filteredDisp.length} 条{insightSearch ? ` · "${insightSearch}"` : ''}</span>
           </div>
 
-          {/* 处置建议（SKU×仓库 + 批量处置） */}
-          <div style={{marginBottom:14,padding:14,borderRadius:24,border:'1px solid var(--border)',background:'var(--bg-thin)'}}>
-            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8,flexWrap:'wrap'}}>
-              <span style={{fontWeight:700,fontSize:14}}>自动处置建议</span>
-              <span className="muted2" style={{fontSize:11}}>按 SKU×仓库 · 对齐 90 天周转红线 + B仓15天免费期</span>
-              <span onClick={()=>setShowDisposed(!showDisposed)} className="clickable" style={{marginLeft:'auto',fontSize:12,padding:'4px 12px',borderRadius:99,border:'1px solid var(--border)',background:'var(--card)',cursor:'pointer'}}>{showDisposed?'隐藏已处置':'查看已处置'}</span>
-            </div>
-            {disposalsLoading ? (
-              <div className="muted" style={{padding:12,textAlign:'center',fontSize:12}}>计算中...</div>
-            ) : (
-              <>
-                {disposals.filter(x => showDisposed || !x.disposed).length === 0 ? (
-                  <div className="muted" style={{padding:12,textAlign:'center',fontSize:12}}>{showDisposed ? '暂无处置记录' : '暂无需要处置的积压库存 🎉'}</div>
-                ) : (
-                  <div style={{maxHeight:'calc(100vh - 260px)',overflowY:'auto'}}>
-                    {disposals.filter(x => showDisposed || !x.disposed).map(d => {
-                      const key = d.sku + '|' + d.warehouse
-                      const isSel = dispSel.includes(key)
-                      return <div key={key} onClick={()=>setDispSel(prev => isSel ? prev.filter(k=>k!==key) : [...prev, key])} style={{display:'flex',gap:10,alignItems:'flex-start',padding:'10px 12px',marginBottom:6,borderRadius:16,border:'1px solid var(--border)',background:isSel?'rgba(29,78,216,0.08)':'var(--card)',cursor: d.disposed ? 'default':'pointer',opacity:d.disposed?0.6:1}}>
-                        <span style={{width:18,height:18,borderRadius:6,border:'1.5px solid',borderColor:isSel?'var(--primary)':'var(--border)',background:isSel?'var(--primary)':'transparent',display:'inline-flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:11,flexShrink:0,marginTop:2}}>{isSel?'✓':''}</span>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
-                            <span className={`pill ${d.level==='black'?'danger':d.level==='red'?'danger':d.level==='yellow'?'warning':'info'}`} style={{fontSize:10,padding:'2px 8px',minHeight:'auto',lineHeight:'18px',background:d.level==='black'?'#7c3aed':'',border:d.level==='black'?'1px solid #7c3aed':''}}>{d.level==='black'?'紧急':d.level==='red'?'处置':'滞销'}</span>
-                            <span style={{fontWeight:600,fontSize:13}}>{d.sku}</span>
-                            <span style={{fontSize:12,marginLeft:4}}>{d.product_name}</span>
-                            {d.disposed && <span style={{fontSize:11,color:'var(--muted2)'}}>✓ 已处置({d.disposed_action||'已标记'})</span>}
-                          </div>
-                          <div style={{fontSize:11,color:'var(--muted2)',marginTop:4}}>
-                            <b style={{color:'var(--text)'}}>{d.warehouse}</b> · {d.cat_line} · {d.days_zero}天未销售 · 库存 {d.stock} · 占用 ¥{d.fund_occupied}
-                            {d.b_storage && <span style={{color:'var(--danger)'}}> · 在库{d.b_storage.days_stored}天({d.b_storage.volume_m3}方) · 超期{d.b_storage.over_days}天 ≈{d.b_storage.billed_months}计费月(费率待定)</span>}
-                          </div>
-                          <div style={{fontSize:11,marginTop:4,color:'var(--text)'}}>
-                            {(d.reason||[]).join(' · ')}
-                            <span style={{fontWeight:600}}> → {d.suggestion}</span>
-                          </div>
-                        </div>
-                      </div>
-                    })}
-                  </div>
-                )}
-                {/* 批量处置操作栏 */}
-                {!showDisposed && dispSel.length > 0 && (
-                  <div style={{display:'flex',gap:6,flexWrap:'wrap',marginTop:10,padding:'8px 10px',borderRadius:16,background:'var(--card)',border:'1px solid var(--border)',alignItems:'center'}}>
-                    <span style={{fontSize:12,fontWeight:600}}>已选 {dispSel.length} 项</span>
-                    <select value={dispAction} onChange={e=>setDispAction(e.target.value)} style={{fontSize:12,padding:'6px 8px',borderRadius:99,border:'1px solid var(--border)',background:'var(--card)'}}>
-                      <option value="return">退货供应商</option>
-                      <option value="clearance">清仓甩卖</option>
-                      <option value="promo">降价促销</option>
-                    </select>
-                    <input value={dispNote} onChange={e=>setDispNote(e.target.value)} placeholder="备注(可选)" style={{flex:1,minWidth:80,fontSize:12,padding:'6px 10px',borderRadius:99,border:'1px solid var(--border)',background:'var(--card)',outline:'none'}} />
-                    <button onClick={doDispose} disabled={dispBusy} className="btn btn-primary" style={{minHeight:32,padding:'0 14px',fontSize:12,flexShrink:0}}>{dispBusy?'处理中...':'批量标记处置'}</button>
-                  </div>
-                )}
-              </>
-            )}
+          <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',marginBottom:8}}>
+            <span className="muted2" style={{fontSize:11}}>按 SKU×仓库 · 品类滞销线 + 临期 + B仓仓储费</span>
+            <span onClick={()=>setShowDisposed(!showDisposed)} className="clickable" style={{marginLeft:'auto',fontSize:12,padding:'4px 12px',borderRadius:99,border:'1px solid var(--border)',background:'var(--card)',cursor:'pointer'}}>{showDisposed?'隐藏已处理':'查看已处理'}</span>
           </div>
-          {slowLoading ? (
+          {disposalsLoading ? (
             <div>
               {[1,2,3].map(i => <Skeleton key={i} height={36} style={{ marginBottom: 4 }} />)}
             </div>
-          ) : (slowMoving.length === 0 ? (
-            <div className="muted" style={{ padding: 12, textAlign: 'center' }}>{t("common.empty")}</div>
+          ) : (filteredDisp.length === 0 ? (
+            <div className="muted" style={{ padding: 12, textAlign: 'center' }}>{showDisposed ? '暂无处置记录' : '暂无滞销 🎉'}</div>
           ) : (
             <>
               <div style={{overflow:'auto',maxHeight:"calc(100vh - 180px)"}}>
-                <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>显示 {slowVisCols.length}/{SLOW_COLS.length} 列 · 点击"列"按钮切换{insightSearch ? ` · 搜索 "${insightSearch}"` : ''}</div>
                 <table>
                   <colgroup>{slowVisCols.map(id => {const col = SLOW_COLS.find(c => c.id === id); return col ? <col key={col.id} /> : null})}</colgroup>
                   <thead style={{position:'sticky',top:0,background:'var(--card)',zIndex:1}}><tr>{slowVisCols.map(id => {const col = SLOW_COLS.find(c => c.id === id); return col ? <th style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}} key={col.id}>{col.label}</th> : null})}</tr></thead>
                   <tbody>
-                    {filteredSlow.filter(x => x.level !== '正常').map((x, i) => (
-                      <tr key={i}>
+                    {filteredDisp.map((x, i) => {
+                      const key = x.sku + '|' + x.warehouse
+                      const isSel = dispSel.includes(key)
+                      return <tr key={key} onClick={()=>setDispSel(prev => isSel ? prev.filter(k=>k!==key) : [...prev, key])} style={{opacity:x.disposed?0.5:1,background:isSel?'rgba(29,78,216,0.08)':'transparent',cursor:'pointer'}}>
                         {slowVisCols.map(id => {
                           const col = SLOW_COLS.find(c => c.id === id)
                           if (!col) return <td key={id}></td>
-                          if (col.id === 'barcode') return <td key={col.id} className="mono text-11 muted2">{x.barcode || '-'}</td>
-                          if (col.id === 'sku') return <td key={col.id} className="mono" style={{fontSize:12}}>{x.sku}</td>
-                          if (col.id === 'name') return <td key={col.id}>{x.product_name}</td>
-                          if (col.id === 'store') return <td key={col.id}>{x.store || x.warehouse || '-'}</td>
-                          if (col.id === 'category') return <td key={col.id}>{x.category || '-'}</td>
-                          if (col.id === 'last_order_date') return <td key={col.id} className="text-12 muted">{x.last_order_date}</td>
-                          if (col.id === 'days') return <td key={col.id} style={{fontWeight:600,color:(x.days_since_last||x.days_since_last_order||0) >= 90 ? '#ef4444' : (x.days_since_last||x.days_since_last_order||0) >= 30 ? 'var(--warning)' : 'var(--muted)'}}>{(x.days_since_last||x.days_since_last_order||0)}天</td>
-                          if (col.id === 'stock') return <td key={col.id}>{(x.stock||x.available_qty||0)}</td>
-                          if (col.id === 'level') return <td key={col.id}><span className={`pill ${x.level === '滞销' ? 'danger' : x.level === '冷淡' ? 'warning' : 'info'}`}>{x.level}</span></td>
-                          return <td key={col.id}></td>
+                          if (col.id === 'processed') return <td key={id}>{x.disposed ? <span style={{fontSize:11,color:'var(--muted2)'}}>✓ 已处理</span> : <span style={{fontSize:11,color:'var(--muted2)'}}>-</span>}</td>
+                          if (col.id === 'sku') return <td key={id} className="mono" style={{fontSize:12}}>{x.sku}</td>
+                          if (col.id === 'name') return <td key={id} style={{fontSize:13}}>{x.product_name}</td>
+                          if (col.id === 'warehouse') return <td key={id} style={{fontSize:12}}>{x.warehouse}</td>
+                          if (col.id === 'days') return <td key={id} style={{fontWeight:600,color:x.days_zero>=90?'#ef4444':(x.days_zero>=30?'var(--warning)':'var(--muted)'),fontSize:12}}>{x.days_zero==999?'∞':x.days_zero}天</td>
+                          if (col.id === 'stock') return <td key={id} style={{fontSize:12}}>{x.stock}</td>
+                          if (col.id === 'level') return <td key={id}><span className={`pill ${x.level==='black'?'danger':x.level==='red'?'danger':'warning'}`} style={{fontSize:10,padding:'2px 8px',minHeight:'auto',lineHeight:'18px'}}>{x.level==='black'?'紧急':x.level==='red'?'处置':'滞销'}</span></td>
+                          if (col.id === 'note') return <td key={id} style={{fontSize:11,color:'var(--muted2)'}}>{(x.reason||[]).join(' · ')}<span style={{color:'var(--text)',fontWeight:600}}> → {x.suggestion}</span></td>
+                          return <td key={id}></td>
                         })}
                       </tr>
-                    ))}
+                    })}
                   </tbody>
                 </table>
-            </div>
-              {slowMoving.filter(x => x.level === '正常').length > 0 && (
-                <div className="small muted" style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
-                  另有 {slowMoving.filter(x => x.level === '正常').length} 个商品最近 14 天内有过订单（正常销售中）
+              </div>
+              {/* 批量处置操作栏 */}
+              {!showDisposed && dispSel.length > 0 && (
+                <div style={{display:'flex',gap:6,flexWrap:'wrap',marginTop:10,padding:'8px 10px',borderRadius:16,background:'var(--card)',border:'1px solid var(--border)',alignItems:'center'}}>
+                  <span style={{fontSize:12,fontWeight:600}}>已选 {dispSel.length} 项</span>
+                  <select value={dispAction} onChange={e=>setDispAction(e.target.value)} style={{fontSize:12,padding:'6px 8px',borderRadius:99,border:'1px solid var(--border)',background:'var(--card)'}}>
+                    <option value="mark">标记已处理</option>
+                    <option value="return">退货供应商</option>
+                    <option value="clearance">清仓甩卖</option>
+                    <option value="promo">降价促销</option>
+                  </select>
+                  <input value={dispNote} onChange={e=>setDispNote(e.target.value)} placeholder="备注(可选)" style={{flex:1,minWidth:80,fontSize:12,padding:'6px 10px',borderRadius:99,border:'1px solid var(--border)',background:'var(--card)',outline:'none'}} />
+                  <button onClick={doDispose} disabled={dispBusy} className="btn btn-primary" style={{minHeight:32,padding:'0 14px',fontSize:12,flexShrink:0}}>{dispBusy?'处理中...':'批量处置'}</button>
                 </div>
               )}
             </>
           ))}
         </div>
       )}
+
     </div>
   )
 }

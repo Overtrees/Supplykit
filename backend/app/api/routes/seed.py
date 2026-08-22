@@ -117,6 +117,9 @@ def _seed_fill_async():
     # 步骤1: 清空旧数据（临时切 DELETE 模式避免 WAL 膨胀，orders 分批删除防 I/O error）
     def _clear_all():
         conn = get_conn()
+        # 先切回 WAL 模式（之前可能因配额满降级为 DELETE，DELETE 下批量写入极慢）
+        try: conn.execute("PRAGMA journal_mode=WAL")
+        except Exception: pass
         # 临时切到 DELETE journal 模式（清空期间避免 WAL 文件膨胀导致 disk I/O error）
         try: conn.execute("PRAGMA journal_mode=DELETE")
         except Exception: pass

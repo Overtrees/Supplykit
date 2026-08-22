@@ -4,7 +4,7 @@ import json, csv, io, re, os, uuid
 from openpyxl import load_workbook
 import logging
 logger = logging.getLogger(__name__)
-from app.core.database import get_db, submit_task, get_task, backup_db
+from app.core.database import get_db, get_conn, submit_task, get_task, backup_db
 from app.core.response import ok, fail
 from app.core.cleansing_parser import parse_file, cleanse_value
 from app.core.cleansing_templates import load_custom_fields, save_custom_fields, list_templates, save_template, delete_template, get_system_fields
@@ -106,6 +106,12 @@ async def preview_cleansing(file: UploadFile = File(...), mapping: str = Form(''
 def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str, template_name: str = '', channel: str = 'jd'):
     """清洗核心逻辑，含格式校验 → 业务校验 → 补全推断"""
     db = get_db()
+    # 强制恢复 WAL 模式（之前可能因配额满降级为 DELETE，大批量写入极慢）
+    try:
+        conn = get_conn()
+        conn.execute("PRAGMA journal_mode=WAL")
+    except Exception:
+        pass
     rows = parse_file(content, filename)
     if not rows:
         from app.core.database import update_task

@@ -209,13 +209,51 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
         _wh_wh_sales = {}
         _inv_wh = [x for x in db.table("inventory").select("*").in_("warehouse_type", ["platform"]).eq("channel", channel).execute().data]
         _wh_names = set(x.get('warehouse','') for x in _inv_wh)
-        for _wn in _wh_names:
-            _wh_daily_28 = load_daily_sales(28, db, sku_barcode_map=sku_barcode_map, channel=channel, warehouse=_wn)
-            _wh_wh_sales[_wn] = {
-                '7': calc_sales_from_daily(_wh_daily_28, 7),
-                '14': calc_sales_from_daily(_wh_daily_28, 14),
-                '28': calc_sales_from_daily(_wh_daily_28, 28),
-            }
+        # 优化：一次性加载所有仓库的快照 + 当天订单，避免 7 次独立 SQL（PA 15s 代理超时）
+        if _wh_names:
+            try:
+                from app.core.database import get_conn
+                conn = get_conn()
+                cutoff = (datetime.utcnow() - timedelta(days=28)).strftime('%Y-%m-%d')
+                _wns = list(_wh_names)
+                _ph = ','.join('?' * len(_wns))
+                _snap_rows = conn.execute(
+                    f"SELECT date, sku, warehouse, order_count FROM daily_sales_snapshot WHERE date>=? AND channel=? AND warehouse IN ({_ph})",
+                    (cutoff, channel) + tuple(_wns)
+                ).fetchall()
+                _wh_raw = {}
+                for _r in _snap_rows:
+                    _wh = _r[2]; _sku = _r[1]; _key = f"{_sku}|{sku_barcode_map.get(_sku,'')}" if sku_barcode_map and sku_barcode_map.get(_sku) else _sku
+                    _wh_raw.setdefault(_wh, {}).setdefault(_key, {})[_r[0]] = (_r[3] or 0)
+                # 当天 orders 补充（原始 SQL 一次性）
+                today = datetime.utcnow().strftime('%Y-%m-%d')
+                _today_rows = conn.execute(
+                    "SELECT sku, warehouse, quantity, ordered_at FROM orders WHERE ordered_at>=? AND channel=?",
+                    (today, channel)
+                ).fetchall()
+                for _o in _today_rows:
+                    _wh = _o[1] or ''; _sku = _o[0]; _key = f"{_sku}|{sku_barcode_map.get(_sku,'')}" if sku_barcode_map and sku_barcode_map.get(_sku) else _sku
+                    _dt = str(_o[3] or '')[:10]
+                    if _dt >= cutoff:
+                        _d = _wh_raw.setdefault(_wh, {}).setdefault(_key, {})
+                        _d[_dt] = _d.get(_dt, 0) + (_o[2] or 0)
+                for _wn in _wh_names:
+                    _daily = _wh_raw.get(_wn, {})
+                    _wh_wh_sales[_wn] = {
+                        '7': calc_sales_from_daily(_daily, 7),
+                        '14': calc_sales_from_daily(_daily, 14),
+                        '28': calc_sales_from_daily(_daily, 28),
+                    }
+            except Exception as _e:
+                logger.warning(f"[replen] batch daily_sales fallback: {_e}")
+                # 回退到逐仓加载
+                for _wn in _wh_names:
+                    _wh_daily_28 = load_daily_sales(28, db, sku_barcode_map=sku_barcode_map, channel=channel, warehouse=_wn)
+                    _wh_wh_sales[_wn] = {
+                        '7': calc_sales_from_daily(_wh_daily_28, 7),
+                        '14': calc_sales_from_daily(_wh_daily_28, 14),
+                        '28': calc_sales_from_daily(_wh_daily_28, 28),
+                    }
         for inv in _inv_wh:
             sku = inv.get("sku", "")
             warehouse = inv.get("warehouse", "")

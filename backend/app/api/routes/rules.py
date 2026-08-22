@@ -23,6 +23,7 @@ def list_rules(channel: str = 'jd', db = get_db()):
 
 @router.post("")
 def create_rule(data: RuleCreate, db = get_db()):
+    _rules_cache.clear()
     payload = {
         "name": data.name, "event": data.event,
         "condition_json": json.dumps(data.condition),
@@ -39,6 +40,7 @@ def create_rule(data: RuleCreate, db = get_db()):
 
 @router.put("/{rule_id}")
 def update_rule(rule_id: int, data: RuleUpdate, db = get_db()):
+    _rules_cache.clear()
     if not db.table("rules").select("id").eq("id", rule_id).execute().data:
         raise HTTPException(status_code=404, detail="规则不存在")
     update = {}
@@ -57,6 +59,7 @@ def update_rule(rule_id: int, data: RuleUpdate, db = get_db()):
 
 @router.delete("/{rule_id}")
 def delete_rule(rule_id: int, db = get_db()):
+    _rules_cache.clear()
     # 软删除
     from datetime import datetime
     db.table("rules").update({"is_active": 0, "deleted_at": datetime.utcnow().isoformat()}).eq("id", rule_id).execute()
@@ -64,11 +67,13 @@ def delete_rule(rule_id: int, db = get_db()):
 
 @router.post("/{rule_id}/restore")
 def restore_rule(rule_id: int, db = get_db()):
+    _rules_cache.clear()
     db.table("rules").update({"is_active": 1, "deleted_at": None}).eq("id", rule_id).execute()
     return ok({"message": "已恢复", "id": rule_id})
 
 @router.post("/{rule_id}/permanent-delete")
 def permanent_delete_rule(rule_id: int, db = get_db()):
+    _rules_cache.clear()
     db.table("rules").delete().eq("id", rule_id).execute()
     return ok({"message": "已永久删除", "id": rule_id})
 

@@ -807,6 +807,8 @@ def init_db(path=None):
     except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE products ADD COLUMN channel TEXT DEFAULT 'jd'")
     except sqlite3.OperationalError: pass
+    try: conn.execute("ALTER TABLE rules ADD COLUMN mode TEXT DEFAULT ''")
+    except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE products ADD COLUMN unit TEXT DEFAULT ''")
     except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE suppliers ADD COLUMN channel TEXT DEFAULT 'jd'")

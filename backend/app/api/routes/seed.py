@@ -57,18 +57,18 @@ def make_skus(sfx, count=1000, shared=None):
 _current_task_id = None
 
 def _check_busy(conn):
-    """并发保护：返回正在进行的 seed/reset 任务（running/pending 且 15 分钟内有过更新 = 活着）。
-    卡死任务（超 15 分钟无更新，线程被 PA 重启/OOM 杀）自动标记 error 并放行。"""
+    """并发保护：返回正在进行的 seed/reset 任务（running/pending 且 25 分钟内有过更新 = 活着）。
+    卡死任务（超 25 分钟无更新，线程被 PA 重启/OOM 杀）自动标记 error 并放行。"""
     try:
         rows = conn.execute(
             "SELECT task_id FROM sync_tasks WHERE task_type IN ('seed','reset') AND status IN ('running','pending') "
-            "AND updated_at >= datetime('now','-15 minutes')").fetchall()
+            "AND updated_at >= datetime('now','-25 minutes')").fetchall()
         if rows:
             return rows[0][0]
         # 卡死的 running 任务标记 error
         stale = conn.execute(
             "SELECT task_id FROM sync_tasks WHERE task_type IN ('seed','reset') AND status IN ('running','pending') "
-            "AND updated_at < datetime('now','-15 minutes')").fetchall()
+            "AND updated_at < datetime('now','-25 minutes')").fetchall()
         for _s in stale:
             try:
                 _payload = json.dumps({"error": "任务卡死超时，已自动标记失败（可能因服务器资源受限）"}, ensure_ascii=False)

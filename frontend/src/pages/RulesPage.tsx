@@ -83,6 +83,8 @@ export default function RulesPage() {
   const [seasons, setSeasons] = useState([])
   // 滞销品类配置（自定义条目，仿活动系数）
   const [slowCats, setSlowCats] = useState([])
+  const [transitDays, setTransitDays] = useState('3')
+  useEffect(() => { if (cfg.transit_days) setTransitDays(cfg.transit_days) }, [cfg.transit_days])
   const reqSeq = useRef(0)
   const [selectedSupplier, setSelectedSupplier] = useState('')
   // 保存错误统一提示（403 访客模式显示后端 detail）
@@ -373,15 +375,17 @@ export default function RulesPage() {
           <input value={s.cats||''} onChange={e=>setSlowCats(p=>p.map((x,j)=>j===i?{...x,cats:e.target.value}:x))} placeholder='酱油,薯片,糖果...' style={{...IS,marginTop:2}}/>
         </label>
       </div>)}
+      <div style={{marginTop:16}}>
+        <label style={{fontSize:13,display:'flex',alignItems:'center',gap:10}}>物流在途(天)
+          <input value={transitDays} onChange={e=>setTransitDays(e.target.value)} style={{...IS,width:80,fontSize:14,textAlign:'center'}}/>
+          <span className="small muted" style={{fontSize:11}}>库存出库到客户/入仓的运输天数，默认 3（用于效期预警：已消耗 + 在途 > 1/3 标临近）</span>
+        </label>
+      </div>
       <div style={{marginTop:12}}>
         <button onClick={()=>setSlowCats(p=>[...p,{key:'new'+Date.now(),name:'新品类',slow_days:30,observe_days:'',shelf_months:3,cats:'',enabled:true}])} className="btn btn-ghost clickable" style={{fontSize:13,padding:'8px 16px',width:'100%',minHeight:40}}>+ 添加品类</button>
       </div>
       <div style={{marginTop:12}}>
-        <button disabled={saving} onClick={async()=>{setSaving(true);const ch=globalChannel;try{const r=await api.put('/api/replenishment-config/slow-cats?channel='+ch,{items:slowCats});toast.success('已保存')}catch(e){saveErr(e)}setSaving(false)}} className="btn btn-primary" style={{width:'100%',display:'inline-flex',alignItems:'center',gap:4,justifyContent:'center',minHeight:42}}>{saving?<><IconLoading size={14} /> 保存中...</>:<><IconSave size={14} /> 保存</>}</button>
-      </div>
-    </div>}
-
-    {/* ── 活动系数 ── */}
+        <button disabled={saving} onClick={async()=>{setSaving(true);const ch=globalChannel;try{const r=await api.put('/api/replenishment-config/slow-cats?channel='+ch,{items:slowCats});await api.put('/api/replenishment-config?channel='+ch,{transit_days:transitDays||''});toast.success('已保存')}catch(e){saveErr(e)}setSaving(false)}} className="btn btn-primary" style={{width:'100%',display:'inline-flex',alignItems:'center',gap:4,justifyContent:'center',minHeight:42}}>{saving?<><IconLoading size={14} /> 保存中...</>:<><IconSave size={14} /> 保存</>}</button>
     {tab === 'params' && <><div className='section-title' style={{marginTop:16,marginBottom:8,display:'flex',alignItems:'center',gap:4}}><IconTag size={14} /> 活动系数</div>
       {seasons.map((s,i)=><div key={s.key||i} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',border:'1px solid var(--border)',borderRadius:32,marginBottom:8}}>
         <input value={s.name} onChange={e=>setSeasons(p=>p.map((x,j)=>j===i?{...x,name:e.target.value}:x))} placeholder='618大促' style={{flex:1,minWidth:80,fontSize:16,padding:'6px 10px',border:'1px solid var(--border)',borderRadius:32,outline:'none'}}/>

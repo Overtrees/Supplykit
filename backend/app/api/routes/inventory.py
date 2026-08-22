@@ -42,9 +42,11 @@ def list_inventory(db = get_db(), channel: str = 'jd', store: str = '', warehous
             if _bs:
                 item['batch_prod_date'] = _bs[0]
                 item['batch_exp_date'] = _bs[1]
+                item['batch_status'] = _bs[2]
+                item['batch_pct'] = _bs[3]
             else:
-                item['batch_prod_date'] = ''
-                item['batch_exp_date'] = ''
+                item['batch_prod_date'] = item['batch_exp_date'] = item['batch_status'] = ''
+                item['batch_pct'] = 0
         return ok({
             'items': data,
             'total': total,
@@ -65,19 +67,56 @@ def list_inventory(db = get_db(), channel: str = 'jd', store: str = '', warehous
         if _bs:
             item['batch_prod_date'] = _bs[0]
             item['batch_exp_date'] = _bs[1]
+            item['batch_status'] = _bs[2]
+            item['batch_pct'] = _bs[3]
         else:
-            item['batch_prod_date'] = ''
-            item['batch_exp_date'] = ''
+            item['batch_prod_date'] = item['batch_exp_date'] = item['batch_status'] = ''
+            item['batch_pct'] = 0
     return ok(data)
 
 
 def _get_batch_summary(channel='jd'):
-    """返回 {(sku, warehouse, channel): (min(prod_date), min(exp_date))} 批次摘要"""
+    """返回 {(sku, warehouse, channel): (prod_date, exp_date, status, pct, transit_days)} 批次摘要"""
     try:
         from app.core.database import get_conn
+        from datetime import datetime, timedelta
         conn = get_conn()
         rows = conn.execute("SELECT sku, warehouse, channel, MIN(prod_date), MIN(exp_date) FROM batches WHERE channel=? GROUP BY sku, warehouse, channel", (channel,)).fetchall()
-        return {(str(r[0]), str(r[1]), str(r[2] or 'jd')): (str(r[3] or '')[:10], str(r[4] or '')[:10]) for r in rows}
+        # 读物流在途天数（默认 3）
+        transit = 3
+        try:
+            _rt = conn.execute("SELECT value FROM replenishment_config WHERE key='transit_days' AND channel=?", (channel,)).fetchone()
+            if _rt and _rt[0]: transit = int(_rt[0])
+        except Exception: pass
+        today = datetime.utcnow()
+        out = {}
+        for r in rows:
+            sku, wh, ch = str(r[0]), str(r[1]), str(r[2] or 'jd')
+            prod = str(r[3] or '')[:10]
+            exp = str(r[4] or '')[:10]
+            status = ''; pct = 0
+            if prod and exp:
+                try:
+                    prod_dt = datetime.strptime(prod, '%Y-%m-%d')
+                    exp_dt = datetime.strptime(exp, '%Y-%m-%d')
+                    total_days = (exp_dt - prod_dt).days
+                    consumed = (today - prod_dt).days
+                    third = max(total_days // 3, 1)
+                    if total_days > 0:
+                        pct = round(consumed / total_days * 100, 0)
+                    # 已消耗 ≥ 拒收线(1/3) → ✗ 否
+                    if consumed >= third:
+                        status = 'no'
+                    # 入仓时已消耗 = 当前 + transit, 入仓时超拒收线 → ⚠️ 临近
+                    elif consumed + transit > third:
+                        status = 'warn'
+                    else:
+                        status = 'ok'
+                    if consumed >= total_days:
+                        status = 'expired'
+                except Exception: pass
+            out[(sku, wh, ch)] = (prod, exp, status, pct, transit)
+        return out
     except Exception:
         return {}
 

@@ -283,7 +283,13 @@ def _seed_products_suppliers(db, skus_data):
             # 按顺序分配供应商（10 家供应商轮流覆盖 SKU）
             _sup_idx = i % 10
             _sup_code = f"SUP-{_sup_idx+1:03d}-{ch.upper()}"
-            db.table("products").upsert({'sku':p['sku'],'product_name':p['name'],'store':p['store'],'category':p['cat'],'price':p['price'],'box_qty':p['box'],'barcode':p['barcode'],'weight':p['weight'],'volume':p['volume'],'status':p['status'],'channel':ch,'supplier_code':_sup_code}, conflict_col='sku')
+            _prow = {'sku':p['sku'],'product_name':p['name'],'store':p['store'],'category':p['cat'],'price':p['price'],'box_qty':p['box'],'barcode':p['barcode'],'weight':p['weight'],'volume':p['volume'],'status':p['status'],'channel':ch,'supplier_code':_sup_code}
+            # 临期场景: 2% 商品带 best_before 且处于临期窗口(20~80天后到期 → 触发 black 紧急)
+            if i % 50 < 1:
+                from datetime import timedelta as _td
+                _exp = (datetime.utcnow() + _td(days=random.randint(20,80))).strftime('%Y-%m-%d')
+                _prow['best_before'] = _exp
+            db.table("products").upsert(_prow, conflict_col='sku')
     for s in SUP:
         for ch in ['jd','other']:
             # supplier_code 加渠道后缀，避免两渠道共用同一 code 导致 upsert 互相覆盖
@@ -308,12 +314,26 @@ def _seed_orders(db, today, skus_data):
         batch = []
     for ch,label,skus,base in [('jd','jd',jd_s,1100),('other','other',ot_s,550)]:
         promo = {'618':list(range(5,20)),'月末':list(range(45,55))}
+        # 滞销场景: 3% SKU 完全不出单(真滞销) + 2% SKU 每30天出1单(低动销/观察级)
+        _n = len(skus)
+        _slow_skus = set(x['sku'] for x in skus[:_n*3//100]) if _n >= 50 else set()
+        _low_idx = {x['sku'] for x in skus[_n*3//100:_n*5//100]} if _n >= 50 else set()
+        _normal_skus = [x for x in skus if x['sku'] not in _slow_skus and x['sku'] not in _low_idx]
         for d in range(60):
             dt = today - timedelta(days=d)
             is_promo = any(d in v for v in promo.values())
             cnt = int(base * random.uniform(2,4)) if is_promo else (int(base * random.uniform(0.6,1.2)) if dt.weekday()>=5 else base)
+            # 低动销 SKU: 仅每 30 天(及 promo 期间)出 1 单
+            if d % 30 == 0 or is_promo:
+                for lsk in _low_idx:
+                    sk = next((x for x in skus if x['sku']==lsk), None)
+                    if not sk: continue
+                    q = random.randint(1,4)
+                    st = random.choices(['已完成','已发货'],[80,20])[0]
+                    batch.append({'order_no':f'{label.upper()}-L{d:03d}-{lsk[-3:]}','store':sk['store'],'warehouse':random.choice(WH)[0],'sku':sk['sku'],'product_name':sk['name'],'quantity':q,'unit_price':sk['price'],'total_amount':round(q*sk['price'],2),'order_status':st,'ordered_at':dt.strftime('%Y-%m-%d'),'paid_at':dt.strftime('%Y-%m-%d'),'channel':ch,'platform':'京东' if label=='jd' else '天猫'})
+                    total += 1
             for _ in range(cnt):
-                sk = random.choice(skus)
+                sk = random.choice(_normal_skus if _normal_skus else skus)
                 q = random.randint(1,20) if is_promo else random.randint(1,8)
                 st = random.choices(['已完成','已发货','待发货','待确认','申请退款'],[45,18,15,10,7])[0]
                 if random.random() < 0.03: st = '已退货'

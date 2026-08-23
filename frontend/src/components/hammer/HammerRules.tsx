@@ -72,7 +72,7 @@ export default function HammerRules({ channel, onShowHistory }: HammerRulesProps
               <div className="hammer-btn-row">
                 <button className="hammer-btn btn-ghost" onClick={() => { const s = useAppStore.getState(); if (!s.prodBatch) s.setProdBatch(true); s.requestProdBatchAll() }}>全选/取消</button>
               </div>
-              <div className="hammer-btn-row">
+              <div className="hammer-btn-row" style={{marginTop:8}}>
                 <button className="hammer-btn btn-ghost" style={{color:'var(--success)'}} onClick={() => runBatch('active','启用')}>批量启用</button>
                 <button className="hammer-btn btn-ghost" style={{color:'var(--warning)'}} onClick={() => runBatch('inactive','停用')}>批量停用</button>
                 <button className="hammer-btn btn-ghost" style={{color:'var(--danger)'}} onClick={() => runBatch('delete','删除')}>批量删除</button>

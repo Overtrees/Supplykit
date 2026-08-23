@@ -34,6 +34,7 @@ def list_inventory(db = get_db(), channel: str = 'jd', store: str = '', warehous
         for item in data:
             p = products.get(item.get('sku', ''))
             if p: item['price'] = p.get('price', 0)
+            if p: item['brand'] = p.get('brand', '')
         # 批量注入批次摘要
         _batch_summary = _get_batch_summary(channel)
         for item in data:
@@ -60,6 +61,7 @@ def list_inventory(db = get_db(), channel: str = 'jd', store: str = '', warehous
     for item in data:
         p = products.get(item.get('sku', ''))
         if p: item['price'] = p.get('price', 0)
+        if p: item['brand'] = p.get('brand', '')
     # 批量注入批次摘要（最早生产日/截止日/效期状态）
     _batch_summary = _get_batch_summary(channel)
     for item in data:

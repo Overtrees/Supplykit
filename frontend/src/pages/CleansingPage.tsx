@@ -69,6 +69,8 @@ export default function CleansingPage() {
   const [cols,setCols] = useState([])
   const [tr,setTr] = useState(0)
   const [tt,setTt] = useState('order')
+  const { hammerCleansingTarget, setHammerCleansingTarget, hammerCleansingConflict } = useAppStore()
+  useEffect(() => { setHammerCleansingTarget(tt) }, [tt])
   const { hammerCleansingChannel: ch, setHammerCleansingChannel: setCh } = useAppStore()
   const [mp,setMp] = useState({})
   const [pv,setPv] = useState(null)
@@ -118,7 +120,7 @@ export default function CleansingPage() {
 
   const preview = async () => {
     setBs('预览中')
-    const fd = new FormData(); fd.append('file', f); fd.append('mapping', JSON.stringify(mp)); fd.append('target', tt); fd.append('channel', ch)
+    const fd = new FormData(); fd.append('file', f); fd.append('mapping', JSON.stringify(mp)); fd.append('target', tt); fd.append('channel', ch); fd.append('conflict_mode', hammerCleansingConflict)
     try {
       const r = await api.post('/api/cleansing/preview', fd, {timeout: 60000})
       const d = r.data
@@ -154,7 +156,7 @@ export default function CleansingPage() {
         setBs(''); execLock.current = false; return
       }
     }
-    const fd = new FormData(); fd.append('file', f); fd.append('mapping', JSON.stringify(mp)); fd.append('target', tt); fd.append('channel', ch)
+    const fd = new FormData(); fd.append('file', f); fd.append('mapping', JSON.stringify(mp)); fd.append('target', tt); fd.append('channel', ch); fd.append('conflict_mode', hammerCleansingConflict)
     try {
       const r = await api.post('/api/cleansing/execute-async', fd)
       const d = r.data
@@ -192,7 +194,7 @@ export default function CleansingPage() {
 
   const quickExecute = async () => {
     setBs('执行中')
-    const fd = new FormData(); fd.append('file', f); fd.append('mapping', JSON.stringify(mp)); fd.append('target', tt); fd.append('channel', ch)
+    const fd = new FormData(); fd.append('file', f); fd.append('mapping', JSON.stringify(mp)); fd.append('target', tt); fd.append('channel', ch); fd.append('conflict_mode', hammerCleansingConflict)
     try {
       const r = await api.post('/api/cleansing/preview', fd)
       const d = r.data

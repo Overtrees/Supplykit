@@ -476,9 +476,9 @@ def get_cleansing_errors(file: str = '', db = get_db()):
 
 @router.post('/execute')
 async def execute_cleansing(file: UploadFile = File(...), mapping: str = Form(''),
-                             target: str = Form('order'), template_name: str = Form(''), channel: str = 'jd'):
+                             target: str = Form('order'), template_name: str = Form(''), channel: str = 'jd', conflict_mode: str = Form('overwrite')):
     content = await file.read()
-    return _run_cleansing(content, file.filename, mapping, target, template_name, channel)
+    return _run_cleansing(content, file.filename, mapping, target, template_name, channel, conflict_mode)
 
 @router.post('/execute-async')
 async def execute_cleansing_async(file: UploadFile = File(...), mapping: str = Form(''),

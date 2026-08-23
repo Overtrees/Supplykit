@@ -14,6 +14,7 @@ interface AppState {
   loading: boolean; orderLoading: boolean; orderSearch: string; orderStatus: string
   wsStatus: string; ws: WebSocket | null; importLogs: any[]
   hammerPanel: string | null; hammerSearch: string; hammerData: Record<string, any>
+  hammerCleansingTarget: string; hammerCleansingConflict: string
   hammerCols: Record<string, string[]> | null
   prodBatch: boolean
   hammerDashPeriod: string; hammerInsightsTab: string; hammerReplenMode: string
@@ -66,6 +67,10 @@ export const useAppStore = create((set, get) => ({
   setHammerInsightsTab: (t) => set({ hammerInsightsTab: t }),
   hammerCleansingChannel: 'jd',
   setHammerCleansingChannel: (c) => set({ hammerCleansingChannel: c }),
+  hammerCleansingTarget: 'order',
+  setHammerCleansingTarget: (t) => set({ hammerCleansingTarget: t }),
+  hammerCleansingConflict: 'sum',
+  setHammerCleansingConflict: (m) => set({ hammerCleansingConflict: m }),
   hammerRulesTab: 'rules',
   setHammerRulesTab: (t) => set({ hammerRulesTab: t }),
   hammerRuleNewVersion: 0,

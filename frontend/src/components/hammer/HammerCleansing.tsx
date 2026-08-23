@@ -3,9 +3,10 @@ import { useAppStore } from "../../store/useAppStore"
 interface HammerCleansingProps { channel: string }
 
 export default function HammerCleansing({ channel }: HammerCleansingProps) {
-  const { hammerPanel, setHammerPanel, hammerCleansingChannel, setHammerCleansingChannel } = useAppStore()
+  const { hammerPanel, setHammerPanel, hammerCleansingChannel, setHammerCleansingChannel, hammerCleansingTarget, hammerCleansingConflict, setHammerCleansingConflict } = useAppStore()
   const target = hammerCleansingChannel === 'jd' ? '京东' : '其他渠道'
   const sameAsGlobal = hammerCleansingChannel === channel
+  const isInOut = hammerCleansingTarget === 'inbound' || hammerCleansingTarget === 'outbound'
   return (
     <div>
       <div className="hammer-header">清洗导入 · 数据归入：<b>{target}</b></div>
@@ -22,6 +23,13 @@ export default function HammerCleansing({ channel }: HammerCleansingProps) {
         {!sameAsGlobal && (
           <div style={{fontSize:10,color:'var(--warning)',textAlign:'center',background:'rgba(245,158,11,0.1)',borderRadius:32,padding:'4px 8px'}}>
             ⚠️ 当前全局主体是「{channel === 'jd' ? '京东' : '其他渠道'}」，导入后请切换主体查看该数据
+          </div>
+        )}
+        {isInOut && (
+          <div style={{display:'flex',alignItems:'center',gap:8,marginTop:8,background:'var(--card)',borderRadius:32,padding:'8px 12px'}}>
+            <span style={{fontSize:12,fontWeight:600}}>重复数据冲突处理</span>
+            <span onClick={()=>setHammerCleansingConflict('sum')} className="clickable hammer-tab" style={{flex:1,textAlign:'center',fontWeight:600,...(hammerCleansingConflict==='sum'?{color:'var(--primary)',borderColor:'var(--primary)'}:{})}}>累加求和</span>
+            <span onClick={()=>setHammerCleansingConflict('overwrite')} className="clickable hammer-tab" style={{flex:1,textAlign:'center',fontWeight:600,...(hammerCleansingConflict==='overwrite'?{color:'var(--primary)',borderColor:'var(--primary)'}:{})}}>覆盖</span>
           </div>
         )}
       </div>

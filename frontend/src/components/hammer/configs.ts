@@ -67,8 +67,8 @@ export const INS_PURCHASE_COLS = [
   {id:'note',label:'备注'},{id:'timing',label:'采购时机'},
 ]
 export const INS_SLOW_COLS = [
-  {id:'brand',label:'品牌'},{id:'barcode',label:'69码'},{id:'sku',label:'SKU'},{id:'name',label:'商品'},{id:'store',label:'店铺'},{id:'category',label:'分类'},
-  {id:'last_order_date',label:'最近下单'},{id:'days',label:'天数'},{id:'stock',label:'库存'},{id:'level',label:'状态'},
+  {id:'processed',label:'处理'},{id:'brand',label:'品牌'},{id:'sku',label:'SKU'},{id:'name',label:'商品'},{id:'warehouse',label:'仓库'},
+  {id:'days',label:'未售天数'},{id:'stock',label:'库存'},{id:'level',label:'等级'},{id:'note',label:'备注'},
 ]
 
 export const insColKey = (m, ch) => 'c_cols_insights_' + ch + '_' + m

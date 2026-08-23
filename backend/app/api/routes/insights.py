@@ -131,9 +131,9 @@ def get_disposal_suggestions(channel: str = 'jd', db = get_db()):
     # 商品信息
     products = {}
     try:
-        for r in conn.execute("SELECT sku, product_name, price, volume, category, best_before, channel FROM products WHERE (deleted_at IS NULL OR deleted_at='') AND channel=?", (channel,)).fetchall():
+        for r in conn.execute("SELECT sku, product_name, price, volume, category, best_before, channel, brand FROM products WHERE (deleted_at IS NULL OR deleted_at='') AND channel=?", (channel,)).fetchall():
             products[str(r[0])] = {"name": str(r[1] or ''), "price": float(r[2] or 0), "volume": float(r[3] or 0),
-                                   "category": str(r[4] or ''), "best_before": str(r[5] or '')[:10]}
+                                   "category": str(r[4] or ''), "best_before": str(r[5] or '')[:10], "brand": str(r[6] or '')}
     except Exception as e:
         import logging; logging.warning(f"[disposal] products: {e}")
     # 日销（28天）+ 近90天销售（最后销售日/动销参考）
@@ -288,7 +288,7 @@ def get_disposal_suggestions(channel: str = 'jd', db = get_db()):
             "daily_sales": round(daily, 1), "days_zero": days_zero,
             "cat_line": cat_name, "slow_days": slow_days,
             "level": level, "reason": reason, "suggestion": SUG.get(level, ''),
-            "b_storage": b_storage, "best_before": bb,
+            "b_storage": b_storage, "best_before": bb, "brand": p.get('brand', ''),
             "disposed": (sku, wh) in disposed, "disposed_action": disposed.get((sku, wh), ''),
         })
     suggestions.sort(key=lambda x: (LEVEL.get(x['level'], 9), -x['days_zero']))

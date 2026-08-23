@@ -17,6 +17,10 @@ interface AppState {
   hammerCleansingTarget: string; hammerCleansingConflict: string
   hammerCols: Record<string, string[]> | null
   prodBatch: boolean
+  prodSelIds: number[]
+  prodFilterLen: number
+  prodBatchVersion: number
+  prodBatchAllReq: number
   hammerDashPeriod: string; hammerInsightsTab: string; hammerReplenMode: string
   hammerRulesTab: string; hammerRuleNewVersion: number; hammerRulesMode: string
   hammerWhType: string
@@ -88,6 +92,14 @@ export const useAppStore = create((set, get) => ({
   setHammerCols: (pageKey, cols) => set((s) => ({ hammerCols: { ...s.hammerCols, [pageKey]: cols } })),
   prodBatch: false,
   setProdBatch: (v) => set({ prodBatch: v }),
+  prodSelIds: [],
+  prodFilterLen: 0,
+  prodBatchVersion: 0,
+  setProdBatchSel: (ids) => set({ prodSelIds: ids }),
+  setProdBatchFilterLen: (n) => set({ prodFilterLen: n }),
+  bumpProdBatchVersion: () => set((s) => ({ prodBatchVersion: s.prodBatchVersion + 1 })),
+  prodBatchAllReq: 0,
+  requestProdBatchAll: () => set((s) => ({ prodBatchAllReq: s.prodBatchAllReq + 1 })),
   setHammerData: (page, data) => {
     const ch = get().channel
     const channelData = get().hammerData[ch] || {}

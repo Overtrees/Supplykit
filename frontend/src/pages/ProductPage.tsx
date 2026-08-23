@@ -18,8 +18,9 @@ function Skeleton(){return <div>{[1,2,3,4].map(i=><div key={i} style={{display:'
 export default function ProductPage(){const[list,setList]=useState([]);const[ld,setLd]=useState(true)
 const[visCols,setVisCols]=useState(()=>getVis(COL_KEY())||COLS.map(c=>c.id))
 const toast = useToast()
-const { channel: globalChannel, hammerSearch, hammerCols, prodBatch, setProdBatch } = useAppStore()
-const [selIds, setSelIds] = useState([])
+const { channel: globalChannel, hammerSearch, hammerCols, prodBatch, setProdBatch, prodSelIds, setProdBatchSel, setProdBatchFilterLen, prodBatchVersion, bumpProdBatchVersion, prodBatchAllReq } = useAppStore()
+const selIds = prodSelIds || []
+const setSelIds = setProdBatchSel
 const [batchBusy, setBatchBusy] = useState(false)
 useEffect(()=>{setLd(true);api.get('/api/products').then(r=>{setList(r.data?.items||r.data||[]);setLd(false)}).catch(()=>setLd(false))}, [globalChannel])
 useEffect(() => {
@@ -27,35 +28,20 @@ useEffect(() => {
 }, [hammerCols])
 // 退出批量模式时清空选择
 useEffect(()=>{ if(!prodBatch) setSelIds([]) },[prodBatch])
+useEffect(()=>{ if(prodBatchVersion>0) reload() },[prodBatchVersion])
+  useEffect(()=>{ if(prodBatchAllReq>0){ const all=fl.map(x=>x.id); setSelIds(selIds.length===all.length&&all.length>0?[]:all) } },[prodBatchAllReq])
 const reload = () => { api.get('/api/products').then(r=>setList(r.data?.items||r.data||[])).catch(()=>{}) }
-const doBatch = async (action, label) => {
-  if (selIds.length === 0) { toast.error('请先勾选商品'); return }
-  if (action === 'delete' && !window.confirm('删除 ' + selIds.length + ' 个商品？可在回收站恢复')) return
-  setBatchBusy(true)
-  try {
-    await api.post('/api/products/batch', { action, ids: selIds })
-    toast.success(label + '完成: ' + selIds.length + ' 项')
-    setSelIds([]); setProdBatch(false); reload()
-  } catch(e) { toast.error(label + '失败: ' + (e.message||'')) }
-  setBatchBusy(false)
-}
+
 if(ld)return<div className='card'><div className='section-title'><span>{t("nav.products")}</span></div><Skeleton/></div>
 const s = hammerSearch || ''
 const fl=s?list.filter(x=>(x.sku||'').includes(s)||(x.product_name||'').includes(s)||(x.store||'').includes(s)):list
+useEffect(()=>{ setProdBatchFilterLen(fl.length) },[fl.length])
 return<div className='card' style={{containerType:'inline-size'}}>
 <div className='section-title' style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
   <span>商品管理 <span className='small muted'>{t("common.total")} {list.length} {t("common.items")}</span></span>
 </div>
 {fl.length===0?<EmptyState icon='tag' title={s?t("product.empty_matched"):t("product.empty")} desc={s?'换个关键词试试':'通过清洗页导入商品数据'} action={!s&&<button className="btn btn-primary" onClick={()=>window.__setPage&&window.__setPage('cleansing')}>去导入数据 →</button>}/>:<div style={{overflow:'auto',maxHeight:"calc(100vh - 180px)"}}>
-{prodBatch && <div style={{position:'sticky',top:0,zIndex:5,padding:'8px 10px',marginBottom:8,background:'var(--bg-thin)',backdropFilter:'var(--blur-thin)',borderRadius:24,border:'1px solid var(--border)',display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
-  <span style={{fontSize:12,fontWeight:600,color:'var(--text)'}}>已选 {selIds.length}/{fl.length}</span>
-  <span onClick={()=>{const all=fl.map(x=>x.id);setSelIds(selIds.length===fl.length?[]:all)}} className="clickable" style={{fontSize:12,padding:'5px 12px',borderRadius:99,border:'1px solid var(--border)',background:'var(--card)',cursor:'pointer'}}>{selIds.length===fl.length&&fl.length>0?'取消全选':'全选'}</span>
-  <span onClick={()=>doBatch('active','启用')} className="clickable" style={{fontSize:12,padding:'5px 12px',borderRadius:99,border:'1px solid var(--border)',background:'var(--card)',color:'var(--success)',cursor:'pointer'}}>批量启用</span>
-  <span onClick={()=>doBatch('inactive','停用')} className="clickable" style={{fontSize:12,padding:'5px 12px',borderRadius:99,border:'1px solid var(--border)',background:'var(--card)',color:'var(--warning)',cursor:'pointer'}}>批量停用</span>
-  <span onClick={()=>doBatch('delete','删除')} className="clickable" style={{fontSize:12,padding:'5px 12px',borderRadius:99,border:'1px solid var(--border)',background:'var(--card)',color:'var(--danger)',cursor:'pointer'}}>批量删除</span>
-  <button onClick={()=>setProdBatch(false)} className="clickable" style={{fontSize:12,padding:'5px 12px',borderRadius:99,border:'1px solid var(--border)',background:'var(--card)',cursor:'pointer',marginLeft:'auto'}}>退出</button>
-  {batchBusy && <span style={{fontSize:11,color:'var(--muted2)'}}>处理中...</span>}
-</div>}
+
 <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>{t("common.showing")} {visCols.length}/{COLS.length} {t("common.columns")}</div>
 <table><colgroup>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>
 <thead style={{position:"sticky",top:0,background:"var(--card)",zIndex:1}}><tr>{prodBatch&&<th style={{width:30}}></th>}{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<th key={col.id}>{col.label}</th>:null})}</tr></thead>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useAppStore } from '../../store/useAppStore'
+import { useToast } from '../../components/Toast'
 import { useDebouncedSearch } from '../../hooks/useDebounce'
 import { PRODUCT_COLS, prodColKey, getProdVis } from './configs'
 import { t } from '../../locale'
@@ -7,12 +8,28 @@ import { t } from '../../locale'
 interface HammerProductsProps { channel: string }
 
 export default function HammerProducts({ channel }: HammerProductsProps) {
+  const toast = useToast()
   const { hammerPanel, setHammerPanel, hammerSearch, setHammerSearch, setHammerCols } = useAppStore()
   const [localSearch, setLocalSearch] = useDebouncedSearch(hammerSearch, setHammerSearch)
   const [visCols, setVisCols] = useState(() => getProdVis(channel) || PRODUCT_COLS.map(c => c.id))
 
   useEffect(() => { setVisCols(getProdVis(channel) || PRODUCT_COLS.map(c => c.id)) }, [channel])
 
+  const runBatch = async (action, label) => {
+    const s = useAppStore.getState()
+    const ids = s.prodSelIds || []
+    if (ids.length === 0) { toast.error('请先勾选商品'); return }
+    if (action === 'delete' && !window.confirm('删除 ' + ids.length + ' 个商品？可在回收站恢复')) return
+    try {
+      const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
+      const r = await fetch(API + '/api/products/batch', {method:'POST', headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})(), 'Content-Type':'application/json'}, body: JSON.stringify({action, ids})})
+      const d = await r.json()
+      if (d.ok) {
+        toast.success(label + '完成: ' + ids.length + ' 项')
+        s.setProdBatchSel([]); s.setProdBatch(false); s.bumpProdBatchVersion()
+      } else toast.error(label + '失败: ' + (d.error || ''))
+    } catch(e) { toast.error(label + '失败: ' + (e.message||'')) }
+  }
   const saveCols = (cols) => {
     setVisCols(cols)
     localStorage.setItem(prodColKey(channel), JSON.stringify(cols))
@@ -27,9 +44,34 @@ export default function HammerProducts({ channel }: HammerProductsProps) {
           className="btn-ghost hammer-btn">{t('common.columns')} ({visCols.length}/{PRODUCT_COLS.length})</button>
         <button onClick={() => { setHammerPanel(hammerPanel === 'search' ? null : 'search'); if (hammerPanel !== 'search') setTimeout(() => document.getElementById('hm-search-prod')?.focus(), 100) }}
           className="btn-ghost hammer-btn">{t('common.search')}</button>
-        <button onClick={() => useAppStore.getState().setProdBatch(!useAppStore.getState().prodBatch)}
+        <button onClick={() => setHammerPanel(hammerPanel === 'batch' ? null : 'batch')}
           className="btn-ghost hammer-btn" style={useAppStore.getState().prodBatch?{borderColor:'var(--danger)',color:'var(--danger)'}:undefined}>批量操作</button>
       </div>
+      {hammerPanel === 'batch' && (
+        <div className="hammer-panel">
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+            <span className="text-12 muted2">已选 <b style={{color:'var(--text)'}}>{(useAppStore.getState().prodSelIds||[]).length}</b> 项</span>
+            {useAppStore.getState().prodBatch ? (
+              <button className="hammer-clear" onClick={() => { useAppStore.getState().setProdBatch(false); useAppStore.getState().setProdBatchSel([]) }}>退出批量模式</button>
+            ) : (
+              <button className="hammer-clear" onClick={() => useAppStore.getState().setProdBatch(true)}>进入批量模式</button>
+            )}
+          </div>
+          <div className="hammer-btn-row">
+            <button className="hammer-btn btn-ghost" onClick={() => {
+              const s = useAppStore.getState()
+              if (!s.prodBatch) s.setProdBatch(true)
+              s.requestProdBatchAll()
+            }}>全选/取消</button>
+          </div>
+          <div className="hammer-btn-row">
+            <button className="hammer-btn btn-ghost" style={{color:'var(--success)'}} onClick={() => runBatch('active','启用')}>批量启用</button>
+            <button className="hammer-btn btn-ghost" style={{color:'var(--warning)'}} onClick={() => runBatch('inactive','停用')}>批量停用</button>
+            <button className="hammer-btn btn-ghost" style={{color:'var(--danger)'}} onClick={() => runBatch('delete','删除')}>批量删除</button>
+          </div>
+          <div className="muted2 text-10" style={{marginTop:8}}>勾选表格行后在此批量操作（启用/停用/删除可恢复）</div>
+        </div>
+      )}
       {hammerPanel === 'columns' && (
         <div className="hammer-panel hammer-panel-scroll">
           <div className="cols-top-bar">

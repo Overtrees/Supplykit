@@ -8,15 +8,38 @@ import random, sqlite3, uuid, threading, os
 
 router = APIRouter(prefix="/api/seed", tags=["seed"])
 
-BRANDS_FOOD = ['海天','李锦记','厨邦','太太乐','千禾','欣和','家乐','鲁花']
-BRANDS_SNACK = ['乐事','旺旺','三只松鼠','良品铺子','百草味','奥利奥','格力高']
-BRANDS_HOME = ['蓝月亮','立白','威露士','超能','洁柔','维达','清风']
-def _pick_brand(cat):
+# 品牌池（真实品牌, 按品类; 调味多为区域老字号, 零食/日化头部品牌）
+BRANDS_FOOD = ['海天','李锦记','厨邦','太太乐','千禾','欣和','鲁花','东古','致美斋','味事达','加加','恒顺','千岛源']
+BRANDS_SNACK = ['乐事','旺旺','三只松鼠','良品铺子','百草味','奥利奥','格力高','趣多多','可可满分','好丽友']
+BRANDS_HOME = ['蓝月亮','立白','威露士','超能','洁柔','维达','清风','舒肤佳','奥妙','滴露','白猫','兔之力']
+def _cat_group(cat):
     if any(k in cat for k in ['薯片','虾条','爆米花','坚果','瓜子','花生','饼干','威化','巧克力','糖果']):
-        return random.choice(BRANDS_SNACK)
+        return 'snack'
     if any(k in cat for k in ['洗衣','洗洁','洗手','消毒','纸巾','湿巾','垃圾袋','保鲜']):
-        return random.choice(BRANDS_HOME)
-    return random.choice(BRANDS_FOOD)
+        return 'home'
+    return 'food'
+def _brand_group(brand):
+    if brand in BRANDS_SNACK: return 'snack'
+    if brand in BRANDS_HOME: return 'home'
+    return 'food'
+def _pick_brand(cat):
+    g = _cat_group(cat)
+    pool = {'food': BRANDS_FOOD, 'snack': BRANDS_SNACK, 'home': BRANDS_HOME}[g]
+    return random.choice(pool)
+
+# 供应商→品牌映射: 每家 1~3 个真实品牌（按主营品类, 不重复, 不用序号名）
+_SUP_BRANDS = None
+def _get_sup_brands(n_sup=10):
+    global _SUP_BRANDS
+    if _SUP_BRANDS is None:
+        _SUP_BRANDS = []
+        for i in range(n_sup):
+            # 主营品类轮换: 调味/零食/日化
+            g = ['food','snack','home'][i % 3]
+            pool = {'food': BRANDS_FOOD, 'snack': BRANDS_SNACK, 'home': BRANDS_HOME}[g]
+            n = random.randint(1, 3)  # 1~3 个品牌
+            _SUP_BRANDS.append(random.sample(pool, min(n, len(pool))))
+    return _SUP_BRANDS
 
 
 cat_names = ['酱油','酱料','调味汁' ,'食用油','醋','料酒','蚝油','芝麻油','辣椒酱','拌面酱',
@@ -292,27 +315,27 @@ def _update_steps(steps):
             import logging; logging.error(f"[seed] 步骤进度持久化失败 {_current_task_id}: {e}")
 
 def _seed_products_suppliers(db, skus_data):
+    sup_brands = _get_sup_brands(10)
     for skus,ch in [(skus_data['jd'],'jd'),(skus_data['other'],'other')]:
         for i, p in enumerate(skus):
             # 按顺序分配供应商（10 家供应商轮流覆盖 SKU）
             _sup_idx = i % 10
             _sup_code = f"SUP-{_sup_idx+1:03d}-{ch.upper()}"
-            _prow = {'sku':p['sku'],'product_name':p['name'],'store':p['store'],'category':p['cat'],'price':p['price'],'box_qty':p['box'],'barcode':p['barcode'],'weight':p['weight'],'volume':p['volume'],'status':p['status'],'channel':ch,'supplier_code':_sup_code,'brand':p.get('brand','')}
+            # SKU 品牌: 优选该供应商品牌中与 SKU 品类匹配的; 无匹配用品类池兜底
+            _blist = sup_brands[_sup_idx]
+            _g = _cat_group(p.get('cat',''))
+            _matched = [b for b in _blist if _brand_group(b) == _g]
+            if _matched:
+                _brand = _matched[(i // 10) % len(_matched)]
+            else:
+                _brand = _pick_brand(p.get('cat',''))
+            _prow = {'sku':p['sku'],'product_name':p['name'],'store':p['store'],'category':p['cat'],'price':p['price'],'box_qty':p['box'],'barcode':p['barcode'],'weight':p['weight'],'volume':p['volume'],'status':p['status'],'channel':ch,'supplier_code':_sup_code,'brand':_brand}
             db.table('products').upsert(_prow, conflict_col='sku')
-    # 收集供应商→品牌（从已写入的 products 聚合）
-    _sup_brands = {}
-    try:
-        from app.core.database import get_conn
-        _c2 = get_conn()
-        for _r in _c2.execute("SELECT supplier_code, brand FROM products WHERE brand != ''").fetchall():
-            _sc = str(_r[0] or ''); _br = str(_r[1] or '')
-            if _sc and _br:
-                _sup_brands.setdefault(_sc, set()).add(_br)
-    except Exception: pass
-    for s in SUP:
+    for s_idx, s in enumerate(SUP):
+        _blist = sup_brands[s_idx % 10]
         for ch in ['jd','other']:
             _sc = f"{s['code']}-{ch.upper()}"
-            _brands = ','.join(sorted(_sup_brands.get(_sc, set())))
+            _brands = '，'.join(_blist)
             # supplier_code 加渠道后缀，避免两渠道共用同一 code 导致 upsert 互相覆盖
             db.table("suppliers").upsert({'supplier_code':_sc,'supplier_name':s['name'],'contact_person':s['contact'],'contact_phone':s['phone'],'score':s['score'],'channel':ch,'brand':_brands}, conflict_col='supplier_code')
 

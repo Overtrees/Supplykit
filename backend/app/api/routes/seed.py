@@ -407,12 +407,12 @@ def _seed_batches(db, skus_data):
             if bq <= 0: continue
             # 生产日期: 大部分批次近期生产(已消耗 < 1/3 → ok)
             _r = random.random()
-            if _r < 0.85:
-                _ago = random.randint(2, max(shelf // 3 - 2, 5))        # 正常: 已消耗 < 1/3 → ok
-            elif _r < 0.93:
-                _ago = random.randint(max(shelf // 3, 5), max(shelf // 2, 8))  # 已消耗 1/3~1/2 → warn/no
+            if _r < 0.92:
+                _ago = random.randint(2, max(shelf // 3 - 6, 5))        # 正常: 已消耗远低于 1/3 → ok
+            elif _r < 0.97:
+                _ago = random.randint(max(shelf // 3 - 2, 5), max(shelf // 3 + 2, 8))  # 接近1/3 → warn
             else:
-                _ago = random.randint(int(shelf * 0.7), max(shelf, int(shelf * 0.7) + 1))  # 重度 → no/expired
+                _ago = random.randint(int(shelf * 0.7), max(shelf, int(shelf * 0.7) + 1))  # 重度 → no/expired(仅3%)
             prod = today - _td(days=_ago)
             exp = prod + _td(days=shelf)
             bdata.append({'sku': sku, 'warehouse': wh, 'warehouse_type': wht, 'channel': ch,

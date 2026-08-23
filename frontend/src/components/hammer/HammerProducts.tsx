@@ -39,13 +39,16 @@ export default function HammerProducts({ channel }: HammerProductsProps) {
   return (
     <div>
       <div className="hammer-header">{channel === 'jd' ? t('channel.jd') : t('channel.other')} · {t('nav.products')}</div>
-      <div className="hammer-btn-row" style={{marginBottom:hammerPanel?8:0}}>
-        <button onClick={() => setHammerPanel(hammerPanel === 'columns' ? null : 'columns')}
-          className="btn-ghost hammer-btn">{t('common.columns')} ({visCols.length}/{PRODUCT_COLS.length})</button>
-        <button onClick={() => { setHammerPanel(hammerPanel === 'search' ? null : 'search'); if (hammerPanel !== 'search') setTimeout(() => document.getElementById('hm-search-prod')?.focus(), 100) }}
-          className="btn-ghost hammer-btn">{t('common.search')}</button>
-        <button onClick={() => setHammerPanel(hammerPanel === 'batch' ? null : 'batch')}
-          className="btn-ghost hammer-btn" style={useAppStore.getState().prodBatch?{borderColor:'var(--danger)',color:'var(--danger)'}:undefined}>批量操作</button>
+      <div className="hm-group">
+        <span onClick={() => setHammerPanel(hammerPanel === 'columns' ? null : 'columns')} className="hm-btn">
+          ▤ 列配置 <span className="hm-sub">{visCols.length}/{PRODUCT_COLS.length}</span>
+        </span>
+        <span onClick={() => { setHammerPanel(hammerPanel === 'search' ? null : 'search'); if (hammerPanel !== 'search') setTimeout(() => document.getElementById('hm-search-prod')?.focus(), 100) }} className="hm-btn">
+          🔍 搜索{hammerSearch ? ' ✓' : ''}
+        </span>
+        <span onClick={() => setHammerPanel(hammerPanel === 'batch' ? null : 'batch')} className="hm-btn" style={useAppStore.getState().prodBatch?{color:'var(--danger)'}:undefined}>
+          ⬚ 批量操作
+        </span>
       </div>
       {hammerPanel === 'batch' && (
         <div className="hammer-panel">
@@ -57,30 +60,25 @@ export default function HammerProducts({ channel }: HammerProductsProps) {
               <button className="hammer-clear" onClick={() => useAppStore.getState().setProdBatch(true)}>进入批量模式</button>
             )}
           </div>
-          <div className="hammer-btn-row" style={{marginTop:8}}>
-            <button className="hammer-btn btn-ghost" onClick={() => {
-              const s = useAppStore.getState()
-              if (!s.prodBatch) s.setProdBatch(true)
-              s.requestProdBatchAll()
-            }}>全选/取消</button>
+          <div className="hm-group">
+            <span className="hm-btn" onClick={() => { const s = useAppStore.getState(); if (!s.prodBatch) s.setProdBatch(true); s.requestProdBatchAll() }}>全选/取消</span>
           </div>
-          <div className="hammer-btn-row" style={{marginTop:8}}>
-            <button className="hammer-btn btn-ghost" style={{color:'var(--success)'}} onClick={() => runBatch('active','启用')}>批量启用</button>
-            <button className="hammer-btn btn-ghost" style={{color:'var(--warning)'}} onClick={() => runBatch('inactive','停用')}>批量停用</button>
-            <button className="hammer-btn btn-ghost" style={{color:'var(--danger)'}} onClick={() => runBatch('delete','删除')}>批量删除</button>
+          <div className="hm-group">
+            <span className="hm-btn" style={{color:'var(--success)'}} onClick={() => runBatch('active','启用')}>批量启用</span>
+            <span className="hm-btn" style={{color:'var(--warning)'}} onClick={() => runBatch('inactive','停用')}>批量停用</span>
+            <span className="hm-btn" style={{color:'var(--danger)'}} onClick={() => runBatch('delete','删除')}>批量删除</span>
           </div>
-          <div className="muted2 text-10" style={{marginTop:8}}>勾选表格行后在此批量操作（启用/停用/删除可恢复）</div>
+          <div className="muted2 text-10" style={{marginTop:8}}>勾选商品后在此批量操作</div>
         </div>
       )}
       {hammerPanel === 'columns' && (
         <div className="hammer-panel hammer-panel-scroll">
           <div className="cols-top-bar">
-            <button onClick={()=>saveCols(PRODUCT_COLS.map(c=>c.id))} className="hammer-clear">{t('common.all')}</button>
-            <button onClick={()=>saveCols([])} className="hammer-clear">取消全选</button>
+            <button onClick={()=>saveCols(PRODUCT_COLS.map(c=>c.id))} className="hammer-clear">{t("common.all")}</button>
+            <button onClick={()=>saveCols([])} className="hammer-clear">{t("common.deselect")}</button>
           </div>
-          <div className="muted2 text-10" style={{marginBottom:2,padding:'0 4px'}}>{t('common.drag_hint')}</div>
-          {/* 已显示 */}
-          {visCols.length > 0 && <div className="cols-group-title"><span>已显示</span><span>{visCols.length}</span></div>}
+          <div className="muted2 text-10" style={{marginBottom:2,padding:'0 4px'}}>{t("common.drag_hint")}</div>
+          {visCols.length > 0 && <div className="cols-group-title"><span>{t("common.visible")}</span><span>{visCols.length}</span></div>}
           {visCols.map(id=>{
             const col=PRODUCT_COLS.find(c=>c.id===id);if(!col)return null
             return <div key={col.id} draggable
@@ -96,12 +94,11 @@ export default function HammerProducts({ channel }: HammerProductsProps) {
               <span className="muted2 text-9">#{visCols.indexOf(col.id)+1}</span>
             </div>
           })}
-          {/* 已隐藏 */}
           {(()=>{
             const hidden=PRODUCT_COLS.filter(c=>!visCols.includes(c.id))
             if(hidden.length===0)return null
             return <>
-              <div className="cols-group-title"><span>已隐藏</span><span>{hidden.length}</span></div>
+              <div className="cols-group-title"><span>{t("common.hidden")}</span><span>{hidden.length}</span></div>
               {hidden.map(col=>
                 <div key={col.id} className="col-drag hidden">
                   <span className="muted2" style={{width:16,flexShrink:0,textAlign:'center'}}>○</span>
@@ -117,7 +114,7 @@ export default function HammerProducts({ channel }: HammerProductsProps) {
         <div className="hammer-panel">
           <input id="hm-search-prod" value={localSearch} onChange={e=>setLocalSearch(e.target.value)}
             placeholder="搜索SKU/商品名..." className="hammer-input" />
-          {hammerSearch && <div className="text-right mt-8">
+          {hammerSearch && <div style={{marginTop:4,textAlign:'right'}}>
             <button className="hammer-clear" onClick={()=>setHammerSearch('')}>{t('common.clear')}</button>
           </div>}
         </div>

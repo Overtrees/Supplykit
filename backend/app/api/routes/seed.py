@@ -575,6 +575,27 @@ def _seed_records(db, skus_data):
                 except Exception: pass
     conn.commit()
 
+def _sync_inv_month(conn):
+    """同步出入库记录到 inventory 月汇总(month_inbound/outbound)，确保汇总态=各批次之和"""
+    from datetime import datetime as _dt
+    _month_start = _dt.utcnow().strftime('%Y-%m-01')
+    try:
+        rows = conn.execute("SELECT sku, warehouse, SUM(quantity) FROM inbound_records WHERE channel='jd' AND inbound_date >= ? GROUP BY sku, warehouse", (_month_start,)).fetchall()
+        for r in rows:
+            try:
+                conn.execute("UPDATE inventory SET month_inbound = ? WHERE sku=? AND warehouse=? AND channel='jd'",
+                    (int(r[2] or 0), str(r[0]), str(r[1] or '')))
+            except Exception: pass
+        rows2 = conn.execute("SELECT sku, warehouse, SUM(quantity) FROM outbound_records WHERE channel='jd' AND outbound_date >= ? GROUP BY sku, warehouse", (_month_start,)).fetchall()
+        for r in rows2:
+            try:
+                conn.execute("UPDATE inventory SET month_outbound = ? WHERE sku=? AND warehouse=? AND channel='jd'",
+                    (int(r[2] or 0), str(r[0]), str(r[1] or '')))
+            except Exception: pass
+        conn.commit()
+    except Exception as e:
+        import logging; logging.warning(f"[seed] sync inv month: {e}")
+
 def _seed_config(db, conn):
     conn.execute("DELETE FROM replenishment_config")
     # 恢复 jwt_secret（防止清空后重启导致 token 失效）

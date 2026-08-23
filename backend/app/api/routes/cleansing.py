@@ -339,6 +339,23 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                 for i in range(0, len(params_list), BATCH):
                     conn.executemany(sql, params_list[i:i+BATCH])
                     conn.commit()
+                # 入库/出库导入时自动累加 inventory 月汇总(确保主行=展开行之和)
+                if is_inbound:
+                    for _r in data_list:
+                        try:
+                            _sk = _r.get('sku',''); _wh = _r.get('warehouse',''); _qt = int(_r.get('quantity',0) or 0)
+                            if _sk and _wh and _qt>0:
+                                conn.execute("UPDATE inventory SET month_inbound = COALESCE(month_inbound,0)+? WHERE sku=? AND warehouse=? AND channel=?", (_qt, _sk, _wh, channel))
+                        except Exception: pass
+                    conn.commit()
+                elif is_outbound:
+                    for _r in data_list:
+                        try:
+                            _sk = _r.get('sku',''); _wh = _r.get('warehouse',''); _qt = int(_r.get('quantity',0) or 0)
+                            if _sk and _wh and _qt>0:
+                                conn.execute("UPDATE inventory SET month_outbound = COALESCE(month_outbound,0)+? WHERE sku=? AND warehouse=? AND channel=?", (_qt, _sk, _wh, channel))
+                        except Exception: pass
+                    conn.commit()
                 # 批次写入: 用同一连接(conn.close()前), 避免后台线程 get_conn thread-local 问题
                 if is_inv and batch_to_insert:
                     _keys = set()

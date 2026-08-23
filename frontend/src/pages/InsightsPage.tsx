@@ -16,34 +16,11 @@ const EMOJI_MAP = {
   '➡️': <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{display:'inline',verticalAlign:'middle',marginRight:1}}><path d="M1 7h12M9 3.5L12.5 7 9 10.5" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>,
 }
 // ── 列配置 ──────────────────────────────────────────────────────────────
-const BBCC_COLS = [
-  {id:'seq',label:''},{id:'sku',label:'SKU'},{id:'barcode',label:'69码'},{id:'name',label:'商品'},{id:'warehouse',label:'仓库'},
-  {id:'b_stock',label: t("inv.warehouse_b") + '可用库存'},{id:'b_turn',label:'B仓周转'},{id:'c_stock',label: t("inv.warehouse_c") + '总和可用'},
-  {id:'transit',label:'B-C调拨在途'},{id:'sales',label:'C仓日销'},{id:'c_turn',label:'C仓周转'},
-  {id:'transit_turn',label:'B→C调拨周转'},{id:'suggest',label:'C仓建议补'},{id:'b_suggest',label:'B仓需补'},
-  {id:'cur_turn',label:'当前综转'},{id:'after_turn',label:'补后综转'},{id:'note',label:'备注'},{id:'action',label: t("insights.mark_action") + '（用于B仓统计入库批次）'},
-]
-const TRAD_COLS = [
-  {id:'seq',label:''},{id:'sku',label:'SKU'},{id:'barcode',label:'69码'},{id:'name',label:'商品'},{id:'store',label:'仓库'},
-  {id:'avail',label:'现有'},{id:'transit',label:'在途'},{id:'sales',label:'日销'},
-  {id:'safety',label:'安全线'},{id:'turn',label:'在库周转'},{id:'after_turn',label:'补后周转'},
-  {id:'suggest',label:'建议补'},{id:'note',label:'备注'},
-]
-const colKey = (m, ch) => 'c_cols_' + ch + '_' + m
-function getVis(m, ch) {try{return JSON.parse(localStorage.getItem(colKey(m, ch))||'null')}catch{return null}}
-function defVis(cols){return cols.map(c=>c.id).filter((_,i)=>[0,1,2,3,4,8,11,12,15].includes(i))} // 默认9列(BBCC)
-function defVisTrad(cols){return cols.map(c=>c.id).filter((_,i)=>[0,1,2,3,4,5,6,10,11].includes(i))} // 默认9列(TRAD)
-const PURCHASE_COLS = [
-  {id:'barcode',label:'69码'},{id:'sku',label:'SKU'},{id:'name',label:'商品'},{id:'warehouse',label:'仓库'},
-  {id:'sys_total',label:'系统总库存'},{id:'daily_sales',label:'日销(融合/14/28)'},
-  {id:'actual_purchase',label:'建议采购(含箱规取整)'},{id:'after_turnover',label:'补后周转'},
-  {id:'note',label:'备注'},{id:'timing',label:'采购时机'},
-]
-const SLOW_COLS = [
-  {id:'processed',label:'处理'},{id:'sku',label:'SKU'},{id:'name',label:'商品'},{id:'warehouse',label:'仓库'},
-  {id:'days',label:'未售天数'},{id:'stock',label:'库存'},{id:'level',label:'等级'},{id:'note',label:'备注'},
-]
-
+import { INS_BBCC_COLS, INS_TRAD_COLS, INS_PURCHASE_COLS, INS_SLOW_COLS } from '../components/hammer/configs'
+const BBCC_COLS = INS_BBCC_COLS
+const TRAD_COLS = INS_TRAD_COLS
+const PURCHASE_COLS = INS_PURCHASE_COLS
+const SLOW_COLS = INS_SLOW_COLS
 function renderNote(text) {
   if (!text) return '-'
   const parts = []

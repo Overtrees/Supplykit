@@ -2,7 +2,7 @@ import React,{useEffect,useState, useRef} from 'react'
 import {api} from '../api/client'
 import EmptyState from '../components/EmptyState'
 
-const COLS = [{id:'brand',label:'品牌'},{id:'code',label:'编号'},{id:'name',label:'名称'},{id:'contact',label:'联系人'},{id:'phone',label:'手机'},{id:'score',label:'评分'}]
+import { SUPPLIER_COLS as COLS } from '../components/hammer/configs'
 const COL_KEY = () => 'c_cols_suppliers_' + (useAppStore.getState().channel || 'jd')
 const getVis=()=>{try{return JSON.parse(localStorage.getItem(COL_KEY())||'null')}catch{return null}}
 

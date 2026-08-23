@@ -5,10 +5,7 @@ import EmptyState from '../components/EmptyState'
 
 import { useAppStore } from '../store/useAppStore'
 import { t } from "../locale"
-const COLS = [
-  {id:'barcode',label:'69码'},{id:'channel',label:'平台'},{id:'brand',label:'品牌'},{id:'sku',label:'SKU'},{id:'name',label:'名称'},{id:'store',label:'店铺'},
-  {id:'cat',label:'分类'},{id:'price',label:'单价'},{id:'box',label:'箱规'},{id:'unit',label:'单位'},{id:'weight',label:'箱重/KG'},{id:'volume',label:'体积/方'},{id:'batch_days',label:'总效期/天'},{id:'status',label:'状态'},
-]
+import { PRODUCT_COLS as COLS } from '../components/hammer/configs'
 const COL_KEY = () => 'c_cols_products_' + (useAppStore.getState().channel || 'jd')
 const getVis = () => { try { return JSON.parse(localStorage.getItem(COL_KEY())||'null') } catch{return null} }
 

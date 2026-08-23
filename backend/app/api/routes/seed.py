@@ -312,8 +312,11 @@ def _seed_orders(db, today, skus_data):
         promo = {'618':list(range(5,20)),'月末':list(range(45,55))}
         # 滞销场景: 3% SKU 完全不出单(真滞销) + 2% SKU 每30天出1单(低动销/观察级)
         _n = len(skus)
-        _slow_skus = set(x['sku'] for x in skus[:_n*3//100]) if _n >= 50 else set()
-        _low_idx = {x['sku'] for x in skus[_n*3//100:_n*5//100]} if _n >= 50 else set()
+        # 滞销/低动销 SKU 随机挑选(3%+2%), 每次填充不同 SKU 演示
+        _shuffled = skus[:]
+        random.shuffle(_shuffled)
+        _slow_skus = set(x['sku'] for x in _shuffled[:_n*3//100]) if _n >= 50 else set()
+        _low_idx = {x['sku'] for x in _shuffled[_n*3//100:_n*5//100]} if _n >= 50 else set()
         _normal_skus = [x for x in skus if x['sku'] not in _slow_skus and x['sku'] not in _low_idx]
         for d in range(60):
             dt = today - timedelta(days=d)

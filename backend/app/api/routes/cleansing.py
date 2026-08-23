@@ -255,7 +255,7 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
             _ed = str(data.get('exp_date', ''))[:10]
             if _pd or _ed:
                 _wh = (str(data.get('warehouse', '')) or ('平台仓' if platform_inv else 'B仓' if b_inv else '自有仓'))[:100]
-                batch_to_insert.append((str(data.get('sku',''))[:100], _wh, channel, _pd, _ed, int(float(data.get('available_qty', 0)))))
+                batch_to_insert.append((str(data.get('sku',''))[:100], _wh, 'platform_b' if b_inv else ('platform' if platform_inv else 'own'), channel, _pd, _ed, int(float(data.get('available_qty', 0)))))
             success += 1
         elif is_inbound:
             inbound_to_insert.append({
@@ -350,7 +350,7 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                     for _bt in batch_to_insert:
                         if _bt[3] or _bt[4]:
                             try:
-                                _bc.execute("INSERT INTO batches(sku, warehouse, warehouse_type, channel, prod_date, exp_date, qty) VALUES(?,?,?,?,?,?,?)", (_bt[0], _bt[1], '', channel, _bt[3], _bt[4], _bt[5]))
+                                _bc.execute("INSERT INTO batches(sku, warehouse, warehouse_type, channel, prod_date, exp_date, qty) VALUES(?,?,?,?,?,?,?)", (_bt[0], _bt[1], _bt[2], _bt[3], _bt[4], _bt[5], _bt[6]))
                             except Exception as _be:
                                 import logging; logging.warning(f"[cleansing] batch write: {_be}")
                     _bc.commit()

@@ -57,6 +57,8 @@ export default function HammerRules({ channel, onShowHistory }: HammerRulesProps
             style={{display:'flex',alignItems:'center',justifyContent:'center',gap:4,color:prodBatch?'var(--danger)':undefined, borderColor:prodBatch?'var(--danger)':undefined}}>
             批量操作
           </button>
+
+        </div>
           {batchOpen && (
             <div className="hammer-panel">
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
@@ -78,8 +80,7 @@ export default function HammerRules({ channel, onShowHistory }: HammerRulesProps
               <div className="muted2 text-10" style={{marginTop:8}}>勾选规则后在此批量操作（删除可回收站恢复）</div>
             </div>
           )}
-        </div>
-        {searchOpen && <div className="hammer-panel">
+                {searchOpen && <div className="hammer-panel">
           <input value={localSearch} onChange={e=>setLocalSearch(e.target.value)}
             placeholder="搜索规则名称..." className="hammer-input" />
           {hammerSearch && <div style={{marginTop:4,textAlign:'right'}}>

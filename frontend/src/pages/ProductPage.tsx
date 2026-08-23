@@ -33,9 +33,9 @@ useEffect(()=>{ if(prodBatchVersion>0) reload() },[prodBatchVersion])
 useEffect(()=>{ setProdBatchFilterLen(fl.length) },[fl.length])
 const reload = () => { api.get('/api/products').then(r=>setList(r.data?.items||r.data||[])).catch(()=>{}) }
 
-if(ld)return<div className='card'><div className='section-title'><span>{t("nav.products")}</span></div><Skeleton/></div>
 const s = hammerSearch || ''
-const fl=s?list.filter(x=>(x.sku||'').includes(s)||(x.product_name||'').includes(s)||(x.store||'').includes(s)):list
+const fl = ld ? [] : (s ? list.filter(x=>(x.sku||'').includes(s)||(x.product_name||'').includes(s)||(x.store||'').includes(s)) : list)
+if(ld)return<div className='card'><div className='section-title'><span>{t("nav.products")}</span></div><Skeleton/></div>
 
 return<div className='card' style={{containerType:'inline-size'}}>
 <div className='section-title' style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>

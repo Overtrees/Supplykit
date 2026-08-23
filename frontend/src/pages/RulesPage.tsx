@@ -107,8 +107,7 @@ export default function RulesPage() {
   const setSelIds = setProdBatchSel
   useEffect(()=>{ if(!prodBatch) setProdBatchSel([]) },[prodBatch])
   useEffect(()=>{ if(prodBatchVersion>0) load(globalChannel) },[prodBatchVersion])
-  useEffect(()=>{ setProdBatchFilterLen(filteredRules.length) },[filteredRules.length])
-  useEffect(()=>{ if(prodBatchAllReq>0){ const all=filteredRules.map(r=>r.id); setProdBatchSel(selIds.length===all.length&&all.length>0?[]:all) } },[prodBatchAllReq])
+
   
 
   const load = async (ch) => { try { const c=ch||globalChannel; const r = await api.get('/api/rules?channel='+c); setRules(r.data||[]) } catch(e) {} }
@@ -172,6 +171,8 @@ export default function RulesPage() {
 
   const isBBCC = (cfg.replenishment_mode||'bbcc')==='bbcc'
   const filteredRules = hammerSearch ? rules.filter(function(r) { return (r.name||'').toLowerCase().includes(hammerSearch.toLowerCase()) }) : rules
+  useEffect(()=>{ setProdBatchFilterLen(filteredRules.length) },[filteredRules.length])
+  useEffect(()=>{ if(prodBatchAllReq>0){ const all=filteredRules.map(r=>r.id); setProdBatchSel(selIds.length===all.length&&all.length>0?[]:all) } },[prodBatchAllReq])
   const cParams = isBBCC ? [{k:'b_to_c_days',l:'B→C调拨(天)',h:'京东B仓→C仓调拨时效'},{k:'c_safety_days',l:'C仓缓冲(天)',h:'C仓安全储备'}] : []
   const bParams = isBBCC ? [{k:'ship_to_b_days',l:'自有仓→B仓时效(天)'},{k:'safety_multiplier',l:'安全库存天数'},{k:'turnover_warning_15',l:'仓储费阈值(天)'},{k:'turnover_warning_90',l:'周转考核红线(天)'}] : []
   const paramFields = isBBCC ? [] : [{k:'lead_time_days',l:'前置期(天)'},{k:'safety_multiplier',l:'安全库存天数'},{k:'turnover_warning_90',l:'周转考核红线(天)'}]

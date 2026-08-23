@@ -558,10 +558,12 @@ def _seed_records(db, skus_data):
                     days_back = random.randint(0, max_days)
                 used_dates.add(days_back)
                 try:
+                    _bp = (today - timedelta(days=random.randint(60, 180))).strftime('%Y-%m-%d')
+                    _be = (today + timedelta(days=random.randint(60, 240))).strftime('%Y-%m-%d')
                     conn.execute(
-                        "INSERT OR IGNORE INTO outbound_records(sku,product_name,quantity,target_warehouse,outbound_date,channel) VALUES(?,?,?,?,?,?)",
+                        "INSERT OR IGNORE INTO outbound_records(sku,product_name,quantity,target_warehouse,outbound_date,channel,prod_date,exp_date) VALUES(?,?,?,?,?,?,?,?)",
                         (sk['sku'], sk['name'], random.randint(10, 100), "京东备货仓",
-                         (today - timedelta(days=days_back)).strftime('%Y-%m-%d'), ch))
+                         (today - timedelta(days=days_back)).strftime('%Y-%m-%d'), ch, _bp, _be))
                 except Exception:
                     pass
     conn.commit()

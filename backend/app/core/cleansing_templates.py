@@ -97,6 +97,8 @@ SYSTEM_FIELDS = {
         {'key': 'warehouse', 'label': '仓库', 'type': 'string'},
         {'key': 'quantity', 'label': '入库数量', 'type': 'number'},
         {'key': 'inbound_date', 'label': '入库日期', 'type': 'date', 'format': 'YMD'},
+        {'key': 'prod_date', 'label': '生产日期', 'type': 'date', 'format': 'YMD', 'desc': '批次效期用, 可留空'},
+        {'key': 'exp_date', 'label': '截止日期', 'type': 'date', 'format': 'YMD', 'desc': '映射后将按批次写入'},
     ],
     'outbound': [
         {'key': 'sku', 'label': 'SKU', 'type': 'string', 'required': True},
@@ -104,6 +106,8 @@ SYSTEM_FIELDS = {
         {'key': 'warehouse', 'label': '仓库', 'type': 'string'},
         {'key': 'quantity', 'label': '出库数量', 'type': 'number'},
         {'key': 'outbound_date', 'label': '出库日期', 'type': 'date', 'format': 'YMD'},
+        {'key': 'prod_date', 'label': '生产日期', 'type': 'date', 'format': 'YMD', 'desc': '批次效期用, 可留空'},
+        {'key': 'exp_date', 'label': '截止日期', 'type': 'date', 'format': 'YMD', 'desc': '映射后将按批次写入'},
     ],
     'product': [
         {'key': 'sku', 'label': 'SKU', 'type': 'string', 'required': True},

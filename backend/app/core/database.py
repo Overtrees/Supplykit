@@ -10,7 +10,7 @@ from collections import defaultdict
 from typing import Any, Optional
 
 DB_PATH = os.getenv("SQLITE_PATH", os.path.join(os.path.dirname(__file__), "..", "supplykit.db"))
-SCHEMA_VERSION = 9  # 当前 schema 版本，每次改表结构+1
+SCHEMA_VERSION = 10  # 当前 schema 版本，每次改表结构+1
 
 # 版本化迁移注册表：{目标版本: 迁移函数}
 # 迁移函数签名: def migrate(conn): 执行该版本的 schema 变更
@@ -135,6 +135,20 @@ def _migrate_v9(conn):
     import sqlite3
     for sql in ["ALTER TABLE products ADD COLUMN brand TEXT DEFAULT ''",
                 "ALTER TABLE suppliers ADD COLUMN brand TEXT DEFAULT ''"]:
+        try:
+            conn.execute(sql)
+        except sqlite3.OperationalError:
+            pass  # 列已存在则跳过（幂等）
+
+
+# 迁移 v10：inbound_records/outbound_records 加批次字段（生产日期/截止日期，供进销存展开消耗占比）
+@_register_migration(10)
+def _migrate_v10(conn):
+    import sqlite3
+    for sql in ["ALTER TABLE inbound_records ADD COLUMN prod_date TEXT DEFAULT ''",
+                "ALTER TABLE inbound_records ADD COLUMN exp_date TEXT DEFAULT ''",
+                "ALTER TABLE outbound_records ADD COLUMN prod_date TEXT DEFAULT ''",
+                "ALTER TABLE outbound_records ADD COLUMN exp_date TEXT DEFAULT ''"]:
         try:
             conn.execute(sql)
         except sqlite3.OperationalError:

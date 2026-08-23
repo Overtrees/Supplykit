@@ -595,13 +595,12 @@ def _sync_inv_month(conn):
         conn.commit()
     except Exception as e:
         import logging; logging.warning(f"[seed] sync inv month: {e}")
-    # 同步期初库存: 单条 SQL 子查询(COALESCE在外层, FROM无匹配时返回0而非NULL)
+    # 同步期初库存: 用公式反推(期初=可用-入库+出库), 若为负则调低入库使期初>=0
     try:
         conn.executescript("""
-            UPDATE inventory SET beginning_stock = COALESCE((
-                SELECT SUM(b.qty) - COALESCE((SELECT SUM(inb.quantity) FROM inbound_records inb WHERE inb.sku=inventory.sku AND inb.warehouse=inventory.warehouse AND inb.channel='jd'), 0) + COALESCE((SELECT SUM(outb.quantity) FROM outbound_records outb WHERE outb.sku=inventory.sku AND outb.warehouse=inventory.warehouse AND outb.channel='jd'), 0)
-                FROM batches b WHERE b.sku=inventory.sku AND b.warehouse=inventory.warehouse AND b.channel='jd'
-            ), 0) WHERE channel='jd'
+            UPDATE inventory SET beginning_stock = available_qty - month_inbound + month_outbound WHERE channel='jd';
+            UPDATE inventory SET month_inbound = available_qty + month_outbound WHERE channel='jd' AND beginning_stock < 0;
+            UPDATE inventory SET beginning_stock = available_qty - month_inbound + month_outbound WHERE channel='jd' AND beginning_stock < 0;
         """)
         conn.commit()
     except Exception as _e:

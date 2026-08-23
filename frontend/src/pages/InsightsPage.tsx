@@ -47,6 +47,7 @@ function renderNote(text) {
 }
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
+const getVis = (m, ch) => { try { return JSON.parse(localStorage.getItem('c_cols_insights_' + ch + '_' + m) || 'null') } catch{return null} }
 const safeGet = (key, def) => { try { return localStorage.getItem(key) ?? def } catch { return def } }
 const safeSet = (key, val) => { try { localStorage.setItem(key, val) } catch {} }
 

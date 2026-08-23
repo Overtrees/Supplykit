@@ -595,16 +595,14 @@ def _sync_inv_month(conn):
         conn.commit()
     except Exception as e:
         import logging; logging.warning(f"[seed] sync inv month: {e}")
-    # 同步期初库存: beginning_stock = SUM(batches.qty) - SUM(inbound) + SUM(outbound)
+    # 同步期初库存: 单条 SQL 子查询更新所有行(避免 Python 循环 Row 问题)
     try:
-        for _r in conn.execute("SELECT sku, warehouse, SUM(qty) FROM batches WHERE channel='jd' GROUP BY sku, warehouse").fetchall():
-            _sk = str(_r[0]); _wh = str(_r[1] or ''); _bq = int(_r[2] or 0)
-            _ri = conn.execute("SELECT SUM(quantity) FROM inbound_records WHERE channel='jd' AND sku=? AND warehouse=?", (_sk, _wh)).fetchone()
-            _ro = conn.execute("SELECT SUM(quantity) FROM outbound_records WHERE channel='jd' AND sku=? AND warehouse=?", (_sk, _wh)).fetchone()
-            _iq = int(_ri[0] or 0) if _ri else 0
-            _oq = int(_ro[0] or 0) if _ro else 0
-            _beg = _bq - _iq + _oq
-            conn.execute("UPDATE inventory SET beginning_stock = ? WHERE sku=? AND warehouse=? AND channel='jd'", (_beg, _sk, _wh))
+        conn.executescript("""
+            UPDATE inventory SET beginning_stock = (
+                SELECT COALESCE(SUM(b.qty), 0) - COALESCE((SELECT SUM(inb.quantity) FROM inbound_records inb WHERE inb.sku=inventory.sku AND inb.warehouse=inventory.warehouse AND inb.channel='jd'), 0) + COALESCE((SELECT SUM(outb.quantity) FROM outbound_records outb WHERE outb.sku=inventory.sku AND outb.warehouse=inventory.warehouse AND outb.channel='jd'), 0)
+                FROM batches b WHERE b.sku=inventory.sku AND b.warehouse=inventory.warehouse AND b.channel='jd'
+            ) WHERE channel='jd'
+        """)
         conn.commit()
     except Exception as _e:
         import logging; logging.warning(f"[seed] sync begin: {_e}")

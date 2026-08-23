@@ -405,12 +405,16 @@ def _seed_batches(db, skus_data):
             bq = int(qty * ratio) if bi < n_batch - 1 else qty_left
             qty_left -= bq
             if bq <= 0: continue
-            # 生产日期: 距今天 5~shelf 天前
-            prod = today - _td(days=random.randint(5, max(shelf - 15, 10)))
+            # 生产日期: 大部分批次近期生产(已消耗 < 1/3 → ok)
+            _r = random.random()
+            if _r < 0.85:
+                _ago = random.randint(2, max(shelf // 3 - 2, 5))        # 正常: 已消耗 < 1/3 → ok
+            elif _r < 0.93:
+                _ago = random.randint(max(shelf // 3, 5), max(shelf // 2, 8))  # 已消耗 1/3~1/2 → warn/no
+            else:
+                _ago = random.randint(int(shelf * 0.7), max(shelf, int(shelf * 0.7) + 1))  # 重度 → no/expired
+            prod = today - _td(days=_ago)
             exp = prod + _td(days=shelf)
-            # 16% 批次: 临期(剩余 < shelf/3)
-            if random.random() < 0.16:
-                exp = today + _td(days=random.randint(-5, max(shelf // 3 - 1, 2)))
             bdata.append({'sku': sku, 'warehouse': wh, 'warehouse_type': wht, 'channel': ch,
                           'prod_date': prod.strftime('%Y-%m-%d'), 'exp_date': exp.strftime('%Y-%m-%d'), 'qty': bq})
             # 记录 SKU 最早截止

@@ -456,13 +456,14 @@ export default function App() {
               border: '0.5px solid var(--glass-border)',
               boxShadow: '0 2px 20px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.25)',
               borderRadius: 26,
-              overflow: 'hidden',
+              overflow: 'hidden auto',
+              maxHeight: 'calc(100vh - 120px)',
               opacity: hammerMenuClosing ? 0 : 1,
               transform: hammerMenuClosing ? 'translateY(-10px) scale(0.92)' : 'translateY(0) scale(1)',
               transformOrigin: '85% -18px',
               transition: 'opacity 180ms ease, transform 220ms cubic-bezier(0.34,1.56,0.64,1)',
               willChange: 'opacity, transform',
-              padding: 16
+              padding: '16px 16px calc(16px + env(safe-area-inset-bottom, 0px))'
             }}
           >
             {page === 'dash' ? <HammerDashboard channel={channel} /> :

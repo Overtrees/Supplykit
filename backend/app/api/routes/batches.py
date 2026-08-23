@@ -27,15 +27,15 @@ def get_batches(sku: str = '', warehouse: str = '', channel: str = 'jd', limit: 
         _in = {}
         _out = {}
         try:
-            for _r in conn.execute("SELECT sku, warehouse, prod_date, exp_date, SUM(quantity) FROM inbound_records WHERE channel=? AND prod_date!='' AND exp_date!='' GROUP BY sku, warehouse, prod_date, exp_date", (channel,)).fetchall():
-                _in[(str(_r[0]), str(_r[1] or ''), str(_r[2] or '')[:10], str(_r[3] or '')[:10])] = int(_r[4] or 0)
-            for _r in conn.execute("SELECT sku, warehouse, prod_date, exp_date, SUM(quantity) FROM outbound_records WHERE channel=? AND prod_date!='' AND exp_date!='' GROUP BY sku, warehouse, prod_date, exp_date", (channel,)).fetchall():
-                _out[(str(_r[0]), str(_r[1] or ''), str(_r[2] or '')[:10], str(_r[3] or '')[:10])] = int(_r[4] or 0)
+            for _r in conn.execute("SELECT sku, prod_date, exp_date, SUM(quantity) FROM inbound_records WHERE channel=? AND prod_date!='' AND exp_date!='' GROUP BY sku, prod_date, exp_date", (channel,)).fetchall():
+                _in[(str(_r[0]), str(_r[1] or '')[:10], str(_r[2] or '')[:10])] = int(_r[3] or 0)
+            for _r in conn.execute("SELECT sku, prod_date, exp_date, SUM(quantity) FROM outbound_records WHERE channel=? AND prod_date!='' AND exp_date!='' GROUP BY sku, prod_date, exp_date", (channel,)).fetchall():
+                _out[(str(_r[0]), str(_r[1] or '')[:10], str(_r[2] or '')[:10])] = int(_r[3] or 0)
         except Exception:
             pass
         items = []
         for r in rows:
-            _key = (str(r[0]), str(r[1] or ''), str(r[4] or '')[:10], str(r[5] or '')[:10])
+            _key = (str(r[0]), str(r[4] or '')[:10], str(r[5] or '')[:10])
             items.append({"sku": str(r[0]), "warehouse": str(r[1] or ''), "warehouse_type": str(r[2] or ''),
                           "channel": str(r[3] or 'jd'), "prod_date": str(r[4] or '')[:10],
                           "exp_date": str(r[5] or '')[:10], "qty": int(r[6] or 0),

@@ -335,25 +335,24 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                 for i in range(0, len(params_list), BATCH):
                     conn.executemany(sql, params_list[i:i+BATCH])
                     conn.commit()
-                conn.close()
-                # 批次写入: 先清该 SKU×仓旧批次(round-trip), 再插新批次
+                # 批次写入: 用同一连接(conn.close()前), 避免后台线程 get_conn thread-local 问题
                 if is_inv and batch_to_insert:
-                    from app.core.database import get_conn as _gcn
-                    _bc = _gcn()
                     _keys = set()
                     for _bt in batch_to_insert:
                         _keys.add((_bt[0], _bt[1]))
                     for _k in _keys:
                         try:
-                            _bc.execute("DELETE FROM batches WHERE sku=? AND warehouse=? AND channel=?", (_k[0], _k[1], channel))
-                        except Exception: pass
+                            conn.execute("DELETE FROM batches WHERE sku=? AND warehouse=? AND channel=?", (_k[0], _k[1], channel))
+                        except Exception as _be:
+                            import logging; logging.warning(f"[cleansing] batch delete: {_be}")
                     for _bt in batch_to_insert:
                         if _bt[3] or _bt[4]:
                             try:
-                                _bc.execute("INSERT INTO batches(sku, warehouse, warehouse_type, channel, prod_date, exp_date, qty) VALUES(?,?,?,?,?,?,?)", (_bt[0], _bt[1], _bt[2], _bt[3], _bt[4], _bt[5], _bt[6]))
+                                conn.execute("INSERT INTO batches(sku, warehouse, warehouse_type, channel, prod_date, exp_date, qty) VALUES(?,?,?,?,?,?,?)", (_bt[0], _bt[1], _bt[2], _bt[3], _bt[4], _bt[5], _bt[6]))
                             except Exception as _be:
                                 import logging; logging.warning(f"[cleansing] batch write: {_be}")
-                    _bc.commit()
+                    conn.commit()
+                conn.close()
             # 超卖检查：写入的订单量 > 该 SKU 全仓可用库存
             if not is_inv:
                 oversell_by_sku = {}

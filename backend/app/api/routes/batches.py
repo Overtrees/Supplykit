@@ -36,10 +36,13 @@ def get_batches(sku: str = '', warehouse: str = '', channel: str = 'jd', limit: 
         items = []
         for r in rows:
             _key = (str(r[0]), str(r[1] or ''), str(r[4] or '')[:10], str(r[5] or '')[:10])
+            _is_own = str(r[2] or '') == 'own' if len(r) > 2 else False
+            _inq = _in.get(_key, 0) if _is_own else 0
+            _outq = _out.get(_key, 0) if _is_own else 0
             items.append({"sku": str(r[0]), "warehouse": str(r[1] or ''), "warehouse_type": str(r[2] or ''),
                           "channel": str(r[3] or 'jd'), "prod_date": str(r[4] or '')[:10],
                           "exp_date": str(r[5] or '')[:10], "qty": int(r[6] or 0),
-                          "inbound_qty": _in.get(_key, 0), "outbound_qty": _out.get(_key, 0),
+                          "inbound_qty": _inq, "outbound_qty": _outq,
                           "created_at": str(r[7] or '')[:19]})
         return ok(items)
     except Exception as e:

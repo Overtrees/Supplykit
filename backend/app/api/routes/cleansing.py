@@ -345,7 +345,7 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                         try:
                             _sk = _r.get('sku',''); _wh = _r.get('warehouse',''); _qt = int(_r.get('quantity',0) or 0)
                             if _sk and _wh and _qt>0:
-                                conn.execute("UPDATE inventory SET month_inbound = COALESCE(month_inbound,0)+? WHERE sku=? AND warehouse=? AND channel=?", (_qt, _sk, _wh, channel))
+                                conn.execute("UPDATE inventory SET month_inbound = COALESCE(month_inbound,0)+? WHERE sku=? AND warehouse=? AND channel=? AND warehouse_type='own'", (_qt, _sk, _wh, channel))
                         except Exception: pass
                     conn.commit()
                 elif is_outbound:
@@ -353,7 +353,7 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                         try:
                             _sk = _r.get('sku',''); _wh = _r.get('warehouse',''); _qt = int(_r.get('quantity',0) or 0)
                             if _sk and _wh and _qt>0:
-                                conn.execute("UPDATE inventory SET month_outbound = COALESCE(month_outbound,0)+? WHERE sku=? AND warehouse=? AND channel=?", (_qt, _sk, _wh, channel))
+                                conn.execute("UPDATE inventory SET month_outbound = COALESCE(month_outbound,0)+? WHERE sku=? AND warehouse=? AND channel=? AND warehouse_type='own'", (_qt, _sk, _wh, channel))
                                 # 批次扣减: 出完的行自动删除(不占展开行空间)
                                 _pd = str(_r.get('prod_date','') or '')[:10]
                                 _ed = str(_r.get('exp_date','') or '')[:10]

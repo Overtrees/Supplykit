@@ -86,6 +86,8 @@ SYSTEM_FIELDS = {
         {'key': 'safety_qty', 'label': '安全库存', 'type': 'number'},
         {'key': 'weight', 'label': '箱重/KG', 'type': 'number'},
         {'key': 'volume', 'label': '体积/方', 'type': 'number'},
+        {'key': 'prod_date', 'label': '生产日期', 'type': 'date', 'format': 'YMD', 'desc': '批次效期用, 可留空'},
+        {'key': 'exp_date', 'label': '截止日期', 'type': 'date', 'format': 'YMD', 'desc': '映射后将按批次写入, 同SKU仓库多行=多批次'},
         {'key': 'warehouse_type', 'label': '仓库类型', 'type': 'string', 'desc': 'platform=京东C仓, platform_b=京东B仓, own=自有仓'},
     ],
     'inbound': [

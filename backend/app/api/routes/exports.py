@@ -92,11 +92,37 @@ def create_export_task(type: str = 'purchase', mode: str = 'bbcc', days: int = 2
                     _params.append(wh_type)
                 _sql = "SELECT sku,available_qty,in_transit_qty,safety_qty,warehouse,warehouse_type,channel,product_name,beginning_stock,month_inbound,month_outbound,turnover_days FROM inventory WHERE " + _where
                 _rows = _conn.execute(_sql, _params).fetchall()
-                ws.append(["SKU","69码","商品名称","仓库","类型","渠道","可用","在途","安全线","期初库存","当月入库","当月出库","周转天数"])
+                # 批次明细（按 sku+warehouse+channel 分组，供展开每批次一行）
+                _bm = {}
+                try:
+                    for _br in _conn.execute("SELECT sku, warehouse, channel, prod_date, exp_date, qty FROM batches WHERE channel=?", (channel,)).fetchall():
+                        _bm.setdefault((str(_br[0]), str(_br[1]), str(_br[2] or 'jd')), []).append((str(_br[3] or '')[:10], str(_br[4] or '')[:10], int(_br[5] or 0)))
+                except Exception: pass
+                from datetime import datetime as _dt, timedelta as _tz
+                _today = _dt.utcnow()
+                def _eff_status(prod, exp):
+                    try:
+                        p = _dt.strptime(prod, '%Y-%m-%d'); e = _dt.strptime(exp, '%Y-%m-%d')
+                        total = (e - p).days
+                        if total <= 0: return '无效'
+                        consumed = (_today - p).days
+                        if consumed >= total: return '已过期'
+                        third = max(total // 3, 1)
+                        if consumed >= third: return '✗否'
+                        if consumed + 3 > third: return '⚠️临近'
+                        return '✓正常'
+                    except Exception: return ''
+                ws.append(["SKU","69码","商品名称","仓库","类型","渠道","可用","在途","安全线","期初库存","当月入库","当月出库","周转天数","生产日期","截止日期","批次数量","效期状态"])
                 for r in _rows:
                     _bc = _barcodes.get((r[0], r[6]), '')
                     _td = round(r[11] or 0, 1) if (r[11] or 0) > 0 else None
-                    ws.append([r[0], _bc, r[7], r[4], r[5], r[6], r[1], r[2], r[3], r[8], r[9], r[10], _td])
+                    _bk = (r[0], r[4], r[6])
+                    _batches = _bm.get(_bk, [])
+                    if not _batches:
+                        ws.append([r[0], _bc, r[7], r[4], r[5], r[6], r[1], r[2], r[3], r[8], r[9], r[10], _td, '', '', '', ''])
+                    else:
+                        for _pb in _batches:
+                            ws.append([r[0], _bc, r[7], r[4], r[5], r[6], r[1], r[2], r[3], r[8], r[9], r[10], _td, _pb[0], _pb[1], _pb[2], _eff_status(_pb[0], _pb[1])])
             filename = f"{type}_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}.xlsx"
             filepath = os.path.join(EXPORT_DIR, filename)
             wb.save(filepath)

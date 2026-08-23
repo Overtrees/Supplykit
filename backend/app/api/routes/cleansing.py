@@ -141,6 +141,7 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
     b_inv = (target == 'inventory_b')
     orders_to_insert = [] if not is_inv else None
     inv_to_insert = [] if is_inv else None
+    batch_to_insert = []  # 库存导入带生产/截止日期 → 按批次写入
     inbound_to_insert = [] if is_inbound else None
     outbound_to_insert = [] if is_outbound else None
     product_to_insert = [] if is_product else None
@@ -249,6 +250,12 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                 "in_transit_qty": int(float(data.get('in_transit_qty', 0))),
                 "safety_qty": int(float(data.get('safety_qty', 0))),
             })
+            # 若行含生产/截止日期 → 收集批次
+            _pd = str(data.get('prod_date', ''))[:10]
+            _ed = str(data.get('exp_date', ''))[:10]
+            if _pd or _ed:
+                _wh = (str(data.get('warehouse', '')) or ('平台仓' if platform_inv else 'B仓' if b_inv else '自有仓'))[:100]
+                batch_to_insert.append((str(data.get('sku',''))[:100], _wh, channel, _pd, _ed, int(float(data.get('available_qty', 0)))))
             success += 1
         elif is_inbound:
             inbound_to_insert.append({
@@ -329,6 +336,24 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                     conn.executemany(sql, params_list[i:i+BATCH])
                     conn.commit()
                 conn.close()
+                # 批次写入: 先清该 SKU×仓旧批次(round-trip), 再插新批次
+                if is_inv and batch_to_insert:
+                    from app.core.database import get_conn as _gcn
+                    _bc = _gcn()
+                    _keys = set()
+                    for _bt in batch_to_insert:
+                        _keys.add((_bt[0], _bt[1]))
+                    for _k in _keys:
+                        try:
+                            _bc.execute("DELETE FROM batches WHERE sku=? AND warehouse=? AND channel=?", (_k[0], _k[1], channel))
+                        except Exception: pass
+                    for _bt in batch_to_insert:
+                        if _bt[3] or _bt[4]:
+                            try:
+                                _bc.execute("INSERT INTO batches(sku, warehouse, warehouse_type, channel, prod_date, exp_date, qty) VALUES(?,?,?,?,?,?,?)", (_bt[0], _bt[1], '', channel, _bt[3], _bt[4], _bt[5]))
+                            except Exception as _be:
+                                import logging; logging.warning(f"[cleansing] batch write: {_be}")
+                    _bc.commit()
             # 超卖检查：写入的订单量 > 该 SKU 全仓可用库存
             if not is_inv:
                 oversell_by_sku = {}

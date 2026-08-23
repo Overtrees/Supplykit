@@ -595,6 +595,19 @@ def _sync_inv_month(conn):
         conn.commit()
     except Exception as e:
         import logging; logging.warning(f"[seed] sync inv month: {e}")
+    # 同步期初库存: beginning_stock = SUM(batches.qty) - SUM(inbound) + SUM(outbound)
+    try:
+        for _r in conn.execute("SELECT sku, warehouse, SUM(qty) FROM batches WHERE channel='jd' GROUP BY sku, warehouse").fetchall():
+            _sk = str(_r[0]); _wh = str(_r[1] or ''); _bq = int(_r[2] or 0)
+            _ri = conn.execute("SELECT SUM(quantity) FROM inbound_records WHERE channel='jd' AND sku=? AND warehouse=?", (_sk, _wh)).fetchone()
+            _ro = conn.execute("SELECT SUM(quantity) FROM outbound_records WHERE channel='jd' AND sku=? AND warehouse=?", (_sk, _wh)).fetchone()
+            _iq = int(_ri[0] or 0) if _ri else 0
+            _oq = int(_ro[0] or 0) if _ro else 0
+            _beg = _bq - _iq + _oq
+            conn.execute("UPDATE inventory SET beginning_stock = ? WHERE sku=? AND warehouse=? AND channel='jd'", (_beg, _sk, _wh))
+        conn.commit()
+    except Exception as _e:
+        import logging; logging.warning(f"[seed] sync begin: {_e}")
 
 def _seed_config(db, conn):
     conn.execute("DELETE FROM replenishment_config")

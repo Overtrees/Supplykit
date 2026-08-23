@@ -252,6 +252,8 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                 batch_to_insert.append((str(data.get('sku',''))[:100], _wh, 'platform_b' if b_inv else ('platform' if platform_inv else 'own'), channel, _pd, _ed, int(float(data.get('available_qty', 0)))))
             success += 1
         elif is_inbound:
+            if not data.get('warehouse'):
+                row_errors.append({'error_type': 'required_field', 'field_name': 'warehouse', 'raw_value': '', 'error_message': '入库记录必须映射仓库列'})
             inbound_to_insert.append({
                 "sku": sku[:100],
                 "product_name": str(data.get('product_name', ''))[:200],
@@ -264,6 +266,8 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
             })
             success += 1
         elif is_outbound:
+            if not data.get('warehouse'):
+                row_errors.append({'error_type': 'required_field', 'field_name': 'warehouse', 'raw_value': '', 'error_message': '出库记录必须映射仓库列'})
             outbound_to_insert.append({
                 "sku": sku[:100],
                 "product_name": str(data.get('product_name', ''))[:200],

@@ -7,13 +7,8 @@ router = APIRouter(prefix="/api/events", tags=["events"])
 @router.get("")
 def list_events(db = get_db()):
     try:
-<<<<<<< Updated upstream
         data = db.table("events").select("*").order("id", desc=True).limit(50).execute().data
         return ok(data or [])
-=======
-        data = db.table("events").select("*").order("id", desc=True).execute().data
-        return data
->>>>>>> Stashed changes
     except Exception:
         return ok([])
 

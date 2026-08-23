@@ -326,9 +326,9 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                 elif is_product:
                     conflict_col = 'sku'  # 商品按 SKU 去重（sku 有 UNIQUE 约束）
                 elif is_inbound:
-                    conflict_col = 'sku, inbound_date'
+                    conflict_col = 'sku, warehouse, channel, prod_date, exp_date, inbound_date'
                 elif is_outbound:
-                    conflict_col = 'sku, outbound_date'
+                    conflict_col = 'sku, warehouse, channel, prod_date, exp_date, outbound_date'
                 else:
                     conflict_col = 'order_no, sku'
                 sql = f'INSERT INTO "{insert_table}" ({col_names}) VALUES ({placeholders}) ON CONFLICT({conflict_col}) DO UPDATE SET {update_set}'

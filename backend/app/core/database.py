@@ -10,7 +10,7 @@ from collections import defaultdict
 from typing import Any, Optional
 
 DB_PATH = os.getenv("SQLITE_PATH", os.path.join(os.path.dirname(__file__), "..", "supplykit.db"))
-SCHEMA_VERSION = 11  # 当前 schema 版本，每次改表结构+1
+SCHEMA_VERSION = 12  # 当前 schema 版本，每次改表结构+1
 
 # 版本化迁移注册表：{目标版本: 迁移函数}
 # 迁移函数签名: def migrate(conn): 执行该版本的 schema 变更
@@ -165,6 +165,19 @@ def _migrate_v11(conn):
             conn.execute(sql)
         except sqlite3.OperationalError:
             pass  # 列已存在则跳过（幂等）
+
+
+# 迁移 v12：入库/出库记录加唯一索引(日期+仓库+SKU+批次去重求和)
+@_register_migration(12)
+def _migrate_v12(conn):
+    import sqlite3
+    for tbl in ['inbound_records', 'outbound_records']:
+        _date_col = 'inbound_date' if tbl == 'inbound_records' else 'outbound_date'
+        try:
+            conn.execute(f"DELETE FROM {tbl} WHERE id NOT IN (SELECT MIN(id) FROM {tbl} GROUP BY sku, warehouse, channel, COALESCE(prod_date,''), COALESCE(exp_date,''), {_date_col})")
+            conn.execute(f"CREATE UNIQUE INDEX IF NOT EXISTS idx_{tbl}_unique ON {tbl}(sku, warehouse, channel, COALESCE(prod_date,''), COALESCE(exp_date,''), {_date_col})")
+        except sqlite3.OperationalError as _e:
+            import logging; logging.warning(f"[migration v12] {tbl}: {_e}")
 
 _local = threading.local()
 

@@ -238,7 +238,10 @@ def get_disposal_suggestions(channel: str = 'jd', db = get_db()):
                 dd = (datetime.strptime(bb[:10], "%Y-%m-%d") - today).days
                 if dd <= shelf_days:
                     level = 'black'
-                    reason.append(f"距保质期{max(dd,0)}天(<{shelf_m}月临期线)")
+                    if dd >= 0:
+                        reason.append(f"距保质期{dd}天(<{shelf_m}月临期线)")
+                    else:
+                        reason.append(f"已过期{-dd}天")
             except Exception: pass
         # ② B 仓超免费期（仓储费成本, 按整月计费口径）
         if wht == 'platform_b' and channel == 'jd':

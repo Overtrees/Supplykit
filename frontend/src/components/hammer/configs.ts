@@ -7,14 +7,14 @@ export interface ColumnDef {
 export type WarehouseType = 'own' | 'platform' | 'platform_b'
 
 export const PRODUCT_COLS: ColumnDef[] = [
-  {id:'barcode',label:'69码'},{id:'channel',label:'平台'},{id:'sku',label:'SKU'},{id:'name',label:'名称'},
+  {id:'barcode',label:'69码'},{id:'channel',label:'平台'},{id:'brand',label:'品牌'},{id:'batch_days',label:'总效期/天'},{id:'sku',label:'SKU'},{id:'name',label:'名称'},
   {id:'store',label:'店铺'},{id:'cat',label:'分类'},{id:'price',label:'单价'},{id:'box',label:'箱规'},
   {id:'unit',label:'单位'},{id:'weight',label:'箱重/KG'},{id:'volume',label:'体积/方'},{id:'status',label:'状态'},
 ]
 export const prodColKey = (ch) => 'c_cols_products_' + ch
 export const getProdVis = (ch) => { try { return JSON.parse(localStorage.getItem(prodColKey(ch)) || 'null') } catch{return null} }
 
-export const SUPPLIER_COLS = [{id:'code',label:'编号'},{id:'name',label:'名称'},{id:'contact',label:'联系人'},{id:'phone',label:'手机'},{id:'score',label:'评分'}]
+export const SUPPLIER_COLS = [{id:'brand',label:'品牌'},{id:'code',label:'编号'},{id:'name',label:'名称'},{id:'contact',label:'联系人'},{id:'phone',label:'手机'},{id:'score',label:'评分'}]
 export const suppColKey = (ch) => 'c_cols_suppliers_' + ch
 export const getSuppVis = (ch) => { try { return JSON.parse(localStorage.getItem(suppColKey(ch)) || 'null') } catch{return null} }
 
@@ -29,17 +29,17 @@ export const getOrderVis = (ch) => { try { return JSON.parse(localStorage.getIte
 
 export const INV_COLS = {
   own: [
-    {id:'warehouse',label:'仓库'},{id:'sku',label:'SKU'},{id:'barcode',label:'69码'},{id:'name',label:'商品'},
+    {id:'warehouse',label:'仓库'},{id:'brand',label:'品牌'},{id:'sku',label:'SKU'},{id:'barcode',label:'69码'},{id:'name',label:'商品'},
     {id:'price',label:'单价'},{id:'begin',label:'期初库存'},{id:'transit',label:'在途'},{id:'month_in',label:'当月采购入库'},
-    {id:'month_out',label:'当月出库'},{id:'avail',label:'可用'},{id:'turnover',label:'在库周转'},{id:'stock_amount',label:'在库金额'},
+    {id:'month_out',label:'当月出库'},{id:'prod_date',label:'生产日期'},{id:'exp_date',label:'截止日期'},{id:'batch_days',label:'总效期/天'},{id:'eff_status',label:'效期状态'},{id:'over_third',label:'超1/3'},{id:'avail',label:'可用'},{id:'turnover',label:'在库周转'},{id:'note',label:'备注'},{id:'stock_amount',label:'在库金额'},
   ],
   platform: [
-    {id:'channel',label:'平台'},{id:'warehouse',label:'仓库'},{id:'sku',label:'SKU'},{id:'barcode',label:'69码'},
-    {id:'name',label:'商品'},{id:'price',label:'单价'},{id:'transit',label:'在途'},{id:'avail',label:'可用'},{id:'stock_amount',label:'在库金额'},
+    {id:'channel',label:'平台'},{id:'warehouse',label:'仓库'},{id:'brand',label:'品牌'},{id:'sku',label:'SKU'},{id:'barcode',label:'69码'},
+    {id:'name',label:'商品'},{id:'price',label:'单价'},{id:'transit',label:'在途'},{id:'prod_date',label:'生产日期'},{id:'exp_date',label:'截止日期'},{id:'batch_days',label:'总效期/天'},{id:'eff_status',label:'效期状态'},{id:'avail',label:'可用'},{id:'note',label:'备注'},{id:'stock_amount',label:'在库金额'},
   ],
   platform_b: [
-    {id:'channel',label:'平台'},{id:'warehouse',label:'仓库'},{id:'sku',label:'SKU'},{id:'barcode',label:'69码'},
-    {id:'name',label:'商品'},{id:'price',label:'单价'},{id:'transit',label:'供应商-B仓'},{id:'c_transit',label:'B-C调拨在途'},{id:'avail',label:'可用'},{id:'stock_amount',label:'在库金额'},
+    {id:'channel',label:'平台'},{id:'warehouse',label:'仓库'},{id:'brand',label:'品牌'},{id:'sku',label:'SKU'},{id:'barcode',label:'69码'},
+    {id:'name',label:'商品'},{id:'price',label:'单价'},{id:'transit',label:'供应商-B仓'},{id:'c_transit',label:'B-C调拨在途'},{id:'prod_date',label:'生产日期'},{id:'exp_date',label:'截止日期'},{id:'batch_days',label:'总效期/天'},{id:'eff_status',label:'效期状态'},{id:'avail',label:'可用'},{id:'note',label:'备注'},{id:'stock_amount',label:'在库金额'},
   ],
 }
 export const INV_COL_KEY = 'c_cols_inventory'

@@ -396,7 +396,7 @@ def _seed_batches(db, skus_data):
         cat = _pcat.get((sku, ch), '')
         # 总效期: 食品(调味/零食) 60~120天, 家清 120~240天
         foodish = any(k in cat for k in ['酱油','酱','醋','油','酒','糖','蜂','咖','粉','薯','坚果','饼干','巧克力','糖果','麻辣','椒'] ) if cat else False
-        shelf = random.randint(60, 120) if foodish else random.randint(120, 240)
+        shelf = random.randint(150, 270) if foodish else random.randint(200, 365)
         n_batch = random.randint(1, 3)
         # 拆 1~3 批（数量按比例）
         parts = [0.6, 0.3, 0.1][:n_batch]

@@ -64,14 +64,8 @@ export default function HammerRules({ channel, onShowHistory }: HammerRulesProps
                 <button className="hammer-clear" onClick={() => useAppStore.getState().setProdBatch(true)}>进入批量模式</button>
               )}
             </div>
-            <div className="hm-group">
-              <span className="hm-btn" onClick={() => { const s = useAppStore.getState(); if (!s.prodBatch) s.setProdBatch(true); s.requestProdBatchAll() }}>全选/取消</span>
-            </div>
-            <div className="hm-group">
-              <span className="hm-btn" style={{color:'var(--success)'}} onClick={() => runBatch('active','启用')}>批量启用</span>
-              <span className="hm-btn" style={{color:'var(--warning)'}} onClick={() => runBatch('inactive','停用')}>批量停用</span>
-              <span className="hm-btn" style={{color:'var(--danger)'}} onClick={() => runBatch('delete','删除')}>批量删除</span>
-            </div>
+            <span className="hm-btn" onClick={() => { const s = useAppStore.getState(); if (!s.prodBatch) s.setProdBatch(true); s.requestProdBatchAll() }}>全选/取消</span>
+            <span className="hm-btn" style={{color:'var(--danger)'}} onClick={() => runBatch('delete','删除')}>批量删除</span>
             <div className="muted2 text-10" style={{marginTop:8}}>勾选规则后在此批量操作（删除可回收站恢复）</div>
           </div>
         )}

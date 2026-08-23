@@ -252,8 +252,8 @@ def _seed_fill_async():
     _run_step('生成库存', lambda: _seed_inventory(db, skus_data), steps)
 
     # 步骤5: 生成当月出入库记录（进销存页展示）
-    _run_step('生成出入库记录', lambda: _seed_records(db, skus_data), steps)
     _run_step('生成批次效期', lambda: _seed_batches(db, skus_data), steps)
+    _run_step('生成出入库记录', lambda: _seed_records(db, skus_data), steps)
 
     # 步骤6: 写入补货参数和规则
     _run_step('写入补货参数/规则', lambda: _seed_config(db, conn), steps)
@@ -544,10 +544,12 @@ def _seed_records(db, skus_data):
                     days_back = random.randint(0, max_days)
                 used_dates.add(days_back)
                 try:
+                    _bp = (today - timedelta(days=random.randint(60, 180))).strftime('%Y-%m-%d')
+                    _be = (today + timedelta(days=random.randint(60, 240))).strftime('%Y-%m-%d')
                     conn.execute(
-                        "INSERT OR IGNORE INTO inbound_records(sku,product_name,quantity,supplier,inbound_date,channel) VALUES(?,?,?,?,?,?)",
+                        "INSERT OR IGNORE INTO inbound_records(sku,product_name,quantity,supplier,inbound_date,channel,prod_date,exp_date) VALUES(?,?,?,?,?,?,?,?)",
                         (sk['sku'], sk['name'], random.randint(50, 500), f"供应商-{sk['sku'][-3:]}",
-                         (today - timedelta(days=days_back)).strftime('%Y-%m-%d'), ch))
+                         (today - timedelta(days=days_back)).strftime('%Y-%m-%d'), ch, _bp, _be))
                 except Exception:
                     pass
             used_dates = set()

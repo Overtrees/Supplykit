@@ -182,22 +182,16 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
         if not data.get('ordered_at'):
             data['ordered_at'] = datetime.utcnow().strftime('%Y-%m-%d')
 
-        # 去重处理（订单按order_no，库存按sku）
+        # 去重处理（库存按 sku+仓库+批次(prod_date+exp_date) 复合去重）
         if is_inv:
             sku_val = sku or f"AUTO-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}-{success}"
-            # 逐条查重
-            if db.table("inventory").select("id").eq("sku", sku_val).execute().data:
-                errors.append({'error_type': 'duplicate_sku', 'field_name': 'sku',
-                               'raw_value': sku_val, 'error_message': 'SKU已存在于数据库'})
-                try:
-                    if not db.table("quality_logs").select("id").eq("log_type","duplicate_sku").eq("message",f'SKU {sku_val} 已存在，跳过重复'[:100]).eq("source","cleansing").execute().data:
-                        db.table("quality_logs").insert({"log_type":"duplicate_sku","level":"warning",
-                                "field_name":"sku","message":f'SKU {sku_val} 已存在，跳过重复',"source":"cleansing"}).execute()
-                except Exception as e: print(f"[Cleansing] {e}")
+            _wh_key = str(data.get('warehouse', '')) or ('平台仓' if platform_inv else 'B仓' if b_inv else '自有仓')
+            _pd_key = str(data.get('prod_date', ''))[:10]
+            _ed_key = str(data.get('exp_date', ''))[:10]
+            _batch_key = (sku_val, _wh_key, _pd_key, _ed_key)
+            if _batch_key in sku_seen:
                 failed += 1; continue
-            if sku_val in sku_seen:
-                failed += 1; continue
-            sku_seen.add(sku_val)
+            sku_seen.add(_batch_key)
             data['sku'] = sku_val
         else:
             order_no = data.get('order_no', '')

@@ -22,6 +22,8 @@ const { channel: globalChannel, hammerSearch, hammerCols, prodBatch, setProdBatc
 const selIds = prodSelIds || []
 const setSelIds = setProdBatchSel
 const [batchBusy, setBatchBusy] = useState(false)
+const s = hammerSearch || ''
+const fl = ld ? [] : (s ? list.filter(x=>(x.sku||'').includes(s)||(x.product_name||'').includes(s)||(x.store||'').includes(s)) : list)
 useEffect(()=>{setLd(true);api.get('/api/products').then(r=>{setList(r.data?.items||r.data||[]);setLd(false)}).catch(()=>setLd(false))}, [globalChannel])
 useEffect(() => {
   if (hammerCols?.products) setVisCols(hammerCols.products)
@@ -33,8 +35,6 @@ useEffect(()=>{ if(prodBatchVersion>0) reload() },[prodBatchVersion])
 useEffect(()=>{ setProdBatchFilterLen(fl.length) },[fl.length])
 const reload = () => { api.get('/api/products').then(r=>setList(r.data?.items||r.data||[])).catch(()=>{}) }
 
-const s = hammerSearch || ''
-const fl = ld ? [] : (s ? list.filter(x=>(x.sku||'').includes(s)||(x.product_name||'').includes(s)||(x.store||'').includes(s)) : list)
 if(ld)return<div className='card'><div className='section-title'><span>{t("nav.products")}</span></div><Skeleton/></div>
 
 return<div className='card' style={{containerType:'inline-size'}}>

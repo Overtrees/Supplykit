@@ -15,7 +15,6 @@ import { useAppStore } from '../store/useAppStore'
 import { t } from "../locale"
 export default function SupplierPage(){const[list,setList]=useState([]);const[ld,setLd]=useState(true)
 const[visCols,setVisCols]=useState(()=>getVis(COL_KEY())||COLS.map(c=>c.id))
-const [expandedSup, setExpandedSup] = useState([])
 const { channelVersion, hammerCols, hammerSearch } = useAppStore()
 useEffect(()=>{api.get('/api/suppliers?channel=' + (useAppStore.getState().channel || 'jd')).then(r=>{const d=r.data?.items||r.data||[];setList(d);setLd(false)}).catch(()=>setLd(false))},[channelVersion])
 useEffect(() => { if (hammerCols?.suppliers) setVisCols(hammerCols.suppliers) }, [hammerCols])
@@ -29,12 +28,12 @@ return<div className='card'><div className='section-title' style={{display:'flex
 <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>{t("common.showing")} {visCols.length}/{COLS.length} {t("common.columns")}</div>
 <table><colgroup>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>
 <thead style={{position:"sticky",top:0,background:"var(--card)",zIndex:1}}><tr>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<th key={col.id}>{col.label}</th>:null})}</tr></thead>
-<tbody>{fl.map(x=><React.Fragment key={x.id}><tr>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return <td key={col.id} className="small muted" style={{fontSize:11}}>-</td>;
-  if(col.id==='brand'){const bs=(x.brand||'').split(/[,，]/).map(b=>b.trim()).filter(Boolean);const isExp=expandedSup.includes(x.id);return <td key={col.id} onClick={(e)=>{e.stopPropagation();setExpandedSup(prev=>isExp?prev.filter(i=>i!==x.id):[...prev,x.id])}} style={{fontSize:12,cursor:bs.length>1?'pointer':'default'}}>{bs.length===0?'-':bs.length===1?bs[0]:<span style={{color:'var(--primary)',fontWeight:600}}>{bs[0]} +{bs.length-1} <span style={{fontSize:10}}>▾</span></span>}</td>}
+<tbody>{fl.map(x=><tr key={x._key||x.id}>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return <td key={col.id} className="small muted" style={{fontSize:11}}>-</td>;
+  if(col.id==='brand')return <td key={col.id} style={{fontSize:12}}>{x.brand||'-'}</td>
   if(col.id==='code')return <td key={col.id} className='mono col-sku'>{x.supplier_code||x.code}</td>
   if(col.id==='name')return <td key={col.id} className='col-name'>{x.supplier_name}</td>
   if(col.id==='contact')return <td key={col.id} className='col-store'>{x.contact_person}</td>
   if(col.id==='phone')return <td key={col.id} className='col-store'>{x.contact_phone||x.phone}</td>
   if(col.id==='score')return <td key={col.id} className='col-price'><span className={'pill '+(x.score>3?'success':'warning')}>{x.score}/5</span></td>
   return <td key={col.id} className="small muted" style={{fontSize:11}}>-</td>
-})}{expandedSup.includes(x.id)&&<td style={{display:'none'}}/>}</tr>{expandedSup.includes(x.id)&&<tr><td colSpan={visCols.length} style={{background:'rgba(29,78,216,0.04)',padding:'8px 14px'}}><div style={{fontSize:12,color:'var(--muted2)',marginBottom:6}}>品牌（{x.brand||''}）</div><div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{(x.brand||'').split(/[,，]/).map(b=>b.trim()).filter(Boolean).map(b=><span key={b} className="pill" style={{fontSize:11,padding:'3px 10px',minHeight:'auto',lineHeight:'18px',background:'var(--card)',border:'1px solid var(--border)',color:'var(--text)'}}>{b}</span>)}</div></td></tr>}</React.Fragment>)}</tbody></table></div>}</div>}
+})}</tr>)}</tbody></table></div>}</div>}

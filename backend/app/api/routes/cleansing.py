@@ -260,6 +260,7 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                 "inbound_date": str(data.get('inbound_date', ''))[:50],
                 "prod_date": str(data.get('prod_date', ''))[:10],
                 "exp_date": str(data.get('exp_date', ''))[:10],
+                "warehouse": str(data.get('warehouse', ''))[:100],
             })
             success += 1
         elif is_outbound:
@@ -271,6 +272,7 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                 "outbound_date": str(data.get('outbound_date', ''))[:50],
                 "prod_date": str(data.get('prod_date', ''))[:10],
                 "exp_date": str(data.get('exp_date', ''))[:10],
+                "warehouse": str(data.get('warehouse', ''))[:100],
             })
             success += 1
         # 商品信息导入

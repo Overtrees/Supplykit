@@ -533,41 +533,46 @@ def _seed_records(db, skus_data):
     import random
     conn = get_conn()
     today = datetime.utcnow()
+    _batch_pool = {}
+    try:
+        for _r in conn.execute("SELECT sku, warehouse, prod_date, exp_date FROM batches").fetchall():
+            _pool = _batch_pool.setdefault(str(_r[0]), [])
+            _pool.append({'wh': str(_r[1] or ''), 'pd': str(_r[2] or '')[:10], 'ed': str(_r[3] or '')[:10]})
+    except Exception: pass
     for skus, ch in [(skus_data['jd'],'jd'), (skus_data['other'],'other')]:
         for sk in skus:
-            max_days = max(today.day - 1, 6)  # 至少 7 天范围，避免月初无可用日期
+            _pool = _batch_pool.get(sk['sku'], [])
+            max_days = max(today.day - 1, 6)
             used_dates = set()
             in_cnt = random.randint(1, min(3, max_days + 1))
             for _ in range(in_cnt):
                 days_back = random.randint(0, max_days)
-                while days_back in used_dates:
-                    days_back = random.randint(0, max_days)
+                while days_back in used_dates: days_back = random.randint(0, max_days)
                 used_dates.add(days_back)
                 try:
-                    _bp = (today - timedelta(days=random.randint(60, 180))).strftime('%Y-%m-%d')
-                    _be = (today + timedelta(days=random.randint(60, 240))).strftime('%Y-%m-%d')
-                    conn.execute(
-                        "INSERT OR IGNORE INTO inbound_records(sku,product_name,quantity,supplier,inbound_date,channel,prod_date,exp_date) VALUES(?,?,?,?,?,?,?,?)",
+                    _bp = ''; _be = ''; _wh = ''
+                    if _pool:
+                        _b = random.choice(_pool)
+                        _bp = _b['pd']; _be = _b['ed']; _wh = _b['wh']
+                    conn.execute("INSERT OR IGNORE INTO inbound_records(sku,product_name,quantity,supplier,inbound_date,channel,prod_date,exp_date,warehouse) VALUES(?,?,?,?,?,?,?,?,?)",
                         (sk['sku'], sk['name'], random.randint(50, 500), f"供应商-{sk['sku'][-3:]}",
-                         (today - timedelta(days=days_back)).strftime('%Y-%m-%d'), ch, _bp, _be))
-                except Exception:
-                    pass
+                         (today - timedelta(days=days_back)).strftime('%Y-%m-%d'), ch, _bp, _be, _wh))
+                except Exception: pass
             used_dates = set()
             out_cnt = random.randint(1, min(2, max_days + 1))
             for _ in range(out_cnt):
                 days_back = random.randint(0, max_days)
-                while days_back in used_dates:
-                    days_back = random.randint(0, max_days)
+                while days_back in used_dates: days_back = random.randint(0, max_days)
                 used_dates.add(days_back)
                 try:
-                    _bp = (today - timedelta(days=random.randint(60, 180))).strftime('%Y-%m-%d')
-                    _be = (today + timedelta(days=random.randint(60, 240))).strftime('%Y-%m-%d')
-                    conn.execute(
-                        "INSERT OR IGNORE INTO outbound_records(sku,product_name,quantity,target_warehouse,outbound_date,channel,prod_date,exp_date) VALUES(?,?,?,?,?,?,?,?)",
+                    _bp = ''; _be = ''; _wh = ''
+                    if _pool:
+                        _b = random.choice(_pool)
+                        _bp = _b['pd']; _be = _b['ed']; _wh = _b['wh']
+                    conn.execute("INSERT OR IGNORE INTO outbound_records(sku,product_name,quantity,target_warehouse,outbound_date,channel,prod_date,exp_date,warehouse) VALUES(?,?,?,?,?,?,?,?,?)",
                         (sk['sku'], sk['name'], random.randint(10, 100), "京东备货仓",
-                         (today - timedelta(days=days_back)).strftime('%Y-%m-%d'), ch, _bp, _be))
-                except Exception:
-                    pass
+                         (today - timedelta(days=days_back)).strftime('%Y-%m-%d'), ch, _bp, _be, _wh))
+                except Exception: pass
     conn.commit()
 
 def _seed_config(db, conn):

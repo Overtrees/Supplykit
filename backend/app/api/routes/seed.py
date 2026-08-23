@@ -580,17 +580,17 @@ def _sync_inv_month(conn):
     from datetime import datetime as _dt
     _month_start = _dt.utcnow().strftime('%Y-%m-01')
     try:
-        rows = conn.execute("SELECT sku, warehouse, SUM(quantity) FROM inbound_records WHERE channel='jd' AND inbound_date >= ? GROUP BY sku, warehouse", (_month_start,)).fetchall()
+        rows = conn.execute("SELECT sku, warehouse, channel, SUM(quantity) FROM inbound_records WHERE channel IN ('jd','other') AND inbound_date >= ? GROUP BY sku, warehouse, channel", (_month_start,)).fetchall()
         for r in rows:
             try:
-                conn.execute("UPDATE inventory SET month_inbound = ? WHERE sku=? AND warehouse=? AND channel='jd' AND warehouse_type='own'",
-                    (int(r[2] or 0), str(r[0]), str(r[1] or '')))
+                conn.execute("UPDATE inventory SET month_inbound = ? WHERE sku=? AND warehouse=? AND channel=? AND warehouse_type='own'",
+                    (int(r[2] or 0), str(r[0]), str(r[1] or ''), str(r[2] or '')))
             except Exception: pass
-        rows2 = conn.execute("SELECT sku, warehouse, SUM(quantity) FROM outbound_records WHERE channel='jd' AND outbound_date >= ? GROUP BY sku, warehouse", (_month_start,)).fetchall()
+        rows2 = conn.execute("SELECT sku, warehouse, channel, SUM(quantity) FROM outbound_records WHERE channel IN ('jd','other') AND outbound_date >= ? GROUP BY sku, warehouse, channel", (_month_start,)).fetchall()
         for r in rows2:
             try:
-                conn.execute("UPDATE inventory SET month_outbound = ? WHERE sku=? AND warehouse=? AND channel='jd' AND warehouse_type='own'",
-                    (int(r[2] or 0), str(r[0]), str(r[1] or '')))
+                conn.execute("UPDATE inventory SET month_outbound = ? WHERE sku=? AND warehouse=? AND channel=? AND warehouse_type='own'",
+                    (int(r[2] or 0), str(r[0]), str(r[1] or ''), str(r[2] or '')))
             except Exception: pass
         conn.commit()
     except Exception as e:
@@ -598,9 +598,9 @@ def _sync_inv_month(conn):
     # 同步期初库存: 用公式反推(期初=可用-入库+出库), 若为负则调低入库使期初>=0
     try:
         conn.executescript("""
-            UPDATE inventory SET beginning_stock = available_qty - month_inbound + month_outbound WHERE channel='jd' AND warehouse_type='own';
-            UPDATE inventory SET month_inbound = available_qty + month_outbound WHERE channel='jd' AND warehouse_type='own' AND beginning_stock < 0;
-            UPDATE inventory SET beginning_stock = available_qty - month_inbound + month_outbound WHERE channel='jd' AND warehouse_type='own' AND beginning_stock < 0;
+            UPDATE inventory SET beginning_stock = available_qty - month_inbound + month_outbound WHERE channel IN ('jd','other') AND warehouse_type='own';
+            UPDATE inventory SET month_inbound = available_qty + month_outbound WHERE channel IN ('jd','other') AND warehouse_type='own' AND beginning_stock < 0;
+            UPDATE inventory SET beginning_stock = available_qty - month_inbound + month_outbound WHERE channel IN ('jd','other') AND warehouse_type='own' AND beginning_stock < 0;
         """)
         conn.commit()
     except Exception as _e:

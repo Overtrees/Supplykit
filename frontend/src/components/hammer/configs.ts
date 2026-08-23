@@ -48,26 +48,26 @@ export const invColKey = (wt, ch) => INV_COL_KEY + '_' + ch + '_' + wt
 export const INV_WH_LABEL = { own:'自有仓', platform:'平台仓', platform_b:'B仓' }
 
 export const INS_BBCC_COLS = [
-  {id:'seq',label:''},{id:'sku',label:'SKU'},{id:'barcode',label:'69码'},{id:'name',label:'商品'},{id:'warehouse',label:'仓库'},
+  {id:'seq',label:''},{id:'brand',label:'品牌'},{id:'sku',label:'SKU'},{id:'barcode',label:'69码'},{id:'name',label:'商品'},{id:'warehouse',label:'仓库'},
   {id:'b_stock',label:'B仓可用库存'},{id:'b_turn',label:'B仓周转'},{id:'c_stock',label:'C仓总和可用'},
   {id:'transit',label:'B-C调拨在途'},{id:'sales',label:'C仓日销'},{id:'c_turn',label:'C仓周转'},
   {id:'transit_turn',label:'B→C调拨周转'},{id:'suggest',label:'C仓建议补'},{id:'b_suggest',label:'B仓需补'},
   {id:'cur_turn',label:'当前综转'},{id:'after_turn',label:'补后综转'},{id:'note',label:'备注'},{id:'action',label:'标记操作（用于B仓统计入库批次）'},
 ]
 export const INS_TRAD_COLS = [
-  {id:'seq',label:''},{id:'sku',label:'SKU'},{id:'barcode',label:'69码'},{id:'name',label:'商品'},{id:'store',label:'仓库'},
+  {id:'seq',label:''},{id:'brand',label:'品牌'},{id:'sku',label:'SKU'},{id:'barcode',label:'69码'},{id:'name',label:'商品'},{id:'store',label:'仓库'},
   {id:'avail',label:'现有'},{id:'transit',label:'在途'},{id:'sales',label:'日销'},
   {id:'safety',label:'安全线'},{id:'turn',label:'在库周转'},{id:'after_turn',label:'补后周转'},
   {id:'suggest',label:'建议补'},{id:'note',label:'备注'},
 ]
 export const INS_PURCHASE_COLS = [
-  {id:'barcode',label:'69码'},{id:'sku',label:'SKU'},{id:'name',label:'商品'},{id:'warehouse',label:'仓库'},
+  {id:'brand',label:'品牌'},{id:'barcode',label:'69码'},{id:'sku',label:'SKU'},{id:'name',label:'商品'},{id:'warehouse',label:'仓库'},
   {id:'sys_total',label:'系统总库存'},{id:'daily_sales',label:'日销(融合/14/28)'},
   {id:'actual_purchase',label:'建议采购(含箱规取整)'},{id:'after_turnover',label:'补后周转'},
   {id:'note',label:'备注'},{id:'timing',label:'采购时机'},
 ]
 export const INS_SLOW_COLS = [
-  {id:'barcode',label:'69码'},{id:'sku',label:'SKU'},{id:'name',label:'商品'},{id:'store',label:'店铺'},{id:'category',label:'分类'},
+  {id:'brand',label:'品牌'},{id:'barcode',label:'69码'},{id:'sku',label:'SKU'},{id:'name',label:'商品'},{id:'store',label:'店铺'},{id:'category',label:'分类'},
   {id:'last_order_date',label:'最近下单'},{id:'days',label:'天数'},{id:'stock',label:'库存'},{id:'level',label:'状态'},
 ]
 

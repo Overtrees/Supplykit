@@ -323,6 +323,7 @@ export default function InsightsPage() {
                         // 序号列
                         if (col.id === 'seq') return <td key={col.id} className="text-11 muted2">{i+1}</td>
                         // SKU
+                        if (col.id === 'brand') return <td key={col.id} style={{fontSize:12}}>{x.brand||'-'}</td>
                         if (col.id === 'sku') return <td key={col.id} className="mono" style={{fontSize:12,textDecoration:isOrdered?'line-through':'none'}}>{x.sku}</td>
                         if (col.id === 'barcode') return <td key={col.id} className='mono' style={{fontSize:11}}>{x.barcode||'-'}</td>
                         // 商品名
@@ -442,6 +443,7 @@ export default function InsightsPage() {
                         const col = PURCHASE_COLS.find(c => c.id === id)
                         if (!col) return <td key={id}></td>
                         if (col.id === 'barcode') return <td key={col.id} className="mono text-11 muted2">{x.barcode || '-'}</td>
+                        if (col.id === 'brand') return <td key={col.id} style={{fontSize:12}}>{x.brand||'-'}</td>
                         if (col.id === 'sku') return <td key={col.id} className="mono" style={{fontSize:12}}>{x.sku}</td>
                         if (col.id === 'name') return <td key={col.id} className="col-name">{x.product_name}</td>
                         if (col.id === 'warehouse') return <td key={col.id} className="col-store">{x.warehouse || x.store || '-'}</td>
@@ -528,6 +530,7 @@ export default function InsightsPage() {
                           const col = SLOW_COLS.find(c => c.id === id)
                           if (!col) return <td key={id}></td>
                           if (col.id === 'processed') return <td key={id}>{x.disposed ? <span style={{fontSize:11,color:'var(--muted2)'}}>✓ 已处理</span> : <span style={{fontSize:11,color:'var(--muted2)'}}>-</span>}</td>
+                          if (col.id === 'brand') return <td key={id} style={{fontSize:12}}>{x.brand||'-'}</td>
                           if (col.id === 'sku') return <td key={id} className="mono" style={{fontSize:12}}>{x.sku}</td>
                           if (col.id === 'name') return <td key={id} style={{fontSize:13}}>{x.product_name}</td>
                           if (col.id === 'warehouse') return <td key={id} style={{fontSize:12}}>{x.warehouse}</td>

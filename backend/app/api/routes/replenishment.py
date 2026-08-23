@@ -191,7 +191,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             c_turnover = round(avail / sel_ds, 1) if sel_ds > 0 else None
             transit_turnover = round(transit / sel_ds, 1) if sel_ds > 0 else None
             suggestions.append({
-                "sku": sku, "barcode": sku_barcode_map.get(sku, ''), "product_name": prod.get('product_name', ''),
+                "sku": sku, "barcode": sku_barcode_map.get(sku, ''), "product_name": prod.get('product_name', ''), "brand": prod.get('brand', ''),
                 "store": prod.get('store', ''), "category": prod.get('category', ''),
                 "available_qty": avail, "safety_qty": safety, "in_transit_qty": transit,
                 "b_stock": b_stock.get(sku, 0), "c_stock": avail, "b_gap": b_gap,
@@ -316,7 +316,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             if not parts: parts.append("库存充足")
             note = " · ".join(parts)
             suggestions.append({
-                "sku": sku, "barcode": sku_barcode_map.get(sku, ''), "product_name": prod.get('product_name', ''),
+                "sku": sku, "barcode": sku_barcode_map.get(sku, ''), "product_name": prod.get('product_name', ''), "brand": prod.get('brand', ''),
                 "store": prod.get('store', ''), "warehouse": warehouse, "category": prod.get('category', ''),
                 "available_qty": avail, "safety_qty": safety, "in_transit_qty": transit,
                 "daily_sales": sel_ds, "daily_sales_7": round(ds7, 1), "daily_sales_14": round(ds14, 1), "daily_sales_28": round(ds28, 1),

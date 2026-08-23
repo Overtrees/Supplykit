@@ -2,7 +2,7 @@ import React,{useEffect,useState, useRef} from 'react'
 import {api} from '../api/client'
 import EmptyState from '../components/EmptyState'
 
-const COLS = [{id:'code',label:'编号'},{id:'name',label:'名称'},{id:'contact',label:'联系人'},{id:'phone',label:'手机'},{id:'score',label:'评分'}]
+const COLS = [{id:'brand',label:'品牌'},{id:'code',label:'编号'},{id:'name',label:'名称'},{id:'contact',label:'联系人'},{id:'phone',label:'手机'},{id:'score',label:'评分'}]
 const COL_KEY = () => 'c_cols_suppliers_' + (useAppStore.getState().channel || 'jd')
 const getVis=()=>{try{return JSON.parse(localStorage.getItem(COL_KEY())||'null')}catch{return null}}
 
@@ -29,6 +29,7 @@ return<div className='card'><div className='section-title' style={{display:'flex
 <table><colgroup>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>
 <thead style={{position:"sticky",top:0,background:"var(--card)",zIndex:1}}><tr>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<th key={col.id}>{col.label}</th>:null})}</tr></thead>
 <tbody>{fl.map(x=><tr key={x.id}>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);if(!col)return <td key={col.id} className="small muted" style={{fontSize:11}}>-</td>;
+  if(col.id==='brand')return <td key={col.id} style={{fontSize:12}}>{x.brand||'-'}</td>
   if(col.id==='code')return <td key={col.id} className='mono col-sku'>{x.supplier_code||x.code}</td>
   if(col.id==='name')return <td key={col.id} className='col-name'>{x.supplier_name}</td>
   if(col.id==='contact')return <td key={col.id} className='col-store'>{x.contact_person}</td>

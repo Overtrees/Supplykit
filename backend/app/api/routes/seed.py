@@ -8,7 +8,18 @@ import random, sqlite3, uuid, threading, os
 
 router = APIRouter(prefix="/api/seed", tags=["seed"])
 
-cat_names = ['酱油','酱料','调味汁','食用油','醋','料酒','蚝油','芝麻油','辣椒酱','拌面酱',
+BRANDS_FOOD = ['海天','李锦记','厨邦','太太乐','千禾','欣和','家乐','鲁花']
+BRANDS_SNACK = ['乐事','旺旺','三只松鼠','良品铺子','百草味','奥利奥','格力高']
+BRANDS_HOME = ['蓝月亮','立白','威露士','超能','洁柔','维达','清风']
+def _pick_brand(cat):
+    if any(k in cat for k in ['薯片','虾条','爆米花','坚果','瓜子','花生','饼干','威化','巧克力','糖果']):
+        return random.choice(BRANDS_SNACK)
+    if any(k in cat for k in ['洗衣','洗洁','洗手','消毒','纸巾','湿巾','垃圾袋','保鲜']):
+        return random.choice(BRANDS_HOME)
+    return random.choice(BRANDS_FOOD)
+
+
+cat_names = ['酱油','酱料','调味汁' ,'食用油','醋','料酒','蚝油','芝麻油','辣椒酱','拌面酱',
              '老抽','生抽','陈醋','香醋','白醋','米醋','花椒油','藤椒油','辣椒油','芥末油',
              '番茄酱','甜辣酱','沙拉酱','芝麻酱','花生酱','豆瓣酱','豆豉','腐乳','糟卤','鱼露',
              '咖喱块','咖喱粉','五香粉','孜然粉','花椒粉','辣椒粉','胡椒粉','十三香','卤料包','炖肉料',
@@ -43,15 +54,17 @@ def make_skus(sfx, count=1000, shared=None):
         else: p = round(random.uniform(5.8, 99.9), 1)
         unit = '包' if c in ['薯片','虾条','爆米花','坚果','瓜子','花生','饼干','威化','巧克力','糖果','纸巾','湿巾','垃圾袋','保鲜膜','保鲜袋'] else ('瓶' if c in ['洗衣液','洗洁精','洗手液','消毒液'] else '瓶')
         sku = f'SKU-{i:04d}{sfx}'
+        brand = _pick_brand(c)
         shared_src = shared[i-1] if shared and i <= len(shared) and shared[i-1] is not None else None
         if shared_src:
             # 共享 SKU：内容与另一个渠道相同，但命名独立（防 products upsert 互相覆盖）
             item = dict(shared_src)
             item['sku'] = sku
             item['store'] = s
+            if not item.get('brand'): item['brand'] = _pick_brand(item.get('cat',''))
             r.append(item)
             continue
-        r.append({'sku':sku,'name':f'{c}{i}','store':s,'cat':c,'price':p,'box':random.choice([6,12,24]),'unit':unit,'barcode':f'690{i:010d}','weight':round(random.uniform(5,25),1),'volume':round(random.uniform(0.02,0.12),3),'status':'active'})
+        r.append({'sku':sku,'name':f'{c}{i}','store':s,'cat':c,'price':p,'box':random.choice([6,12,24]),'unit':unit,'barcode':f'690{i:010d}','weight':round(random.uniform(5,25),1),'volume':round(random.uniform(0.02,0.12),3),'status':'active','brand':brand})
     return r
 
 _current_task_id = None
@@ -284,12 +297,24 @@ def _seed_products_suppliers(db, skus_data):
             # 按顺序分配供应商（10 家供应商轮流覆盖 SKU）
             _sup_idx = i % 10
             _sup_code = f"SUP-{_sup_idx+1:03d}-{ch.upper()}"
-            _prow = {'sku':p['sku'],'product_name':p['name'],'store':p['store'],'category':p['cat'],'price':p['price'],'box_qty':p['box'],'barcode':p['barcode'],'weight':p['weight'],'volume':p['volume'],'status':p['status'],'channel':ch,'supplier_code':_sup_code}
+            _prow = {'sku':p['sku'],'product_name':p['name'],'store':p['store'],'category':p['cat'],'price':p['price'],'box_qty':p['box'],'barcode':p['barcode'],'weight':p['weight'],'volume':p['volume'],'status':p['status'],'channel':ch,'supplier_code':_sup_code,'brand':p.get('brand','')}
             db.table('products').upsert(_prow, conflict_col='sku')
+    # 收集供应商→品牌（从已写入的 products 聚合）
+    _sup_brands = {}
+    try:
+        from app.core.database import get_conn
+        _c2 = get_conn()
+        for _r in _c2.execute("SELECT supplier_code, brand FROM products WHERE brand != ''").fetchall():
+            _sc = str(_r[0] or ''); _br = str(_r[1] or '')
+            if _sc and _br:
+                _sup_brands.setdefault(_sc, set()).add(_br)
+    except Exception: pass
     for s in SUP:
         for ch in ['jd','other']:
+            _sc = f"{s['code']}-{ch.upper()}"
+            _brands = ','.join(sorted(_sup_brands.get(_sc, set())))
             # supplier_code 加渠道后缀，避免两渠道共用同一 code 导致 upsert 互相覆盖
-            db.table("suppliers").upsert({'supplier_code':f"{s['code']}-{ch.upper()}",'supplier_name':s['name'],'contact_person':s['contact'],'contact_phone':s['phone'],'score':s['score'],'channel':ch}, conflict_col='supplier_code')
+            db.table("suppliers").upsert({'supplier_code':_sc,'supplier_name':s['name'],'contact_person':s['contact'],'contact_phone':s['phone'],'score':s['score'],'channel':ch,'brand':_brands}, conflict_col='supplier_code')
 
 def _seed_orders(db, today, skus_data):
     jd_s, ot_s = skus_data['jd'], skus_data['other']

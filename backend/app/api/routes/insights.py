@@ -531,8 +531,8 @@ def inventory_with_sales(wh_type: str = 'own', channel: str = 'jd', page: int = 
     products_for_barcode = {}
     try:
         from app.core.database import get_conn as _gconn
-        for _r in _gconn().execute("SELECT sku, barcode, price FROM products").fetchall():
-            products_for_barcode[_r[0]] = {"sku": _r[0], "barcode": _r[1] or '', "price": _r[2] or 0}
+        for _r in _gconn().execute("SELECT sku, barcode, price, brand FROM products").fetchall():
+            products_for_barcode[_r[0]] = {"sku": _r[0], "barcode": _r[1] or '', "price": _r[2] or 0, "brand": _r[3] or ''}
     except Exception:
         products_for_barcode = {}
     # 从快照聚合 28 天日销（替代 orders 全表遍历）
@@ -573,6 +573,7 @@ def inventory_with_sales(wh_type: str = 'own', channel: str = 'jd', page: int = 
             'id': i['id'],
             'sku': sku,
             'barcode': bc,
+            'brand': (_p.get('brand') or ''),
             'product_name': i.get('product_name',''),
             'price': price,
             'store': i.get('store',''),
@@ -590,6 +591,25 @@ def inventory_with_sales(wh_type: str = 'own', channel: str = 'jd', page: int = 
             'month_end': month_end,
             'turnover_days': turnover_days,
         })
+    # 注入批次摘要（最早批次生产/截止/效期状态/总效期）
+    try:
+        from app.api.routes.inventory import _get_batch_summary
+        _bs_map = _get_batch_summary(channel)
+        for _item in result:
+            _bk = (_item.get('sku',''), _item.get('warehouse',''), _item.get('channel','jd'))
+            _b = _bs_map.get(_bk)
+            if _b:
+                _item['batch_prod_date'] = _b[0]
+                _item['batch_exp_date'] = _b[1]
+                _item['batch_status'] = _b[2]
+                _item['batch_pct'] = _b[3]
+                _item['batch_days'] = _b[5]
+            else:
+                _item['batch_prod_date'] = _item['batch_exp_date'] = _item['batch_status'] = ''
+                _item['batch_pct'] = 0
+                _item['batch_days'] = 0
+    except Exception as _e:
+        import logging; logging.warning(f"[with-sales] batch inject: {_e}")
     total = len(result)
     # 写缓存（30s TTL + 版本号）
     try:

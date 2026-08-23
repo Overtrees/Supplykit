@@ -390,29 +390,36 @@ def _seed_batches(db, skus_data):
             _pcat[(str(r[0]), str(r[2] or 'jd'))] = str(r[1] or '')
     except Exception: pass
     best_map = {}
+    problem_skus = set()
+    _all_skus = sorted({(str(r[0]), str(r[3] or 'jd')) for r in rows})
+    for idx, (s, c) in enumerate(_all_skus):
+        chk = random.random()
+        if chk < 0.06:      # 6% SKU 带"过期"批次演示 black
+            problem_skus.add(s)
+        elif chk < 0.10:    # 4% SKU 带"接近1/3"批次演示 warn
+            problem_skus.add(s)
     for r in rows:
         sku, wh, wht, ch, qty = str(r[0]), str(r[1] or ''), str(r[2] or ''), str(r[3] or 'jd'), int(r[4] or 0)
         if qty <= 0: continue
         cat = _pcat.get((sku, ch), '')
-        # 总效期: 食品(调味/零食) 60~120天, 家清 120~240天
         foodish = any(k in cat for k in ['酱油','酱','醋','油','酒','糖','蜂','咖','粉','薯','坚果','饼干','巧克力','糖果','麻辣','椒'] ) if cat else False
         shelf = random.randint(150, 270) if foodish else random.randint(200, 365)
+        is_prob = sku in problem_skus
         n_batch = random.randint(1, 3)
-        # 拆 1~3 批（数量按比例）
         parts = [0.6, 0.3, 0.1][:n_batch]
         qty_left = qty
         for bi, ratio in enumerate(parts):
             bq = int(qty * ratio) if bi < n_batch - 1 else qty_left
             qty_left -= bq
             if bq <= 0: continue
-            # 生产日期: 大部分批次近期生产(已消耗 < 1/3 → ok)
-            _r = random.random()
-            if _r < 0.94:
-                _ago = random.randint(2, max(shelf // 3 - 6, 5))        # 正常: 已消耗远低于 1/3 → ok
-            elif _r < 0.99:
-                _ago = random.randint(max(shelf // 3 - 2, 5), max(shelf // 3 + 2, 8))  # 接近1/3 → warn
+            if is_prob and random.random() < 0.5:
+                # 问题 SKU 的批次: 一半过期 / 一半接近1/3
+                if random.random() < 0.5:
+                    _ago = shelf + random.randint(3, 15)   # 真过期
+                else:
+                    _ago = random.randint(max(shelf // 3 - 2, 5), max(shelf // 3 + 2, 8))  # 接近1/3
             else:
-                _ago = shelf + random.randint(3, 15)                     # 真过期 1% → expired 演示
+                _ago = random.randint(2, max(shelf // 3 - 6, 5))   # 正常
             prod = today - _td(days=_ago)
             exp = prod + _td(days=shelf)
             bdata.append({'sku': sku, 'warehouse': wh, 'warehouse_type': wht, 'channel': ch,

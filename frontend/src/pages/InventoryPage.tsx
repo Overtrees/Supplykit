@@ -141,7 +141,27 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
             })
             batchContent=React.createElement('td',{colSpan:visCols.length,style:{padding:'8px 14px',background:'rgba(29,78,216,0.04)'}},[
               React.createElement('div',{key:'h',style:{fontSize:12,color:'var(--muted2)',marginBottom:6}},'批次明细（'+x.sku+' @ '+x.warehouse+'）'),
-              React.createElement('div',{key:'r',style:{borderTop:'1px dashed var(--border)',paddingTop:6}},rows)
+              React.createElement('table',{key:'t',style:{width:'100%',fontSize:12,borderCollapse:'collapse'}},
+                React.createElement('thead',{key:'th'},
+                  React.createElement('tr',{},
+                    ['生产日期','截止日期','数量','消耗占比','备注'].map(function(l,i){return React.createElement('th',{key:i,style:{padding:'4px 8px',textAlign:'left',borderBottom:'1px solid var(--border)',fontWeight:600,color:'var(--text)',fontSize:11}},l)})
+                  )
+                ),
+                React.createElement('tbody',{key:'tb'},
+                  (batchData[bk]||[]).map(function(b,i){
+                    var pct=0;if(b.exp_date&&b.prod_date){var dp=Math.abs((new Date(b.exp_date)-new Date(b.prod_date))/86400000);pct=dp>0?Math.max(0,Math.min(100,Math.round(((new Date()-new Date(b.prod_date))/86400000)/dp*100))):0}
+                    var bcolor=pct>=67?'var(--danger)':(pct>=40?'var(--warning)':'var(--success)')
+                    var note=pct>=67?'已消耗过半，注意':(pct>=40?'消耗中，关注':(pct>0?'正常消耗':'刚入库'))
+                    return React.createElement('tr',{key:i,style:{borderBottom:'1px dashed var(--border-light)'}},
+                      React.createElement('td',{style:{padding:'3px 8px',fontSize:11,color:'var(--text)'}},b.prod_date),
+                      React.createElement('td',{style:{padding:'3px 8px',fontSize:11,color:'var(--muted2)'}},b.exp_date),
+                      React.createElement('td',{style:{padding:'3px 8px',fontSize:11,color:'var(--text)'}},b.qty+'件'),
+                      React.createElement('td',{style:{padding:'3px 8px',fontSize:11,color:bcolor,fontWeight:600}},pct+'%'),
+                      React.createElement('td',{style:{padding:'3px 8px',fontSize:11,color:'var(--muted2)'}},note)
+                    )
+                  })
+                )
+              )
             ])
           }
         }

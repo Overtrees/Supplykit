@@ -55,7 +55,7 @@ const LastRow = ({ label, value, sub, onClick, danger, loading }) => (
   </div>
 )
 
-function RecycleBin({ onClose }) {
+function RecycleBin({ onClose, toast }) {
   var [rules, setRules] = useState([])
   useEffect(function() {
     var header = document.querySelector('header')
@@ -108,21 +108,22 @@ function RecycleBin({ onClose }) {
     try {
       var _auth = {'Authorization':'Bearer ' + (()=>{try{return localStorage.getItem('c_token')}catch{return ''}})(), 'Content-Type':'application/json'}
       if (type === 'rules' && action === 'permanent-delete') {
-        // 规则批量永久删除：单请求后端批量 purge（避免 N 个并发请求在单 worker 排队卡死）
         await fetch(API + '/api/rules/batch', { method:'POST', headers:_auth, body: JSON.stringify({action:'purge', ids: ids}) })
       } else {
         await Promise.all(ids.map(function(id) {
           return fetch(API + '/api/' + type + '/' + id + '/' + action, { method:'POST', headers:_auth })
         }))
       }
-      toast.success(label + '完成: ' + ids.length + ' 项')
-      // 成功调用 API 重新拉取数据（替换本地 filter，更可靠且避免闭包问题）
+      // toast 可能因 Context 问题不可用，try/catch 降级
+      try { toast.success(label + '完成: ' + ids.length + ' 项') } catch(e) { window.alert(label + '完成: ' + ids.length + ' 项') }
       loadData()
       setSelected(function(prev) {
         var next = new Set(prev[type]); ids.forEach(function(id) { next.delete(id) })
         return { ...prev, [type]: next }
       })
-    } catch(e) { toast.error(label + '失败: ' + e.message) }
+    } catch(e) {
+      try { toast.error(label + '失败: ' + e.message) } catch(e2) { window.alert(label + '失败: ' + e.message) }
+    }
     setBatchBusy(false)
   }
   var confirmPurge = function(type) {
@@ -332,7 +333,7 @@ export default function SettingsPage() {
   }
 
   return <>
-    {confirm === 'recycle' ? <RecycleBin onClose={() => setConfirm(null)} /> : <div style={{padding:'16px 0',maxWidth:500,margin:'0 auto'}}>
+    {confirm === 'recycle' ? <RecycleBin onClose={() => setConfirm(null)} toast={toast} /> : <div style={{padding:'16px 0',maxWidth:500,margin:'0 auto'}}>
       <Group title="连接状态">
         <Row label="后端服务" value={status} sub={`${ping}ms · ${lastCheck}`} />
         <Row label="实时连接" value={wsStatus === 'connected' ? '已连接' : wsStatus === 'polling' ? '轮询中' : '已断开'} />

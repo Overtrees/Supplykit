@@ -271,8 +271,8 @@ export default function RulesPage() {
         const whLbl = WHS.find(w=>w.v===condInfo.warehouse)?.l||'全部'
         const modeLbl = MODES.find(m=>m.v===(rule.mode||''))?.l||'全部'
         const condText = `当 ${whLbl} ${fieldLbl(condInfo.left)} ${opLbl(condInfo.op)} ${condInfo.rightType==='pct'?fieldLbl(condInfo.right)+'的'+condInfo.pctValue+'%':(condInfo.rightType==='field'?fieldLbl(condInfo.right):condInfo.right)}`
-        return <div key={rule.id} style={{padding:'14px 16px',border:'1px solid var(--border)',borderRadius:32,marginBottom:8,background:prodBatch&&selIds.includes(rule.id)?'rgba(29,78,216,0.08)':'transparent'}}>
-        {prodBatch && <span onClick={()=>setSelIds(prev=>prev.includes(rule.id)?prev.filter(i=>i!==rule.id):[...prev,rule.id])} className="clickable" style={{display:'inline-flex',alignItems:'center',gap:8,marginBottom:8}}><span style={{width:18,height:18,borderRadius:6,border:'1.5px solid',borderColor:selIds.includes(rule.id)?'var(--primary)':'var(--border)',background:selIds.includes(rule.id)?'var(--primary)':'transparent',display:'inline-flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:11}}>{selIds.includes(rule.id)?'✓':''}</span><span style={{fontSize:12,color:'var(--muted2)'}}>选择</span></span>}
+        return <div key={rule.id} onClick={()=>{if(!prodBatch){const c=pc(rule.condition_json||'{}');setEditing(rule);setF({name:rule.name,event:rule.event,alert_type:rule.alert_type||'low_stock',alert_title:rule.alert_title||'',alert_desc:rule.alert_desc||'',severity:rule.severity||'warning',mode:rule.mode||'',condition_json:rule.condition_json||'{}'});setCond(c)}}} style={{cursor:prodBatch?'default':'pointer',padding:'14px 16px',border:'1px solid var(--border)',borderRadius:32,marginBottom:8,background:prodBatch&&selIds.includes(rule.id)?'rgba(29,78,216,0.08)':'transparent'}}>
+        {prodBatch && <span onClick={(e)=>{e.stopPropagation();const ids=selIds;setSelIds(ids.includes(rule.id)?ids.filter(i=>i!==rule.id):[...ids,rule.id])}} className="clickable" style={{display:'inline-flex',alignItems:'center',gap:8,marginBottom:8}}><span style={{width:18,height:18,borderRadius:6,border:'1.5px solid',borderColor:selIds.includes(rule.id)?'var(--primary)':'var(--border)',background:selIds.includes(rule.id)?'var(--primary)':'transparent',display:'inline-flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:11}}>{selIds.includes(rule.id)?'✓':''}</span><span style={{fontSize:12,color:'var(--muted2)'}}>选择</span></span>}
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:10}}>
         <div style={{flex:1,minWidth:0}}>
           <div style={{fontWeight:600,fontSize:15,display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
@@ -291,8 +291,7 @@ export default function RulesPage() {
         </div>
         <div style={{display:'flex',gap:8,flexShrink:0,alignItems:'flex-start'}}>
           <button onClick={()=>{setTestRule(rule);setTestInv({available_qty:0,safety_qty:0,in_transit_qty:0,warehouse_type:condInfo.warehouse||'',days_since_last:0,order_quantity:0});setTestResult(null)}} className="clickable" style={{fontSize:13,padding:'6px 14px',minHeight:36,borderRadius:99,border:'1px solid var(--border)',background:'var(--card)',color:'var(--primary)',cursor:'pointer',fontWeight:600}}>测试</button>
-          <button onClick={()=>{const c=pc(rule.condition_json||'{}');setEditing(rule);setF({name:rule.name,event:rule.event,alert_type:rule.alert_type||'low_stock',alert_title:rule.alert_title||'',alert_desc:rule.alert_desc||'',severity:rule.severity||'warning',mode:rule.mode||'',condition_json:rule.condition_json||'{}'});setCond(c)}} className="clickable" style={{fontSize:13,padding:'6px 14px',minHeight:36,borderRadius:99,border:'none',background:'var(--primary)',color:'#fff',cursor:'pointer',fontWeight:600}}>编辑</button>
-          <button onClick={()=>del(rule.id)} className="clickable" style={{fontSize:13,padding:'6px 14px',minHeight:36,borderRadius:99,border:'none',background:'var(--danger)',color:'#fff',cursor:'pointer',fontWeight:600}}>删除</button>
+
         </div>
         </div>
       </div>})}

@@ -31,7 +31,7 @@ export default function HammerRules({ channel, onShowHistory }: HammerRulesProps
       <div className="hammer-header">{channel === 'jd' ? '京东' : '其他'} · 规则参数</div>
       {/* tab 竖排 */}
       <div className="hammer-segmented" style={{marginBottom:8}}>
-        {[['rules','规则'],['params','补货参数'],['purchase','采购参数'],['slow','滞销参数']].map(([id,label]) => (
+        {[['rules','规则'],['params','补货'],['purchase','采购'],['slow','滞销']].map(([id,label]) => (
           <span key={id} onClick={() => setHammerRulesTab(id)}
             className={'hammer-segment' + (hammerRulesTab === id ? ' active' : '')}>
             {label}
@@ -40,7 +40,7 @@ export default function HammerRules({ channel, onShowHistory }: HammerRulesProps
       </div>
       {/* 规则 tab: 功能按钮竖排 */}
       {hammerRulesTab === 'rules' && <>
-        <div className="hammer-row-3">
+        <div className="hammer-row-2">
           <button onClick={() => { setHammerRulesTab('rules'); bumpHammerRuleNew() }} className="hammer-btn btn-primary"
             style={{display:'flex',alignItems:'center',justifyContent:'center',gap:4}}>
             + 新建
@@ -49,6 +49,8 @@ export default function HammerRules({ channel, onShowHistory }: HammerRulesProps
             style={{display:'flex',alignItems:'center',justifyContent:'center',gap:4}}>
             搜索{hammerSearch ? ' ✓' : ''}
           </button>
+        </div>
+        <div className="hammer-row-2">
           <button onClick={() => { onShowHistory && onShowHistory(channel) }} className="hammer-btn btn-ghost"
             style={{display:'flex',alignItems:'center',justifyContent:'center',gap:4}}>
             变更历史

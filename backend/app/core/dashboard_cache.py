@@ -12,6 +12,7 @@ _CACHE_TTL = 180
 _cache_by_channel = {}
 _stock_risk_cache = {}
 _cache_version = 0
+_rebuilding = set()  # 正在异步重建的 channel（防并发重复重建）
 
 def _compute_funnel(orders):
     """Order conversion funnel."""
@@ -221,22 +222,25 @@ def get_cached_dashboard(channel):
         _cache_dirty = False
         return data
     if _cache_dirty or stale or (now - cached['ts']) > _CACHE_TTL:
-        # 有旧缓存且刚过期(<30s)：异步重建，本次返回旧缓存（降级，不阻塞请求）
-        if now - cached['ts'] < 30:
-            try:
-                import threading
-                def _rebuild_async():
-                    global _cache_dirty
-                    try:
-                        _cache_by_channel[channel] = {'data': _rebuild(channel), 'ts': time.time()}
-                        _cache_dirty = False
-                    except Exception as e:
-                        import logging; logging.warning(f"[dash-cache] async rebuild: {e}")
+        # 有旧缓存：一律异步重建，本次返回旧缓存（不阻塞请求，避免单 worker 排队卡死其他接口）
+        try:
+            import threading
+            def _rebuild_async():
+                global _cache_dirty
+                try:
+                    _cache_by_channel[channel] = {'data': _rebuild(channel), 'ts': time.time()}
+                except Exception as e:
+                    import logging; logging.warning(f"[dash-cache] async rebuild: {e}")
+                finally:
+                    _rebuilding.discard(channel)
+            # 同一 channel 防并发重复重建
+            if channel not in _rebuilding:
+                _rebuilding.add(channel)
                 threading.Thread(target=_rebuild_async, daemon=True).start()
-                return cached['data']
-            except Exception:
-                pass
-        # 缓存较旧或异步失败：同步重建
+            return cached['data']
+        except Exception:
+            pass
+        # 异步启动失败（极端情况）：同步重建
         data = _rebuild(channel)
         _cache_by_channel[channel] = {'data': data, 'ts': now}
         _cache_dirty = False

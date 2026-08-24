@@ -30,29 +30,33 @@ export default function HammerRules({ channel, onShowHistory }: HammerRulesProps
     <div>
       <div className="hammer-header">{channel === 'jd' ? '京东' : '其他'} · 规则参数</div>
       {/* tab 竖排 */}
-      <div className="hm-group">
-        {[['rules','📋 规则'],['params','⚙ 补货参数'],['purchase','📦 采购参数'],['slow','🧊 滞销参数']].map(([id,label]) => (
+      <div className="hammer-segmented" style={{marginBottom:8}}>
+        {[['rules','规则'],['params','补货参数'],['purchase','采购参数'],['slow','滞销参数']].map(([id,label]) => (
           <span key={id} onClick={() => setHammerRulesTab(id)}
-            className={'hm-tab' + (hammerRulesTab === id ? ' active' : '')}>
+            className={'hammer-segment' + (hammerRulesTab === id ? ' active' : '')}>
             {label}
           </span>
         ))}
       </div>
       {/* 规则 tab: 功能按钮竖排 */}
       {hammerRulesTab === 'rules' && <>
-        <div className="hm-group">
-          <span onClick={() => { setHammerRulesTab('rules'); bumpHammerRuleNew() }} className="hm-btn" style={{color:'var(--primary)',fontWeight:600}}>
-            + 新建规则
-          </span>
-          <span onClick={() => setSearchOpen(!searchOpen)} className="hm-btn">
-            🔍 搜索{hammerSearch ? ' ✓' : ''}
-          </span>
-          <span onClick={() => { onShowHistory && onShowHistory(channel) }} className="hm-btn">
-            📋 变更历史
-          </span>
-          <span onClick={() => setBatchOpen(!batchOpen)} className="hm-btn" style={{color:prodBatch?'var(--danger)':undefined}}>
-            ⬚ 批量操作
-          </span>
+        <div className="hammer-row-3">
+          <button onClick={() => { setHammerRulesTab('rules'); bumpHammerRuleNew() }} className="hammer-btn btn-primary"
+            style={{display:'flex',alignItems:'center',justifyContent:'center',gap:4}}>
+            + 新建
+          </button>
+          <button onClick={() => setSearchOpen(!searchOpen)} className="hammer-btn btn-ghost"
+            style={{display:'flex',alignItems:'center',justifyContent:'center',gap:4}}>
+            搜索{hammerSearch ? ' ✓' : ''}
+          </button>
+          <button onClick={() => { onShowHistory && onShowHistory(channel) }} className="hammer-btn btn-ghost"
+            style={{display:'flex',alignItems:'center',justifyContent:'center',gap:4}}>
+            变更历史
+          </button>
+          <button onClick={() => setBatchOpen(!batchOpen)} className="hammer-btn btn-ghost"
+            style={{display:'flex',alignItems:'center',justifyContent:'center',gap:4,color:prodBatch?'var(--danger)':undefined, borderColor:prodBatch?'var(--danger)':undefined}}>
+            批量操作
+          </button>
         </div>
         {batchOpen && (
           <div className="hammer-panel">
@@ -64,10 +68,10 @@ export default function HammerRules({ channel, onShowHistory }: HammerRulesProps
                 <button className="hammer-clear" onClick={() => useAppStore.getState().setProdBatch(true)}>进入批量模式</button>
               )}
             </div>
-            <span className="hm-btn" onClick={() => { const s = useAppStore.getState(); if (!s.prodBatch) s.setProdBatch(true); s.requestProdBatchAll() }}>全选/取消</span>
-            <span className="hm-btn" style={{color:'var(--success)'}} onClick={() => runBatch('active','启用')}>批量启用</span>
-            <span className="hm-btn" style={{color:'var(--warning)'}} onClick={() => runBatch('inactive','停用')}>批量停用</span>
-            <span className="hm-btn" style={{color:'var(--danger)'}} onClick={() => runBatch('delete','删除')}>批量删除</span>
+            <button className="hammer-btn btn-ghost" onClick={() => { const s = useAppStore.getState(); if (!s.prodBatch) s.setProdBatch(true); s.requestProdBatchAll() }}>全选/取消</button>
+            <button className="hammer-btn btn-ghost" style={{color:'var(--success)'}} onClick={() => runBatch('active','启用')}>批量启用</button>
+            <button className="hammer-btn btn-ghost" style={{color:'var(--warning)'}} onClick={() => runBatch('inactive','停用')}>批量停用</button>
+            <button className="hammer-btn btn-ghost" style={{color:'var(--danger)'}} onClick={() => runBatch('delete','删除')}>批量删除</button>
             <div className="muted2 text-10" style={{marginTop:8}}>勾选规则后在此批量操作（删除可回收站恢复）</div>
           </div>
         )}
@@ -81,15 +85,15 @@ export default function HammerRules({ channel, onShowHistory }: HammerRulesProps
       </>}
       {/* 补货参数 tab: 模式切换竖排 */}
       {hammerRulesTab === 'params' && (
-        <div className="hm-group" style={{marginTop:8}}>
+        <div className="hammer-btn-row" style={{marginTop:8}}>
           {channel === 'jd' && (
             <span onClick={() => setHammerRulesMode('bbcc')}
-              className={'hm-tab' + (hammerRulesMode==='bbcc' ? ' active' : '')}>
+              className={'hammer-tab' + (hammerRulesMode==='bbcc' ? ' active' : '')}>
               BBCC 送仓
             </span>
           )}
           <span onClick={() => setHammerRulesMode('traditional')}
-            className={'hm-tab' + (hammerRulesMode==='traditional' ? ' active' : '')}>
+            className={'hammer-tab' + (hammerRulesMode==='traditional' ? ' active' : '')}>
             传统多仓
           </span>
         </div>

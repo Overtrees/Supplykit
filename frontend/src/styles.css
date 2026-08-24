@@ -78,13 +78,7 @@ input,select,button,textarea{font-family:inherit;font-size:16px}input[type="file
 .hammer-tab:not(.active){background:var(--gray);color:var(--text);font-weight:400}
 .hammer-panel{border-top:1px solid var(--border);padding-top:8px;margin-top:8px}
 .hammer-panel-scroll{max-height:260px;overflow-y:auto}
-/* 竖排列表布局（锤子菜单统一重构） */
-.hm-group{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
-.hm-tab{display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;border-radius:14px;font-size:14px;background:var(--card);border:0.5px solid var(--border);cursor:pointer;min-height:44px;font-weight:500;box-sizing:border-box;transition:all 0.15s}
-.hm-tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
-.hm-btn{display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;border-radius:14px;font-size:13px;background:var(--card);border:0.5px solid var(--border);cursor:pointer;min-height:44px;box-sizing:border-box;transition:all 0.15s}
-.hm-btn:active{transform:scale(0.98);opacity:0.8}
-.hm-sub{margin-left:auto;font-size:11px;color:var(--muted2);flex-shrink:0}
+
 .hammer-input{width:100%;padding:6px 10px;font-size:16px;border:1px solid var(--border);border-radius:var(--radius-lg);outline:none;box-sizing:border-box;background:var(--card);color:var(--text);-webkit-appearance:none;appearance:none}
 .hammer-select{width:100%;padding:8px 16px;font-size:16px;border:1px solid var(--border);border-radius:var(--radius-lg);outline:none;box-sizing:border-box;background:var(--card);color:var(--text);-webkit-appearance:none;appearance:none;cursor:pointer}
 .hammer-params-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}

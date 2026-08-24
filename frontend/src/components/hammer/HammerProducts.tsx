@@ -39,16 +39,13 @@ export default function HammerProducts({ channel }: HammerProductsProps) {
   return (
     <div>
       <div className="hammer-header">{channel === 'jd' ? t('channel.jd') : t('channel.other')} · {t('nav.products')}</div>
-      <div className="hm-group">
-        <span onClick={() => setHammerPanel(hammerPanel === 'columns' ? null : 'columns')} className="hm-btn">
-          ▤ 列配置 <span className="hm-sub">{visCols.length}/{PRODUCT_COLS.length}</span>
-        </span>
-        <span onClick={() => { setHammerPanel(hammerPanel === 'search' ? null : 'search'); if (hammerPanel !== 'search') setTimeout(() => document.getElementById('hm-search-prod')?.focus(), 100) }} className="hm-btn">
-          🔍 搜索{hammerSearch ? ' ✓' : ''}
-        </span>
-        <span onClick={() => setHammerPanel(hammerPanel === 'batch' ? null : 'batch')} className="hm-btn" style={useAppStore.getState().prodBatch?{color:'var(--danger)'}:undefined}>
-          ⬚ 批量操作
-        </span>
+      <div className="hammer-btn-row" style={{marginBottom:hammerPanel?8:0}}>
+        <button onClick={() => setHammerPanel(hammerPanel === 'columns' ? null : 'columns')}
+          className="btn-ghost hammer-btn">{t('common.columns')} ({visCols.length}/{PRODUCT_COLS.length})</button>
+        <button onClick={() => { setHammerPanel(hammerPanel === 'search' ? null : 'search'); if (hammerPanel !== 'search') setTimeout(() => document.getElementById('hm-search-prod')?.focus(), 100) }}
+          className="btn-ghost hammer-btn">{t('common.search')}</button>
+        <button onClick={() => setHammerPanel(hammerPanel === 'batch' ? null : 'batch')}
+          className="btn-ghost hammer-btn" style={useAppStore.getState().prodBatch?{borderColor:'var(--danger)',color:'var(--danger)'}:undefined}>批量操作</button>
       </div>
       {hammerPanel === 'batch' && (
         <div className="hammer-panel">
@@ -61,12 +58,12 @@ export default function HammerProducts({ channel }: HammerProductsProps) {
             )}
           </div>
           <div className="hm-group">
-            <span className="hm-btn" onClick={() => { const s = useAppStore.getState(); if (!s.prodBatch) s.setProdBatch(true); s.requestProdBatchAll() }}>全选/取消</span>
+            <button className="hammer-btn btn-ghost" onClick={() => { const s = useAppStore.getState(); if (!s.prodBatch) s.setProdBatch(true); s.requestProdBatchAll() }}>全选/取消</button>
           </div>
-          <div className="hm-group">
-            <span className="hm-btn" style={{color:'var(--success)'}} onClick={() => runBatch('active','启用')}>批量启用</span>
-            <span className="hm-btn" style={{color:'var(--warning)'}} onClick={() => runBatch('inactive','停用')}>批量停用</span>
-            <span className="hm-btn" style={{color:'var(--danger)'}} onClick={() => runBatch('delete','删除')}>批量删除</span>
+          <div className="hammer-btn-row" style={{marginTop:8}}>
+            <button className="hammer-btn btn-ghost" style={{color:'var(--success)'}} onClick={() => runBatch('active','启用')}>批量启用</button>
+            <button className="hammer-btn btn-ghost" style={{color:'var(--warning)'}} onClick={() => runBatch('inactive','停用')}>批量停用</button>
+            <button className="hammer-btn btn-ghost" style={{color:'var(--danger)'}} onClick={() => runBatch('delete','删除')}>批量删除</button>
           </div>
           <div className="muted2 text-10" style={{marginTop:8}}>勾选商品后在此批量操作</div>
         </div>

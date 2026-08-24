@@ -20,13 +20,13 @@ export default function HammerRules({ channel, onShowHistory }: HammerRulesProps
     setBatchBusy(true)
     try {
       // 统一走 api.post：自动注入 token/channel + 响应解包 + 缓存失效
-      await api.post('/api/rules/batch', {action, ids})
+      await api.postHeavy('/api/rules/batch', {action, ids})
       // 通知规则页刷新（绕过 api.get 缓存/去重，直接 fetch 重新加载）
       window.dispatchEvent(new Event('rules-changed'))
       if (action === 'delete') {
         toast.add({type:'success', title: label + '完成: ' + ids.length + ' 项', duration: 5000, action: {label: '撤销', handler: async () => {
           try {
-            await api.post('/api/rules/batch', {action:'restore', ids})
+            await api.postHeavy('/api/rules/batch', {action:'restore', ids})
             toast.success('已撤销删除')
             s.setProdBatchSel([]); s.setProdBatch(false); s.bumpProdBatchVersion()
           } catch(e) { toast.error('撤销失败: ' + (e.message||'')) }

@@ -104,9 +104,14 @@ function RecycleBin({ onClose }) {
     setBatchBusy(true)
     try {
       var _auth = {'Authorization':'Bearer ' + (()=>{try{return localStorage.getItem('c_token')}catch{return ''}})(), 'Content-Type':'application/json'}
-      await Promise.all(ids.map(function(id) {
-        return fetch(API + '/api/' + type + '/' + id + '/' + action, { method:'POST', headers:_auth })
-      }))
+      if (type === 'rules' && action === 'permanent-delete') {
+        // 规则批量永久删除：单请求后端批量 purge（避免 N 个并发请求在单 worker 排队卡死）
+        await fetch(API + '/api/rules/batch', { method:'POST', headers:_auth, body: JSON.stringify({action:'purge', ids: ids}) })
+      } else {
+        await Promise.all(ids.map(function(id) {
+          return fetch(API + '/api/' + type + '/' + id + '/' + action, { method:'POST', headers:_auth })
+        }))
+      }
       toast.success(label + '完成: ' + ids.length + ' 项')
       if (type === 'rules') setRules(rules.filter(function(x) { return !ids.includes(x.id) }))
       else setOrders(orders.filter(function(x) { return !ids.includes(x.id) }))

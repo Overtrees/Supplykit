@@ -155,6 +155,10 @@ def batch_rules(body: dict, db = get_db()):
     if action == 'delete':
         db.table("rules").update({"is_active": 0, "deleted_at": datetime.now(UTC).isoformat()}).in_("id", ids).execute()
         _sync_alerts_for_rules(ids, True, db)
+    elif action == 'purge':
+        # 批量永久删除（回收站用）：硬删除规则，关联告警一并清理
+        db.table("rules").delete().in_("id", ids).execute()
+        _sync_alerts_for_rules(ids, True, db)
     elif action == 'restore':
         db.table("rules").update({"is_active": 1, "deleted_at": ""}).in_("id", ids).execute()
         _sync_alerts_for_rules(ids, False, db)

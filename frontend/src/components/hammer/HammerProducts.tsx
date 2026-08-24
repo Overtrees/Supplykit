@@ -25,12 +25,12 @@ export default function HammerProducts({ channel }: HammerProductsProps) {
     setBatchBusy(true)
     try {
       // 统一走 api.post：自动注入 token/channel + 响应解包 + 缓存失效
-      await api.post('/api/products/batch', {action, ids})
+      await api.postHeavy('/api/products/batch', {action, ids})
       if (action === 'delete') {
         // 批量删除可撤销（5s 窗口）
         toast.add({type:'success', title: label + '完成: ' + ids.length + ' 项', duration: 5000, action: {label: '撤销', handler: async () => {
           try {
-            await api.post('/api/products/batch', {action:'restore', ids})
+            await api.postHeavy('/api/products/batch', {action:'restore', ids})
             toast.success('已撤销删除')
             s.setProdBatchSel([]); s.setProdBatch(false); s.bumpProdBatchVersion()
           } catch(e) { toast.error('撤销失败: ' + (e.message||'')) }

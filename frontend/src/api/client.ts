@@ -119,6 +119,13 @@ export const api = {
     invalidateCache()
     return r
   },
+  // 批量/重写操作：宽松超时（PA 单 worker 排队时单请求可能 >30s）
+  postHeavy: async (url, data, config) => {
+    const merged = {timeout: 90000, ...config}
+    const r = await instance.post(url, data, merged)
+    invalidateCache()
+    return r
+  },
   put: async (url, data, config) => {
     const r = await instance.put(url, data, config)
     invalidateCache()

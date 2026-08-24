@@ -72,11 +72,11 @@ function RecycleBin({ onClose }) {
     setLoading(true)
     var _auth = {'Authorization':'Bearer ' + (()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}
     Promise.all([
-      fetch(API + '/api/rules?channel=all', {headers:_auth}).then(function(r) { return r.json() }),
+      fetch(API + '/api/rules?channel=all&include_deleted=1', {headers:_auth}).then(function(r) { return r.json() }),
       fetch(API + '/api/orders?page=1&page_size=200', {headers:_auth}).then(function(r) { return r.json() }),
     ]).then(function([rData, oData]) {
       var items = rData.data || rData || []
-      setRules(items.filter(function(x) { return x.is_active === 0 }))
+      setRules(items.filter(function(x) { return x.deleted_at }))
       var o = oData.data || oData || []
       setOrders(Array.isArray(o) ? o.filter(function(x) { return x.deleted_at }) : [])
       setLoading(false)

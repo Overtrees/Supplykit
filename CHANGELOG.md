@@ -728,5 +728,26 @@ P2: 447dc49(Sentry DSN) / 3a925d0(规则测试) / e9447b8(回收站) / 717265f(�
 | **导出按钮** | 统一点击态+loading spinner+toast反馈 |
 | **Toast 安全区** | 适配灵动岛 `env(safe-area-inset-top)` |
 
+## 2026-08-24 全面性能优化与联动缺陷修复
+| 模块 | 改动 |
+|------|------|
+| **数据库层** | 写操作统一 `_write_execute`（database is locked 自动指数退避重试 3 次）；`busy_timeout` 5000→15000ms；`DeleteBuilder` 补 `in_` 方法 |
+| **迁移 v13-v15** | `alerts.related_rule_id`、`rules.deleted_at`、`orders.deleted_at` |
+| **规则↔看板联动** | 停用/删除规则时按 `alert_type` 整类关闭告警（兼容历史遗留 `related_rule_id=0`）；恢复规则同步恢复。`_cleanup_orphan_alerts` 每日兜底清理，`replenishment_engine` 告警不误伤 |
+| **订单软删除全链路** | `list_orders` / `dashboard_cache` 4 处 SQL / `dashboard.py` / `load_daily_sales` / `build_daily_sales_snapshot` / 传统模式日销 / 采购 / 导出 / 库存同步 / 归档 / 清洗去重 —— 统一过滤 `deleted_at` |
+| **用户定时规则** | scheduler 新增 `_eval_daily_user_rules`，遍历有库存 SKU 调 `evaluate('scheduled.daily')`；滞销识别先检查规则启用状态 |
+| **Dashboard 重建提速** | 5 遍订单扫描 → 3 遍（去掉 `_agg`/`_pstore`/`_pfunnel` 独立查询）；`invalidate()` 不再清空 `_cache_by_channel`（保留旧缓存供异步降级）；有旧缓存时一律异步重建不阻塞；`time.sleep(0.001)` 每 2000 行让出 GIL |
+| **缓存优化** | 滞销识别 10s 内存缓存（5.8s→0.01s）；采购建议版本号缓存（2.0s→0.01s，共享 `_replen_version`）；版本号分离：`_replen_version` 与 `_cache_version` 独立，规则停用不再使补货缓存失效 |
+| **WS 广播** | `ws.py` 新增 `broadcast_sync`；`products.changed`/`dashboard.updated` 广播；`orders`/`rules` 写操作广播；异步重建完成 → `bus.emit('dashboard.updated')` → 前端自动刷新 |
+| **前端规则页刷新** | `load` 改用原生 `fetch` 绕过 `api.get` 缓存/在途去重；`rules-changed` 自定义事件；`save`/`del`/`runBatch` 统一 `await load`；`cancelEdit` 重置 `hammerRuleNewVersion`（修复自动展开新建表单） |
+| **前端建议页自动刷新** | store 加 `dataVersion`+`bumpDataVersion`，WS 广播后递增，`InsightsPage` 监听自动刷新当前 tab |
+| **前端批量操作超时** | 新增 `api.postHeavy`（timeout 90s），批量操作/撤销恢复改用 |
+| **前端回收站** | 批量永久删除改走单请求 `POST /api/rules/batch purge`；`toast` 传 props 替代闭包；`try/catch` 降级 `window.alert`；`loadData` 成功后从 API 重新拉取 |
+| **前端调试面板** | 规则页 `localStorage.setItem('c_debug_rules','1')` 启用，追踪 `load`/`save`/`del` 每步数据流转 |
+| **OrdersPage** | 删除撤销 5s 定时器加入 `timersRef`，组件卸载时清理 |
+| **测试重构** | 全部 DB 测试改 `setup_module` 模式（collection 阶段无副作用）；每文件独立 DB；`test_e2e`/`test_more` 补 `build_daily_sales_snapshot`；新增 `test_alert_sync` 5 测试；93/93 组合跑通过（之前 26 fail + 2 error） |
+| **文档** | `DEVELOPMENT.md` 去重（61 倍重复，189KB→18KB）+ CI/CD 章节；`SUPPLYKIT_SKILL_REFERENCE.md` 删除；`vercel.json` 删除；`.test_*.db` 入 `.gitignore` |
+| **部署** | 4 次后端部署 success；`create_rule`/`delete_rule` 加错误捕获写入 `quality_logs`；启动预热移 scheduler 90s 延迟（避免饿死 CI health） |
+
 ## 当前已知问题
 1. Chart 组件 ECharts 初始化偶发失败

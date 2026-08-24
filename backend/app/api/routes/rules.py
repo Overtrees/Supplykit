@@ -81,11 +81,22 @@ def update_rule(rule_id: int, data: RuleUpdate, db = get_db()):
 @router.delete("/{rule_id}")
 def delete_rule(rule_id: int, db = get_db()):
     _rules_cache.clear()
-    # 软删除
-    from datetime import datetime, UTC
-    db.table("rules").update({"is_active": 0, "deleted_at": datetime.now(UTC).isoformat()}).eq("id", rule_id).execute()
-    _sync_alerts_for_rules([rule_id], True, db)
-    from app.api.routes.ws import broadcast_sync; broadcast_sync("data.updated"); return ok({"message": "已删除", "id": rule_id})
+    try:
+        # 软删除
+        from datetime import datetime, UTC
+        db.table("rules").update({"is_active": 0, "deleted_at": datetime.now(UTC).isoformat()}).eq("id", rule_id).execute()
+        _sync_alerts_for_rules([rule_id], True, db)
+        from app.api.routes.ws import broadcast_sync; broadcast_sync("data.updated")
+        return ok({"message": "已删除", "id": rule_id})
+    except Exception as e:
+        import traceback, logging
+        logging.error(f"[rules] delete error: {traceback.format_exc()}")
+        try:
+            db.table("quality_logs").insert({"log_type": "rules_error", "level": "error",
+                "message": f"删除规则{rule_id}失败: {e}", "source": "rules"}).execute()
+        except Exception:
+            pass
+        return fail(f"删除规则失败: {e} | {traceback.format_exc().splitlines()[-2:]}", status=500)
 
 @router.post("/{rule_id}/restore")
 def restore_rule(rule_id: int, db = get_db()):

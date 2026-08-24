@@ -158,6 +158,7 @@ export default function RulesPage() {
   }
   const del = async (id) => {
     await fetch(API+'/api/rules/'+id, {headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()},method:'DELETE'})
+    clearCache()
     load(globalChannel)
     var timer = setTimeout(async function() {
       await fetch(API+'/api/rules/'+id+'/permanent-delete', {headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()},method:'POST'})

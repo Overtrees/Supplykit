@@ -1,31 +1,42 @@
 """库存接口渠道隔离测试 — other 渠道强制排除 B 仓(platform_b)"""
 import os, sys
-_db_path = os.path.join(os.path.dirname(__file__), '..', 'test_inv_ch.db')
-os.environ['SQLITE_PATH'] = _db_path
+os.environ['SQLITE_PATH'] = os.path.join(os.path.dirname(__file__), '..', '.test_inventory_channel.db')
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-import sqlite3
-from fastapi.testclient import TestClient
-from fastapi import FastAPI
-from app.core.database import init_db, get_db
+client = None
+db = None
 
-init_db()
-db = get_db()
-_conn = sqlite3.connect(_db_path)
-for t in ['inventory']:
-    try: _conn.execute(f'DELETE FROM "{t}"')
-    except Exception: pass
-_conn.commit(); _conn.close()
 
-for ch, wt, wh in [('jd','platform_b','京东B仓'), ('jd','platform','北京仓'),
-                   ('other','platform_b','京东B仓'), ('other','platform','北京仓'), ('other','own','三方仓')]:
-    db.table("inventory").insert({"sku":f"SKU-1-{ch}","warehouse":wh,"warehouse_type":wt,
-        "available_qty":10,"in_transit_qty":0,"safety_qty":5,"channel":ch}).execute()
+def setup_module():
+    global client, db
+    # 强制重载 app 模块（DB_PATH 在 import 时固化，必须按本文件路径重新导入）
+    for _m in list(sys.modules):
+        if _m.startswith('app.'):
+            sys.modules.pop(_m, None)
 
-from app.api.routes import inventory
-app = FastAPI()
-app.include_router(inventory.router)
-client = TestClient(app)
+    import sqlite3
+    from fastapi.testclient import TestClient
+    from fastapi import FastAPI
+    from app.core.database import DB_PATH, init_db, get_db
+
+    init_db()
+    db = get_db()
+    _conn = sqlite3.connect(DB_PATH)
+    for t in ['inventory']:
+        try: _conn.execute(f'DELETE FROM "{t}"')
+        except Exception: pass
+    _conn.commit(); _conn.close()
+
+    for ch, wt, wh in [('jd','platform_b','京东B仓'), ('jd','platform','北京仓'),
+                       ('other','platform_b','京东B仓'), ('other','platform','北京仓'), ('other','own','三方仓')]:
+        db.table("inventory").insert({"sku":f"SKU-1-{ch}","warehouse":wh,"warehouse_type":wt,
+            "available_qty":10,"in_transit_qty":0,"safety_qty":5,"channel":ch}).execute()
+
+    from app.api.routes import inventory
+    app = FastAPI()
+    app.include_router(inventory.router)
+    client = TestClient(app)
+
 
 class TestInventoryChannelIsolation:
     def test_other_omits_b_rows(self):

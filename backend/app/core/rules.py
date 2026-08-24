@@ -6,8 +6,13 @@ from datetime import datetime
 
 def _action_create_alert(ctx):
     db = ctx.get('db') or get_db()
-    existing = db.table("alerts").select("id").eq("alert_type", ctx['rule']['alert_type'])\
-        .eq("related_sku", ctx.get('sku','')).eq("status", "active").execute().data
+    # 去重按 渠道 + 来源 + alert_type + sku 四个维度（修复：缺 channel/source 导致跨渠道/跨来源误挡）
+    existing = db.table("alerts").select("id")\
+        .eq("alert_type", ctx['rule']['alert_type'])\
+        .eq("related_sku", ctx.get('sku',''))\
+        .eq("status", "active")\
+        .eq("channel", ctx.get('channel', 'jd'))\
+        .eq("source", "rules_engine").execute().data
     if existing:
         return
     db.table("alerts").insert({
@@ -17,6 +22,7 @@ def _action_create_alert(ctx):
         "severity": ctx['rule'].get('severity', 'warning'),
         "source": "rules_engine",
         "related_sku": ctx.get('sku',''),
+        "related_rule_id": int(ctx['rule'].get('id') or 0),
         "status": "active",
         "channel": ctx.get('channel', 'jd'),
     }).execute()

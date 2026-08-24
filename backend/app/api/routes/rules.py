@@ -61,39 +61,59 @@ def update_rule(rule_id: int, data: RuleUpdate, db = get_db()):
 def delete_rule(rule_id: int, db = get_db()):
     _rules_cache.clear()
     # 软删除
-    from datetime import datetime
-    db.table("rules").update({"is_active": 0, "deleted_at": datetime.utcnow().isoformat()}).eq("id", rule_id).execute()
+    from datetime import datetime, UTC
+    db.table("rules").update({"is_active": 0, "deleted_at": datetime.now(UTC).isoformat()}).eq("id", rule_id).execute()
+    _sync_alerts_for_rules([rule_id], True, db)
     return ok({"message": "已删除", "id": rule_id})
 
 @router.post("/{rule_id}/restore")
 def restore_rule(rule_id: int, db = get_db()):
     _rules_cache.clear()
-    db.table("rules").update({"is_active": 1, "deleted_at": None}).eq("id", rule_id).execute()
+    db.table("rules").update({"is_active": 1, "deleted_at": ""}).eq("id", rule_id).execute()
+    _sync_alerts_for_rules([rule_id], False, db)
     return ok({"message": "已恢复", "id": rule_id})
 
 @router.post("/{rule_id}/permanent-delete")
 def permanent_delete_rule(rule_id: int, db = get_db()):
     _rules_cache.clear()
     db.table("rules").delete().eq("id", rule_id).execute()
+    _sync_alerts_for_rules([rule_id], True, db)
     return ok({"message": "已永久删除", "id": rule_id})
+
+def _sync_alerts_for_rules(ids: list, disabled: bool, db):
+    """规则禁用/删除时联动：对应告警标记为已关闭（status='inactive'）
+    看板只统计 status='active' 的告警，禁用规则后其历史告警不再展示。
+    恢复规则时同时恢复关联告警（仅限未手动关闭的）。"""
+    from app.core.dashboard_cache import invalidate as invalidate_dashboard
+    if disabled:
+        db.table("alerts").update({"status": "inactive"}).eq("source", "rules_engine").in_("related_rule_id", ids).execute()
+    else:
+        # 恢复：把关联告警恢复为 active（跳过手动关闭的：无手动标记机制，直接恢复）
+        db.table("alerts").update({"status": "active"}).eq("source", "rules_engine").in_("related_rule_id", ids).execute()
+    invalidate_dashboard()
+
 
 @router.post("/batch")
 def batch_rules(body: dict, db = get_db()):
     """批量操作: {action: 'delete'|'restore'|'active'|'inactive', ids: [...]}"""
-    from datetime import datetime
+    from datetime import datetime, UTC
     action = body.get("action", "")
     ids = [int(x) for x in (body.get("ids") or []) if isinstance(x, int) or str(x).isdigit()]
     if not ids:
         return ok({"updated": 0})
     _rules_cache.clear()
     if action == 'delete':
-        db.table("rules").update({"is_active": 0, "deleted_at": datetime.utcnow().isoformat()}).in_("id", ids).execute()
+        db.table("rules").update({"is_active": 0, "deleted_at": datetime.now(UTC).isoformat()}).in_("id", ids).execute()
+        _sync_alerts_for_rules(ids, True, db)
     elif action == 'restore':
-        db.table("rules").update({"is_active": 1, "deleted_at": None}).in_("id", ids).execute()
+        db.table("rules").update({"is_active": 1, "deleted_at": ""}).in_("id", ids).execute()
+        _sync_alerts_for_rules(ids, False, db)
     elif action == 'active':
         db.table("rules").update({"is_active": 1}).in_("id", ids).execute()
+        _sync_alerts_for_rules(ids, False, db)
     elif action == 'inactive':
         db.table("rules").update({"is_active": 0}).in_("id", ids).execute()
+        _sync_alerts_for_rules(ids, True, db)
     else:
         return fail(f"未知操作: {action}")
     return ok({"updated": len(ids)})

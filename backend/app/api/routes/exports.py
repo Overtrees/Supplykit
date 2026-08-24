@@ -1,6 +1,6 @@
 """异步导出 — 后台生成 Excel，持久化导出记录到文件，支持下载"""
 import os, json, uuid
-from datetime import datetime
+from datetime import datetime, UTC
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 from app.core.database import get_db
@@ -71,7 +71,7 @@ def create_export_task(type: str = 'purchase', mode: str = 'bbcc', days: int = 2
                     for _r in _conn.execute("SELECT sku, channel, barcode FROM products WHERE barcode!=''").fetchall():
                         _barcodes[(_r[0], _r[1])] = _r[2] or ''
                 except Exception: pass
-                _rows = _conn.execute("SELECT ordered_at,order_no,store,warehouse,product_name,sku,quantity,unit_price,total_amount,order_status,supplier,data_source,channel,paid_at FROM orders WHERE channel=? ORDER BY id DESC LIMIT 2000", (channel,)).fetchall()
+                _rows = _conn.execute("SELECT ordered_at,order_no,store,warehouse,product_name,sku,quantity,unit_price,total_amount,order_status,supplier,data_source,channel,paid_at FROM orders WHERE channel=? AND (deleted_at IS NULL OR deleted_at='') ORDER BY id DESC LIMIT 2000", (channel,)).fetchall()
                 ws.append(["下单日期","订单号","店铺","仓库","商品","SKU","数量","单价","金额","状态","69码","入库日期","供应商","来源"])
                 for r in _rows:
                     _bc = _barcodes.get((r[5], r[12]), '')
@@ -98,7 +98,7 @@ def create_export_task(type: str = 'purchase', mode: str = 'bbcc', days: int = 2
                     for _br in _conn.execute("SELECT sku, warehouse, channel, prod_date, exp_date, qty FROM batches WHERE channel=?", (channel,)).fetchall():
                         _bm.setdefault((str(_br[0]), str(_br[1]), str(_br[2] or 'jd')), []).append((str(_br[3] or '')[:10], str(_br[4] or '')[:10], int(_br[5] or 0)))
                 except Exception: pass
-                from datetime import datetime as _dt, timedelta as _tz
+                from datetime import datetime as _dt, timedelta as _tz, UTC
                 _today = _dt.utcnow()
                 def _eff_status(prod, exp):
                     try:
@@ -123,7 +123,7 @@ def create_export_task(type: str = 'purchase', mode: str = 'bbcc', days: int = 2
                     else:
                         for _pb in _batches:
                             ws.append([r[0], _bc, r[7], r[4], r[5], r[6], r[1], r[2], r[3], r[8], r[9], r[10], _td, _pb[0], _pb[1], _pb[2], _eff_status(_pb[0], _pb[1])])
-            filename = f"{type}_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}.xlsx"
+            filename = f"{type}_{datetime.now(UTC).strftime('%Y%m%d%H%M%S')}.xlsx"
             filepath = os.path.join(EXPORT_DIR, filename)
             wb.save(filepath)
             return {"filepath": filepath, "filename": filename, "size": os.path.getsize(filepath), "type": type}

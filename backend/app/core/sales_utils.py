@@ -2,7 +2,7 @@
 
 供 insights.py（补货建议）和 dashboard.py（濒临断货）共用
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 import os
 import logging
 
@@ -36,8 +36,8 @@ def load_daily_sales(cutoff_days, db, sku_barcode_map=None, channel=None, wareho
     返回: {key: {date: qty, ...}, ...}  key 为 sku 或 sku|barcode
     """
     from app.core.database import get_conn
-    cutoff = (datetime.utcnow() - timedelta(days=cutoff_days)).strftime('%Y-%m-%d')
-    today = datetime.utcnow().strftime('%Y-%m-%d')
+    cutoff = (datetime.now(UTC) - timedelta(days=cutoff_days)).strftime('%Y-%m-%d')
+    today = datetime.now(UTC).strftime('%Y-%m-%d')
     daily_by_sku = {}
     
     # 1. 快照读历史（原始 SQL 避免 ORM 行转 dict 开销）
@@ -62,6 +62,9 @@ def load_daily_sales(cutoff_days, db, sku_barcode_map=None, channel=None, wareho
     try:
         orders = db.table("orders").select("*").gte("ordered_at", today).execute().data or []
         for o in orders:
+            # 软删除订单不计入日销（修复：删单后当天日销仍含该单）
+            if o.get("deleted_at"):
+                continue
             sku = o.get('sku', '')
             if not sku: continue
             key = sku
@@ -87,7 +90,7 @@ def calc_sales_multi(daily_by_sku, windows=None, sku_barcode_map=None):
     """
     if windows is None:
         windows = [7, 14, 28]
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
     max_win = max(windows)
     all_days = [(now - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(max_win)]
     results = {w: {} for w in windows}
@@ -124,8 +127,8 @@ def calc_sales_from_daily(daily_by_sku, cutoff_days, orders=None, sku_barcode_ma
     orders: 可选，用于补充 0 日销 SKU（兼容旧调用方）
     sku_barcode_map: 可选，用于补 0 日销
     """
-    # 预计算日期列表，避免循环内重复调用 datetime.utcnow()
-    now = datetime.utcnow()
+    # 预计算日期列表，避免循环内重复调用 datetime.now(UTC)
+    now = datetime.now(UTC)
     all_days = [(now - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(cutoff_days)]
     result = {}
     for key, daily in daily_by_sku.items():
@@ -193,7 +196,7 @@ def calc_sales(orders, cutoff_days, source='', wh_name=None, sku_barcode_map=Non
         return calc_sales_from_daily(daily, cutoff_days, orders=orders, sku_barcode_map=sku_barcode_map)
     else:
         # 旧路径：仅从 orders 计算（无 db 时）
-        cutoff = (datetime.utcnow() - timedelta(days=cutoff_days)).strftime('%Y-%m-%d')
+        cutoff = (datetime.now(UTC) - timedelta(days=cutoff_days)).strftime('%Y-%m-%d')
         daily_by_sku = {}
         for o in orders:
             if source and o.get('data_source', '') != source: continue
@@ -229,7 +232,7 @@ def build_daily_sales_snapshot(db):
 
     """构建/更新日销快照表（增量：只处理快照最大日期之后的新订单）"""
     from collections import defaultdict
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, UTC
     # 快照中已有的最大日期
     try:
         max_row = db.table("daily_sales_snapshot").select("MAX(date) as m").execute().data
@@ -239,10 +242,12 @@ def build_daily_sales_snapshot(db):
         logging.warning(f"[sales] snapshot max date: {e}\n{traceback.format_exc()}")
         max_date = ''
     # 增量窗口：max_date 之后到昨天
-    cutoff = (datetime.utcnow() - timedelta(days=90)).strftime('%Y-%m-%d')
-    today = datetime.utcnow().strftime('%Y-%m-%d')
+    cutoff = (datetime.now(UTC) - timedelta(days=90)).strftime('%Y-%m-%d')
+    today = datetime.now(UTC).strftime('%Y-%m-%d')
     start = max(cutoff, max_date) if max_date else cutoff
     orders = db.table("orders").select("*").gte("ordered_at", start).execute().data or []
+    # 软删除订单不进入快照（修复：删单后日销快照仍含该单销量）
+    orders = [o for o in orders if not (o.get("deleted_at") or "")]
     recent = [o for o in orders if str(o.get('ordered_at',''))[:10] < today]
     if not recent:
         return 0
@@ -272,7 +277,7 @@ def build_daily_sales_snapshot(db):
     count = len(rows)
     # 清理超出 100 天的旧快照
     try:
-        old_cutoff = (datetime.utcnow() - timedelta(days=100)).strftime('%Y-%m-%d')
+        old_cutoff = (datetime.now(UTC) - timedelta(days=100)).strftime('%Y-%m-%d')
         conn.execute("DELETE FROM daily_sales_snapshot WHERE date < ?", (old_cutoff,))
         conn.commit()
     except Exception as e:

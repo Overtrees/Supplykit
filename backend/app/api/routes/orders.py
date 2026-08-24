@@ -16,6 +16,8 @@ def list_orders(db = get_db(), page: int = 1, page_size: int = 50,
 
     # 构建查询
     q = db.table("orders").select("*")
+    # 软删除过滤：deleted_at 为空或 ''（与 products 一致，修复删单后仍在列表）
+    q._where.append("(deleted_at IS NULL OR deleted_at='')")
     # 渠道过滤：jd → platform=京东或空, other → 非京东
     if channel == 'jd':
         q = q.in_("platform", ["京东", ""])
@@ -72,15 +74,29 @@ def batch_delete_orders(ids: str = '', db = get_db()):
     return {'ok': True, 'deleted': deleted}
 
 
+def _invalidate_sales_caches():
+    """订单删除/恢复 → 补货/看板缓存失效（当天删单即时从日销剔除）"""
+    try:
+        from app.core.replenishment_cache import invalidate_cache
+        from app.core.dashboard_cache import invalidate as invalidate_dashboard
+        db = get_db()
+        invalidate_cache(db)
+        invalidate_dashboard()
+    except Exception as e:
+        import logging; logging.warning(f"[orders] invalidate caches: {e}")
+
+
 @router.delete('/{oid}')
 def delete_order(oid: int, db = get_db()):
-    from datetime import datetime
-    db.table("orders").update({"deleted_at": datetime.utcnow().isoformat()}).eq("id", oid).execute()
+    from datetime import datetime, UTC
+    db.table("orders").update({"deleted_at": datetime.now(UTC).isoformat()}).eq("id", oid).execute()
+    _invalidate_sales_caches()
     return {"ok": True, "id": oid}
 
 @router.post('/{oid}/restore')
 def restore_order(oid: int, db = get_db()):
     db.table("orders").update({"deleted_at": None}).eq("id", oid).execute()
+    _invalidate_sales_caches()
     return {"ok": True, "id": oid}
 
 @router.post('/{oid}/permanent-delete')

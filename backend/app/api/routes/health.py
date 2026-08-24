@@ -1,6 +1,6 @@
 """Health check endpoint for monitoring"""
 from fastapi import APIRouter
-from datetime import datetime
+from datetime import datetime, UTC
 import os, sqlite3
 
 router = APIRouter(tags=["health"])
@@ -174,7 +174,7 @@ def health():
     
     return {
         "status": status,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "checks": checks,
         "version": version,
     }

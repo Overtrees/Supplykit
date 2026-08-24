@@ -83,7 +83,7 @@ def _get_batch_summary(channel='jd'):
     """返回 {(sku, warehouse, channel): (prod_date, exp_date, status, pct, transit_days)} 批次摘要"""
     try:
         from app.core.database import get_conn
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, UTC
         conn = get_conn()
         rows = conn.execute("SELECT sku, warehouse, channel, MIN(prod_date), MIN(exp_date) FROM batches WHERE channel=? GROUP BY sku, warehouse, channel", (channel,)).fetchall()
         # 读物流在途天数（默认 3）
@@ -92,7 +92,7 @@ def _get_batch_summary(channel='jd'):
             _rt = conn.execute("SELECT value FROM replenishment_config WHERE key='transit_days' AND channel=?", (channel,)).fetchone()
             if _rt and _rt[0]: transit = int(_rt[0])
         except Exception: pass
-        today = datetime.utcnow()
+        today = datetime.now(UTC)
         out = {}
         for r in rows:
             sku, wh, ch = str(r[0]), str(r[1]), str(r[2] or 'jd')

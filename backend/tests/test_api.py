@@ -2,24 +2,33 @@
 
 运行: cd backend && python -m pytest tests/test_api.py -v
 """
-import sys, os, json, io, time
+import os, sys
+os.environ['SQLITE_PATH'] = os.path.join(os.path.dirname(__file__), '..', '.test_api.db')
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'app', 'test_supplykit.db')
-os.environ['SQLITE_PATH'] = DB_PATH
 
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
-from app.core.database import init_db, get_db
-from app.api.routes.cleansing import router as cl_router
-from app.api.routes.products import router as pr_router
-from app.api.routes.suppliers import router as sp_router
-from app.api.routes.orders import router as or_router
-from app.api.routes.alerts import router as al_router
-from app.api.routes.replenishment_config import router as rc_router
-from app.core.dashboard_cache import invalidate
+client = None
+app = None
+
 
 # 每次测试前重新初始化数据库，避免锁冲突
 def setup_module():
+    global client, app
+    # 强制重载 app 模块（DB_PATH 在 import 时固化，必须按本文件路径重新导入）
+    for _m in list(sys.modules):
+        if _m.startswith('app.'):
+            sys.modules.pop(_m, None)
+
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from app.core.database import init_db, get_db, DB_PATH
+    from app.api.routes.cleansing import router as cl_router
+    from app.api.routes.products import router as pr_router
+    from app.api.routes.suppliers import router as sp_router
+    from app.api.routes.orders import router as or_router
+    from app.api.routes.alerts import router as al_router
+    from app.api.routes.replenishment_config import router as rc_router
+    from app.core.dashboard_cache import invalidate
+
     if os.path.exists(DB_PATH):
         os.remove(DB_PATH)
     init_db()
@@ -31,11 +40,12 @@ def setup_module():
         except: pass
         dbmod._local.conn = None
 
-app = FastAPI()
-for r in [cl_router, pr_router, sp_router, or_router, al_router, rc_router]:
-    app.include_router(r)
-client = TestClient(app)
-
+    app = FastAPI()
+    for r in [cl_router, pr_router, sp_router, or_router, al_router, rc_router]:
+        app.include_router(r)
+    client = TestClient(app)
+    # 导出 app 供个别测试直接使用 TestClient(app)
+    globals()['app'] = app
 
 # ─── 清洗导入 ────────────────────────────────────────────────────────────────
 
@@ -49,7 +59,6 @@ class TestCleansing:
         cols = d.get('data', {}).get('columns', d.get('columns', []))
         assert len(cols) > 0
         assert any('sku' in str(c).lower() for c in cols)
-
 
 # ─── 商品 ────────────────────────────────────────────────────────────────────
 
@@ -72,7 +81,6 @@ class TestProducts:
         items = d.get('data', d) if isinstance(d, dict) else d
         assert isinstance(items, list)
 
-
 # ─── 供应商 ──────────────────────────────────────────────────────────────────
 
 class TestSuppliers:
@@ -85,8 +93,8 @@ class TestSuppliers:
 
     def test_create_supplier(self):
         r = client.post('/api/suppliers', json={
-            'code': 'SUP-TEST-' + str(os.getpid()), 'name': '测试供应商', 'contact': '张三',
-            'phone': '13800138000', 'score': 5
+            'supplier_code': 'SUP-TEST-' + str(os.getpid()), 'supplier_name': '测试供应商', 'contact_person': '张三',
+            'contact_phone': '13800138000', 'score': 5
         })
         assert r.status_code == 200
 
@@ -97,7 +105,6 @@ class TestSuppliers:
             sid = items[0]['id']
             r = client.put(f'/api/suppliers/{sid}', json={'score': 4})
             assert r.status_code == 200
-
 
 # ─── 订单 ─────────────────────────────────────────────────────────────────────
 
@@ -124,7 +131,6 @@ class TestOrders:
         r = client.get('/api/orders?page=1&status=已完成&channel=jd')
         assert r.status_code == 200
 
-
 # ─── 告警 ─────────────────────────────────────────────────────────────────────
 
 class TestAlerts:
@@ -138,7 +144,6 @@ class TestAlerts:
     def test_list_alerts_other(self):
         r = client.get('/api/alerts?channel=other')
         assert r.status_code == 200
-
 
 # ─── 补货配置 ────────────────────────────────────────────────────────────────
 
@@ -159,11 +164,10 @@ class TestReplenishmentConfig:
         assert r.status_code == 200
 
     def test_update_config(self):
-        with TestClient(app) as c:
-            r = c.put('/api/replenishment-config?mode=bbcc&channel=jd', json={'b_to_c_days': '5', 'c_safety_days': '2'})
-            assert r.status_code == 200
-            d = r.json()
-            assert d.get('ok') or d.get('mode') == 'bbcc'
+        r = client.put('/api/replenishment-config?mode=bbcc&channel=jd', json={'b_to_c_days': '5', 'c_safety_days': '2'})
+        assert r.status_code == 200
+        d = r.json()
+        assert d.get('ok') or d.get('mode') == 'bbcc'
 
     def test_config_isolation(self):
         # 京东配置修改不应影响其他渠道
@@ -181,7 +185,6 @@ class TestReplenishmentConfig:
         seasons = [{'key': '618', 'name': '618大促', 'factor': 1.5, 'enabled': True}]
         r = client.put('/api/replenishment-config/seasons?mode=bbcc&channel=jd', json={'items': seasons})
         assert r.status_code == 200
-
 
 # ─── 渠道隔离验证 ────────────────────────────────────────────────────────────
 

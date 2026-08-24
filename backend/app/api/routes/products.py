@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from app.core.database import get_db
 from app.core.response import ok, fail
-from datetime import datetime
+from datetime import datetime, UTC
 
 router = APIRouter(prefix="/api/products", tags=["products"])
 
@@ -98,8 +98,8 @@ def permanent_delete_product(pid: int, db = get_db()):
 @router.delete("/{pid}")
 def delete_product(pid: int, db = get_db()):
     # 软删除（关联建议/看板通过 products.changed 事件联动剔除）
-    from datetime import datetime
-    db.table("products").update({"deleted_at": datetime.utcnow().isoformat()}).eq("id", pid).execute()
+    from datetime import datetime, UTC
+    db.table("products").update({"deleted_at": datetime.now(UTC).isoformat()}).eq("id", pid).execute()
     _emit_products_changed({"action": "delete", "id": pid})
     return ok({})
 
@@ -107,14 +107,14 @@ def delete_product(pid: int, db = get_db()):
 @router.post("/batch")
 def batch_products(body: dict, db = get_db()):
     """批量操作: {action: 'delete'|'restore'|'active'|'inactive'|'purge', ids: [...]}"""
-    from datetime import datetime
+    from datetime import datetime, UTC
     action = body.get("action", "")
     ids = [int(x) for x in (body.get("ids") or []) if isinstance(x, int) or str(x).isdigit()]
     if not ids:
         return ok({"updated": 0})
     if action in ('delete', 'restore', 'purge'):
         if action == 'delete':
-            val = {"deleted_at": datetime.utcnow().isoformat()}
+            val = {"deleted_at": datetime.now(UTC).isoformat()}
         elif action == 'restore':
             val = {"deleted_at": ""}
         else:

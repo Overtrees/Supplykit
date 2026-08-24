@@ -1,7 +1,7 @@
 """In-memory dashboard cache, rebuilt on demand or invalidated by events."""
 import time, os, sqlite3
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, UTC
 from app.core.database import get_db, DB_PATH, get_conn
 
 _cache = None
@@ -34,11 +34,11 @@ def _compute_funnel(orders):
 
 def _compute_period_trends(conn, ch, today):
     """Compute period trends (today/week/month) using SQL."""
-    from datetime import timedelta
+    from datetime import timedelta, UTC
     periods = {}
     for pname, pdays in [('today', 1), ('week', 7), ('month', 30)]:
         cutoff = (today - timedelta(days=pdays - 1)).isoformat()
-        rows = conn.execute("SELECT ordered_at, SUM(total_amount) as g, COUNT(*) as cnt FROM orders WHERE channel=? AND ordered_at>=? AND order_status='已完成' GROUP BY ordered_at", (ch, cutoff)).fetchall()
+        rows = conn.execute("SELECT ordered_at, SUM(total_amount) as g, COUNT(*) as cnt FROM orders WHERE channel=? AND ordered_at>=? AND order_status='已完成' AND (deleted_at IS NULL OR deleted_at='') GROUP BY ordered_at", (ch, cutoff)).fetchall()
         daily = {}
         for r in rows:
             date_str = r[0][5:] if r[0] else '未知'
@@ -73,9 +73,9 @@ def _rebuild(channel='jd'):
     conn = get_conn()
     ch = channel
     # 90 天窗口：只聚合最近 90 天订单（配合数据归档策略）
-    from datetime import timedelta
+    from datetime import timedelta, UTC
     from concurrent.futures import ThreadPoolExecutor
-    _today = datetime.utcnow().date()
+    _today = datetime.now(UTC).date()
     _cut90 = (_today - timedelta(days=90)).isoformat()
     
     # 注：dashboard GMV 只统计"已完成"订单，daily_stats 聚合的是全部订单（口径不一致）
@@ -87,7 +87,7 @@ def _rebuild(channel='jd'):
             COUNT(CASE WHEN order_status='待发货' THEN 1 END),
             COUNT(CASE WHEN order_status='申请退款' THEN 1 END),
             COUNT(*)
-        FROM orders WHERE channel=? AND ordered_at>=?
+        FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at IS NULL OR deleted_at='')
     """, (ch, _cut90)).fetchone()
     gmv, pending, refund, total_orders = _agg[0], _agg[1], _agg[2], _agg[3]
     
@@ -97,13 +97,13 @@ def _rebuild(channel='jd'):
         _c = sqlite3.connect(_DB_PATH)
         _c.row_factory = sqlite3.Row
         _c.execute("PRAGMA busy_timeout=30000")
-        return _c.execute("SELECT substr(ordered_at,1,10) as d, order_status, SUM(total_amount) as g, COUNT(*) as cnt FROM orders WHERE channel=? AND ordered_at>=? GROUP BY d, order_status", (ch, _cut90)).fetchall()
+        return _c.execute("SELECT substr(ordered_at,1,10) as d, order_status, SUM(total_amount) as g, COUNT(*) as cnt FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at IS NULL OR deleted_at='') GROUP BY d, order_status", (ch, _cut90)).fetchall()
     def _q_stores():
         import sqlite3
         _c = sqlite3.connect(_DB_PATH)
         _c.row_factory = sqlite3.Row
         _c.execute("PRAGMA busy_timeout=30000")
-        return _c.execute("SELECT store, COUNT(*) as cnt, SUM(CASE WHEN order_status='已完成' THEN total_amount ELSE 0 END) as g FROM orders WHERE channel=? AND ordered_at>=? GROUP BY store ORDER BY store", (ch, _cut90)).fetchall()
+        return _c.execute("SELECT store, COUNT(*) as cnt, SUM(CASE WHEN order_status='已完成' THEN total_amount ELSE 0 END) as g FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at IS NULL OR deleted_at='') GROUP BY store ORDER BY store", (ch, _cut90)).fetchall()
     def _q_inv():
         import sqlite3
         _c = sqlite3.connect(_DB_PATH)
@@ -153,17 +153,17 @@ def _rebuild(channel='jd'):
     
     health = _compute_health(inv_list)
     
-    from datetime import timedelta
+    from datetime import timedelta, UTC
     # 使用北京时间（UTC+8）确保 today 周期与订单日期一致
-    bj_now = datetime.utcnow() + timedelta(hours=8)
+    bj_now = datetime.now(UTC) + timedelta(hours=8)
     bj_date = bj_now.date()
     today_str = bj_date.isoformat()
     period_stores = {}
     period_funnel = {}
     # 单次查询 30 天数据，Python 按周期分组（替代 6 次独立 GROUP BY）
     _month_cut = (bj_date - timedelta(days=29)).isoformat()
-    _pstore_rows = conn.execute("SELECT substr(ordered_at,1,10) as d, store, SUM(CASE WHEN order_status='已完成' THEN total_amount ELSE 0 END) FROM orders WHERE channel=? AND ordered_at>=? GROUP BY d, store", (ch, _month_cut)).fetchall()
-    _pfunnel_rows = conn.execute("SELECT substr(ordered_at,1,10) as d, order_status, COUNT(*) FROM orders WHERE channel=? AND ordered_at>=? GROUP BY d, order_status", (ch, _month_cut)).fetchall()
+    _pstore_rows = conn.execute("SELECT substr(ordered_at,1,10) as d, store, SUM(CASE WHEN order_status='已完成' THEN total_amount ELSE 0 END) FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at IS NULL OR deleted_at='') GROUP BY d, store", (ch, _month_cut)).fetchall()
+    _pfunnel_rows = conn.execute("SELECT substr(ordered_at,1,10) as d, order_status, COUNT(*) FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at IS NULL OR deleted_at='') GROUP BY d, order_status", (ch, _month_cut)).fetchall()
     _ps_agg = {}
     for r in _pstore_rows:
         key = (r[0], r[1])

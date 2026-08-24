@@ -3,7 +3,7 @@ import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.triggers.cron import CronTrigger
-from datetime import datetime
+from datetime import datetime, UTC
 
 logger = logging.getLogger("scheduler")
 scheduler = BackgroundScheduler(daemon=True)
@@ -15,7 +15,7 @@ def _task_inventory_sync():
         from app.core.database import get_db
         from app.api.routes.insights import auto_adjust_inventory
         db = get_db()
-        orders = db.table("orders").select("*").order("id", desc=True).limit(100).execute().data
+        orders = [o for o in db.table("orders").select("*").order("id", desc=True).limit(100).execute().data if not (o.get("deleted_at") or "")]
         count = 0
         for o in (orders or []):
             try:
@@ -42,12 +42,12 @@ def _task_archive_orders():
     """每天凌晨 1 点归档 90 天前的订单"""
     try:
         from app.core.database import get_db, get_conn
-        from datetime import timedelta
-        cutoff = (datetime.utcnow() - timedelta(days=60)).strftime('%Y-%m-%d')
+        from datetime import timedelta, UTC
+        cutoff = (datetime.now(UTC) - timedelta(days=60)).strftime('%Y-%m-%d')
         db = get_db()
         # 用 SQL 只取超期订单（避免全表加载）
         conn = get_conn()
-        old_orders = [dict(r) for r in conn.execute("SELECT * FROM orders WHERE substr(ordered_at,1,10) < ?", (cutoff,)).fetchall()]
+        old_orders = [dict(r) for r in conn.execute("SELECT * FROM orders WHERE substr(ordered_at,1,10) < ? AND (deleted_at IS NULL OR deleted_at='')", (cutoff,)).fetchall()]
         if not old_orders:
             logger.info(f"Order archive: no orders before {cutoff}")
             return
@@ -94,7 +94,7 @@ def _task_cleanup_logs():
     try:
         from app.core.database import get_db
         db = get_db()
-        cutoff = datetime.utcnow().isoformat()
+        cutoff = datetime.now(UTC).isoformat()
         # 简单清理 events 和 quality_logs
         for table in ['events', 'quality_logs']:
             rows = db.table(table).select("*").execute().data
@@ -239,15 +239,73 @@ def _task_disk_cleanup():
         logger.info(f"Disk cleanup error: {e}")
 
 def _task_daily_rules():
-    """每天执行定时规则（滞销识别等，已通过 detect_slow_moving_products 直接处理，无需 evaluate）"""
+    """每天执行定时规则（内置滞销识别 + 用户自定义 scheduled.daily 规则）
+
+    历史缺陷：只调 detect_slow_moving_products（内置逻辑），用户建的
+    event='scheduled.daily' 规则从未被 evaluate → 每日定时规则功能失效。
+    """
     try:
         from app.core.database import get_db
         from app.api.routes.insights import detect_slow_moving_products
         db = get_db()
+        # 1. 内置滞销识别（原逻辑保留，source='event_bus'）
         results = detect_slow_moving_products(db, create_alerts=True)
-        logger.info(f"Daily rules: checked {len(results)} items")
+        n = results.get('data', results) if isinstance(results, dict) else results
+        logger.info(f"Daily rules: slow-moving checked {len(n) if hasattr(n, '__len__') else n} items")
+        # 2. 用户自定义每日定时规则（修复：之前永远不触发）
+        _eval_daily_user_rules(db)
     except Exception as e:
         logger.info(f"Daily rules error: {e}")
+
+
+def _eval_daily_user_rules(db):
+    """评估用户自定义的每日定时规则（event='scheduled.daily'），按有库存 SKU 遍历
+
+    内置"滞销识别"规则（_seed_builtin_rules 种入）也会被 evaluate 命中，
+    与 detect_slow_moving_products 的告警由 _action_create_alert 的
+    alert_type+sku+channel+source 去重兜底，不会重复。
+    """
+    try:
+        from datetime import timedelta
+        from app.core.database import get_conn
+        from app.core.rules import evaluate
+        conn = get_conn()
+        inv_rows = conn.execute(
+            "SELECT sku, available_qty, safety_qty, in_transit_qty, product_name, channel FROM inventory"
+        ).fetchall()
+        if not inv_rows:
+            return
+        last_map = {}
+        for r in conn.execute("SELECT sku, MAX(date) FROM daily_sales_snapshot GROUP BY sku").fetchall():
+            last_map[str(r[0])] = str(r[1] or '')[:10]
+        now = datetime.now(UTC)
+        for r in inv_rows:
+            sku = str(r[0] or '')
+            if not sku:
+                continue
+            avail = int(r[1] or 0); safety = int(r[2] or 0); transit = int(r[3] or 0)
+            pname = str(r[4] or '') or sku
+            ch = str(r[5] or 'jd')
+            last_date = last_map.get(sku, '')
+            days = 999
+            if last_date:
+                try:
+                    days = (now - datetime.strptime(last_date[:10], "%Y-%m-%d")).days
+                except Exception:
+                    pass
+            try:
+                evaluate('scheduled.daily', {
+                    'db': db, 'sku': sku, 'channel': ch,
+                    'inv': {'available_qty': avail, 'safety_qty': safety,
+                            'in_transit_qty': transit, 'product_name': pname},
+                    'stock': avail, 'days_since_last': days,
+                    'product_name': pname,
+                })
+            except Exception as e:
+                logger.warning(f"[daily-rules] eval {sku}: {e}")
+        logger.info(f"Daily user rules: evaluated {len(inv_rows)} SKUs")
+    except Exception as e:
+        logger.error(f"Daily user rules error: {e}")
 
 def _task_cleanup_recycle():
     """每天清理回收站：永久删除软删除超过 30 天的订单和规则（防数据无限累积）"""
@@ -317,7 +375,7 @@ def start():
     scheduler.add_job(_task_push_alerts, IntervalTrigger(minutes=30), id='push_alerts')
     scheduler.add_job(_task_disk_cleanup, CronTrigger(hour=3, minute=20), id='disk_cleanup')
     scheduler.start()
-    logger.info(f"Started at {datetime.utcnow().isoformat()}")
+    logger.info(f"Started at {datetime.now(UTC).isoformat()}")
 
 def get_status():
     jobs = scheduler.get_jobs()

@@ -3,7 +3,7 @@ from app.core.database import get_db
 from app.core.response import ok, fail
 from app.core.sales_utils import calc_sales, rolling_predict
 from app.api.routes.replenishment import get_replenishment_suggestions
-from datetime import datetime
+from datetime import datetime, UTC
 import json, os
 
 router = APIRouter(prefix="/api/insights", tags=["insights"])
@@ -14,14 +14,14 @@ _with_sales_cache = {}
 
 @router.get('/ping')
 def ping():
-    return ok({"time": datetime.utcnow().isoformat()})
+    return ok({"time": datetime.now(UTC).isoformat()})
 
 def detect_slow_moving_products(db=None, create_alerts=False):
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, UTC
     if db is None:
         from app.core.database import get_db
         db = get_db()
-    cutoff = (datetime.utcnow() - timedelta(days=90)).isoformat()
+    cutoff = (datetime.now(UTC) - timedelta(days=90)).isoformat()
     # 快照聚合：按 SKU 取最大日期，替代 orders 全表 GROUP BY
     from app.core.database import get_conn
     last_order = {}
@@ -32,8 +32,8 @@ def detect_slow_moving_products(db=None, create_alerts=False):
         import logging; logging.warning(f"[slow-moving] snapshot agg: {e}")
     # 当天 orders 补充（快照不含今天）
     try:
-        today = datetime.utcnow().strftime('%Y-%m-%d')
-        rows = get_conn().execute("SELECT sku, MAX(ordered_at) FROM orders WHERE ordered_at >= ? GROUP BY sku", (today,)).fetchall()
+        today = datetime.now(UTC).strftime('%Y-%m-%d')
+        rows = get_conn().execute("SELECT sku, MAX(ordered_at) FROM orders WHERE ordered_at >= ? AND (deleted_at IS NULL OR deleted_at='') GROUP BY sku", (today,)).fetchall()
         for r in rows:
             if r[0] and str(r[1] or '')[:10] > last_order.get(str(r[0]), ''):
                 last_order[str(r[0])] = str(r[1] or '')[:10]
@@ -61,7 +61,7 @@ def detect_slow_moving_products(db=None, create_alerts=False):
     for s, i in inventory_map.items():
         if s not in sku_channel_map or not sku_channel_map[s]:
             sku_channel_map[s] = i.get('channel') or 'jd'
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
     result = []
     # 只遍历有库存的 SKU（无库存不需要滞销检测），避免 10 万+ SKU 全量遍历
     all_skus = set(inventory_map.keys())
@@ -100,12 +100,12 @@ def get_disposal_suggestions(channel: str = 'jd', db = get_db()):
     等级: black紧急(临期) > red处置(滞销+B仓超期或高占用) > yellow滞销(超过滞销线)
     B仓超期按整月计费口径展示(超期天数+预估计费月数, 费率待定)
     """
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, UTC
     from app.core.database import get_conn
     from app.core.sales_utils import load_daily_sales, calc_sales_from_daily
     import json
     conn = get_conn()
-    today = datetime.utcnow()
+    today = datetime.now(UTC)
 
     # ── 品类配置（自定义条目列表）──
     def load_json(key, default):
@@ -145,7 +145,7 @@ def get_disposal_suggestions(channel: str = 'jd', db = get_db()):
     sale_90 = {}
     try:
         cutoff90 = (today - timedelta(days=90)).strftime('%Y-%m-%d')
-        for r in conn.execute("SELECT sku, ordered_at, quantity, total_amount FROM orders WHERE channel=? AND ordered_at>=?", (channel, cutoff90)).fetchall():
+        for r in conn.execute("SELECT sku, ordered_at, quantity, total_amount FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at IS NULL OR deleted_at='')", (channel, cutoff90)).fetchall():
             sk = str(r[0]); dt = str(r[1])[:10]
             s90 = sale_90.setdefault(sk, {'qty':0,'amt':0,'days':set()})
             s90['qty'] += int(r[2] or 0); s90['amt'] += float(r[3] or 0)
@@ -333,7 +333,7 @@ def export_slow_moving_excel(channel: str = 'jd', db = get_db()):
         for c in ws[ws.max_row]: c.border=thin; c.alignment=Alignment(horizontal='center')
     buf = BytesIO(); wb.save(buf); buf.seek(0)
     return Response(content=buf.getvalue(), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition":f"attachment; filename*=UTF-8''slow_moving_{datetime.utcnow().strftime('%Y%m%d')}.xlsx"})
+        headers={"Content-Disposition":f"attachment; filename*=UTF-8''slow_moving_{datetime.now(UTC).strftime('%Y%m%d')}.xlsx"})
 
 
 @router.get('/summary')
@@ -373,15 +373,15 @@ def get_insight_summary(db = get_db()):
 def trend_analysis(days: int = 30, channel: str = 'jd', db = get_db()):
     """趋势分析：日/周/月维度聚合"""
     from collections import defaultdict
-    from datetime import datetime, timedelta
-    cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
+    from datetime import datetime, timedelta, UTC
+    cutoff = (datetime.now(UTC) - timedelta(days=days)).isoformat()
     orders = []
     inventory = []
     try:
         from app.core.database import get_conn as _gconn
         _c = _gconn()
         orders = [{"ordered_at": r[0], "total_amount": r[1], "product_name": r[2]}
-                  for r in _c.execute("SELECT ordered_at, total_amount, product_name FROM orders WHERE channel=? AND ordered_at>=?", (channel, cutoff)).fetchall()]
+                  for r in _c.execute("SELECT ordered_at, total_amount, product_name FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at IS NULL OR deleted_at='')", (channel, cutoff)).fetchall()]
         inventory = [{"available_qty": r[0], "safety_qty": r[1]}
                      for r in _c.execute("SELECT available_qty, safety_qty FROM inventory WHERE channel=?", (channel,)).fetchall()]
     except Exception:
@@ -427,7 +427,7 @@ def anomaly_tracking(db = get_db()):
 @router.post('/sync-from-orders')
 def sync_inventory_from_orders(db = get_db(), limit: int = 200):
     """根据最近订单自动调整库存（异步调用）"""
-    orders = db.table("orders").select("*").order("id", desc=True).limit(limit).execute().data
+    orders = [o for o in db.table("orders").select("*").order("id", desc=True).limit(limit).execute().data if not (o.get("deleted_at") or "")]
     count = 0
     for o in orders:
         try:
@@ -501,16 +501,16 @@ def inventory_with_sales(wh_type: str = 'own', channel: str = 'jd', page: int = 
     try:
         _arc = db.table("replenishment_config").select("*").eq("key", "_last_archive_check").execute().data
         _last_arc = _arc[0]['value'] if _arc else ''
-        from datetime import timedelta as _td
-        if _last_arc != (datetime.utcnow() - _td(days=1)).strftime('%Y-%m-%d'):
+        from datetime import timedelta as _td, UTC
+        if _last_arc != (datetime.now(UTC) - _td(days=1)).strftime('%Y-%m-%d'):
             from app.core.scheduler import _task_archive_orders
             _task_archive_orders()
-            db.table("replenishment_config").upsert({"key": "_last_archive_check", "value": datetime.utcnow().strftime('%Y-%m-%d'), "channel": "jd", "updated_at": datetime.utcnow().isoformat()}, conflict_col='key')
+            db.table("replenishment_config").upsert({"key": "_last_archive_check", "value": datetime.now(UTC).strftime('%Y-%m-%d'), "channel": "jd", "updated_at": datetime.now(UTC).isoformat()}, conflict_col='key')
     except Exception:
         pass
     inv = db.table("inventory").select("*").eq("warehouse_type", wh_type).eq("channel", channel).execute().data or []
-    from datetime import datetime, timedelta
-    now = datetime.utcnow()
+    from datetime import datetime, timedelta, UTC
+    now = datetime.now(UTC)
     cur_month = now.strftime('%Y-%m')
     # 日销已从快照读取，orders 全量加载已移除（死代码，改用快照）
     # 出入库记录只取当月

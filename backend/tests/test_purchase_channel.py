@@ -6,57 +6,75 @@
 运行: cd backend && python -m pytest tests/test_purchase_channel.py -v
 """
 import os, sys
-_db_path = os.path.join(os.path.dirname(__file__), '..', 'test_purchase_ch.db')
-os.environ['SQLITE_PATH'] = _db_path
+os.environ['SQLITE_PATH'] = os.path.join(os.path.dirname(__file__), '..', '.test_purchase_channel.db')
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-import sqlite3
 from datetime import datetime, timedelta
-from fastapi.testclient import TestClient
-from fastapi import FastAPI
-from app.core.database import init_db, get_db
-from app.core.replenishment_cache import invalidate_cache
 
-init_db()
-db = get_db()
-today = datetime.utcnow()
+client = None
+db = None
+invalidate_cache = None
+unwrap = None
+DB_PATH = None
 
-_conn = sqlite3.connect(_db_path)
-for t in ['products','orders','inventory','replenishment_config','daily_sales_snapshot']:
-    try: _conn.execute(f'DELETE FROM "{t}"')
-    except Exception: pass
-_conn.commit(); _conn.close()
 
-# 商品
-for p in [{"sku":"SKU-100-J","product_name":"商品J","channel":"jd","supplier_code":"SUP-001-JD","box_qty":12,"barcode":"BAR-100J"},
-          {"sku":"SKU-100-O","product_name":"商品O","channel":"other","supplier_code":"SUP-001-OTHER","box_qty":12,"barcode":"BAR-100O"}]:
-    db.table("products").insert(p).execute()
+def setup_module():
+    global client, db, invalidate_cache, unwrap, DB_PATH
+    # 强制重载 app 模块（DB_PATH 在 import 时固化，必须按本文件路径重新导入）
+    for _m in list(sys.modules):
+        if _m.startswith('app.'):
+            sys.modules.pop(_m, None)
 
-# 库存：两渠道都建 platform(北京) + own(集货仓) + platform_b(京东B仓)
-for ch, sku in [('jd','SKU-100-J'), ('other','SKU-100-O')]:
-    for wt, wh, qty in [('platform','北京',100), ('own','集货仓',50), ('platform_b','京东B仓',20)]:
-        db.table("inventory").insert({"sku":sku,"warehouse":wh,"warehouse_type":wt,
-            "available_qty":qty,"in_transit_qty":0,"safety_qty":30,"channel":ch}).execute()
+    import sqlite3
+    from fastapi.testclient import TestClient
+    from fastapi import FastAPI
+    from app.core.database import DB_PATH as _DB_PATH, init_db, get_db
+    from app.core.replenishment_cache import invalidate_cache as _ic
 
-# 参数
-for k,v in [("purchase_lead_days","7"),("purchase_safety_days","3"),("turnover_warning_90","90")]:
-    db.table("replenishment_config").upsert({"key":k,"value":v,"channel":"jd"})
+    DB_PATH = _DB_PATH
+    invalidate_cache = _ic
+    init_db()
+    db = get_db()
 
-from app.api.routes import purchase
-app = FastAPI()
-app.include_router(purchase.router)
-client = TestClient(app)
+    _conn = sqlite3.connect(DB_PATH)
+    for t in ['products','orders','inventory','replenishment_config','daily_sales_snapshot']:
+        try: _conn.execute(f'DELETE FROM "{t}"')
+        except Exception: pass
+    _conn.commit(); _conn.close()
 
-def unwrap(r):
-    d = r.json()
-    if isinstance(d, dict) and "data" in d: return d["data"]
-    return d
+    # 商品
+    for p in [{"sku":"SKU-100-J","product_name":"商品J","channel":"jd","supplier_code":"SUP-001-JD","box_qty":12,"barcode":"BAR-100J"},
+              {"sku":"SKU-100-O","product_name":"商品O","channel":"other","supplier_code":"SUP-001-OTHER","box_qty":12,"barcode":"BAR-100O"}]:
+        db.table("products").insert(p).execute()
+
+    # 库存：两渠道都建 platform(北京) + own(集货仓) + platform_b(京东B仓)
+    for ch, sku in [('jd','SKU-100-J'), ('other','SKU-100-O')]:
+        for wt, wh, qty in [('platform','北京',100), ('own','集货仓',50), ('platform_b','京东B仓',20)]:
+            db.table("inventory").insert({"sku":sku,"warehouse":wh,"warehouse_type":wt,
+                "available_qty":qty,"in_transit_qty":0,"safety_qty":30,"channel":ch}).execute()
+
+    # 参数
+    for k,v in [("purchase_lead_days","7"),("purchase_safety_days","3"),("turnover_warning_90","90")]:
+        db.table("replenishment_config").upsert({"key":k,"value":v,"channel":"jd"})
+
+    from app.api.routes import purchase
+    app = FastAPI()
+    app.include_router(purchase.router)
+    client = TestClient(app)
+
+    def _unwrap(r):
+        d = r.json()
+        if isinstance(d, dict) and "data" in d: return d["data"]
+        return d
+    unwrap = _unwrap
+
 
 class TestPurchaseChannelIsolation:
     def setup_method(self):
         invalidate_cache(db)
         # 清空日销快照干扰（无历史数据时日销来自订单，此处无订单→日销0，不影响库存断言）
-        c = sqlite3.connect(_db_path)
+        import sqlite3
+        c = sqlite3.connect(DB_PATH)
         c.execute("DELETE FROM daily_sales_snapshot"); c.commit(); c.close()
 
     def test_other_excludes_b_warehouse(self):
@@ -78,4 +96,4 @@ class TestPurchaseChannelIsolation:
         item = next(x for x in items if x["sku"] == "SKU-100-J")
         assert item["b_available"] == 20, f"jd 应保留 b_available: {item['b_available']}"
         # jd 原设计：sys_total 含 B 仓（own50+plat100+B20=170）
-        assert item["sys_total"] == 170, f"jd sys_total: {item['sys_total']}"
+        assert item["sys_total"] == 170, f"jd sys_total 应含 B 仓: {item['sys_total']}"

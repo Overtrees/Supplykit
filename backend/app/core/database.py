@@ -5,12 +5,12 @@
       db.table("orders").insert([{"order_no":"xxx"}]).execute()
 """
 import sqlite3, json, os, threading, concurrent.futures
-from datetime import datetime
+from datetime import datetime, UTC
 from collections import defaultdict
 from typing import Any, Optional
 
 DB_PATH = os.getenv("SQLITE_PATH", os.path.join(os.path.dirname(__file__), "..", "supplykit.db"))
-SCHEMA_VERSION = 12  # 当前 schema 版本，每次改表结构+1
+SCHEMA_VERSION = 15  # 当前 schema 版本，每次改表结构+1
 
 # 版本化迁移注册表：{目标版本: 迁移函数}
 # 迁移函数签名: def migrate(conn): 执行该版本的 schema 变更
@@ -179,12 +179,42 @@ def _migrate_v12(conn):
         except sqlite3.OperationalError as _e:
             import logging; logging.warning(f"[migration v12] {tbl}: {_e}")
 
+
+# 迁移 v13：alerts 表加 related_rule_id（规则禁用/删除时联动清理告警）
+@_register_migration(13)
+def _migrate_v13(conn):
+    import sqlite3
+    try:
+        conn.execute("ALTER TABLE alerts ADD COLUMN related_rule_id INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass  # 列已存在则跳过（幂等）
+
+
+# 迁移 v14：rules 表加 deleted_at（软删除列缺失导致 delete/restore 500 报错）
+@_register_migration(14)
+def _migrate_v14(conn):
+    import sqlite3
+    try:
+        conn.execute("ALTER TABLE rules ADD COLUMN deleted_at TEXT DEFAULT ''")
+    except sqlite3.OperationalError:
+        pass  # 列已存在则跳过（幂等）
+
+
+# 迁移 v15：orders 表加 deleted_at（与 rules 同源缺陷：软删除列缺失，删单 500 + 列表不过滤）
+@_register_migration(15)
+def _migrate_v15(conn):
+    import sqlite3
+    try:
+        conn.execute("ALTER TABLE orders ADD COLUMN deleted_at TEXT DEFAULT ''")
+    except sqlite3.OperationalError:
+        pass  # 列已存在则跳过（幂等）
+
 _local = threading.local()
 
 def backup_db():
     """备份数据库到同目录下（压缩备份，减少体积防撑爆配额）"""
     import shutil, gzip
-    bak_path = DB_PATH + f".bak.{datetime.utcnow().strftime('%Y%m%d')}"
+    bak_path = DB_PATH + f".bak.{datetime.now(UTC).strftime('%Y%m%d')}"
     try:
         # 优先用 VACUUM INTO 生成压缩副本（同时回收碎片）
         _tmp = DB_PATH + ".bak.tmp"
@@ -508,7 +538,7 @@ class InsertBuilder:
         self.conn = conn
 
     def execute(self):
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(UTC).isoformat()
         sql = f'INSERT INTO "{self.table}" ({self._cols}) VALUES ({self._vals})'
         cur = self.conn.execute(sql, self._params)
         self.conn.commit()
@@ -957,6 +987,10 @@ def init_db(path=None):
     try: conn.execute("ALTER TABLE products ADD COLUMN channel TEXT DEFAULT 'jd'")
     except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE rules ADD COLUMN mode TEXT DEFAULT ''")
+    except sqlite3.OperationalError: pass
+    try: conn.execute("ALTER TABLE rules ADD COLUMN deleted_at TEXT DEFAULT ''")
+    except sqlite3.OperationalError: pass
+    try: conn.execute("ALTER TABLE orders ADD COLUMN deleted_at TEXT DEFAULT ''")
     except sqlite3.OperationalError: pass
     try: conn.execute("ALTER TABLE products ADD COLUMN unit TEXT DEFAULT ''")
     except sqlite3.OperationalError: pass

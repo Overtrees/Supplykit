@@ -1,28 +1,45 @@
 """products 搜索回归测试 — or_ 拼接 bug 导致按名/SKU 搜索全空"""
 import os, sys
-_db_path = os.path.join(os.path.dirname(__file__), '..', 'test_search.db')
-os.environ['SQLITE_PATH'] = _db_path
+os.environ['SQLITE_PATH'] = os.path.join(os.path.dirname(__file__), '..', '.test_products_search.db')
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-import sqlite3
-from fastapi.testclient import TestClient
-from fastapi import FastAPI
-from app.core.database import init_db, get_db
-from app.api.routes import products
+client = None
+DB_PATH = None
+
 
 def setup_module():
+    global client, DB_PATH
+    # 强制重载 app 模块（DB_PATH 在 import 时固化，必须按本文件路径重新导入）
+    for _m in list(sys.modules):
+        if _m.startswith('app.'):
+            sys.modules.pop(_m, None)
+
+    import sqlite3
+    from fastapi.testclient import TestClient
+    from fastapi import FastAPI
+    from app.core.database import DB_PATH as _DB_PATH, init_db, get_db
+    from app.api.routes import products
+
+    DB_PATH = _DB_PATH
     init_db()
     db = get_db()
     db.table("products").insert({"sku":"SKU-0130-J","product_name":"糖果130","channel":"jd"}).execute()
     db.table("products").insert({"sku":"SKU-0130-O","product_name":"糖果130","channel":"other"}).execute()
     db.table("products").insert({"sku":"SKU-9999-J","product_name":"酱油999","channel":"jd"}).execute()
     app = FastAPI(); app.include_router(products.router)
-    global client
     client = TestClient(app)
 
+
 def teardown_module():
-    try: os.unlink(_db_path)
-    except Exception: pass
+    try:
+        if os.path.exists(DB_PATH):
+            os.unlink(DB_PATH)
+        for ext in ['-wal', '-shm']:
+            if os.path.exists(DB_PATH + ext):
+                os.unlink(DB_PATH + ext)
+    except Exception:
+        pass
+
 
 class TestProductsSearch:
     def test_search_by_sku(self):

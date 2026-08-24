@@ -3,7 +3,7 @@ from fastapi import APIRouter
 from app.core.database import get_db
 from app.core.response import ok
 from app.core.sales_utils import calc_sales, rolling_predict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 import json, os, logging
 
 router = APIRouter(prefix="/api/insights", tags=["insights"])
@@ -27,7 +27,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     # B仓超储预警
     try:
         pos = db.table("purchase_orders").select("*").execute().data or []
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         for po in pos:
             ad = po.get("arrival_date", "")
             if not ad or po.get("status") == "completed": continue
@@ -66,8 +66,9 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     # 统一数据源：快照(历史) + 当天orders(实时)，消除重复计算
     from app.core.sales_utils import load_daily_sales, calc_sales_from_daily
     # 只加载当天订单（快照已含历史），从 2 万行 → 几十行
-    today = datetime.utcnow().strftime('%Y-%m-%d')
+    today = datetime.now(UTC).strftime('%Y-%m-%d')
     orders = db.table("orders").select("*").gte("ordered_at", today).execute().data
+    orders = [o for o in orders if not (o.get("deleted_at") or "")]
 
     # 三周期日销：一次遍历算 3 个窗口
     daily_28 = load_daily_sales(28, db, sku_barcode_map=sku_barcode_map, channel=channel)
@@ -216,7 +217,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             try:
                 from app.core.database import get_conn
                 conn = get_conn()
-                cutoff = (datetime.utcnow() - timedelta(days=28)).strftime('%Y-%m-%d')
+                cutoff = (datetime.now(UTC) - timedelta(days=28)).strftime('%Y-%m-%d')
                 _wns = list(_wh_names)
                 _ph = ','.join('?' * len(_wns))
                 _snap_rows = conn.execute(
@@ -228,9 +229,9 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                     _wh = _r[2]; _sku = _r[1]; _key = f"{_sku}|{sku_barcode_map.get(_sku,'')}" if sku_barcode_map and sku_barcode_map.get(_sku) else _sku
                     _wh_raw.setdefault(_wh, {}).setdefault(_key, {})[_r[0]] = (_r[3] or 0)
                 # 当天 orders 补充（原始 SQL 一次性）
-                today = datetime.utcnow().strftime('%Y-%m-%d')
+                today = datetime.now(UTC).strftime('%Y-%m-%d')
                 _today_rows = conn.execute(
-                    "SELECT sku, warehouse, quantity, ordered_at FROM orders WHERE ordered_at>=? AND channel=?",
+                    "SELECT sku, warehouse, quantity, ordered_at FROM orders WHERE ordered_at>=? AND channel=? AND (deleted_at IS NULL OR deleted_at='')",
                     (today, channel)
                 ).fetchall()
                 for _o in _today_rows:
@@ -390,7 +391,7 @@ def compare_replenishment_sources(days: int = 28, db = get_db()):
 def export_orders_excel(channel: str = 'jd', db = get_db()):
     from openpyxl import Workbook
     from io import BytesIO; from fastapi.responses import Response; from urllib.parse import quote
-    orders = db.table("orders").select("*").eq("channel", channel).order("id", desc=True).limit(2000).execute().data
+    orders = [o for o in db.table("orders").select("*").eq("channel", channel).order("id", desc=True).limit(2000).execute().data if not (o.get("deleted_at") or "")]
     wb = Workbook(); ws = wb.active; ws.title = "订单"
     ws.append(["下单日期","订单号","69码","店铺","仓库","商品","金额","状态","入库日期","平台"])
     from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
@@ -405,7 +406,7 @@ def export_orders_excel(channel: str = 'jd', db = get_db()):
         for c in ws[ws.max_row]: c.border=thin; c.alignment=Alignment(horizontal='center')
     buf = BytesIO(); wb.save(buf); buf.seek(0)
     return Response(content=buf.getvalue(),media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition":f"attachment; filename*=UTF-8''orders_{datetime.utcnow().strftime('%Y%m%d')}.xlsx"})
+        headers={"Content-Disposition":f"attachment; filename*=UTF-8''orders_{datetime.now(UTC).strftime('%Y%m%d')}.xlsx"})
 
 
 @router.get('/export-inventory')
@@ -431,7 +432,7 @@ def export_inventory_excel(channel: str = 'jd', wh_type: str = '', db = get_db()
         for c in ws[ws.max_row]: c.border=thin; c.alignment=Alignment(horizontal='center')
     buf = BytesIO(); wb.save(buf); buf.seek(0)
     return Response(content=buf.getvalue(),media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition":f"attachment; filename*=UTF-8''inventory_{datetime.utcnow().strftime('%Y%m%d')}.xlsx"})
+        headers={"Content-Disposition":f"attachment; filename*=UTF-8''inventory_{datetime.now(UTC).strftime('%Y%m%d')}.xlsx"})
 
 
 @router.get('/export-purchase')
@@ -439,7 +440,7 @@ def export_purchase_excel(days: int = 28, mode: str = 'bbcc', channel: str = 'jd
     """导出补货建议为 Excel"""
     from openpyxl import Workbook
     from io import BytesIO; from fastapi.responses import Response; from urllib.parse import quote
-    from datetime import timedelta
+    from datetime import timedelta, UTC
 
     data = get_replenishment_suggestions(days=days, source='', mode=mode, channel=channel, db=db)
     replen = data.get("data") if isinstance(data, dict) and "data" in data else data
@@ -480,12 +481,12 @@ def export_purchase_excel(days: int = 28, mode: str = 'bbcc', channel: str = 'jd
         if i <= len(headers): ws.column_dimensions[ws.cell(1,i).column_letter].width = w
 
     ws2 = wb.create_sheet("汇总")
-    ws2.append(["补货建议汇总"]); ws2.append(["生成时间",datetime.utcnow().strftime("%Y-%m-%d %H:%M")])
+    ws2.append(["补货建议汇总"]); ws2.append(["生成时间",datetime.now(UTC).strftime("%Y-%m-%d %H:%M")])
     ws2.append(["模式","BBCC送仓" if mode=='bbcc' else "传统多仓"])
     ws2.append(["SKU数",len(replen)])
     ws2.merge_cells('A1:D1'); ws2['A1'].font = Font(bold=True, size=14)
 
     buf = BytesIO(); wb.save(buf); buf.seek(0)
-    filename = f"补货建议_{mode}_{datetime.utcnow().strftime('%Y%m%d')}.xlsx"
+    filename = f"补货建议_{mode}_{datetime.now(UTC).strftime('%Y%m%d')}.xlsx"
     return Response(content=buf.getvalue(),media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition":f"attachment; filename*=UTF-8''{quote(filename)}"})

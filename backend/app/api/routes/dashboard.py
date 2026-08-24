@@ -4,7 +4,7 @@ from app.core.database import get_db, DB_PATH
 from app.core.sales_utils import calc_sales, rolling_predict
 import sqlite3
 from app.core.response import ok, fail
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 import time
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
@@ -16,10 +16,12 @@ _STOCK_CACHE_TTL = 300  # 5 分钟
 def dashboard_summary(channel: str = 'jd', start_date: str = '', end_date: str = ''):
     if start_date and end_date:
         # 自定义日期范围：实时计算，不缓存
-        from datetime import datetime as dt
+        from datetime import datetime as dt, UTC
         from app.core.sales_utils import calc_sales
         db = get_db()
         all_orders = db.table("orders").select("*").execute().data or []
+        # 软删除订单不计入统计（与订单列表过滤一致）
+        all_orders = [o for o in all_orders if not (o.get("deleted_at") or "")]
         # 按日期过滤
         orders = [o for o in all_orders if start_date <= str(o.get('ordered_at',''))[:10] <= end_date]
         inv = db.table("inventory").select("*").eq("channel", channel).execute().data or []
@@ -87,7 +89,7 @@ def stock_risk(channel: str = 'jd'):
       C仓可用 / 融合日销，可用 < 安全线 且 > 0
     """
     db = get_db()
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
 
     # 读取补货参数
     cfg_rows = db.table("replenishment_config").select("*").eq("channel", channel).execute().data or []

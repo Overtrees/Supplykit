@@ -2,7 +2,7 @@
 from fastapi import APIRouter
 from app.core.database import get_db
 from app.core.response import ok, fail
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from collections import defaultdict
 
 router = APIRouter(prefix="/api/replenishment-config", tags=["replenishment"])
@@ -30,7 +30,7 @@ def get_config(mode: str = None, channel: str = 'jd', db=get_db()):
 @router.put("")
 def update_config(data: dict, mode: str = '', channel: str = 'jd', db=get_db()):
     _cfg_cache.clear()  # 配置变更，清空缓存
-    now = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+    now = datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S')
     if mode:
         prefix = f'mode_{mode}_'
         for k, v in data.items():
@@ -71,11 +71,11 @@ def get_seasons(mode: str = 'bbcc', channel: str = 'jd', db=get_db()):
     val = db.table('replenishment_config').select('*').eq('key', key).eq('channel', channel).execute().data
     if val and val[0].get('value'):
         return json.loads(val[0]['value'])
-    return [
+    return ok([
         {'key':'618','name':'618','factor':1.5,'enabled':False},
         {'key':'1111','name':'双11','factor':1.8,'enabled':False},
         {'key':'cny','name':'年货节','factor':1.6,'enabled':False},
-    ]
+    ])
 
 @router.put('/seasons')
 def update_seasons(data: dict, mode: str = 'bbcc', channel: str = 'jd', db=get_db()):
@@ -88,9 +88,9 @@ def update_seasons(data: dict, mode: str = 'bbcc', channel: str = 'jd', db=get_d
     if old_val != val:
         db.table("replenishment_config_history").insert({
             'key': key, 'old_value': old_val, 'new_value': val,
-            'channel': channel, 'mode': mode, 'created_at': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+            'channel': channel, 'mode': mode, 'created_at': datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S')
         }).execute()
-    db.table("replenishment_config").upsert({"key": key, "value": val, "channel": channel, "updated_at": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}, conflict_col='key')
+    db.table("replenishment_config").upsert({"key": key, "value": val, "channel": channel, "updated_at": datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S')}, conflict_col='key')
     return ok(items)
 @router.get('/slow-cats')
 def get_slow_cats(channel: str = 'jd', db=get_db()):
@@ -123,9 +123,9 @@ def update_slow_cats(data: dict, channel: str = 'jd', db=get_db()):
     if old_val != val:
         db.table("replenishment_config_history").insert({
             'key': 'slow_cats_config', 'old_value': old_val, 'new_value': val,
-            'channel': channel, 'mode': '', 'created_at': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+            'channel': channel, 'mode': '', 'created_at': datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S')
         }).execute()
-    db.table("replenishment_config").upsert({"key": "slow_cats_config", "value": val, "channel": channel, "updated_at": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}, conflict_col='key')
+    db.table("replenishment_config").upsert({"key": "slow_cats_config", "value": val, "channel": channel, "updated_at": datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S')}, conflict_col='key')
     return ok(items)
 
 
@@ -140,9 +140,10 @@ def calculate(mode: str = 'bbcc', db=get_db()):
             cfg[k[len(prefix):]] = v
     lt = int(cfg.get('lead_time_days','10'))
     sm = float(cfg.get('safety_multiplier','1.0'))
-    cutoff = (datetime.utcnow()-timedelta(days=30)).strftime('%Y-%m-%d')
+    cutoff = (datetime.now(UTC)-timedelta(days=30)).strftime('%Y-%m-%d')
     sku_s = defaultdict(int)
     for o in db.table("orders").select("*").execute().data:
+        if o.get("deleted_at"): continue
         s = o.get('sku','')
         if s and str(o.get('ordered_at',''))[:10] >= cutoff:
             sku_s[s] += int(o.get('quantity',0) or 0)

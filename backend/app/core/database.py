@@ -590,6 +590,15 @@ class DeleteBuilder:
         self._params.append(val)
         return self
 
+    def in_(self, col, vals):
+        if not vals:
+            self._where.append("1=0")
+            return self
+        placeholders = ",".join(["?"] * len(vals))
+        self._where.append(f'{_quote_col(col)} IN ({placeholders})')
+        self._params.extend(vals)
+        return self
+
     def ilike(self, col, pattern):
         self._where.append(f'LOWER("{col}") LIKE ?')
         self._params.append(pattern.replace("%", "%").lower())

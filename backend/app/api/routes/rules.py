@@ -81,15 +81,32 @@ def permanent_delete_rule(rule_id: int, db = get_db()):
     return ok({"message": "已永久删除", "id": rule_id})
 
 def _sync_alerts_for_rules(ids: list, disabled: bool, db):
-    """规则禁用/删除时联动：对应告警标记为已关闭（status='inactive'）
-    看板只统计 status='active' 的告警，禁用规则后其历史告警不再展示。
-    恢复规则时同时恢复关联告警（仅限未手动关闭的）。"""
+    """规则停用/启用时联动对应类型告警（不依赖 related_rule_id，兼容历史遗留告警）
+
+    语义：告警按 (alert_type, channel) 与规则类型绑定。
+    - 停用/删除：该 (alert_type, channel) 下已无 active 规则 → 整类告警置 inactive
+    - 恢复/启用：该类型恢复 active 规则 → 该类 rules_engine 告警恢复 active
+    """
     from app.core.dashboard_cache import invalidate as invalidate_dashboard
-    if disabled:
-        db.table("alerts").update({"status": "inactive"}).eq("source", "rules_engine").in_("related_rule_id", ids).execute()
-    else:
-        # 恢复：把关联告警恢复为 active（跳过手动关闭的：无手动标记机制，直接恢复）
-        db.table("alerts").update({"status": "active"}).eq("source", "rules_engine").in_("related_rule_id", ids).execute()
+    # 收集这些规则的 (alert_type, channel)
+    pairs = set()
+    try:
+        for r in db.table("rules").select("*").in_("id", ids).execute().data:
+            at = r.get('alert_type', '')
+            if at:
+                pairs.add((at, r.get('channel', 'jd')))
+    except Exception as e:
+        import logging; logging.warning(f"[rules] collect alert_type: {e}")
+    for at, ch in pairs:
+        others = db.table("rules").select("id").eq("alert_type", at).eq("channel", ch).eq("is_active", 1).execute().data
+        if disabled:
+            # 停用：该类型已无 active 规则 → 整类告警关闭（rules_engine + event_bus，不含 replenishment_engine）
+            if not others:
+                db.table("alerts").update({"status": "inactive"}).in_("source", ["rules_engine", "event_bus"]).eq("alert_type", at).eq("channel", ch).eq("status", "active").execute()
+        else:
+            # 恢复：有 active 规则 → 恢复该类 rules_engine 告警
+            if others:
+                db.table("alerts").update({"status": "active"}).eq("alert_type", at).eq("channel", ch).eq("source", "rules_engine").execute()
     invalidate_dashboard()
 
 

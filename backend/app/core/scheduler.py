@@ -248,14 +248,51 @@ def _task_daily_rules():
         from app.core.database import get_db
         from app.api.routes.insights import detect_slow_moving_products
         db = get_db()
-        # 1. 内置滞销识别（原逻辑保留，source='event_bus'）
-        results = detect_slow_moving_products(db, create_alerts=True)
-        n = results.get('data', results) if isinstance(results, dict) else results
-        logger.info(f"Daily rules: slow-moving checked {len(n) if hasattr(n, '__len__') else n} items")
+        # 1. 内置滞销识别——先检查"滞销识别"规则是否启用（停用后不再生成 event_bus 告警）
+        slow_rules = db.table("rules").select("id").eq("alert_type", "slow_moving").eq("is_active", 1).execute().data
+        if slow_rules:
+            results = detect_slow_moving_products(db, create_alerts=True)
+            n = results.get('data', results) if isinstance(results, dict) else results
+            logger.info(f"Daily rules: slow-moving checked {len(n) if hasattr(n, '__len__') else n} items")
+        else:
+            logger.info("Daily rules: slow_moving rule disabled, skip slow-moving alerts")
         # 2. 用户自定义每日定时规则（修复：之前永远不触发）
         _eval_daily_user_rules(db)
+        # 3. 孤儿告警兜底清理（规则被停用但联动漏执行时自愈）
+        _cleanup_orphan_alerts(db)
     except Exception as e:
         logger.info(f"Daily rules error: {e}")
+
+
+def _cleanup_orphan_alerts(db):
+    """孤儿告警兜底清理：active 告警的 (alert_type, channel) 已无 active 规则 → 关闭
+
+    只处理 rules_engine/event_bus 来源（规则与滞销识别产出），
+    replenishment_engine 告警与规则无关，不受影响。
+    """
+    try:
+        from app.core.database import get_conn
+        conn = get_conn()
+        rows = conn.execute(
+            "SELECT DISTINCT alert_type, channel FROM alerts WHERE status='active' AND source IN ('rules_engine','event_bus')"
+        ).fetchall()
+        cleared = 0
+        for at, ch in rows:
+            has_rule = db.table("rules").select("id").eq("alert_type", at).eq("channel", ch).eq("is_active", 1).execute().data
+            if not has_rule:
+                cur = conn.execute(
+                    "UPDATE alerts SET status='inactive' WHERE alert_type=? AND channel=? AND status='active' AND source IN ('rules_engine','event_bus')",
+                    (at, ch))
+                cleared += cur.rowcount
+        if cleared:
+            conn.commit()
+            from app.core.dashboard_cache import invalidate as invalidate_dashboard
+            invalidate_dashboard()
+            logger.info(f"Orphan alerts cleanup: {cleared} inactive")
+        return cleared
+    except Exception as e:
+        logger.error(f"Orphan alerts cleanup error: {e}")
+        return 0
 
 
 def _eval_daily_user_rules(db):

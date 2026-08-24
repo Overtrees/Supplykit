@@ -135,7 +135,7 @@ export default function RulesPage() {
   }, [hammerRuleNewVersion])
 
   const resetForm = () => { setEditing({}); setF(defaultF); setCond({left:'inv.available_qty', op:'<', right:'inv.safety_qty', rightType:'field', pctValue:100, warehouse:''}) }
-  const cancelEdit = () => { setEditing(null); setF(defaultF); setCond({left:'inv.available_qty', op:'<', right:'inv.safety_qty', rightType:'field', pctValue:100, warehouse:''}) }
+  const cancelEdit = () => { setEditing(null); setF(defaultF); setCond({left:'inv.available_qty', op:'<', right:'inv.safety_qty', rightType:'field', pctValue:100, warehouse:''}); useAppStore.setState({ hammerRuleNewVersion: 0 }) }
 
   const save = async () => {
     setSaveLoading(true)
@@ -150,7 +150,7 @@ export default function RulesPage() {
       const r = await fetch(url, {method: isNew?'POST':'PUT', headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})(), 'Content-Type':'application/json'}, body:JSON.stringify({...f, mode: f.mode||'', channel:globalChannel, condition_json:cj})})
       if (!r.ok) { const err = await r.json().catch(()=>({})); throw new Error(err.detail || 'HTTP '+r.status) }
       toast.success(isNew ? '规则已创建' : '规则已更新')
-      clearCache(); cancelEdit(); load(globalChannel)
+      clearCache(); cancelEdit(); await load(globalChannel)
       // 本地即时更新 mode 显示，不等 API 返回（避免旧 state 渲染导致 mode 显示"全部"）
       if (!isNew) setRules(prev => prev.map(rl => rl.id === editing.id ? {...rl, mode: f.mode||''} : rl))
     } catch(e) { toast.error('保存失败: '+e.message) }
@@ -159,7 +159,7 @@ export default function RulesPage() {
   const del = async (id) => {
     await fetch(API+'/api/rules/'+id, {headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()},method:'DELETE'})
     clearCache()
-    load(globalChannel)
+    await load(globalChannel)
     var timer = setTimeout(async function() {
       await fetch(API+'/api/rules/'+id+'/permanent-delete', {headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()},method:'POST'})
     }, 5000)

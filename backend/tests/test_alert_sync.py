@@ -93,6 +93,35 @@ class TestAlertRuleSync:
         assert not any(a['alert_type'] == 'low_stock' for a in active), f"删除规则后 low_stock 应全关: {[a['alert_type'] for a in active]}"
         assert any(a['source'] == 'replenishment_engine' for a in active), "补货引擎告警应保留"
 
+    def test_deleted_rule_hidden_from_list(self):
+        """删除规则后：正常列表不再显示（修复：提示成功但页面残留）"""
+        # 再建一条规则并删除
+        db.table("rules").insert({
+            "id": 502, "name": "临时规则", "event": "inventory.changed",
+            "condition_json": "{}", "alert_type": "low_stock",
+            "alert_title": "t", "alert_desc": "d", "severity": "warning",
+            "is_active": 1, "channel": "jd"
+        }).execute()
+        r = client.delete('/api/rules/502')
+        assert r.status_code == 200
+        live = client.get('/api/rules?channel=jd').json()['data']
+        assert not any(x['id'] == 502 for x in live), f"已删规则 502 不应在列表: {[x['id'] for x in live]}"
+        # 回收站视角：include_deleted=1 应包含 502
+        deleted = client.get('/api/rules?channel=all&include_deleted=1').json()['data']
+        assert any(x['id'] == 502 for x in deleted), "回收站应能看到已删规则 502"
+        # 停用（未删除）的规则仍显示在正常列表
+        db.table("rules").insert({
+            "id": 503, "name": "停用规则", "event": "inventory.changed",
+            "condition_json": "{}", "alert_type": "low_stock",
+            "alert_title": "t", "alert_desc": "d", "severity": "warning",
+            "is_active": 0, "channel": "jd"
+        }).execute()
+        # 清除 30s 列表缓存（前序请求已缓存 rules_jd_live）
+        from app.api.routes.rules import _rules_cache
+        _rules_cache.clear()
+        live = client.get('/api/rules?channel=jd').json()['data']
+        assert any(x['id'] == 503 for x in live), "停用规则应保留在列表"
+
     def test_orphan_cleanup_skip_replenish(self):
         """孤儿清理：无 active 规则的类型才清，replenishment_engine 不受影响"""
         # 构造孤儿：orphan_test 类型无任何规则 + active 告警

@@ -137,11 +137,16 @@ def _rebuild(channel='jd'):
     
     inv_list = [{"sku":r[0],"product_name":r[1],"warehouse":r[2],"warehouse_type":r[3],"available_qty":r[4],"safety_qty":r[5],"store":r[6]} for r in inv]
     
-    low_stock = len([x for x in inv_list if int(x.get('available_qty') or 0) < int(x.get('safety_qty') or 0)])
+    # 聚合循环中定期让出 GIL（PA 单 worker：避免长重建饿死 health 等短请求）
+    low_stock = 0
     store_low = {}
-    for x in inv_list:
+    for idx, x in enumerate(inv_list):
+        if idx % 2000 == 0:
+            time.sleep(0.001)
+        is_low = int(x.get('available_qty') or 0) < int(x.get('safety_qty') or 0)
+        if is_low: low_stock += 1
         s = x.get('store') or ''
-        store_low[s] = store_low.get(s, 0) + (1 if int(x.get('available_qty') or 0) < int(x.get('safety_qty') or 0) else 0)
+        store_low[s] = store_low.get(s, 0) + (1 if is_low else 0)
     for s in stores:
         s['low_stock'] = store_low.get(s['name'], 0)
     

@@ -397,6 +397,23 @@ def _task_push_alerts():
     except Exception as e:
         logger.warning(f"Alert push error: {e}")
 
+def _task_warmup_dashboard():
+    """预热 dashboard 缓存（延迟执行，后台线程重建 jd+other，避免首个用户请求同步重建 10s）"""
+    try:
+        import threading
+        def _w():
+            try:
+                from app.core.dashboard_cache import get_cached_dashboard
+                get_cached_dashboard('jd')
+                get_cached_dashboard('other')
+                logger.info("Dashboard warmup done")
+            except Exception as e:
+                logger.warning(f"Dashboard warmup error: {e}")
+        threading.Thread(target=_w, daemon=True).start()
+    except Exception as e:
+        logger.warning(f"Warmup job error: {e}")
+
+
 def start():
     global _started
     if _started:
@@ -411,6 +428,8 @@ def start():
     scheduler.add_job(_task_cleanup_recycle, CronTrigger(hour=4, minute=30), id='recycle_cleanup')
     scheduler.add_job(_task_push_alerts, IntervalTrigger(minutes=30), id='push_alerts')
     scheduler.add_job(_task_disk_cleanup, CronTrigger(hour=3, minute=20), id='disk_cleanup')
+    # 延迟预热 dashboard 缓存（reload 后 90s 执行，避开 CI health 探测窗口；修复预热线程饿死请求）
+    scheduler.add_job(_task_warmup_dashboard, trigger='date', run_date=datetime.now(UTC) + timedelta(seconds=90), id='dash_warmup')
     scheduler.start()
     logger.info(f"Started at {datetime.now(UTC).isoformat()}")
 

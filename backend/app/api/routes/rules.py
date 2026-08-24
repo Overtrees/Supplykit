@@ -11,13 +11,23 @@ router = APIRouter(prefix="/api/rules", tags=["rules"])
 _rules_cache = {}
 
 @router.get("")
-def list_rules(channel: str = 'jd', db = get_db()):
+def list_rules(channel: str = 'jd', include_deleted: bool = False, db = get_db()):
     import time
-    key = f"rules_{channel}"
+    key = f"rules_{channel}_{'del' if include_deleted else 'live'}"
     cached = _rules_cache.get(key)
     if cached and time.time() - cached['ts'] < 30:
         return cached['data']
-    data = db.table("rules").select("*").eq("channel", channel).order("id").execute().data
+    if channel == 'all':
+        # 回收站等场景：跨渠道全量
+        data = db.table("rules").select("*").order("id").execute().data
+    else:
+        data = db.table("rules").select("*").eq("channel", channel).order("id").execute().data
+    if include_deleted:
+        # 回收站：只取已软删除的
+        data = [r for r in data if r.get("deleted_at")]
+    else:
+        # 正常列表：隐藏已软删除的（修复：删除规则后页面残留）
+        data = [r for r in data if not (r.get("deleted_at") or "")]
     _rules_cache[key] = {'data': ok(data), 'ts': time.time()}
     return ok(data)
 

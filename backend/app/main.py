@@ -173,21 +173,6 @@ except Exception:
 register_core_handlers()
 start_scheduler()
 
-# 启动预热 dashboard 缓存（异步后台重建，避免首个用户请求同步重建 10s 阻塞单 worker）
-try:
-    import threading as _th
-    def _warmup_dash():
-        try:
-            from app.core.dashboard_cache import get_cached_dashboard
-            get_cached_dashboard('jd')
-            get_cached_dashboard('other')
-            import logging; logging.getLogger('supplykit').info("[startup] dashboard warmup done")
-        except Exception as _e:
-            import logging; logging.getLogger('supplykit').warning(f"[startup] dashboard warmup: {_e}")
-    _th.Thread(target=_warmup_dash, daemon=True).start()
-except Exception:
-    pass
-
 # 初始化 JWT SECRET（持久化到数据库，跨重启 token 有效）
 if not os.getenv("JWT_SECRET"):
     try:

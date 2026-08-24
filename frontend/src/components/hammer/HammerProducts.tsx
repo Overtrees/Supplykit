@@ -4,6 +4,7 @@ import { useToast } from '../../components/Toast'
 import { useDebouncedSearch } from '../../hooks/useDebounce'
 import { PRODUCT_COLS, prodColKey, getProdVis } from './configs'
 import { t } from '../../locale'
+import { api } from '../../api/client'
 
 interface HammerProductsProps { channel: string }
 
@@ -15,20 +16,31 @@ export default function HammerProducts({ channel }: HammerProductsProps) {
 
   useEffect(() => { setVisCols(getProdVis(channel) || PRODUCT_COLS.map(c => c.id)) }, [channel])
 
+  const [batchBusy, setBatchBusy] = useState(false)
   const runBatch = async (action, label) => {
     const s = useAppStore.getState()
     const ids = s.prodSelIds || []
     if (ids.length === 0) { toast.error('请先勾选商品'); return }
     if (action === 'delete' && !window.confirm('删除 ' + ids.length + ' 个商品？可在回收站恢复')) return
+    setBatchBusy(true)
     try {
-      const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
-      const r = await fetch(API + '/api/products/batch', {method:'POST', headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})(), 'Content-Type':'application/json'}, body: JSON.stringify({action, ids})})
-      const d = await r.json()
-      if (d.ok) {
+      // 统一走 api.post：自动注入 token/channel + 响应解包 + 缓存失效
+      await api.post('/api/products/batch', {action, ids})
+      if (action === 'delete') {
+        // 批量删除可撤销（5s 窗口）
+        toast.add({type:'success', title: label + '完成: ' + ids.length + ' 项', duration: 5000, action: {label: '撤销', handler: async () => {
+          try {
+            await api.post('/api/products/batch', {action:'restore', ids})
+            toast.success('已撤销删除')
+            s.setProdBatchSel([]); s.setProdBatch(false); s.bumpProdBatchVersion()
+          } catch(e) { toast.error('撤销失败: ' + (e.message||'')) }
+        }}})
+      } else {
         toast.success(label + '完成: ' + ids.length + ' 项')
-        s.setProdBatchSel([]); s.setProdBatch(false); s.bumpProdBatchVersion()
-      } else toast.error(label + '失败: ' + (d.error || ''))
+      }
+      s.setProdBatchSel([]); s.setProdBatch(false); s.bumpProdBatchVersion()
     } catch(e) { toast.error(label + '失败: ' + (e.message||'')) }
+    setBatchBusy(false)
   }
   const saveCols = (cols) => {
     setVisCols(cols)
@@ -61,9 +73,9 @@ export default function HammerProducts({ channel }: HammerProductsProps) {
             <button className="hammer-btn btn-ghost" onClick={() => { const s = useAppStore.getState(); if (!s.prodBatch) s.setProdBatch(true); s.requestProdBatchAll() }}>全选/取消</button>
           </div>
           <div className="hammer-btn-row" style={{marginTop:8}}>
-            <button className="hammer-btn btn-ghost" style={{color:'var(--success)'}} onClick={() => runBatch('active','启用')}>批量启用</button>
-            <button className="hammer-btn btn-ghost" style={{color:'var(--warning)'}} onClick={() => runBatch('inactive','停用')}>批量停用</button>
-            <button className="hammer-btn btn-ghost" style={{color:'var(--danger)'}} onClick={() => runBatch('delete','删除')}>批量删除</button>
+            <button className="hammer-btn btn-ghost" style={{color:'var(--success)', opacity: batchBusy ? 0.5 : 1}} disabled={batchBusy} onClick={() => runBatch('active','启用')}>批量启用</button>
+            <button className="hammer-btn btn-ghost" style={{color:'var(--warning)', opacity: batchBusy ? 0.5 : 1}} disabled={batchBusy} onClick={() => runBatch('inactive','停用')}>批量停用</button>
+            <button className="hammer-btn btn-ghost" style={{color:'var(--danger)', opacity: batchBusy ? 0.5 : 1}} disabled={batchBusy} onClick={() => runBatch('delete','删除')}>批量删除</button>
           </div>
           <div className="muted2 text-10" style={{marginTop:8}}>勾选商品后在此批量操作</div>
         </div>

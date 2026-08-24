@@ -30,6 +30,9 @@ export default function OrdersPage() {
   useEffect(() => { useAppStore.getState().loadAll(1); setHammerSearch('') }, [channel])
   useEffect(() => { useAppStore.getState().loadAll() }, [hammerSearch, orderStatus])
   const [confirmDel, setConfirmDel] = useState(null)
+  // 删除撤销定时器集合：卸载时统一清理，防止软删订单残留
+  const timersRef = useRef([])
+  useEffect(() => () => { timersRef.current.forEach(clearTimeout); timersRef.current = [] }, [])
   const [visCols, setVisCols] = useState(() => getVis(COL_KEY()) || COLS.map(c => c.id))
   useEffect(() => { if (hammerCols?.orders) setVisCols(hammerCols.orders) }, [hammerCols])
   const totalPages = Math.max(1, Math.ceil((orderTotal || 0) / 30))
@@ -49,8 +52,11 @@ export default function OrdersPage() {
         var timer = setTimeout(async function() {
           await fetch(`${API}/api/orders/${id}/permanent-delete`, {method:'POST', headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
         }, 5000)
+        // 组件卸载/页面切换时清理定时器，防止软删订单残留（服务端 30 天回收站兜底）
+        timersRef.current.push(timer)
         toast.add({type:'success', title:t("undo.deleted"), duration:5000, action: {label: t("undo.undo"), handler: async function() {
           clearTimeout(timer)
+          timersRef.current = timersRef.current.filter(x => x !== timer)
           await fetch(`${API}/api/orders/${id}/restore`, {method:'POST', headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
           useAppStore.getState().loadAll()
         }}})

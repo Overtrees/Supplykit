@@ -97,6 +97,7 @@ def register_core_handlers():
     bus.on('order.created', _handle_event_log)
     bus.on('order.created', _handle_broadcast)
     bus.on('order.created', lambda _: invalidate_dashboard())
+    bus.on('order.created', _invalidate_replenish)
 
     # ─── inventory.changed ──────────────────────────────────────────
     def _handle_inventory_event(data):

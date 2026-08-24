@@ -4,12 +4,16 @@ from app.core.response import ok, fail
 from app.core.sales_utils import calc_sales, rolling_predict
 from app.api.routes.replenishment import get_replenishment_suggestions
 from datetime import datetime, UTC
-import json, os
+import json, os, time
 
 router = APIRouter(prefix="/api/insights", tags=["insights"])
 
 # with-sales 结果缓存（30s TTL + 版本号）
 _with_sales_cache = {}
+
+# 滞销识别内存缓存（10s TTL，API 调用走缓存，scheduler 走实时）
+_slow_cache = {}
+_SLOW_CACHE_TTL = 10
 
 
 @router.get('/ping')
@@ -17,6 +21,12 @@ def ping():
     return ok({"time": datetime.now(UTC).isoformat()})
 
 def detect_slow_moving_products(db=None, create_alerts=False):
+    # API 调用（create_alerts=False）走 10s 内存缓存；scheduler 调用（create_alerts=True）走实时
+    if not create_alerts:
+        _now = time.time()
+        _cached = _slow_cache.get('data')
+        if _cached and _now - _cached['ts'] < _SLOW_CACHE_TTL:
+            return _cached['data']
     from datetime import datetime, timedelta, UTC
     if db is None:
         from app.core.database import get_db
@@ -84,6 +94,9 @@ def detect_slow_moving_products(db=None, create_alerts=False):
                 if not ex:
                     db.table("alerts").insert({"alert_type":"slow_moving", "title":f"滞销: {result[-1]['product_name']}", "description":f"{days} 天无销售，库存 {stock} 件", "severity":"warning", "source":"event_bus", "related_sku":sku, "status":"active", "channel": sku_channel_map.get(sku, 'jd')}).execute()
     result.sort(key=lambda x: -x["days_since_last"])
+    # API 调用写入缓存（scheduler 不写，避免覆盖实时数据）
+    if not create_alerts:
+        _slow_cache['data'] = {'data': ok(result), 'ts': time.time()}
     return ok(result)
 
 @router.get('/slow-moving')

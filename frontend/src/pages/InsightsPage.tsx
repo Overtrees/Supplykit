@@ -86,7 +86,7 @@ export default function InsightsPage() {
   const [purchaseLimit, setPurchaseLimit] = useState(50)
   const [slowLimit, setSlowLimit] = useState(50)
 
-  const { channel: globalChannel, hammerInsightsTab: tab, hammerReplenMode, setHammerReplenMode, hammerCols, hammerData } = useAppStore()
+  const { channel: globalChannel, hammerInsightsTab: tab, hammerReplenMode, setHammerReplenMode, hammerCols, hammerData, dataVersion } = useAppStore()
   useEffect(() => { setDispSel([]) }, [globalChannel, tab])
   const replenMode = (globalChannel !== 'jd' && hammerReplenMode === 'bbcc') ? 'traditional' : hammerReplenMode
   const currentCols = replenMode === 'bbcc' ? BBCC_COLS : TRAD_COLS
@@ -242,7 +242,7 @@ export default function InsightsPage() {
       setDisposals(r.data || [])
       setDisposalsLoading(false)
     }).catch(() => setDisposalsLoading(false))
-  }, [globalChannel, replenMode])
+  }, [globalChannel, replenMode, dataVersion])
 
   const doDispose = async () => {
     if (dispSel.length === 0) { toast.error('请先勾选要处置的项'); return }

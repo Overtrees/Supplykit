@@ -7,7 +7,7 @@ CACHE_TTL = 900  # 15 分钟
 def get_cache_key(mode, channel, days, db):
     """生成缓存 key：只基于数据版本号（订单/库存变更都会递增版本号）"""
     try:
-        ver = db.table("replenishment_config").select("*").eq("key", "_cache_version").execute().data
+        ver = db.table("replenishment_config").select("*").eq("key", "_replen_version").execute().data
         db_ver = ver[0]["value"] if ver else "0"
     except Exception:
         db_ver = "0"
@@ -46,8 +46,8 @@ def set_cache(mode, channel, days, data, db):
 
 
 def invalidate_cache(db):
-    """使缓存失效 — 递增版本号"""
-    ver = db.table("replenishment_config").select("*").eq("key", "_cache_version").execute().data
+    """使补货/采购缓存失效 — 递增 _replen_version（与 dashboard 的 _cache_version 独立）"""
+    ver = db.table("replenishment_config").select("*").eq("key", "_replen_version").execute().data
     new_ver = str(int(ver[0]["value"]) + 1) if ver else "1"
     if ver:
         db.table("replenishment_config").update({"value": new_ver}).eq("key", "_cache_version").execute()

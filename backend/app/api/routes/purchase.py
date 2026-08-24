@@ -15,6 +15,11 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', channel: str = 
     """采购建议：系统总库存视角，含目标周转控制"""
     from datetime import timedelta, UTC
     now = datetime.now(UTC)
+    # 尝试读取缓存（与补货建议共享 _replen_version 版本号）
+    from app.core.replenishment_cache import get_cached, set_cache as _set_cache
+    _cached, _hit = get_cached('purchase', channel, days, db)
+    if _hit:
+        return ok(_cached)
 
     raw = {r['key']: r['value'] for r in db.table("replenishment_config").select("*").eq("channel", channel).execute().data}
     purchase_lead_time = int(raw.get('purchase_lead_days', '0'))
@@ -188,6 +193,11 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', channel: str = 
         conn.commit()
     except Exception as e:
         logger.warning(f"[purchase] batch alerts: {e}")
+    # 写入缓存
+    try:
+        _set_cache('purchase', channel, days, result, db)
+    except Exception:
+        pass
     return ok(result)
 
 

@@ -54,6 +54,8 @@ export const useAppStore = create((set, get) => ({
   poller: null,
   ws: null,
 
+  dataVersion: 0,
+  bumpDataVersion: () => set((s) => ({ dataVersion: s.dataVersion + 1 })),
   orderSearch: '',
   orderStatus: '',
   orderLoading: false,
@@ -164,6 +166,8 @@ export const useAppStore = create((set, get) => ({
       ws.onmessage = () => {
         // Any WS event → reload data for real-time updates
         get().loadAll().catch(() => {})
+        // 通知建议页等非 loadAll 覆盖的页面刷新
+        get().bumpDataVersion()
       }
       ws.onclose = () => {
         set({ wsStatus: 'polling', ws: null })

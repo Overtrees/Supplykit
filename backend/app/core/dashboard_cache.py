@@ -229,6 +229,7 @@ def get_cached_dashboard(channel):
                 global _cache_dirty
                 try:
                     _cache_by_channel[channel] = {'data': _rebuild(channel), 'ts': time.time()}
+                    _cache_dirty = False
                 except Exception as e:
                     import logging; logging.warning(f"[dash-cache] async rebuild: {e}")
                 finally:
@@ -258,7 +259,8 @@ def check_db_version():
 def invalidate():
     global _cache_dirty, _cache_by_channel, _cache_version, _stock_risk_cache
     _cache_dirty = True
-    _cache_by_channel.clear()
+    # 关键：不再 clear _cache_by_channel —— 保留旧缓存，
+    # 下次请求经 stale 检测走异步重建并降级返回旧值（单 worker 不阻塞）
     _stock_risk_cache.clear()
     _cache_version += 1
     try:

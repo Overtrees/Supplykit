@@ -82,6 +82,8 @@ def _invalidate_sales_caches():
         db = get_db()
         invalidate_cache(db)
         invalidate_dashboard()
+        # 通知前端数据变更
+        from app.api.routes.ws import broadcast_sync; broadcast_sync("data.updated")
     except Exception as e:
         import logging; logging.warning(f"[orders] invalidate caches: {e}")
 

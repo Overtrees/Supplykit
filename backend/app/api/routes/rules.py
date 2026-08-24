@@ -46,7 +46,7 @@ def create_rule(data: RuleCreate, db = get_db()):
         "is_active": 1 if data.is_active else 0,
     }
     db.table("rules").insert(payload).execute()
-    return ok({"message": "规则已创建"})
+    from app.api.routes.ws import broadcast_sync; broadcast_sync("data.updated"); return ok({"message": "规则已创建"})
 
 @router.put("/{rule_id}")
 def update_rule(rule_id: int, data: RuleUpdate, db = get_db()):
@@ -65,7 +65,7 @@ def update_rule(rule_id: int, data: RuleUpdate, db = get_db()):
     if data.is_active is not None: update["is_active"] = 1 if data.is_active else 0
     if update:
         db.table("rules").update(update).eq("id", rule_id).execute()
-    return ok({"message": "已更新"})
+    from app.api.routes.ws import broadcast_sync; broadcast_sync("data.updated"); return ok({"message": "已更新"})
 
 @router.delete("/{rule_id}")
 def delete_rule(rule_id: int, db = get_db()):
@@ -74,20 +74,21 @@ def delete_rule(rule_id: int, db = get_db()):
     from datetime import datetime, UTC
     db.table("rules").update({"is_active": 0, "deleted_at": datetime.now(UTC).isoformat()}).eq("id", rule_id).execute()
     _sync_alerts_for_rules([rule_id], True, db)
-    return ok({"message": "已删除", "id": rule_id})
+    from app.api.routes.ws import broadcast_sync; broadcast_sync("data.updated"); return ok({"message": "已删除", "id": rule_id})
 
 @router.post("/{rule_id}/restore")
 def restore_rule(rule_id: int, db = get_db()):
     _rules_cache.clear()
     db.table("rules").update({"is_active": 1, "deleted_at": ""}).eq("id", rule_id).execute()
     _sync_alerts_for_rules([rule_id], False, db)
-    return ok({"message": "已恢复", "id": rule_id})
+    from app.api.routes.ws import broadcast_sync; broadcast_sync("data.updated"); return ok({"message": "已恢复", "id": rule_id})
 
 @router.post("/{rule_id}/permanent-delete")
 def permanent_delete_rule(rule_id: int, db = get_db()):
     _rules_cache.clear()
     db.table("rules").delete().eq("id", rule_id).execute()
     _sync_alerts_for_rules([rule_id], True, db)
+    from app.api.routes.ws import broadcast_sync; broadcast_sync("data.updated")
     return ok({"message": "已永久删除", "id": rule_id})
 
 def _sync_alerts_for_rules(ids: list, disabled: bool, db):

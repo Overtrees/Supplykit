@@ -73,26 +73,15 @@ def _rebuild(channel='jd'):
     """Full rebuild of dashboard data from database using SQL aggregation."""
     conn = get_conn()
     ch = channel
-    # 90 天窗口：只聚合最近 90 天订单（配合数据归档策略）
     from datetime import timedelta, UTC
     from concurrent.futures import ThreadPoolExecutor
     _today = datetime.now(UTC).date()
     _cut90 = (_today - timedelta(days=90)).isoformat()
+    bj_now = datetime.now(UTC) + timedelta(hours=8)
+    bj_date = bj_now.date()
+    _month_cut = (bj_date - timedelta(days=29)).isoformat()
     
-    # 注：dashboard GMV 只统计"已完成"订单，daily_stats 聚合的是全部订单（口径不一致）
-    # 因此 dashboard 仍从 orders 聚合（已加 90 天窗口 + idx_orders_ch_status 索引提速）
-    # 合并 4 个独立聚合为 1 次查询（COUNT CASE WHEN 替代多个 COUNT/SUM）
-    _agg = conn.execute("""
-        SELECT 
-            COALESCE(SUM(CASE WHEN order_status='已完成' THEN total_amount ELSE 0 END), 0),
-            COUNT(CASE WHEN order_status='待发货' THEN 1 END),
-            COUNT(CASE WHEN order_status='申请退款' THEN 1 END),
-            COUNT(*)
-        FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at IS NULL OR deleted_at='')
-    """, (ch, _cut90)).fetchone()
-    gmv, pending, refund, total_orders = _agg[0], _agg[1], _agg[2], _agg[3]
-    
-    # 并行执行 3 个独立大查询（独立连接，互不阻塞）
+    # 并行 2 查询（走 idx_orders_ch_ordered_at / idx_orders_cdate 索引）
     def _q_rows():
         import sqlite3
         _c = sqlite3.connect(_DB_PATH)
@@ -118,73 +107,73 @@ def _rebuild(channel='jd'):
         rows = _f_rows.result()
         store_rows = _f_stores.result()
         inv = _f_inv.result()
+    
+    # 一遍遍历 rows 同时聚合：agg + trend + status_dist + 30天周期数据（替代 _agg/_pstore/_pfunnel）
+    gmv = pending = refund = total_orders = 0
     by_date = {}
+    _status_agg = {}
+    _ps_agg = {}
+    _pf_agg = {}
     for r in rows:
-        key = r[0][5:] if r[0] else '未知'
-        if key not in by_date: by_date[key] = {"订单数": 0, "GMV": 0}
-        by_date[key]["订单数"] += r[3]
-        if r[1] == '已完成': by_date[key]["GMV"] += r[2]
+        _d = r[0] or ''
+        _st = r[1] or '未知'
+        _g = r[2] or 0
+        _cnt = r[3] or 0
+        total_orders += _cnt
+        if _st == '已完成': gmv += _g
+        elif _st == '待发货': pending += _cnt
+        elif _st == '申请退款': refund += _cnt
+        _key = _d[5:] if len(_d) >= 10 else _d
+        if _key not in by_date: by_date[_key] = {"订单数": 0, "GMV": 0}
+        by_date[_key]["订单数"] += _cnt
+        if _st == '已完成': by_date[_key]["GMV"] += _g
+        _status_agg[_st] = _status_agg.get(_st, 0) + _cnt
+        # 30 天周期数据（漏斗/店铺 GMV 需要 store 维度，此处只算漏斗；店铺靠 _q_stores 的 period 过滤）
+        if _d >= _month_cut:
+            _pf_agg[(_d, _st)] = _pf_agg.get((_d, _st), 0) + _cnt
     trend = [{"日期": k, **v} for k, v in sorted(by_date.items())]
+    status_dist = [{"name": k, "value": v} for k, v in _status_agg.items()]
     
     stores = [{"name": r[0], "orders": r[1], "gmv": r[2]} for r in store_rows]
     
-    # 从 trend 原始数据聚合状态分布（避免独立 GROUP BY 查询）
-    _status_agg = {}
-    for r in rows:
-        _st = r[1] or '未知'
-        _status_agg[_st] = _status_agg.get(_st, 0) + r[3]
-    status_dist = [{"name": k, "value": v} for k, v in _status_agg.items()]
+    # ── 周期店铺 GMV（从 stores 的 30 天子集 —— 但 _q_stores 是 90 天全量，需 30 天单独算）
+    # 为减少查询，周期店铺 GMV 从 StoreRows 的 90 天数据用 Python 过滤？不精确（按 store 维度无日期）。
+    # 保留 30 天独立查询（仅 30 天，扫描量是 90 天的 1/3，快）
+    _pstore_rows = conn.execute("SELECT substr(ordered_at,1,10) as d, store, SUM(CASE WHEN order_status='已完成' THEN total_amount ELSE 0 END) FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at IS NULL OR deleted_at='') GROUP BY d, store", (ch, _month_cut)).fetchall()
+    _ps_agg = {}
+    for r in _pstore_rows:
+        _ps_agg[(r[0], r[1])] = _ps_agg.get((r[0], r[1]), 0) + (r[2] or 0)
     
     inv_list = [{"sku":r[0],"product_name":r[1],"warehouse":r[2],"warehouse_type":r[3],"available_qty":r[4],"safety_qty":r[5],"store":r[6]} for r in inv]
     
-    # 聚合循环中定期让出 GIL（PA 单 worker：避免长重建饿死 health 等短请求）
-    low_stock = 0
-    store_low = {}
+    # 聚合循环中定期让出 GIL
+    low_stock = 0; store_low = {}
     for idx, x in enumerate(inv_list):
-        if idx % 2000 == 0:
-            time.sleep(0.001)
+        if idx % 2000 == 0: time.sleep(0.001)
         is_low = int(x.get('available_qty') or 0) < int(x.get('safety_qty') or 0)
         if is_low: low_stock += 1
-        s = x.get('store') or ''
-        store_low[s] = store_low.get(s, 0) + (1 if is_low else 0)
+        _s = x.get('store') or ''
+        store_low[_s] = store_low.get(_s, 0) + (1 if is_low else 0)
     for s in stores:
         s['low_stock'] = store_low.get(s['name'], 0)
     
     product_count = conn.execute("SELECT COUNT(*) FROM products WHERE channel=?", (ch,)).fetchone()[0]
     supplier_count = conn.execute("SELECT COUNT(*) FROM suppliers").fetchone()[0]
     alert_count = conn.execute("SELECT COUNT(*) FROM alerts WHERE channel=? AND status='active'", (ch,)).fetchone()[0]
-    
     cat_rows = conn.execute("SELECT category, COUNT(*) FROM products WHERE channel=? GROUP BY category", (ch,)).fetchall()
     cat_dist = [{"name": r[0] or '未分类', "value": r[1]} for r in cat_rows]
-    
     health = _compute_health(inv_list)
     
-    from datetime import timedelta, UTC
-    # 使用北京时间（UTC+8）确保 today 周期与订单日期一致
-    bj_now = datetime.now(UTC) + timedelta(hours=8)
-    bj_date = bj_now.date()
-    today_str = bj_date.isoformat()
+    # ── 周期聚合：店铺 + 漏斗（纯 Python，30 天数据已收集）
     period_stores = {}
     period_funnel = {}
-    # 单次查询 30 天数据，Python 按周期分组（替代 6 次独立 GROUP BY）
-    _month_cut = (bj_date - timedelta(days=29)).isoformat()
-    _pstore_rows = conn.execute("SELECT substr(ordered_at,1,10) as d, store, SUM(CASE WHEN order_status='已完成' THEN total_amount ELSE 0 END) FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at IS NULL OR deleted_at='') GROUP BY d, store", (ch, _month_cut)).fetchall()
-    _pfunnel_rows = conn.execute("SELECT substr(ordered_at,1,10) as d, order_status, COUNT(*) FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at IS NULL OR deleted_at='') GROUP BY d, order_status", (ch, _month_cut)).fetchall()
-    _ps_agg = {}
-    for r in _pstore_rows:
-        key = (r[0], r[1])
-        _ps_agg[key] = _ps_agg.get(key, 0) + (r[2] or 0)
-    _pf_agg = {}
-    for r in _pfunnel_rows:
-        key = (r[0], r[1])
-        _pf_agg[key] = _pf_agg.get(key, 0) + r[2]
     for pname, pdays in [('today', 1), ('week', 7), ('month', 30)]:
         cutoff = bj_date - timedelta(days=pdays - 1)
         cutoff_str = cutoff.isoformat()
         _store_gmv = {}
         for (d, s), g in _ps_agg.items():
             if d >= cutoff_str: _store_gmv[s] = _store_gmv.get(s, 0) + g
-        period_stores[pname] = [{"name": k, "gmv": v} for k, v in _store_gmv.items()]
+        period_stores[pname] = [{"name": k, "gmv": v} for k, v in sorted(_store_gmv.items())]
         _st_cnt = {}
         for (d, st), c in _pf_agg.items():
             if d >= cutoff_str: _st_cnt[st] = _st_cnt.get(st, 0) + c
@@ -235,6 +224,12 @@ def get_cached_dashboard(channel):
                 try:
                     _cache_by_channel[channel] = {'data': _rebuild(channel), 'ts': time.time()}
                     _cache_dirty = False
+                    # 异步重建完成 → 广播通知前端可拉取新数据
+                    try:
+                        import app.core.events as _ev
+                        _ev.bus.emit('dashboard.updated', {'channel': channel})
+                    except Exception:
+                        pass
                 except Exception as e:
                     import logging; logging.warning(f"[dash-cache] async rebuild: {e}")
                 finally:

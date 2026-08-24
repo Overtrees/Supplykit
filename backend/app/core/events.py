@@ -120,6 +120,18 @@ def register_core_handlers():
     # 商品删除/停用/修改 → 补货/采购/看板缓存全失效，建议页联动去除
     bus.on('products.changed', _invalidate_all_caches)
 
+    def _handle_products_changed_broadcast(data):
+        from app.api.routes.ws import broadcast_sync
+        broadcast_sync("data.updated")
+    bus.on('products.changed', _handle_products_changed_broadcast)
+
+    # ─── dashboard.updated ─────────────────────────────────────────────
+    # dashboard 缓存异步重建完成 → 前端可拉取新数据
+    def _handle_dashboard_updated(data):
+        from app.api.routes.ws import broadcast_sync
+        broadcast_sync("dashboard.updated", data.get('channel', 'jd'))
+    bus.on('dashboard.updated', _handle_dashboard_updated)
+
     # ─── data.cleaned ───────────────────────────────────────────────
     def _handle_cleansed_event(data):
         from app.api.routes.events import create_event

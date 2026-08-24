@@ -34,19 +34,30 @@ def list_rules(channel: str = 'jd', include_deleted: bool = False, db = get_db()
 @router.post("")
 def create_rule(data: RuleCreate, db = get_db()):
     _rules_cache.clear()
-    payload = {
-        "name": data.name, "event": data.event,
-        "condition_json": json.dumps(data.condition),
-        "alert_type": data.alert_type,
-        "alert_title": data.alert_title,
-        "alert_desc": data.alert_desc,
-        "severity": data.severity,
-        "channel": data.channel,
-        "mode": data.mode,
-        "is_active": 1 if data.is_active else 0,
-    }
-    db.table("rules").insert(payload).execute()
-    from app.api.routes.ws import broadcast_sync; broadcast_sync("data.updated"); return ok({"message": "规则已创建"})
+    try:
+        payload = {
+            "name": data.name, "event": data.event,
+            "condition_json": json.dumps(data.condition),
+            "alert_type": data.alert_type,
+            "alert_title": data.alert_title,
+            "alert_desc": data.alert_desc,
+            "severity": data.severity,
+            "channel": data.channel,
+            "mode": data.mode,
+            "is_active": 1 if data.is_active else 0,
+        }
+        db.table("rules").insert(payload).execute()
+        from app.api.routes.ws import broadcast_sync; broadcast_sync("data.updated")
+        return ok({"message": "规则已创建"})
+    except Exception as e:
+        import traceback, logging
+        logging.error(f"[rules] create error: {traceback.format_exc()}")
+        try:
+            db.table("quality_logs").insert({"log_type": "rules_error", "level": "error",
+                "message": f"创建规则失败: {e}", "source": "rules"}).execute()
+        except Exception:
+            pass
+        return fail(f"创建规则失败: {e} | {traceback.format_exc().splitlines()[-2:]}", status=500)
 
 @router.put("/{rule_id}")
 def update_rule(rule_id: int, data: RuleUpdate, db = get_db()):

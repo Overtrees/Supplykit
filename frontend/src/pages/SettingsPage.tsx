@@ -68,7 +68,8 @@ function RecycleBin({ onClose }) {
   var [selected, setSelected] = useState({ rules: new Set(), orders: new Set() })
   var [batchBusy, setBatchBusy] = useState(false)
 
-  useEffect(function() {
+  // 数据加载函数（提取自 useEffect，供初始化与批量操作后刷新复用）
+  var loadData = function() {
     setLoading(true)
     var _auth = {'Authorization':'Bearer ' + (()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}
     Promise.all([
@@ -81,7 +82,9 @@ function RecycleBin({ onClose }) {
       setOrders(Array.isArray(o) ? o.filter(function(x) { return x.deleted_at }) : [])
       setLoading(false)
     }).catch(function() { setLoading(false) })
-  }, [])
+  }
+
+  useEffect(function() { loadData() }, [])
 
   var toggleSel = function(type, id) {
     setSelected(function(prev) {
@@ -113,8 +116,8 @@ function RecycleBin({ onClose }) {
         }))
       }
       toast.success(label + '完成: ' + ids.length + ' 项')
-      if (type === 'rules') setRules(rules.filter(function(x) { return !ids.includes(x.id) }))
-      else setOrders(orders.filter(function(x) { return !ids.includes(x.id) }))
+      // 成功调用 API 重新拉取数据（替换本地 filter，更可靠且避免闭包问题）
+      loadData()
       setSelected(function(prev) {
         var next = new Set(prev[type]); ids.forEach(function(id) { next.delete(id) })
         return { ...prev, [type]: next }

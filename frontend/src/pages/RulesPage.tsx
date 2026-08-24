@@ -205,22 +205,23 @@ export default function RulesPage() {
 
   if (loading) return <div className='card'><div className='section-title'><div className="skeleton" style={{width:120,height:20}}/></div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>{[1,2,3,4,5,6].map(i=><div key={i}><div className="skeleton" style={{width:64,height:12,marginBottom:6}}/><div className="skeleton" style={{width:'100%',height:36}}/></div>)}</div><div style={{marginTop:16}}><div className="skeleton" style={{width:80,height:36,borderRadius:99}}/></div></div>
 
-  {/* ── 调试面板（localStorage 设 c_debug_rules=1 启用） ── */}
-  {(() => { try { return localStorage.getItem('c_debug_rules') === '1' } catch { return false } })() && (
-    <div style={{marginBottom:12,padding:10,borderRadius:12,border:'1px solid var(--warning)',background:'rgba(245,158,11,0.08)',fontSize:11,fontFamily:'monospace'}}>
-      <div style={{fontWeight:700,marginBottom:4}}>🔍 规则页调试追踪（关闭: localStorage 设 c_debug_rules=0）</div>
-      <div style={{color:'var(--text-secondary)',marginBottom:4}}>当前 rules state: <b>{rules.length}</b> 条 | filteredRules: <b>{filteredRules.length}</b> 条 | 渠道: <b>{globalChannel}</b></div>
-      <button onClick={() => setDebugLog([])} style={{marginRight:6,padding:'2px 8px',borderRadius:8,border:'1px solid var(--border)',background:'transparent',fontSize:11}}>清空日志</button>
-      {debugLog.length === 0 ? <div style={{color:'var(--muted2)'}}>暂无操作日志</div> : debugLog.map((l, i) => (
-        <div key={i} style={{borderTop:'1px dashed var(--border)',padding:'2px 0'}}>
-          <span style={{color:'var(--muted2)'}}>[{l.t}]</span> {l.msg}
-          {l.data && <span style={{color:'var(--text-secondary)'}}> {JSON.stringify(l.data)}</span>}
-        </div>
-      ))}
-    </div>
-  )}
+  return <>
+    {/* ── 调试面板（localStorage 设 c_debug_rules=1 启用） ── */}
+    {(() => { try { return localStorage.getItem('c_debug_rules') === '1' } catch { return false } })() && (
+      <div style={{marginBottom:12,padding:10,borderRadius:12,border:'1px solid var(--warning)',background:'rgba(245,158,11,0.08)',fontSize:11,fontFamily:'monospace'}}>
+        <div style={{fontWeight:700,marginBottom:4}}>🔍 规则页调试追踪（关闭: localStorage 设 c_debug_rules=0）</div>
+        <div style={{color:'var(--text-secondary)',marginBottom:4}}>当前 rules state: <b>{rules.length}</b> 条 | filteredRules: <b>{filteredRules.length}</b> 条 | 渠道: <b>{globalChannel}</b> | tab: <b>{tab}</b></div>
+        <button onClick={() => setDebugLog([])} style={{marginRight:6,padding:'2px 8px',borderRadius:8,border:'1px solid var(--border)',background:'transparent',fontSize:11}}>清空日志</button>
+        {debugLog.length === 0 ? <div style={{color:'var(--muted2)'}}>暂无操作日志</div> : debugLog.map((l, i) => (
+          <div key={i} style={{borderTop:'1px dashed var(--border)',padding:'2px 0'}}>
+            <span style={{color:'var(--muted2)'}}>[{l.t}]</span> {l.msg}
+            {l.data && <span style={{color:'var(--text-secondary)'}}> {JSON.stringify(l.data)}</span>}
+          </div>
+        ))}
+      </div>
+    )}
 
-  return <div className='card'>
+    <div className='card'>
     <div className='section-title' style={{display:'flex',flexWrap:'wrap',gap:6}}>
     </div>
 
@@ -488,4 +489,5 @@ export default function RulesPage() {
       </div>
     </div>}
   </div>
+  </>
 }

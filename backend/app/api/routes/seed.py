@@ -434,7 +434,14 @@ def _seed_batches(db, skus_data):
     today = datetime.utcnow()
     conn = get_conn()
     rows = conn.execute("SELECT sku, warehouse, warehouse_type, channel, available_qty FROM inventory WHERE available_qty > 0").fetchall()
-    bdata = []
+    bdata = []; _batch_batch = 5000
+    def _flush_bdata():
+        nonlocal bdata
+        if not bdata: return
+        conn.executemany("INSERT INTO batches(sku, warehouse, warehouse_type, channel, prod_date, exp_date, qty) VALUES(?,?,?,?,?,?,?)",
+                         [[b['sku'], b['warehouse'], b['warehouse_type'], b['channel'], b['prod_date'], b['exp_date'], b['qty']] for b in bdata])
+        conn.commit()
+        bdata = []
     _pcat = {}
     try:
         for r in conn.execute("SELECT sku, category, channel FROM products").fetchall():
@@ -475,12 +482,11 @@ def _seed_batches(db, skus_data):
             exp = prod + _td(days=shelf)
             bdata.append({'sku': sku, 'warehouse': wh, 'warehouse_type': wht, 'channel': ch,
                           'prod_date': prod.strftime('%Y-%m-%d'), 'exp_date': exp.strftime('%Y-%m-%d'), 'qty': bq})
+            if len(bdata) >= _batch_batch: _flush_bdata()
             # 记录 SKU 最早截止
             if sku not in best_map or exp < best_map[sku]:
                 best_map[sku] = exp
-    if bdata:
-        conn.executemany("INSERT INTO batches(sku, warehouse, warehouse_type, channel, prod_date, exp_date, qty) VALUES(?,?,?,?,?,?,?)",
-                         [[b['sku'], b['warehouse'], b['warehouse_type'], b['channel'], b['prod_date'], b['exp_date'], b['qty']] for b in bdata])
+    _flush_bdata()
     # 回写 products.best_before = SKU 最早批次截止日
     for sku, exp in best_map.items():
         try:
@@ -533,6 +539,11 @@ def _seed_records(db, skus_data):
     import random
     conn = get_conn()
     today = datetime.utcnow()
+    _rec_batch = 0
+    def _flush_rec():
+        nonlocal _rec_batch
+        if _rec_batch > 0: conn.commit()
+        _rec_batch = 0
     _batch_pool = {}
     try:
         for _r in conn.execute("SELECT sku, warehouse, prod_date, exp_date FROM batches").fetchall():
@@ -558,6 +569,8 @@ def _seed_records(db, skus_data):
                         (sk['sku'], sk['name'], random.randint(50, 500), f"供应商-{sk['sku'][-3:]}",
                          (today - timedelta(days=days_back)).strftime('%Y-%m-%d'), ch, _bp, _be, _wh))
                 except Exception: pass
+            _rec_batch += 1
+            if _rec_batch >= 5000: _flush_rec()
             used_dates = set()
             out_cnt = random.randint(1, min(2, max_days + 1))
             for _ in range(out_cnt):
@@ -573,6 +586,8 @@ def _seed_records(db, skus_data):
                         (sk['sku'], sk['name'], random.randint(10, 100), "京东备货仓",
                          (today - timedelta(days=days_back)).strftime('%Y-%m-%d'), ch, _bp, _be, _wh))
                 except Exception: pass
+            _rec_batch += 1
+            if _rec_batch >= 5000: _flush_rec()
     conn.commit()
 
 def _sync_inv_month(conn):
@@ -595,13 +610,15 @@ def _sync_inv_month(conn):
         conn.commit()
     except Exception as e:
         import logging; logging.warning(f"[seed] sync inv month: {e}")
-    # 同步期初库存: 用公式反推(期初=可用-入库+出库), 若为负则调低入库使期初>=0
+    # 同步期初库存: Python 遍历更新（避免 SQL 关联子查询，降低内存峰值）
     try:
-        conn.executescript("""
-            UPDATE inventory SET beginning_stock = available_qty - month_inbound + month_outbound WHERE channel IN ('jd','other') AND warehouse_type='own';
-            UPDATE inventory SET month_inbound = available_qty + month_outbound WHERE channel IN ('jd','other') AND warehouse_type='own' AND beginning_stock < 0;
-            UPDATE inventory SET beginning_stock = available_qty - month_inbound + month_outbound WHERE channel IN ('jd','other') AND warehouse_type='own' AND beginning_stock < 0;
-        """)
+        for _r in conn.execute("SELECT id, sku, warehouse, channel, available_qty, month_inbound, month_outbound FROM inventory WHERE channel IN ('jd','other') AND warehouse_type='own'").fetchall():
+            _id = _r[0]; _avail = int(_r[4] or 0); _in = int(_r[5] or 0); _out = int(_r[6] or 0)
+            _beg = _avail - _in + _out
+            if _beg < 0:
+                _in = _avail + _out
+                _beg = 0
+            conn.execute("UPDATE inventory SET beginning_stock=?, month_inbound=? WHERE id=?", (_beg, _in, _id))
         conn.commit()
     except Exception as _e:
         import logging; logging.warning(f"[seed] sync begin: {_e}")

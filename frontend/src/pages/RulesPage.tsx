@@ -110,7 +110,12 @@ export default function RulesPage() {
 
   
 
-  const load = async (ch) => { try { const c=ch||globalChannel; const r = await api.get('/api/rules?channel='+c); setRules(r.data||[]) } catch(e) {} }
+  const load = async (ch) => { try { const c=ch||globalChannel; const token = (()=>{try{return localStorage.getItem('c_token')}catch{return ''}})(); const r = await fetch(API+'/api/rules?channel='+c, {headers:{'Authorization':'Bearer '+token}}); const d = await r.json(); setRules(d.data||d||[]) } catch(e) {} }
+  useEffect(() => {
+    const h = () => load(globalChannel)
+    window.addEventListener('rules-changed', h)
+    return () => window.removeEventListener('rules-changed', h)
+  }, [globalChannel])
   const loadCfg = async (mode, ch) => { try { const m=mode||cfg.replenishment_mode||'bbcc'; const c=ch||globalChannel; const r=await api.get('/api/replenishment-config?mode='+m+'&channel='+c);if(r.data&&Object.keys(r.data).length>0)setCfg(p=>({...p, ...r.data, replenishment_mode:m}));else if(c!=='jd'){const fallback=await api.get('/api/replenishment-config?mode='+m+'&channel=jd');if(fallback.data)setCfg(p=>({...p,...fallback.data,replenishment_mode:m}))}setCfg(p => ({...p, replenishment_mode: m}));return r.data||{} } catch(e) { return {} } }
   const loadSeasons = async (mode, ch) => { try { const m=mode||cfg.replenishment_mode||'bbcc'; const c=ch||globalChannel; const sk='season_config_'+m; if(cfg[sk]){try{const sd=JSON.parse(cfg[sk]||'[]');setSeasons(Array.isArray(sd)?sd:[]);return}catch{}} const r=await api.get('/api/replenishment-config/seasons?mode='+m+'&channel='+c); setSeasons(r.data||[]) } catch(e) {} }
   const loadAll = async (ch) => { setLoading(true); const c=ch||globalChannel; const savedMode=(()=>{try{return localStorage.getItem('c_replen_mode_'+c)}catch{return null}})(); const m=c!=='jd'?'traditional':(savedMode||'bbcc'); clearCache(); clearInflight(); try{const _s=localStorage.getItem('c_supplier_'+c);if(_s)setSelectedSupplier(_s)}catch{} await Promise.all([ (async()=>{try{await load(c)}catch(e){}})(), (async()=>{try{const flat=await api.get('/api/replenishment-config?channel='+c);if(flat.data){setCfg(p=>{const mP='mode_'+m+'_';const mD={};Object.entries(flat.data).forEach(([k,v])=>{if(k.startsWith(mP))mD[k.slice(mP.length)]=v});return{...p,...flat.data,...mD,replenishment_mode:m}});const sK='season_config_'+m;try{const sd=JSON.parse(flat.data[sK]||'[]');setSeasons(Array.isArray(sd)?sd:[])}catch{}}}catch(e){}})(), (async()=>{try{const sr=await api.get('/api/suppliers?channel='+c);if(sr.data)setSuppliers(sr.data.map(x=>x.supplier_code).filter(Boolean))}catch(e){}})() ]); setLoading(false) }
@@ -150,7 +155,7 @@ export default function RulesPage() {
       const r = await fetch(url, {method: isNew?'POST':'PUT', headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})(), 'Content-Type':'application/json'}, body:JSON.stringify({...f, mode: f.mode||'', channel:globalChannel, condition_json:cj})})
       if (!r.ok) { const err = await r.json().catch(()=>({})); throw new Error(err.detail || 'HTTP '+r.status) }
       toast.success(isNew ? '规则已创建' : '规则已更新')
-      clearCache(); cancelEdit(); await load(globalChannel)
+      clearCache(); cancelEdit(); await load(globalChannel); window.dispatchEvent(new Event('rules-changed'))
       // 本地即时更新 mode 显示，不等 API 返回（避免旧 state 渲染导致 mode 显示"全部"）
       if (!isNew) setRules(prev => prev.map(rl => rl.id === editing.id ? {...rl, mode: f.mode||''} : rl))
     } catch(e) { toast.error('保存失败: '+e.message) }
@@ -159,7 +164,7 @@ export default function RulesPage() {
   const del = async (id) => {
     await fetch(API+'/api/rules/'+id, {headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()},method:'DELETE'})
     clearCache()
-    await load(globalChannel)
+    await load(globalChannel); window.dispatchEvent(new Event('rules-changed'))
     var timer = setTimeout(async function() {
       await fetch(API+'/api/rules/'+id+'/permanent-delete', {headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()},method:'POST'})
     }, 5000)

@@ -208,9 +208,12 @@ def backup_db():
         os.remove(_raw)
         return _gz
     except Exception:
+        # 外层降级：直接复制后 gzip 压缩
         try:
-            shutil.copy2(DB_PATH, bak_path)
-            return bak_path
+            _fallback_gz = bak_path + ".gz"
+            with open(DB_PATH, 'rb') as _fi, gzip.open(_fallback_gz, 'wb') as _fo:
+                shutil.copyfileobj(_fi, _fo, 1024*1024)
+            return _fallback_gz
         except Exception:
             return None
 

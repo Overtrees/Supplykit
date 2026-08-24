@@ -116,6 +116,11 @@ def _task_backup():
     try:
         from app.core.database import backup_db, DB_PATH
         import glob, os
+        # 备份前：清理所有非 .gz 的备份临时文件（.bak.tmp / .bak.raw / 无后缀 .bak.YYYYMMDD）
+        for _f in glob.glob(DB_PATH + ".bak.*"):
+            if not _f.endswith('.gz'):
+                try: os.remove(_f); logger.info(f"Pre-backup cleanup: removed {_f}")
+                except Exception: pass
         # 备份前检查配额：如果已有 2 个备份，先删最旧的再备份
         baks = sorted(glob.glob(DB_PATH + ".bak.*.gz"), key=os.path.getmtime, reverse=True)
         while len(baks) >= 2:
@@ -182,14 +187,16 @@ def _task_disk_cleanup():
                 os.remove(old)
                 cleaned.append(os.path.basename(old))
             except Exception: pass
-        # 2. 清理临时文件（tmp* / .nfs*）
+        # 2. 清理临时文件（tmp* / .bak.tmp / .bak.*.raw / .nfs*）
         app_dir = os.path.dirname(DB_PATH)
-        for f in glob.glob(os.path.join(app_dir, "tmp*")) + glob.glob(os.path.join(app_dir, ".nfs*")):
-            try:
-                if os.path.isfile(f):
-                    os.remove(f)
-                    cleaned.append(os.path.basename(f))
-            except Exception: pass
+        for _p in ["tmp*", ".bak.tmp", ".bak.*.raw", ".bak.*", ".nfs*"]:
+            # 跳过 .gz 备份文件（由单独的备份保留逻辑处理）
+            for f in glob.glob(os.path.join(app_dir, _p)):
+                try:
+                    if f.endswith('.gz'): continue
+                    if os.path.isfile(f) or os.path.islink(f):
+                        os.remove(f); cleaned.append(os.path.basename(f))
+                except Exception: pass
         # 3. WAL checkpoint 防膨胀（合并 WAL 到主库）
         try:
             import sqlite3
@@ -207,7 +214,23 @@ def _task_disk_cleanup():
                 cleaned.append("vacuum(incremental)")
         except Exception as e:
             logger.info(f"VACUUM error: {e}")
-        # 5. 报告数据库和 WAL 大小
+        # 5. 清理旧导出文件（保留最近 10 个）
+        exports_dir = os.path.join(app_dir, "api", "exports")
+        exps = sorted(glob.glob(os.path.join(exports_dir, "*.xlsx")), key=os.path.getmtime, reverse=True)
+        for old in exps[10:]:
+            try: os.remove(old); cleaned.append(os.path.basename(old))
+            except Exception: pass
+        # 6. 清理旧 quality_logs（保留最近 1000 条）
+        try:
+            import sqlite3
+            _c = sqlite3.connect(DB_PATH)
+            _c.execute("PRAGMA busy_timeout=10000")
+            _c.execute("DELETE FROM quality_logs WHERE id NOT IN (SELECT id FROM quality_logs ORDER BY id DESC LIMIT 1000)")
+            _c.commit()
+            _c.close()
+            cleaned.append("quality_logs_trim")
+        except Exception: pass
+        # 7. 报告数据库和 WAL 大小
         db_size = os.path.getsize(DB_PATH) / 1024 / 1024
         wal_path = DB_PATH + "-wal"
         wal_size = os.path.getsize(wal_path) / 1024 / 1024 if os.path.exists(wal_path) else 0

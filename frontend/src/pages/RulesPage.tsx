@@ -78,6 +78,8 @@ export default function RulesPage() {
   }
   const [loading, setLoading] = useState(true)
   const [rules, setRules] = useState([])
+  const [debugLog, setDebugLog] = useState([])
+  const addDebug = (msg, data) => { const t = new Date().toLocaleTimeString(); setDebugLog(p => [{t, msg, data}, ...p].slice(0,50)) }
   const [editing, setEditing] = useState(null)
   const [cfg, setCfg] = useState({})
   const [seasons, setSeasons] = useState([])
@@ -110,7 +112,19 @@ export default function RulesPage() {
 
   
 
-  const load = async (ch) => { try { const c=ch||globalChannel; const token = (()=>{try{return localStorage.getItem('c_token')}catch{return ''}})(); const r = await fetch(API+'/api/rules?channel='+c, {headers:{'Authorization':'Bearer '+token}}); const d = await r.json(); setRules(d.data||d||[]) } catch(e) {} }
+  const load = async (ch) => { 
+    try { 
+      const c=ch||globalChannel; 
+      addDebug('load 开始', {channel: c, 当前rules数: rules.length})
+      const token = (()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()
+      const r = await fetch(API+'/api/rules?channel='+c, {headers:{'Authorization':'Bearer '+token}})
+      const d = await r.json()
+      const newData = d.data || d || []
+      addDebug('load 返回', {status: r.status, 条数: newData.length, ids: newData.map(x=>x.id).slice(0,10)})
+      setRules(newData)
+      addDebug('setRules 完成', {条数: newData.length})
+    } catch(e) { addDebug('load 异常', {error: e.message}) } 
+  }
   useEffect(() => {
     const h = () => load(globalChannel)
     window.addEventListener('rules-changed', h)
@@ -144,6 +158,7 @@ export default function RulesPage() {
 
   const save = async () => {
     setSaveLoading(true)
+    addDebug('save 开始', {isNew: !editing || !editing.id})
     try {
       let rv = cond.right
       if (cond.rightType === 'number') rv = parseFloat(cond.right) || 0
@@ -155,6 +170,7 @@ export default function RulesPage() {
       const r = await fetch(url, {method: isNew?'POST':'PUT', headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})(), 'Content-Type':'application/json'}, body:JSON.stringify({...f, mode: f.mode||'', channel:globalChannel, condition_json:cj})})
       if (!r.ok) { const err = await r.json().catch(()=>({})); throw new Error(err.detail || 'HTTP '+r.status) }
       toast.success(isNew ? '规则已创建' : '规则已更新')
+      addDebug('save 成功', {isNew, id: editing?.id})
       clearCache(); cancelEdit(); await load(globalChannel); window.dispatchEvent(new Event('rules-changed'))
       // 本地即时更新 mode 显示，不等 API 返回（避免旧 state 渲染导致 mode 显示"全部"）
       if (!isNew) setRules(prev => prev.map(rl => rl.id === editing.id ? {...rl, mode: f.mode||''} : rl))
@@ -162,9 +178,12 @@ export default function RulesPage() {
     setSaveLoading(false)
   }
   const del = async (id) => {
+    addDebug('del 开始', {id})
     await fetch(API+'/api/rules/'+id, {headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()},method:'DELETE'})
+    addDebug('del 删除请求完成')
     clearCache()
     await load(globalChannel); window.dispatchEvent(new Event('rules-changed'))
+    addDebug('del load 完成')
     var timer = setTimeout(async function() {
       await fetch(API+'/api/rules/'+id+'/permanent-delete', {headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()},method:'POST'})
     }, 5000)
@@ -185,6 +204,21 @@ export default function RulesPage() {
   const purchaseFields = [{k:'purchase_lead_days',l:'采购前置(天)'},{k:'purchase_safety_days',l:'采购安全库存(天)'},{k:'moq',l:'MOQ最小起订(件)'},{k:'max_turnover_days',l:'目标周转(天)'}]
 
   if (loading) return <div className='card'><div className='section-title'><div className="skeleton" style={{width:120,height:20}}/></div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>{[1,2,3,4,5,6].map(i=><div key={i}><div className="skeleton" style={{width:64,height:12,marginBottom:6}}/><div className="skeleton" style={{width:'100%',height:36}}/></div>)}</div><div style={{marginTop:16}}><div className="skeleton" style={{width:80,height:36,borderRadius:99}}/></div></div>
+
+  {/* ── 调试面板（localStorage 设 c_debug_rules=1 启用） ── */}
+  {(() => { try { return localStorage.getItem('c_debug_rules') === '1' } catch { return false } })() && (
+    <div style={{marginBottom:12,padding:10,borderRadius:12,border:'1px solid var(--warning)',background:'rgba(245,158,11,0.08)',fontSize:11,fontFamily:'monospace'}}>
+      <div style={{fontWeight:700,marginBottom:4}}>🔍 规则页调试追踪（关闭: localStorage 设 c_debug_rules=0）</div>
+      <div style={{color:'var(--text-secondary)',marginBottom:4}}>当前 rules state: <b>{rules.length}</b> 条 | filteredRules: <b>{filteredRules.length}</b> 条 | 渠道: <b>{globalChannel}</b></div>
+      <button onClick={() => setDebugLog([])} style={{marginRight:6,padding:'2px 8px',borderRadius:8,border:'1px solid var(--border)',background:'transparent',fontSize:11}}>清空日志</button>
+      {debugLog.length === 0 ? <div style={{color:'var(--muted2)'}}>暂无操作日志</div> : debugLog.map((l, i) => (
+        <div key={i} style={{borderTop:'1px dashed var(--border)',padding:'2px 0'}}>
+          <span style={{color:'var(--muted2)'}}>[{l.t}]</span> {l.msg}
+          {l.data && <span style={{color:'var(--text-secondary)'}}> {JSON.stringify(l.data)}</span>}
+        </div>
+      ))}
+    </div>
+  )}
 
   return <div className='card'>
     <div className='section-title' style={{display:'flex',flexWrap:'wrap',gap:6}}>

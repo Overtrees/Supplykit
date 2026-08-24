@@ -294,7 +294,7 @@ python -m pytest tests/test_more.py # 补充 9 个
 | [API 文档](https://overtrees.pythonanywhere.com/api/docs) | Swagger UI | 自动生成 |
 | 数据库 | SQLite | 每日 2:00 自动备份 |
 
-### 定时任务
+> **CI/CD**：后端使用 GitHub Actions（`.github/workflows/deploy-backend.yml`）自动上传 + reload + health check；前端由 Cloudflare Pages 监听 `main` 分支自动构建。Sentry sourcemap 在构建时自动上传。
 
 | 时间 | 任务 |
 |------|------|

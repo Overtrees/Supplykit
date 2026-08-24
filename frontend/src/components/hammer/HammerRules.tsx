@@ -40,7 +40,7 @@ export default function HammerRules({ channel, onShowHistory }: HammerRulesProps
       </div>
       {/* 规则 tab: 功能按钮竖排 */}
       {hammerRulesTab === 'rules' && <>
-        <div className="hammer-row-2">
+        <div className="hammer-row-2" style={{marginBottom:8}}>
           <button onClick={() => { setHammerRulesTab('rules'); bumpHammerRuleNew() }} className="hammer-btn btn-primary"
             style={{display:'flex',alignItems:'center',justifyContent:'center',gap:4}}>
             + 新建
@@ -70,10 +70,14 @@ export default function HammerRules({ channel, onShowHistory }: HammerRulesProps
                 <button className="hammer-clear" onClick={() => useAppStore.getState().setProdBatch(true)}>进入批量模式</button>
               )}
             </div>
+            <div className="hammer-btn-row">
             <button className="hammer-btn btn-ghost" onClick={() => { const s = useAppStore.getState(); if (!s.prodBatch) s.setProdBatch(true); s.requestProdBatchAll() }}>全选/取消</button>
+          </div>
+          <div className="hammer-btn-row" style={{marginTop:8}}>
             <button className="hammer-btn btn-ghost" style={{color:'var(--success)'}} onClick={() => runBatch('active','启用')}>批量启用</button>
             <button className="hammer-btn btn-ghost" style={{color:'var(--warning)'}} onClick={() => runBatch('inactive','停用')}>批量停用</button>
             <button className="hammer-btn btn-ghost" style={{color:'var(--danger)'}} onClick={() => runBatch('delete','删除')}>批量删除</button>
+          </div>
             <div className="muted2 text-10" style={{marginTop:8}}>勾选规则后在此批量操作（删除可回收站恢复）</div>
           </div>
         )}

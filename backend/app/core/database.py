@@ -402,7 +402,7 @@ def get_conn():
             _local.conn.execute("PRAGMA journal_mode=WAL")
         except Exception:
             _local.conn.execute("PRAGMA journal_mode=DELETE")
-        _local.conn.execute("PRAGMA busy_timeout=5000")
+        _local.conn.execute("PRAGMA busy_timeout=15000")
         _local.conn.execute("PRAGMA foreign_keys=ON")
     else:
         try:
@@ -414,7 +414,7 @@ def get_conn():
                 _local.conn.execute("PRAGMA journal_mode=WAL")
             except Exception:
                 _local.conn.execute("PRAGMA journal_mode=DELETE")
-            _local.conn.execute("PRAGMA busy_timeout=5000")
+            _local.conn.execute("PRAGMA busy_timeout=15000")
             _local.conn.execute("PRAGMA foreign_keys=ON")
     return _local.conn
 
@@ -532,6 +532,33 @@ class ExecuteResult:
         self.data = data
         self.count = count
 
+
+def _write_execute(conn, sql, params=None, retries=3):
+    """写操作执行：database is locked / busy 时自动重试（指数退避）
+
+    根治线上"偶发 500 reload 恢复"问题：PA 慢磁盘 + WAL + 单 worker 下
+    写锁竞争常见，busy_timeout 等待超时即抛 locked → 500。
+    统一在此重试（SQLite 应用标准做法），替代逐接口打补丁。
+    """
+    import time as _t
+    for attempt in range(retries + 1):
+        try:
+            cur = conn.execute(sql, params or [])
+            conn.commit()
+            return cur
+        except sqlite3.OperationalError as e:
+            msg = str(e).lower()
+            if ('locked' in msg or 'busy' in msg) and attempt < retries:
+                _t.sleep(0.25 * (attempt + 1))
+                # 锁竞争后连接可能失效，重连一次更稳妥
+                if attempt >= 1:
+                    try:
+                        conn.rollback()
+                    except Exception:
+                        pass
+                continue
+            raise
+
 class InsertBuilder:
     def __init__(self, table, conn):
         self.table = table
@@ -540,8 +567,7 @@ class InsertBuilder:
     def execute(self):
         now = datetime.now(UTC).isoformat()
         sql = f'INSERT INTO "{self.table}" ({self._cols}) VALUES ({self._vals})'
-        cur = self.conn.execute(sql, self._params)
-        self.conn.commit()
+        cur = _write_execute(self.conn, sql, self._params)
         result = ExecuteResult([{"id": cur.lastrowid}])
         if os.getenv('DB_LOG'): import logging; logging.info(f"[DB] insert {self.table} → id={cur.lastrowid}")
         return result
@@ -574,8 +600,7 @@ class UpdateBuilder:
         sets = ", ".join(f'"{k}" = ?' for k in self.data)
         vals = list(self.data.values()) + self._params
         sql = f'UPDATE "{self.table}" SET {sets} WHERE {" AND ".join(self._where)}'
-        self.conn.execute(sql, vals)
-        self.conn.commit()
+        _write_execute(self.conn, sql, vals)
         return ExecuteResult([])
 
 class DeleteBuilder:
@@ -608,8 +633,7 @@ class DeleteBuilder:
         if not self._where:
             raise Exception("DELETE without WHERE is not allowed")
         sql = f'DELETE FROM "{self.table}" WHERE {" AND ".join(self._where)}'
-        self.conn.execute(sql, self._params)
-        self.conn.commit()
+        _write_execute(self.conn, sql, self._params)
         return ExecuteResult([])
 
 class TableRef:
@@ -700,7 +724,7 @@ def init_db(path=None):
         conn.execute("PRAGMA journal_mode=WAL")
     except Exception:
         conn.execute("PRAGMA journal_mode=DELETE")
-    conn.execute("PRAGMA busy_timeout=5000")
+    conn.execute("PRAGMA busy_timeout=15000")
     # 增量自动回收：DELETE 后空间自动归还，避免数据库膨胀（需在创建表前设置）
     try:
         conn.execute("PRAGMA auto_vacuum=INCREMENTAL")

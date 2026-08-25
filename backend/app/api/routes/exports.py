@@ -71,7 +71,7 @@ def create_export_task(type: str = 'purchase', mode: str = 'bbcc', days: int = 2
                     for _r in _conn.execute("SELECT sku, channel, barcode FROM products WHERE barcode!=''").fetchall():
                         _barcodes[(_r[0], _r[1])] = _r[2] or ''
                 except Exception: pass
-                _rows = _conn.execute("SELECT ordered_at,order_no,store,warehouse,product_name,sku,quantity,unit_price,total_amount,order_status,supplier,data_source,channel,paid_at FROM orders WHERE channel=? AND (deleted_at IS NULL OR deleted_at='') ORDER BY id DESC LIMIT 2000", (channel,)).fetchall()
+                _rows = _conn.execute("SELECT ordered_at,order_no,store,warehouse,product_name,sku,quantity,unit_price,total_amount,order_status,supplier,data_source,channel,paid_at FROM orders WHERE channel=? AND (deleted_at='') ORDER BY id DESC LIMIT 2000", (channel,)).fetchall()
                 ws.append(["下单日期","订单号","店铺","仓库","商品","SKU","数量","单价","金额","状态","69码","入库日期","供应商","来源"])
                 for r in _rows:
                     _bc = _barcodes.get((r[5], r[12]), '')

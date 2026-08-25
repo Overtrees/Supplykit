@@ -39,7 +39,7 @@ def _compute_period_trends(conn, ch, today):
     periods = {}
     for pname, pdays in [('today', 1), ('week', 7), ('month', 30)]:
         cutoff = (today - timedelta(days=pdays - 1)).isoformat()
-        rows = conn.execute("SELECT ordered_at, SUM(total_amount) as g, COUNT(*) as cnt FROM orders WHERE channel=? AND ordered_at>=? AND order_status='已完成' AND (deleted_at IS NULL OR deleted_at='') GROUP BY ordered_at", (ch, cutoff)).fetchall()
+        rows = conn.execute("SELECT ordered_at, SUM(total_amount) as g, COUNT(*) as cnt FROM orders WHERE channel=? AND ordered_at>=? AND order_status='已完成' AND (deleted_at='') GROUP BY ordered_at", (ch, cutoff)).fetchall()
         daily = {}
         for r in rows:
             date_str = r[0][5:] if r[0] else '未知'
@@ -87,13 +87,13 @@ def _rebuild(channel='jd'):
         _c = sqlite3.connect(_DB_PATH)
         _c.row_factory = sqlite3.Row
         _c.execute("PRAGMA busy_timeout=30000")
-        return _c.execute("SELECT substr(ordered_at,1,10) as d, order_status, SUM(total_amount) as g, COUNT(*) as cnt FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at IS NULL OR deleted_at='') GROUP BY d, order_status", (ch, _cut90)).fetchall()
+        return _c.execute("SELECT substr(ordered_at,1,10) as d, order_status, SUM(total_amount) as g, COUNT(*) as cnt FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at='') GROUP BY d, order_status", (ch, _cut90)).fetchall()
     def _q_stores():
         import sqlite3
         _c = sqlite3.connect(_DB_PATH)
         _c.row_factory = sqlite3.Row
         _c.execute("PRAGMA busy_timeout=30000")
-        return _c.execute("SELECT store, COUNT(*) as cnt, SUM(CASE WHEN order_status='已完成' THEN total_amount ELSE 0 END) as g FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at IS NULL OR deleted_at='') GROUP BY store ORDER BY store", (ch, _cut90)).fetchall()
+        return _c.execute("SELECT store, COUNT(*) as cnt, SUM(CASE WHEN order_status='已完成' THEN total_amount ELSE 0 END) as g FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at='') GROUP BY store ORDER BY store", (ch, _cut90)).fetchall()
     def _q_inv():
         import sqlite3
         _c = sqlite3.connect(_DB_PATH)
@@ -139,7 +139,7 @@ def _rebuild(channel='jd'):
     # ── 周期店铺 GMV（从 stores 的 30 天子集 —— 但 _q_stores 是 90 天全量，需 30 天单独算）
     # 为减少查询，周期店铺 GMV 从 StoreRows 的 90 天数据用 Python 过滤？不精确（按 store 维度无日期）。
     # 保留 30 天独立查询（仅 30 天，扫描量是 90 天的 1/3，快）
-    _pstore_rows = conn.execute("SELECT substr(ordered_at,1,10) as d, store, SUM(CASE WHEN order_status='已完成' THEN total_amount ELSE 0 END) FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at IS NULL OR deleted_at='') GROUP BY d, store", (ch, _month_cut)).fetchall()
+    _pstore_rows = conn.execute("SELECT substr(ordered_at,1,10) as d, store, SUM(CASE WHEN order_status='已完成' THEN total_amount ELSE 0 END) FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at='') GROUP BY d, store", (ch, _month_cut)).fetchall()
     _ps_agg = {}
     for r in _pstore_rows:
         _ps_agg[(r[0], r[1])] = _ps_agg.get((r[0], r[1]), 0) + (r[2] or 0)

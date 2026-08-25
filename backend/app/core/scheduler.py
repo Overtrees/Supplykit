@@ -47,7 +47,7 @@ def _task_archive_orders():
         db = get_db()
         # 用 SQL 只取超期订单（避免全表加载）
         conn = get_conn()
-        old_orders = [dict(r) for r in conn.execute("SELECT * FROM orders WHERE substr(ordered_at,1,10) < ? AND (deleted_at IS NULL OR deleted_at='')", (cutoff,)).fetchall()]
+        old_orders = [dict(r) for r in conn.execute("SELECT * FROM orders WHERE substr(ordered_at,1,10) < ? AND (deleted_at='')", (cutoff,)).fetchall()]
         if not old_orders:
             logger.info(f"Order archive: no orders before {cutoff}")
             return

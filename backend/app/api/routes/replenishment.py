@@ -231,7 +231,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                 # 当天 orders 补充（原始 SQL 一次性）
                 today = datetime.now(UTC).strftime('%Y-%m-%d')
                 _today_rows = conn.execute(
-                    "SELECT sku, warehouse, quantity, ordered_at FROM orders WHERE ordered_at>=? AND channel=? AND (deleted_at IS NULL OR deleted_at='')",
+                    "SELECT sku, warehouse, quantity, ordered_at FROM orders WHERE ordered_at>=? AND channel=? AND (deleted_at='')",
                     (today, channel)
                 ).fetchall()
                 for _o in _today_rows:

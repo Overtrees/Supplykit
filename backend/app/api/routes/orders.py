@@ -17,7 +17,7 @@ def list_orders(db = get_db(), page: int = 1, page_size: int = 50,
     # 构建查询
     q = db.table("orders").select("*")
     # 软删除过滤：deleted_at 为空或 ''（与 products 一致，修复删单后仍在列表）
-    q._where.append("(deleted_at IS NULL OR deleted_at='')")
+    q._where.append("(deleted_at='')")
     # 渠道过滤：jd → platform=京东或空, other → 非京东
     if channel == 'jd':
         q = q.in_("platform", ["京东", ""])
@@ -97,7 +97,7 @@ def delete_order(oid: int, db = get_db()):
 
 @router.post('/{oid}/restore')
 def restore_order(oid: int, db = get_db()):
-    db.table("orders").update({"deleted_at": None}).eq("id", oid).execute()
+    db.table("orders").update({"deleted_at": ""}).eq("id", oid).execute()
     _invalidate_sales_caches()
     return {"ok": True, "id": oid}
 

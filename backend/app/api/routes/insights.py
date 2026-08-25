@@ -43,7 +43,7 @@ def detect_slow_moving_products(db=None, create_alerts=False):
     # 当天 orders 补充（快照不含今天）
     try:
         today = datetime.now(UTC).strftime('%Y-%m-%d')
-        rows = get_conn().execute("SELECT sku, MAX(ordered_at) FROM orders WHERE ordered_at >= ? AND (deleted_at IS NULL OR deleted_at='') GROUP BY sku", (today,)).fetchall()
+        rows = get_conn().execute("SELECT sku, MAX(ordered_at) FROM orders WHERE ordered_at >= ? AND (deleted_at='') GROUP BY sku", (today,)).fetchall()
         for r in rows:
             if r[0] and str(r[1] or '')[:10] > last_order.get(str(r[0]), ''):
                 last_order[str(r[0])] = str(r[1] or '')[:10]
@@ -54,7 +54,7 @@ def detect_slow_moving_products(db=None, create_alerts=False):
     try:
         from app.core.database import get_conn
         _conn = get_conn()
-        for r in _conn.execute("SELECT sku, product_name, barcode, channel FROM products WHERE deleted_at IS NULL OR deleted_at=''").fetchall():
+        for r in _conn.execute("SELECT sku, product_name, barcode, channel FROM products WHERE deleted_at=''").fetchall():
             products_map[str(r[0])] = {"sku": str(r[0]), "product_name": str(r[1] or ''), "barcode": str(r[2] or ''), "channel": str(r[3] or 'jd')}
     except Exception as e:
         import logging; logging.warning(f"[slow-moving] products: {e}")
@@ -144,7 +144,7 @@ def get_disposal_suggestions(channel: str = 'jd', db = get_db()):
     # 商品信息
     products = {}
     try:
-        for r in conn.execute("SELECT sku, product_name, price, volume, category, best_before, channel, brand FROM products WHERE (deleted_at IS NULL OR deleted_at='') AND channel=?", (channel,)).fetchall():
+        for r in conn.execute("SELECT sku, product_name, price, volume, category, best_before, channel, brand FROM products WHERE (deleted_at='') AND channel=?", (channel,)).fetchall():
             products[str(r[0])] = {"name": str(r[1] or ''), "price": float(r[2] or 0), "volume": float(r[3] or 0),
                                    "category": str(r[4] or ''), "best_before": str(r[5] or '')[:10], "brand": str(r[6] or '')}
     except Exception as e:
@@ -158,7 +158,7 @@ def get_disposal_suggestions(channel: str = 'jd', db = get_db()):
     sale_90 = {}
     try:
         cutoff90 = (today - timedelta(days=90)).strftime('%Y-%m-%d')
-        for r in conn.execute("SELECT sku, ordered_at, quantity, total_amount FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at IS NULL OR deleted_at='')", (channel, cutoff90)).fetchall():
+        for r in conn.execute("SELECT sku, ordered_at, quantity, total_amount FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at='')", (channel, cutoff90)).fetchall():
             sk = str(r[0]); dt = str(r[1])[:10]
             s90 = sale_90.setdefault(sk, {'qty':0,'amt':0,'days':set()})
             s90['qty'] += int(r[2] or 0); s90['amt'] += float(r[3] or 0)
@@ -394,7 +394,7 @@ def trend_analysis(days: int = 30, channel: str = 'jd', db = get_db()):
         from app.core.database import get_conn as _gconn
         _c = _gconn()
         orders = [{"ordered_at": r[0], "total_amount": r[1], "product_name": r[2]}
-                  for r in _c.execute("SELECT ordered_at, total_amount, product_name FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at IS NULL OR deleted_at='')", (channel, cutoff)).fetchall()]
+                  for r in _c.execute("SELECT ordered_at, total_amount, product_name FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at='')", (channel, cutoff)).fetchall()]
         inventory = [{"available_qty": r[0], "safety_qty": r[1]}
                      for r in _c.execute("SELECT available_qty, safety_qty FROM inventory WHERE channel=?", (channel,)).fetchall()]
     except Exception:

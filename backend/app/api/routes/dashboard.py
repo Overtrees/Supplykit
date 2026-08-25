@@ -29,7 +29,7 @@ def dashboard_summary(channel: str = 'jd', start_date: str = '', end_date: str =
         # 按日期过滤
         orders = [o for o in all_orders if start_date <= str(o.get('ordered_at',''))[:10] <= end_date]
         inv = db.table("inventory").select("*").eq("channel", channel).execute().data or []
-        products = db.table("products").select("*").eq("channel", channel).execute().data or []
+        products = db.table("products").select("*").eq("channel", channel).eq("deleted_at", "").execute().data or []
         suppliers = db.table("suppliers").select("*").execute().data or []
         alerts = db.table("alerts").select("*").eq("status", "active").eq("channel", channel).execute().data or []
         gmv = sum(float(x.get("total_amount") or 0) for x in orders if x.get("order_status") == "已完成")
@@ -103,7 +103,7 @@ def stock_risk(channel: str = 'jd'):
     bbcc_lead = b_to_c + c_safety
 
     inv = db.table("inventory").select("*").eq("channel", channel).execute().data or []
-    products = {p["sku"]: p for p in (db.table("products").select("*").execute().data or [])}
+    products = {p["sku"]: p for p in (db.table("products").select("*").eq("deleted_at", "").execute().data or [])}
     sku_barcode_map = {sku: p.get('barcode', '') or '' for sku, p in products.items()}
 
     # 统一数据源：快照+当天，不用 orders 全表扫描

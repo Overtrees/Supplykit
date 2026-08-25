@@ -128,7 +128,7 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
     data_source = mapping_config.get('_meta', {}).get('data_source', '')
 
     # 加载用于校验和推断的参考数据
-    products_map = {p["sku"]: p for p in db.table("products").select("*").execute().data}
+    products_map = {p["sku"]: p for p in db.table("products").select("*").eq("deleted_at", "").execute().data}
     inventory_map = {i["sku"]: i for i in db.table("inventory").select("*").execute().data}
     task_id = f"clean_{datetime.now(UTC).strftime('%H%M%S')}"
     errors = []

@@ -14,7 +14,7 @@ def list_inventory(db = get_db(), channel: str = 'jd', store: str = '', warehous
     if channel != 'jd':
         q = q.neq("warehouse_type", "platform_b")
     # 联表查询商品价格
-    products = {p['sku']: p for p in (db.table("products").select("*").eq("channel", channel).execute().data or [])}
+    products = {p['sku']: p for p in (db.table("products").select("*").eq("channel", channel).eq("deleted_at", "").execute().data or [])}
     if store:
         q = q.eq("store", store)
     if warehouse_type:

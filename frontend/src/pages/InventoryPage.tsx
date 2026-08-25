@@ -52,6 +52,7 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
     }
   }, [hammerCols, whType])
 
+  const s = hammerSearch || ''
   const loadInv = async (p) => {
     const seq = ++reqSeq.current
     if (p === 1) setLoading(true)
@@ -80,7 +81,6 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
     }
   }
 
-  const s = hammerSearch || ''
   const fl = useMemo(() => inventory, [inventory])
 
   const totalTurnover = useMemo(() => {

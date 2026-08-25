@@ -75,13 +75,12 @@ def batch_delete_orders(ids: str = '', db = get_db()):
 
 
 def _invalidate_sales_caches():
-    """订单删除/恢复 → 补货/看板缓存失效（当天删单即时从日销剔除）"""
+    """订单删除/恢复 → 补货/采购缓存失效（看板已由 adjust_dashboard_for_order 增量修正，无需重建覆盖）"""
     try:
         from app.core.replenishment_cache import invalidate_cache
-        from app.core.dashboard_cache import invalidate as invalidate_dashboard
         db = get_db()
         invalidate_cache(db)
-        invalidate_dashboard()
+        # 不再 invalidate_dashboard：看板已被增量更新，异步重建会覆盖修正值
         # 通知前端数据变更
         from app.api.routes.ws import broadcast_sync; broadcast_sync("data.updated")
     except Exception as e:

@@ -39,11 +39,11 @@ def _task_build_sales_snapshot():
         logger.info(f"Sales snapshot error: {e}")
 
 def _task_archive_orders():
-    """每天凌晨 1 点归档 90 天前的订单"""
+    """每天凌晨 1 点归档 90 天前的订单（与看板/滞销 90 天窗口一致，避免缺口）"""
     try:
         from app.core.database import get_db, get_conn
         from datetime import timedelta, UTC
-        cutoff = (datetime.now(UTC) - timedelta(days=60)).strftime('%Y-%m-%d')
+        cutoff = (datetime.now(UTC) - timedelta(days=90)).strftime('%Y-%m-%d')
         db = get_db()
         # 用 SQL 只取超期订单（避免全表加载）
         conn = get_conn()

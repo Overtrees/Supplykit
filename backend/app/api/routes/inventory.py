@@ -92,7 +92,7 @@ def _get_batch_summary(channel='jd'):
             _rt = conn.execute("SELECT value FROM replenishment_config WHERE key='transit_days' AND channel=?", (channel,)).fetchone()
             if _rt and _rt[0]: transit = int(_rt[0])
         except Exception: pass
-        today = datetime.now(UTC)
+        today = datetime.now(UTC).replace(tzinfo=None)
         out = {}
         for r in rows:
             sku, wh, ch = str(r[0]), str(r[1]), str(r[2] or 'jd')

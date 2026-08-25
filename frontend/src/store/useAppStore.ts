@@ -111,7 +111,7 @@ export const useAppStore = create((set, get) => ({
   },
   setChannel: (ch) => { try { localStorage.setItem('c_channel', ch) } catch {} clearCache(); clearInflight(); const _wh = safeGet('c_wh_type_' + ch) || 'own'; set({ channel: ch, dataLoaded: false, loading: true, hammerWhType: (ch !== 'jd' && _wh === 'platform_b') ? 'own' : _wh, hammerDashPeriod: safeGet('c_dash_period_' + ch) || 'month', hammerReplenMode: safeGet('c_replen_mode_' + ch) || (ch === 'jd' ? 'bbcc' : 'traditional'), hammerRulesMode: safeGet('c_replen_mode_' + ch) || (ch === 'jd' ? 'bbcc' : 'traditional'), hammerCleansingChannel: ch }); get().loadAll() },
 
-  async loadAll(page) {
+  async loadAll(page, opts) {
     set({ loading: true, orderLoading: true })
     const ch = get().channel
     const s = get().hammerSearch || ''
@@ -120,8 +120,10 @@ export const useAppStore = create((set, get) => ({
     const ds = get().hammerDashPeriod
     const cds = get().customDateStart
     const cde = get().customDateEnd
+    // opts.refresh=true: dashboard 请求带 refresh=1（填充/导入完成后强制同步重建，不用旧值）
     var dashUrl = '/api/dashboard/summary'
     if (ds === 'custom' && cds && cde) dashUrl += '?start_date=' + cds + '&end_date=' + cde
+    if (opts && opts.refresh) dashUrl += (dashUrl.includes('?') ? '&' : '?') + 'refresh=1'
     try {
       const results = await Promise.allSettled([
         api.get(dashUrl),

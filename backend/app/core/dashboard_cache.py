@@ -247,6 +247,28 @@ def get_cached_dashboard(channel):
         _cache_dirty = False
     return _cache_by_channel[channel]['data']
 
+
+def get_dashboard_sync(channel):
+    """强制同步重建并返回新数据（填充/导入/重置完成后前端主动触发）
+
+    数据精度优先：不返回旧值，清缓存 → 递增版本号 → 同步重建（阻塞几秒可接受，
+    因为用户刚完成关键操作，明确预期等待）。
+    """
+    global _cache_dirty, _cache_by_channel, _cache_version
+    _cache_by_channel.pop(channel, None)
+    _cache_dirty = True
+    _cache_version += 1
+    try:
+        conn = get_conn()
+        conn.execute("INSERT OR REPLACE INTO replenishment_config(key,value) VALUES('_cache_version',?)", (str(_cache_version),))
+        conn.commit()
+    except Exception as e:
+        import logging; logging.warning(f"[dash-cache] persist version: {e}")
+    data = _rebuild(channel)
+    _cache_by_channel[channel] = {'data': data, 'ts': time.time()}
+    _cache_dirty = False
+    return data
+
 def check_db_version():
     try:
         conn = get_conn()

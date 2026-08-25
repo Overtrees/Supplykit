@@ -13,7 +13,11 @@ _stock_risk_cache = {}
 _STOCK_CACHE_TTL = 300  # 5 分钟
 
 @router.get("/summary")
-def dashboard_summary(channel: str = 'jd', start_date: str = '', end_date: str = ''):
+def dashboard_summary(channel: str = 'jd', start_date: str = '', end_date: str = '', refresh: bool = False):
+    if refresh:
+        # 强制同步重建（填充/导入/重置完成后前端主动触发，确保即时准确）
+        from app.core.dashboard_cache import get_dashboard_sync
+        return ok(get_dashboard_sync(channel))
     if start_date and end_date:
         # 自定义日期范围：实时计算，不缓存
         from datetime import datetime as dt, UTC

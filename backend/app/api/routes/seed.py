@@ -299,6 +299,12 @@ def _seed_fill_async():
         try:
             from app.api.routes.ws import broadcast_sync
             broadcast_sync("data.updated")
+            # seed 填充后补货/进销存缓存失效（_replen_version 递增）
+            try:
+                from app.core.replenishment_cache import invalidate_cache
+                invalidate_cache(get_db())
+            except Exception:
+                pass
         except Exception:
             pass
     except Exception as e:

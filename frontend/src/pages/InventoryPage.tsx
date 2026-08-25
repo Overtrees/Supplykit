@@ -102,12 +102,12 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
 
   return <div className='card'>
     <div className='section-title' style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
-      <span>进销存 <span className='small muted'>{t("common.total")} {inventory.length} {t("common.items")}</span></span>
+      <span>进销存 <span className='small muted' style={{fontSize:11,fontWeight:400}}>已加载 {Math.min(inventory.length, invTotal||inventory.length)}/{invTotal||inventory.length} 条 · 显示 {visCols.length}/{INV_COLS[whType].length} 列{s ? ` · "${s}"` : ''}</span></span>
     </div>
     {loading ? <div>{[1,2,3,4].map(i=><div key={i} className='skeleton' style={{height:36,marginBottom:4}}/>)}</div>
     : fl.length === 0
       ? <EmptyState icon='package' title={s?t("inv.empty_matched"):t("common.empty")} desc={s?'换个关键词试试':'通过清洗导入库存数据'} action={!s&&<button className="btn btn-primary" onClick={()=>window.__setPage&&window.__setPage('cleansing')}>去导入数据 →</button>} />
-      : <div style={{overflow:'auto',maxHeight:'calc(100vh - 180px)'}} onScroll={handleScroll}>
+      : <div style={{overflow:'auto',maxHeight:'calc(100vh - 180px)'}}>
         <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>{t("common.showing")} {visCols.length}/{INV_COLS[whType].length} {t("common.columns")}</div>
       <table><colgroup>{visCols.map(id=>{const col=INV_COLS[whType].find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>
         <thead style={{position:"sticky",top:0,background:"var(--card)",zIndex:1}}><tr>{visCols.map(id=>{const col=INV_COLS[whType].find(c=>c.id===id);if(!col)return null;let el;if(col.id==='month_in')el=<th key={col.id}>{col.label}<br/><span className='small' style={{fontWeight:400}}>{monthRange}</span></th>;else if(col.id==='month_out')el=<th key={col.id}>{col.label}<br/><span className='small' style={{fontWeight:400}}>{monthRange}</span></th>;else el=<th key={col.id}>{col.label}</th>;return el})}</tr></thead>
@@ -150,8 +150,17 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
         </tr>
       </tfoot>}
               </table>
-        {loadingMore && <div style={{textAlign:'center',padding:'10px 0',fontSize:12,color:'var(--muted2)'}}>加载更多...</div>}
-        {!loadingMore && invTotal > 0 && inventory.length >= invTotal && <div style={{textAlign:'center',padding:'10px 0',fontSize:11,color:'var(--muted2)'}}>已加载全部 {invTotal} 条</div>}
+        {invTotal > 0 && inventory.length < invTotal && (
+          <div style={{textAlign:'center',padding:'10px 0'}} ref={function(el){
+            if (el && !el._obs) {
+              el._obs = new IntersectionObserver(function(entries){
+                if (entries[0].isIntersecting && !loadingMore) loadInv(invPage + 1)
+              }, {rootMargin: '200px'})
+              el._obs.observe(el)
+            }
+          }}><span className="btn btn-ghost" style={{fontSize:12,padding:'6px 16px',cursor:'pointer'}}>{loadingMore ? '加载中... ' : ''}({Math.min(inventory.length, invTotal)}/{invTotal})</span></div>
+        )}
+        {invTotal > 0 && inventory.length >= invTotal && <div style={{textAlign:'center',padding:'10px 0',fontSize:11,color:'var(--muted2)'}}>已加载全部 {invTotal} 条</div>}
     </div>}
     <ConfirmDialog open={!!confirmDel} title='删除库存记录' desc='删除后不可恢复' confirmLabel='删除' onConfirm={delInv} onCancel={()=>setConfirmDel(null)} />
   </div>

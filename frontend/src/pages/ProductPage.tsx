@@ -40,7 +40,7 @@ if(ld)return<div className='card'><div className='section-title'><span>{t("nav.p
 
 return<div className='card' style={{containerType:'inline-size'}}>
 <div className='section-title' style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
-  <span>商品管理 <span className='small muted'>{t("common.total")} {list.length} {t("common.items")}</span></span>
+  <span>商品管理 <span className='small muted' style={{fontSize:11,fontWeight:400}}>已加载 {Math.min(list.length, pgTotal||list.length)}/{pgTotal||list.length} 条 · 显示 {visCols.length}/{COLS.length} 列{s ? ` · "${s}"` : ''}</span></span>
 </div>
 {fl.length===0?<EmptyState icon='tag' title={s?t("product.empty_matched"):t("product.empty")} desc={s?'换个关键词试试':'通过清洗页导入商品数据'} action={!s&&<button className="btn btn-primary" onClick={()=>window.__setPage&&window.__setPage('cleansing')}>去导入数据 →</button>}/>:<div style={{overflow:'auto',maxHeight:"calc(100vh - 180px)"}}>
 
@@ -65,6 +65,17 @@ return<div className='card' style={{containerType:'inline-size'}}>
   return <td key={col.id} className="small muted" style={{fontSize:11}}>-</td>
 })}
 </tr>)}
-</tbody></table>{loadingMore&&<div style={{textAlign:'center',padding:'10px 0',fontSize:12,color:'var(--muted2)'}}>加载更多...</div>}{!loadingMore&&pgTotal>0&&list.length>=pgTotal&&<div style={{textAlign:'center',padding:'10px 0',fontSize:11,color:'var(--muted2)'}}>已加载全部 {pgTotal} 条</div>}
+</tbody></table>
+        {pgTotal > 0 && list.length < pgTotal && (
+          <div style={{textAlign:'center',padding:'10px 0'}} ref={function(el){
+            if (el && !el._obs) {
+              el._obs = new IntersectionObserver(function(entries){
+                if (entries[0].isIntersecting && !loadingMore) loadProd(pg + 1)
+              }, {rootMargin: '200px'})
+              el._obs.observe(el)
+            }
+          }}><span className="btn btn-ghost" style={{fontSize:12,padding:'6px 16px',cursor:'pointer'}}>{loadingMore ? '加载中... ' : ''}({Math.min(list.length, pgTotal)}/{pgTotal})</span></div>
+        )}
+        {pgTotal > 0 && list.length >= pgTotal && <div style={{textAlign:'center',padding:'10px 0',fontSize:11,color:'var(--muted2)'}}>已加载全部 {pgTotal} 条</div>}
 </div>}
 </div>}

@@ -4,14 +4,6 @@ from typing import Optional
 
 # 环境变量配置
 SECRET = os.getenv("JWT_SECRET", "")
-
-
-def _get_secret():
-    """动态获取 SECRET（main.py 启动后可能已设置持久化的密钥）"""
-    s = os.getenv("JWT_SECRET", "")
-    if s:
-        return s
-    return SECRET
 USERNAME = os.getenv("APP_USERNAME", "admin")
 # 密码 sha256 哈希（如未设环境变量，默认空字符串不允许登录）
 PASSWORD_HASH = os.getenv("APP_PASSWORD_HASH", "")
@@ -31,28 +23,22 @@ def _b64decode(s: str) -> bytes:
     return base64.urlsafe_b64decode(s)
 
 
+def _current_secret():
+    """动态获取 JWT secret：优先环境变量（main.py 启动时从数据库加载/生成后设置）"""
+    s = os.getenv("JWT_SECRET", "")
+    if s:
+        return s
+    return SECRET
+
+
 def hash_password(password: str) -> str:
-    """PBKDF2-HMAC-SHA256 哈希，含 32 字节随机 salt + 100k 迭代（与 README 声明一致）"""
-    salt = os.urandom(32)
-    key = hashlib.pbkdf2_hmac('sha256', password.encode(), salt, 100000)
-    return salt.hex() + ':' + key.hex()
-
-
-def check_password(password: str, stored: str) -> bool:
-    """校验密码（兼容旧版裸 SHA256）"""
-    if ':' not in stored:
-        # 旧版裸 SHA256（无 salt）
-        return hashlib.sha256(password.encode()).hexdigest() == stored
-    # PBKDF2 格式
-    salt_hex, key_hex = stored.split(':')
-    salt = bytes.fromhex(salt_hex)
-    key = hashlib.pbkdf2_hmac('sha256', password.encode(), salt, 100000)
-    return key.hex() == key_hex
+    """返回密码的 sha256 哈希"""
+    return hashlib.sha256(password.encode()).hexdigest()
 
 
 def create_token(username: str, expire_hours: int = 720) -> str:
     """生成 HS256 JWT，默认 30 天过期"""
-    secret = _get_secret() or os.urandom(32).hex()
+    secret = _current_secret() or (os.urandom(32).hex() if not _current_secret() else _current_secret())
     header = _b64(json.dumps({"alg": "HS256", "typ": "JWT"}).encode())
     payload = _b64(json.dumps({
         "sub": username, "iat": int(time.time()),
@@ -65,7 +51,7 @@ def create_token(username: str, expire_hours: int = 720) -> str:
 def verify_token(token: str) -> Optional[str]:
     """验证 JWT，返回 username 或 None"""
     try:
-        secret = _get_secret()
+        secret = _current_secret()
         if not secret:
             return None
         parts = token.split('.')
@@ -85,7 +71,7 @@ def verify_token(token: str) -> Optional[str]:
 
 
 def check_password(password: str) -> bool:
-    """校验密码（环境变量模式，兼容新旧哈希格式）"""
+    """校验密码（环境变量模式）"""
     if not PASSWORD_HASH:
         return False
-    return check_password(password, PASSWORD_HASH)
+    return hash_password(password) == PASSWORD_HASH

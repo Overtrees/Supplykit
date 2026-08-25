@@ -46,6 +46,7 @@ def list_inventory(db = get_db(), channel: str = 'jd', store: str = '', warehous
                 item['batch_status'] = _bs[2]
                 item['batch_pct'] = _bs[3]
                 item['batch_days'] = _bs[5]
+                item['batch_count'] = _bs[6]
             else:
                 item['batch_prod_date'] = item['batch_exp_date'] = item['batch_status'] = ''
                 item['batch_pct'] = 0
@@ -73,6 +74,7 @@ def list_inventory(db = get_db(), channel: str = 'jd', store: str = '', warehous
             item['batch_status'] = _bs[2]
             item['batch_pct'] = _bs[3]
             item['batch_days'] = _bs[5]
+            item['batch_count'] = _bs[6]
         else:
             item['batch_prod_date'] = item['batch_exp_date'] = item['batch_status'] = ''
             item['batch_pct'] = 0
@@ -89,22 +91,28 @@ def _get_batch_summary(channel='jd', warehouse_type=''):
         from datetime import datetime, timedelta, UTC
         conn = get_conn()
         if warehouse_type:
-            # 取每个 SKU 最早过期的完整批次（prod/exp 同批次，避免 MIN(prod)+MIN(exp) 跨批次失真）
+            # 取每个 SKU 最早过期的完整批次（prod/exp 同批次）＋ 该主体下的批次数
             rows = conn.execute("""
-                SELECT sku, prod_date, exp_date FROM (
+                SELECT b.sku, b.prod_date, b.exp_date, b.cnt FROM (
                     SELECT sku, prod_date, exp_date,
-                           ROW_NUMBER() OVER (PARTITION BY sku ORDER BY exp_date ASC) as rn
-                    FROM batches WHERE channel=? AND warehouse_type=? AND exp_date != ''
-                ) WHERE rn = 1
-            """, (channel, warehouse_type)).fetchall()
+                           ROW_NUMBER() OVER (PARTITION BY sku ORDER BY exp_date ASC) as rn FROM batches
+                           WHERE channel=? AND warehouse_type=? AND exp_date != ''
+                ) b JOIN (
+                    SELECT sku, COUNT(*) as cnt FROM batches WHERE channel=? AND warehouse_type=? GROUP BY sku
+                ) cc ON b.sku = cc.sku
+                WHERE b.rn = 1
+            """, (channel, warehouse_type, channel, warehouse_type)).fetchall()
         else:
             rows = conn.execute("""
-                SELECT sku, prod_date, exp_date FROM (
+                SELECT b.sku, b.prod_date, b.exp_date, b.cnt FROM (
                     SELECT sku, prod_date, exp_date,
-                           ROW_NUMBER() OVER (PARTITION BY sku ORDER BY exp_date ASC) as rn
-                    FROM batches WHERE channel=? AND exp_date != ''
-                ) WHERE rn = 1
-            """, (channel,)).fetchall()
+                           ROW_NUMBER() OVER (PARTITION BY sku ORDER BY exp_date ASC) as rn FROM batches
+                           WHERE channel=? AND exp_date != ''
+                ) b JOIN (
+                    SELECT sku, COUNT(*) as cnt FROM batches WHERE channel=? GROUP BY sku
+                ) cc ON b.sku = cc.sku
+                WHERE b.rn = 1
+            """, (channel, channel)).fetchall()
         # 读物流在途天数（默认 3）
         transit = 3
         try:
@@ -117,6 +125,7 @@ def _get_batch_summary(channel='jd', warehouse_type=''):
             sku = str(r[0] or '')
             prod = str(r[1] or '')[:10]
             exp = str(r[2] or '')[:10]
+            _cnt = int(r[3] or 0)
             status = ''; pct = 0; total_days = 0
             if prod and exp:
                 try:
@@ -138,7 +147,7 @@ def _get_batch_summary(channel='jd', warehouse_type=''):
                     if consumed >= total_days:
                         status = 'expired'
                 except Exception: pass
-            out[(sku, channel)] = (prod, exp, status, pct, transit, total_days if total_days > 0 else 0)
+            out[(sku, channel)] = (prod, exp, status, pct, transit, total_days if total_days > 0 else 0, _cnt)
         return out
     except Exception:
         return {}

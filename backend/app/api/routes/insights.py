@@ -498,17 +498,18 @@ def inventory_with_sales(wh_type: str = 'own', channel: str = 'jd', page: int = 
     wh_type: own=自有仓, platform=平台仓(C仓), platform_b=B仓
     page/page_size: 翻页参数，传 0 返回全部
     """
-    # 结果缓存 30s（版本号校验，数据变更自动失效）
+    # 结果缓存 300s（_replen_version 校验：库存/订单/商品变更自动失效）
     import time as _t
     _cache_key = f"{wh_type}|{channel}"
     _now_ts = _t.time()
     try:
-        from app.core.dashboard_cache import check_db_version
-        _ver = check_db_version()
+        # 读 _replen_version（库存/订单/商品变更都递增它）
+        _vrow = db.table("replenishment_config").select("*").eq("key", "_replen_version").execute().data
+        _ver = int(_vrow[0]["value"]) if _vrow and _vrow[0].get("value") else 0
     except Exception:
         _ver = 0
     _cached = _with_sales_cache.get(_cache_key)
-    if _cached and _cached.get('ver') == _ver and _now_ts - _cached.get('ts', 0) < 30:
+    if _cached and _cached.get('ver') == _ver and _now_ts - _cached.get('ts', 0) < 300:
         return ok(_cached['data'])
     # 惰性归档：每天最多检查一次是否有超期订单需归档（不依赖凌晨任务）
     try:
@@ -617,10 +618,12 @@ def inventory_with_sales(wh_type: str = 'own', channel: str = 'jd', page: int = 
                 _item['batch_status'] = _b[2]
                 _item['batch_pct'] = _b[3]
                 _item['batch_days'] = _b[5]
+                _item['batch_count'] = _b[6]
             else:
                 _item['batch_prod_date'] = _item['batch_exp_date'] = _item['batch_status'] = ''
                 _item['batch_pct'] = 0
                 _item['batch_days'] = 0
+                _item['batch_count'] = 0
     except Exception as _e:
         import logging; logging.warning(f"[with-sales] batch inject: {_e}")
     total = len(result)

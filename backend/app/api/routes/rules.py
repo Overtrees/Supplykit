@@ -15,7 +15,7 @@ def list_rules(channel: str = 'jd', include_deleted: bool = False, db = get_db()
     import time
     key = f"rules_{channel}_{'del' if include_deleted else 'live'}"
     cached = _rules_cache.get(key)
-    if cached and time.time() - cached['ts'] < 30:
+    if cached and time.time() - cached['ts'] < 180:
         return cached['data']
     if channel == 'all':
         # 回收站等场景：跨渠道全量

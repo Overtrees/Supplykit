@@ -15,7 +15,7 @@ def get_config(mode: str = None, channel: str = 'jd', db=get_db()):
     import time
     key = f"{channel}:{mode or 'all'}"
     cached = _cfg_cache.get(key)
-    if cached and time.time() - cached['ts'] < 30:
+    if cached and time.time() - cached['ts'] < 180:
         return cached['data']
     rows = db.table("replenishment_config").select("*").eq("channel", channel).execute().data
     all_config = {r['key']: r['value'] for r in rows if not r['key'].startswith('_cache_replen_')}

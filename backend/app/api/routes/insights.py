@@ -604,12 +604,12 @@ def inventory_with_sales(wh_type: str = 'own', channel: str = 'jd', page: int = 
             'month_end': month_end,
             'turnover_days': turnover_days,
         })
-    # 注入批次摘要（最早批次生产/截止/效期状态/总效期）
+    # 注入批次摘要（最早过期批次生产/截止/效期状态/总效期，按主体隔离）
     try:
         from app.api.routes.inventory import _get_batch_summary
-        _bs_map = _get_batch_summary(channel)
+        _bs_map = _get_batch_summary(channel, wh_type)
         for _item in result:
-            _bk = (_item.get('sku',''), _item.get('warehouse',''), _item.get('channel','jd'))
+            _bk = (_item.get('sku',''), _item.get('channel','jd'))
             _b = _bs_map.get(_bk)
             if _b:
                 _item['batch_prod_date'] = _b[0]

@@ -46,9 +46,11 @@ def list_inventory(db = get_db(), channel: str = 'jd', store: str = '', warehous
                 item['batch_status'] = _bs[2]
                 item['batch_pct'] = _bs[3]
                 item['batch_days'] = _bs[5]
+                item['batch_count'] = _bs[6]
             else:
                 item['batch_prod_date'] = item['batch_exp_date'] = item['batch_status'] = ''
                 item['batch_pct'] = 0
+                item['batch_count'] = 0
         return ok({
             'items': data,
             'total': total,
@@ -73,9 +75,11 @@ def list_inventory(db = get_db(), channel: str = 'jd', store: str = '', warehous
             item['batch_status'] = _bs[2]
             item['batch_pct'] = _bs[3]
             item['batch_days'] = _bs[5]
+            item['batch_count'] = _bs[6]
         else:
             item['batch_prod_date'] = item['batch_exp_date'] = item['batch_status'] = ''
             item['batch_pct'] = 0
+            item['batch_count'] = 0
     return ok(data)
 
 
@@ -85,7 +89,7 @@ def _get_batch_summary(channel='jd'):
         from app.core.database import get_conn
         from datetime import datetime, timedelta, UTC
         conn = get_conn()
-        rows = conn.execute("SELECT sku, warehouse, channel, MIN(prod_date), MIN(exp_date) FROM batches WHERE channel=? GROUP BY sku, warehouse, channel", (channel,)).fetchall()
+        rows = conn.execute("SELECT sku, warehouse, channel, MIN(prod_date), MIN(exp_date), COUNT(*) FROM batches WHERE channel=? GROUP BY sku, warehouse, channel", (channel,)).fetchall()
         # 读物流在途天数（默认 3）
         transit = 3
         try:
@@ -119,7 +123,7 @@ def _get_batch_summary(channel='jd'):
                     if consumed >= total_days:
                         status = 'expired'
                 except Exception: pass
-            out[(sku, wh, ch)] = (prod, exp, status, pct, transit, total_days if total_days > 0 else 0)
+            out[(sku, wh, ch)] = (prod, exp, status, pct, transit, total_days if total_days > 0 else 0, count)
         return out
     except Exception:
         return {}

@@ -36,9 +36,9 @@ def list_inventory(db = get_db(), channel: str = 'jd', store: str = '', warehous
             if p: item['price'] = p.get('price', 0)
             if p: item['brand'] = p.get('brand', '')
         # 批量注入批次摘要
-        _batch_summary = _get_batch_summary(channel)
+        _batch_summary = _get_batch_summary(channel, warehouse_type)
         for item in data:
-            _key = (item.get('sku',''), item.get('warehouse',''), item.get('channel','jd'))
+            _key = (item.get('sku',''), item.get('channel','jd'))
             _bs = _batch_summary.get(_key)
             if _bs:
                 item['batch_prod_date'] = _bs[0]
@@ -46,11 +46,9 @@ def list_inventory(db = get_db(), channel: str = 'jd', store: str = '', warehous
                 item['batch_status'] = _bs[2]
                 item['batch_pct'] = _bs[3]
                 item['batch_days'] = _bs[5]
-                item['batch_count'] = _bs[6]
             else:
                 item['batch_prod_date'] = item['batch_exp_date'] = item['batch_status'] = ''
                 item['batch_pct'] = 0
-                item['batch_count'] = 0
         return ok({
             'items': data,
             'total': total,
@@ -65,9 +63,9 @@ def list_inventory(db = get_db(), channel: str = 'jd', store: str = '', warehous
         if p: item['price'] = p.get('price', 0)
         if p: item['brand'] = p.get('brand', '')
     # 批量注入批次摘要（最早生产日/截止日/效期状态）
-    _batch_summary = _get_batch_summary(channel)
+    _batch_summary = _get_batch_summary(channel, warehouse_type)
     for item in data:
-        _key = (item.get('sku',''), item.get('warehouse',''), item.get('channel','jd'))
+        _key = (item.get('sku',''), item.get('channel','jd'))
         _bs = _batch_summary.get(_key)
         if _bs:
             item['batch_prod_date'] = _bs[0]
@@ -75,21 +73,33 @@ def list_inventory(db = get_db(), channel: str = 'jd', store: str = '', warehous
             item['batch_status'] = _bs[2]
             item['batch_pct'] = _bs[3]
             item['batch_days'] = _bs[5]
-            item['batch_count'] = _bs[6]
         else:
             item['batch_prod_date'] = item['batch_exp_date'] = item['batch_status'] = ''
             item['batch_pct'] = 0
-            item['batch_count'] = 0
     return ok(data)
 
 
-def _get_batch_summary(channel='jd'):
-    """返回 {(sku, warehouse, channel): (prod_date, exp_date, status, pct, transit_days)} 批次摘要"""
+def _get_batch_summary(channel='jd', warehouse_type=''):
+    """返回 {(sku, channel): (prod_date, exp_date, status, pct, transit_days, total_days)} 批次摘要
+
+    按 sku 聚合取最早过期批次，JOIN inventory 按 warehouse_type 隔离（自有仓只看自有仓批次）
+    """
     try:
         from app.core.database import get_conn
         from datetime import datetime, timedelta, UTC
         conn = get_conn()
-        rows = conn.execute("SELECT sku, warehouse, channel, MIN(prod_date), MIN(exp_date), COUNT(*) FROM batches WHERE channel=? GROUP BY sku, warehouse, channel", (channel,)).fetchall()
+        if warehouse_type:
+            rows = conn.execute("""
+                SELECT sku, MIN(prod_date), MIN(exp_date)
+                FROM batches WHERE channel=? AND warehouse_type=?
+                GROUP BY sku
+            """, (channel, warehouse_type)).fetchall()
+        else:
+            rows = conn.execute("""
+                SELECT sku, MIN(prod_date), MIN(exp_date)
+                FROM batches WHERE channel=?
+                GROUP BY sku
+            """, (channel,)).fetchall()
         # 读物流在途天数（默认 3）
         transit = 3
         try:
@@ -99,10 +109,10 @@ def _get_batch_summary(channel='jd'):
         today = datetime.now(UTC).replace(tzinfo=None)
         out = {}
         for r in rows:
-            sku, wh, ch = str(r[0]), str(r[1]), str(r[2] or 'jd')
-            prod = str(r[3] or '')[:10]
-            exp = str(r[4] or '')[:10]
-            status = ''; pct = 0
+            sku = str(r[0] or '')
+            prod = str(r[1] or '')[:10]
+            exp = str(r[2] or '')[:10]
+            status = ''; pct = 0; total_days = 0
             if prod and exp:
                 try:
                     prod_dt = datetime.strptime(prod, '%Y-%m-%d')
@@ -123,7 +133,7 @@ def _get_batch_summary(channel='jd'):
                     if consumed >= total_days:
                         status = 'expired'
                 except Exception: pass
-            out[(sku, wh, ch)] = (prod, exp, status, pct, transit, total_days if total_days > 0 else 0, count)
+            out[(sku, channel)] = (prod, exp, status, pct, transit, total_days if total_days > 0 else 0)
         return out
     except Exception:
         return {}

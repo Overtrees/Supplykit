@@ -91,13 +91,24 @@ def _invalidate_sales_caches():
 @router.delete('/{oid}')
 def delete_order(oid: int, db = get_db()):
     from datetime import datetime, UTC
+    # 先取订单用于快照调整（删除后行还在但 deleted_at 变了，先查）
+    _o = db.table("orders").select("*").eq("id", oid).execute().data
     db.table("orders").update({"deleted_at": datetime.now(UTC).isoformat()}).eq("id", oid).execute()
+    # 删历史订单 → 日销快照即时扣减（修复: 否则快照含已删单到次日重建）
+    if _o:
+        from app.core.sales_utils import adjust_snapshot_for_order
+        adjust_snapshot_for_order(_o[0], -1)
     _invalidate_sales_caches()
     return {"ok": True, "id": oid}
 
 @router.post('/{oid}/restore')
 def restore_order(oid: int, db = get_db()):
+    _o = db.table("orders").select("*").eq("id", oid).execute().data
     db.table("orders").update({"deleted_at": ""}).eq("id", oid).execute()
+    # 恢复历史订单 → 日销快照即时加回
+    if _o:
+        from app.core.sales_utils import adjust_snapshot_for_order
+        adjust_snapshot_for_order(_o[0], 1)
     _invalidate_sales_caches()
     return {"ok": True, "id": oid}
 

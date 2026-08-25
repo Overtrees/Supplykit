@@ -220,6 +220,36 @@ def calc_sales(orders, cutoff_days, source='', wh_name=None, sku_barcode_map=Non
         return calc_sales_from_daily(daily_by_sku, cutoff_days, orders=orders, sku_barcode_map=sku_barcode_map)
 
 
+def adjust_snapshot_for_order(order, sign):
+    """删单(sign=-1)/恢复(sign=+1)时即时调整日销快照对应行 order_count
+
+    修复: 删历史订单后 load_daily_sales 读快照仍含该单(窗口到次日重建)。
+    O(1) 单条 UPDATE, 不触发全量重建。
+    """
+    try:
+        _d = str(order.get('ordered_at', ''))[:10]
+        _today = datetime.now(UTC).strftime('%Y-%m-%d')
+        _qty = int(order.get('quantity', 0) or 0)
+        if _qty <= 0 or not _d:
+            return False
+        # 今天的订单不在快照(走当天 orders 补充), 无需调整
+        if _d >= _today:
+            return False
+        from app.core.database import get_conn
+        _c = get_conn()
+        _c.execute(
+            "UPDATE daily_sales_snapshot SET order_count = MAX(order_count + ?, 0) "
+            "WHERE date=? AND channel=? AND sku=? AND warehouse=?",
+            (sign * _qty, _d, order.get('channel', 'jd'), order.get('sku', ''),
+             order.get('warehouse', '') or '未知'))
+        _c.commit()
+        return True
+    except Exception as e:
+        import logging
+        logging.warning(f"[sales] adjust snapshot: {e}")
+        return False
+
+
 def build_daily_sales_snapshot(db):
     # 确保表结构正确（首次调用时重建，添加 warehouse 维度）
     try:

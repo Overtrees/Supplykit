@@ -236,11 +236,14 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
 
         # ─── 写入目标 ──────────────────────────────────────────────
         if is_inv:
+            _wh_name = (str(data.get('warehouse', '')) or ('平台仓' if platform_inv else 'B仓' if b_inv else '自有仓'))[:100]
+            _wh_type = 'platform_b' if b_inv else ('platform' if platform_inv else 'own')
             inv_to_insert.append({
                 "sku": str(data.get('sku', ''))[:100],
                 "product_name": str(data.get('product_name', ''))[:200],
                 "store": str(data.get('store', '未知'))[:100],
-                "warehouse": (str(data.get('warehouse', '')) or ('平台仓' if platform_inv else 'B仓' if b_inv else '自有仓'))[:100],
+                "warehouse": _wh_name,
+                "warehouse_type": _wh_type,
                 "warehouse_type": 'platform_b' if b_inv else ('platform' if platform_inv else 'own'),
                 "channel": channel,
                 "available_qty": int(float(data.get('available_qty', 0))),

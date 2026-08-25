@@ -89,16 +89,21 @@ def _get_batch_summary(channel='jd', warehouse_type=''):
         from datetime import datetime, timedelta, UTC
         conn = get_conn()
         if warehouse_type:
+            # 取每个 SKU 最早过期的完整批次（prod/exp 同批次，避免 MIN(prod)+MIN(exp) 跨批次失真）
             rows = conn.execute("""
-                SELECT sku, MIN(prod_date), MIN(exp_date)
-                FROM batches WHERE channel=? AND warehouse_type=?
-                GROUP BY sku
+                SELECT sku, prod_date, exp_date FROM (
+                    SELECT sku, prod_date, exp_date,
+                           ROW_NUMBER() OVER (PARTITION BY sku ORDER BY exp_date ASC) as rn
+                    FROM batches WHERE channel=? AND warehouse_type=? AND exp_date != ''
+                ) WHERE rn = 1
             """, (channel, warehouse_type)).fetchall()
         else:
             rows = conn.execute("""
-                SELECT sku, MIN(prod_date), MIN(exp_date)
-                FROM batches WHERE channel=?
-                GROUP BY sku
+                SELECT sku, prod_date, exp_date FROM (
+                    SELECT sku, prod_date, exp_date,
+                           ROW_NUMBER() OVER (PARTITION BY sku ORDER BY exp_date ASC) as rn
+                    FROM batches WHERE channel=? AND exp_date != ''
+                ) WHERE rn = 1
             """, (channel,)).fetchall()
         # 读物流在途天数（默认 3）
         transit = 3

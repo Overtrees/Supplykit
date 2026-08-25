@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useAppStore } from '../store/useAppStore'
+import { useToast } from '../components/Toast'
 import { IconRefresh, IconBroom, IconExport, IconClipboard, IconUndo } from '../components/Icons'
 import { t } from '../locale'
 
@@ -22,11 +23,28 @@ export default function TaskPage() {
   const [loading, setLoading] = useState(true)
 
   const [loadErr, setLoadErr] = useState('')
+  const doneTasks = useRef({})  // 已触发完成提示的任务
   const loadTasks = async () => {
     try {
       const r = await fetch(API + '/api/tasks?channel=' + channel, { headers: { 'Authorization': 'Bearer ' + (() => { try { return localStorage.getItem('c_token') } catch { return '' } })() } })
       const d = await r.json()
-      if (d.ok && Array.isArray(d.data)) { setTasks(d.data); setLoadErr('') }
+      if (d.ok && Array.isArray(d.data)) {
+        setTasks(d.data); setLoadErr('')
+        // 检测任务从未完成 → 完成：提示 + 全局刷新数据
+        d.data.forEach(function(t) {
+          if ((t.status === 'done' || t.status === 'error') && !doneTasks.current[t.task_id]) {
+            doneTasks.current[t.task_id] = true
+            if (t.status === 'done') {
+              useToast().success('任务完成: ' + (t.task_type === 'seed' ? '种子填充' : t.task_type === 'clean' ? '清洗导入' : t.task_type === 'export' ? '导出' : t.task_type) + ' ✓')
+              // 数据已变更，通知各页面刷新
+              useAppStore.getState().loadAll().catch(() => {})
+              window.dispatchEvent(new Event('rules-changed'))
+            } else {
+              useToast().error('任务失败: ' + String(t.result || '').slice(0, 60))
+            }
+          }
+        })
+      }
       else if (r.status === 401) setLoadErr('登录已失效，请重新登录')
       else if (d.error === 'database_busy') { if (tasks.length === 0) setLoadErr('数据正在处理中...') }
       else setLoadErr('加载失败: ' + (d.error || ('HTTP ' + r.status)))

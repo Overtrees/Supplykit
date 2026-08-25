@@ -20,15 +20,40 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
   useEffect(() => {
     const seq = ++reqSeq.current
     setChLoading(true)
-    Promise.all([
+    const load = () => Promise.allSettled([
       api.get('/api/dashboard/summary'),
       api.get('/api/alerts'),
       api.get('/api/dashboard/stock-risk'),
     ]).then(([s, a, r]) => {
-      if (seq !== reqSeq.current) { setChLoading(false); return }  // 竞态丢弃，关闭 loading
-      useAppStore.setState({ dashboard: s.data, alerts: a.data || [], stockRisk: r.data || [], loading: false, dataLoaded: true })
+      if (seq !== reqSeq.current) { setChLoading(false); return }  // 竞态丢弃
+      const dash = s.status === 'fulfilled' ? s.value.data : null
+      const alerts = a.status === 'fulfilled' ? (a.value.data || []) : []
+      const stockRisk = r.status === 'fulfilled' ? (r.value.data || []) : []
+      useAppStore.setState({ dashboard: dash, alerts, stockRisk, loading: false, dataLoaded: true })
       setChLoading(false)
+      // 首次加载关键数据为空时自动重试（进程重启后缓存未就绪/慢接口超时兜底），最多 3 次
+      if ((!dash || stockRisk.length === 0) && seq === reqSeq.current) {
+        let retries = 0
+        const timer = setInterval(() => {
+          retries += 1
+          if (retries > 3 || seq !== reqSeq.current) { clearInterval(timer); return }
+          Promise.allSettled([
+            api.get('/api/dashboard/summary'),
+            api.get('/api/dashboard/stock-risk'),
+          ]).then(([s2, r2]) => {
+            if (seq !== reqSeq.current) { clearInterval(timer); return }
+            const d2 = s2.status === 'fulfilled' ? s2.value.data : null
+            const rv2 = r2.status === 'fulfilled' ? (r2.value.data || []) : []
+            useAppStore.setState({
+              dashboard: d2 || useAppStore.getState().dashboard,
+              stockRisk: rv2.length ? rv2 : useAppStore.getState().stockRisk,
+            })
+            if (d2 && rv2.length) clearInterval(timer)
+          })
+        }, 3000)
+      }
     }).catch(() => setChLoading(false))
+    load()
   }, [channel])
   // 30s 静默自动刷新（不显示 loading 骨架屏，避免闪烁）
   useEffect(() => {

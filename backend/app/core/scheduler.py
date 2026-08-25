@@ -429,7 +429,7 @@ def start():
     scheduler.add_job(_task_push_alerts, IntervalTrigger(minutes=30), id='push_alerts')
     scheduler.add_job(_task_disk_cleanup, CronTrigger(hour=3, minute=20), id='disk_cleanup')
     # 延迟预热 dashboard 缓存（reload 后 90s 执行，避开 CI health 探测窗口；修复预热线程饿死请求）
-    scheduler.add_job(_task_warmup_dashboard, trigger='date', run_date=datetime.now(UTC) + timedelta(seconds=90), id='dash_warmup')
+    scheduler.add_job(_task_warmup_dashboard, trigger='date', run_date=datetime.now(UTC) + timedelta(seconds=10), id='dash_warmup')
     scheduler.start()
     logger.info(f"Started at {datetime.now(UTC).isoformat()}")
 

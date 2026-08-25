@@ -295,6 +295,12 @@ def _seed_fill_async():
         except Exception:
             pass
         conn.commit()
+        # 广播填充完成 → 前端自动刷新所有数据
+        try:
+            from app.api.routes.ws import broadcast_sync
+            broadcast_sync("data.updated")
+        except Exception:
+            pass
     except Exception as e:
         pass
 

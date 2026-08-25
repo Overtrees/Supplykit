@@ -324,7 +324,7 @@ def export_slow_moving_excel(channel: str = 'jd', db = get_db()):
         products = set()
         try:
             from app.core.database import get_conn as _gconn
-            for _r in _gconn().execute("SELECT sku FROM products WHERE channel=?", (channel,)).fetchall():
+            for _r in _gconn().execute("SELECT sku FROM products WHERE channel=? AND (deleted_at IS NULL OR deleted_at='')", (channel,)).fetchall():
                 products.add(_r[0])
         except Exception:
             products = set()
@@ -544,7 +544,7 @@ def inventory_with_sales(wh_type: str = 'own', channel: str = 'jd', page: int = 
     products_for_barcode = {}
     try:
         from app.core.database import get_conn as _gconn
-        for _r in _gconn().execute("SELECT sku, barcode, price, brand FROM products").fetchall():
+        for _r in _gconn().execute("SELECT sku, barcode, price, brand FROM products WHERE (deleted_at IS NULL OR deleted_at='')").fetchall():
             products_for_barcode[_r[0]] = {"sku": _r[0], "barcode": _r[1] or '', "price": _r[2] or 0, "brand": _r[3] or ''}
     except Exception:
         products_for_barcode = {}

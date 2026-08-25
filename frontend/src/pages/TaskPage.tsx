@@ -18,6 +18,7 @@ const STATUS_LABEL = { pending: '等待中', running: '进行中', done: '已完
 
 export default function TaskPage() {
   const { channel } = useAppStore()
+  const toast = useToast()
   const [tasks, setTasks] = useState([])
   const [downloading, setDownloading] = useState({})
   const [loading, setLoading] = useState(true)
@@ -35,13 +36,13 @@ export default function TaskPage() {
           if ((t.status === 'done' || t.status === 'error') && !doneTasks.current[t.task_id]) {
             doneTasks.current[t.task_id] = true
             if (t.status === 'done') {
-              useToast().success('任务完成: ' + (t.task_type === 'seed' ? '种子填充' : t.task_type === 'clean' ? '清洗导入' : t.task_type === 'export' ? '导出' : t.task_type) + ' ✓')
+              toast.success('任务完成: ' + (t.task_type === 'seed' ? '种子填充' : t.task_type === 'clean' ? '清洗导入' : t.task_type === 'export' ? '导出' : t.task_type) + ' ✓')
               // 数据已变更，通知各页面刷新；dashboard 强制同步重建拿最新值（不用旧值）
               useAppStore.getState().loadAll(1, {refresh: true}).catch(() => {})
               window.dispatchEvent(new Event('rules-changed'))
               window.dispatchEvent(new Event('insights-refresh'))
             } else {
-              useToast().error('任务失败: ' + String(t.result || '').slice(0, 60))
+              toast.error('任务失败: ' + String(t.result || '').slice(0, 60))
             }
           }
         })

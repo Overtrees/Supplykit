@@ -212,39 +212,86 @@ def _migrate_v15(conn):
 _local = threading.local()
 
 def backup_db():
-    """备份数据库到同目录下（压缩备份，减少体积防撑爆配额）"""
-    import shutil, gzip
+    """备份数据库到同目录下（压缩备份，减少体积防撑爆配额）
+
+    修复 0 字节备份 bug：
+    1. 改用 sqlite3 官方 backup API（在线备份，无需独占锁，WAL 下安全）
+    2. 替代 VACUUM INTO（PA 环境可能失败且被静默吞掉 → 空 gzip）
+    3. 全程日志 + 生成后验证（gzip 可解压且超阈值），失败返回 None 并记录原因
+    """
+    import shutil, gzip, logging
+    _logger = logging.getLogger("backup")
     bak_path = DB_PATH + f".bak.{datetime.now(UTC).strftime('%Y%m%d')}"
     try:
-        # 优先用 VACUUM INTO 生成压缩副本（同时回收碎片）
+        # 1. 在线备份到临时文件（sqlite3 backup API：增量复制，不锁库）
         _tmp = DB_PATH + ".bak.tmp"
-        conn = sqlite3.connect(DB_PATH)
-        conn.execute("PRAGMA busy_timeout=30000")
-        conn.execute(f"VACUUM INTO '{_tmp}'")
-        conn.close()
-        if os.path.exists(_tmp) and os.path.getsize(_tmp) > 1024:
-            # gzip 压缩
-            with open(_tmp, 'rb') as fi, gzip.open(bak_path + ".gz", 'wb') as fo:
+        if os.path.exists(_tmp):
+            try: os.remove(_tmp)
+            except Exception: pass
+        try:
+            _src = sqlite3.connect(DB_PATH, timeout=30)
+            _dst = sqlite3.connect(_tmp, timeout=30)
+            _src.backup(_dst)  # 官方在线备份
+            _dst.close()
+            _src.close()
+        except Exception as e:
+            _logger.error(f"[backup] online backup failed: {e}")
+            try: _dst.close()
+            except Exception: pass
+            try: _src.close()
+            except Exception: pass
+            _tmp = None
+        # 2. 若在线备份成功且有效 → 压缩
+        if _tmp and os.path.exists(_tmp) and os.path.getsize(_tmp) > 1024:
+            _gz = bak_path + ".gz"
+            with open(_tmp, 'rb') as fi, gzip.open(_gz, 'wb', compresslevel=6) as fo:
                 shutil.copyfileobj(fi, fo, 1024*1024)
-            os.remove(_tmp)
-            return bak_path + ".gz"
-        # VACUUM INTO 失败时降级为直接复制 + 压缩
-        _raw = bak_path + ".raw"
-        shutil.copy2(DB_PATH, _raw)
-        # 立即压缩原始文件，然后删掉未压缩版（防撑爆配额）
-        _gz = bak_path + ".gz"
-        with open(_raw, 'rb') as fi, gzip.open(_gz, 'wb') as fo:
-            shutil.copyfileobj(fi, fo, 1024*1024)
-        os.remove(_raw)
-        return _gz
-    except Exception:
-        # 外层降级：直接复制后 gzip 压缩
+            try: os.remove(_tmp)
+            except Exception: pass
+            # 3. 验证备份有效：gzip 能解压且大小超阈值
+            try:
+                with gzip.open(_gz, 'rb') as f:
+                    _head = f.read(16)
+                if len(_head) > 8 and os.path.getsize(_gz) > 1024:
+                    _logger.info(f"[backup] OK: {_gz} ({os.path.getsize(_gz)}B, 解压头 {len(_head)}B)")
+                    return _gz
+                _logger.error(f"[backup] invalid backup content: {_gz} size={os.path.getsize(_gz)}")
+                return None
+            except Exception as e:
+                _logger.error(f"[backup] gzip verify failed: {e}")
+                return None
+        _logger.error("[backup] online backup produced empty file")
+        # 3. 降级：直接复制主库 + 压缩（仍验证）
+        try:
+            _raw = bak_path + ".raw"
+            shutil.copy2(DB_PATH, _raw)
+            _gz = bak_path + ".gz"
+            with open(_raw, 'rb') as fi, gzip.open(_gz, 'wb', compresslevel=6) as fo:
+                shutil.copyfileobj(fi, fo, 1024*1024)
+            os.remove(_raw)
+            with gzip.open(_gz, 'rb') as f:
+                _head = f.read(16)
+            if len(_head) > 8 and os.path.getsize(_gz) > 1024:
+                _logger.info(f"[backup] OK(fallback): {_gz} ({os.path.getsize(_gz)}B)")
+                return _gz
+            _logger.error(f"[backup] fallback invalid: {_gz}")
+            return None
+        except Exception as e:
+            _logger.error(f"[backup] fallback failed: {e}")
+            return None
+    except Exception as e:
+        _logger.error(f"[backup] unexpected: {e}")
+        # 最终降级：直接复制压缩（即使失败也尝试）
         try:
             _fallback_gz = bak_path + ".gz"
-            with open(DB_PATH, 'rb') as _fi, gzip.open(_fallback_gz, 'wb') as _fo:
+            with open(DB_PATH, 'rb') as _fi, gzip.open(_fallback_gz, 'wb', compresslevel=6) as _fo:
                 shutil.copyfileobj(_fi, _fo, 1024*1024)
-            return _fallback_gz
-        except Exception:
+            if os.path.getsize(_fallback_gz) > 1024:
+                return _fallback_gz
+            _logger.error(f"[backup] final fallback too small: {os.path.getsize(_fallback_gz)}B")
+            return None
+        except Exception as _e:
+            _logger.error(f"[backup] final fallback failed: {_e}")
             return None
 
 # ─── 轻量异步任务队列 ──────────────────────────────────────────────────────

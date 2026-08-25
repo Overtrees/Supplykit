@@ -132,23 +132,26 @@ def _task_backup():
                 logger.info(f"Pre-backup cleanup error: {e}")
         # 备份
         path = backup_db()
-        if path:
-            logger.info(f"Backup: {path}")
+        import os as _os
+        # 验证备份有效：文件存在且大小超阈值（否则视为失败，防止空/损坏备份被当作成功）
+        valid = path and _os.path.exists(path) and _os.path.getsize(path) > 1024
+        if valid:
+            logger.info(f"Backup: {path} ({_os.path.getsize(path)}B)")
             try:
                 from app.core.database import get_conn
                 _c = get_conn()
                 _c.execute("INSERT INTO quality_logs(log_type,level,message,details,source) VALUES(?,?,?,?,?)",
-                    ("backup", "info", f"数据库备份成功: {path}", "", "scheduler"))
+                    ("backup", "info", f"数据库备份成功: {path} ({_os.path.getsize(path)}B)", "", "scheduler"))
                 _c.commit()
             except Exception as _e:
                 logger.warning(f"Backup log write error: {_e}")
         else:
-            logger.error("Backup failed")
+            logger.error(f"Backup failed: path={path} size={_os.path.getsize(path) if path and _os.path.exists(path) else 'N/A'}")
             try:
                 from app.core.database import get_conn
                 _c = get_conn()
                 _c.execute("INSERT INTO quality_logs(log_type,level,message,details,source) VALUES(?,?,?,?,?)",
-                    ("backup", "error", "数据库备份失败", "backup_db 返回 None（VACUUM INTO 与复制均失败）", "scheduler"))
+                    ("backup", "error", "数据库备份失败（文件为空或过小）", f"path={path} size={_os.path.getsize(path) if path and _os.path.exists(path) else 'N/A'}", "scheduler"))
                 _c.commit()
             except Exception as _e:
                 logger.warning(f"Backup log write error: {_e}")

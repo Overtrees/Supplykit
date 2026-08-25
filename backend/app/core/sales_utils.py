@@ -30,25 +30,29 @@ def sku_to_channel(sku, db=None):
     return None
 
 
-def load_daily_sales(cutoff_days, db, sku_barcode_map=None, channel=None, warehouse=None):
+def load_daily_sales(cutoff_days, db, sku_barcode_map=None, channel=None, warehouse=None, skus=None):
     """统一数据源：从快照读历史 + 当天 orders 补充，消除重复计算
     
     返回: {key: {date: qty, ...}, ...}  key 为 sku 或 sku|barcode
+    skus: 可选 SKU 列表过滤（分页场景只算当前页，避免全量聚合）
     """
     from app.core.database import get_conn
     cutoff = (datetime.now(UTC) - timedelta(days=cutoff_days)).strftime('%Y-%m-%d')
     today = datetime.now(UTC).strftime('%Y-%m-%d')
     daily_by_sku = {}
+    _sku_set = set(skus) if skus else None
+    _sku_filter = (' AND sku IN (%s)' % ','.join(['?'] * len(skus))) if skus else ''
+    _sku_params = list(skus) if skus else []
     
     # 1. 快照读历史（原始 SQL 避免 ORM 行转 dict 开销）
     try:
         conn = get_conn()
         if channel and warehouse:
-            rows = conn.execute("SELECT date, sku, order_count FROM daily_sales_snapshot WHERE date>=? AND channel=? AND warehouse=?", (cutoff, channel, warehouse)).fetchall()
+            rows = conn.execute("SELECT date, sku, order_count FROM daily_sales_snapshot WHERE date>=? AND channel=? AND warehouse=?" + _sku_filter, (cutoff, channel, warehouse) + tuple(_sku_params)).fetchall()
         elif channel:
-            rows = conn.execute("SELECT date, sku, order_count FROM daily_sales_snapshot WHERE date>=? AND channel=?", (cutoff, channel)).fetchall()
+            rows = conn.execute("SELECT date, sku, order_count FROM daily_sales_snapshot WHERE date>=? AND channel=?" + _sku_filter, (cutoff, channel) + tuple(_sku_params)).fetchall()
         else:
-            rows = conn.execute("SELECT date, sku, order_count FROM daily_sales_snapshot WHERE date>=?", (cutoff,)).fetchall()
+            rows = conn.execute("SELECT date, sku, order_count FROM daily_sales_snapshot WHERE date>=?" + _sku_filter, (cutoff,) + tuple(_sku_params)).fetchall()
         for row in rows:
             sku = row[1]  # tuple 索引访问，避免 dict 创建开销
             key = sku
@@ -67,6 +71,8 @@ def load_daily_sales(cutoff_days, db, sku_barcode_map=None, channel=None, wareho
                 continue
             sku = o.get('sku', '')
             if not sku: continue
+            if skus is not None and sku not in _sku_set:
+                continue
             key = sku
             if sku_barcode_map and sku_barcode_map.get(sku):
                 key = f"{sku}|{sku_barcode_map[sku]}"

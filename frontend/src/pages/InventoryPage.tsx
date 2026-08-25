@@ -31,6 +31,9 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
   const toast = useToast()
   const [inventory, setInventory] = useState([])
   const [loading, setLoading] = useState(true)
+  const [invPage, setInvPage] = useState(1)
+  const [invTotal, setInvTotal] = useState(0)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [visCols, setVisCols] = useState([])
   const [confirmDel, setConfirmDel] = useState(null)
   const [monthRange, setMonthRange] = useState('')
@@ -49,23 +52,33 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
     }
   }, [hammerCols, whType])
 
-  const loadInv = async () => {
+  const loadInv = async (p) => {
     const seq = ++reqSeq.current
-    setLoading(true)
+    if (p === 1) setLoading(true)
+    else setLoadingMore(true)
     try {
-      const r = await api.get('/api/insights/with-sales?wh_type=' + whType + '&channel=' + globalChannel, { timeout: 90000 })
-      if (seq !== reqSeq.current) { setLoading(false); return }  // 竞态丢弃，关闭 loading
-      const data = r.data || []
-      setInventory(data)
-      if (data.length > 0) {
-        const s = data[0].month_start?.slice(5) || ''
-        const e = data[0].month_end?.slice(5) || ''
+      const r = await api.get('/api/insights/with-sales?wh_type=' + whType + '&channel=' + globalChannel + '&page=' + p + '&page_size=' + 100, { timeout: 90000 })
+      if (seq !== reqSeq.current) { setLoading(false); setLoadingMore(false); return }  // 竞态丢弃
+      const d = r.data || {}
+      const items = (d.items || d || [])
+      setInvTotal(d.total || items.length || 0)
+      setInvPage(p)
+      setInventory(prev => p === 1 ? items : [...prev, ...items])
+      if (p === 1 && items.length > 0) {
+        const s = items[0].month_start?.slice(5) || ''
+        const e = items[0].month_end?.slice(5) || ''
         setMonthRange(`${s}至${e}`)
       }
     } catch(e) { if (seq === reqSeq.current) setInventory([]) }
-    if (seq === reqSeq.current) setLoading(false)
+    if (seq === reqSeq.current) { setLoading(false); setLoadingMore(false) }
   }
-  useEffect(() => { loadInv() }, [whType, globalChannel])
+  useEffect(() => { setInvPage(1); loadInv(1) }, [whType, globalChannel])
+  const handleScroll = (e) => {
+    const el = e.target
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 200 && !loadingMore && inventory.length > 0 && (!invTotal || inventory.length < invTotal)) {
+      loadInv(invPage + 1)
+    }
+  }
 
   const s = hammerSearch || ''
   const fl = useMemo(() => {
@@ -98,7 +111,7 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
     {loading ? <div>{[1,2,3,4].map(i=><div key={i} className='skeleton' style={{height:36,marginBottom:4}}/>)}</div>
     : fl.length === 0
       ? <EmptyState icon='package' title={s?t("inv.empty_matched"):t("common.empty")} desc={s?'换个关键词试试':'通过清洗导入库存数据'} action={!s&&<button className="btn btn-primary" onClick={()=>window.__setPage&&window.__setPage('cleansing')}>去导入数据 →</button>} />
-      : <div style={{overflow:'auto',maxHeight:'calc(100vh - 180px)'}}>
+      : <div style={{overflow:'auto',maxHeight:'calc(100vh - 180px)'}} onScroll={handleScroll}>
         <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>{t("common.showing")} {visCols.length}/{INV_COLS[whType].length} {t("common.columns")}</div>
       <table><colgroup>{visCols.map(id=>{const col=INV_COLS[whType].find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>
         <thead style={{position:"sticky",top:0,background:"var(--card)",zIndex:1}}><tr>{visCols.map(id=>{const col=INV_COLS[whType].find(c=>c.id===id);if(!col)return null;let el;if(col.id==='month_in')el=<th key={col.id}>{col.label}<br/><span className='small' style={{fontWeight:400}}>{monthRange}</span></th>;else if(col.id==='month_out')el=<th key={col.id}>{col.label}<br/><span className='small' style={{fontWeight:400}}>{monthRange}</span></th>;else el=<th key={col.id}>{col.label}</th>;return el})}</tr></thead>
@@ -141,6 +154,8 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
         </tr>
       </tfoot>}
               </table>
+        {loadingMore && <div style={{textAlign:'center',padding:'10px 0',fontSize:12,color:'var(--muted2)'}}>加载更多...</div>}
+        {!loadingMore && invTotal > 0 && inventory.length >= invTotal && <div style={{textAlign:'center',padding:'10px 0',fontSize:11,color:'var(--muted2)'}}>已加载全部 {invTotal} 条</div>}
     </div>}
     <ConfirmDialog open={!!confirmDel} title='删除库存记录' desc='删除后不可恢复' confirmLabel='删除' onConfirm={delInv} onCancel={()=>setConfirmDel(null)} />
   </div>

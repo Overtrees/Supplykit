@@ -15,7 +15,7 @@ function Skeleton(){return <div>{[1,2,3,4].map(i=><div key={i} style={{display:'
   <div className="skeleton" style={{width:50,height:14}}/><div className="skeleton" style={{width:40,height:14}}/>
 </div>)}</div>}
 
-export default function ProductPage(){const[list,setList]=useState([]);const[ld,setLd]=useState(true)
+export default function ProductPage(){const[list,setList]=useState([]);const[ld,setLd]=useState(true);const[pg,setPg]=useState(1);const[pgTotal,setPgTotal]=useState(0);const[loadingMore,setLoadingMore]=useState(false);const reqSeq=useRef(0)
 const[visCols,setVisCols]=useState(()=>getVis(COL_KEY())||COLS.map(c=>c.id))
 const toast = useToast()
 const { channel: globalChannel, hammerSearch, hammerCols, prodBatch, setProdBatch, prodSelIds, setProdBatchSel, setProdBatchFilterLen, prodBatchVersion, bumpProdBatchVersion, prodBatchAllReq } = useAppStore()
@@ -24,7 +24,8 @@ const setSelIds = setProdBatchSel
 const [batchBusy, setBatchBusy] = useState(false)
 const s = hammerSearch || ''
 const fl = ld ? [] : (s ? list.filter(x=>(x.sku||'').includes(s)||(x.product_name||'').includes(s)||(x.store||'').includes(s)) : list)
-useEffect(()=>{setLd(true);api.get('/api/products').then(r=>{setList(r.data?.items||r.data||[]);setLd(false)}).catch(()=>setLd(false))}, [globalChannel])
+const loadProd=(p)=>{const seq=++reqSeq.current;if(p===1)setLd(true);else setLoadingMore(true);api.get('/api/products?page='+p+'&page_size=100&channel='+globalChannel,{timeout:90000}).then(r=>{if(seq!==reqSeq.current)return;const d=r.data||{};const items=d.items||d||[];setPgTotal(d.total||items.length||0);setPg(p);setList(prev=>p===1?items:[...prev,...items]);setLd(false);setLoadingMore(false)}).catch(()=>{if(seq===reqSeq.current){setLd(false);setLoadingMore(false)}})}
+useEffect(()=>{setPg(1);loadProd(1)}, [globalChannel])
 useEffect(() => {
   if (hammerCols?.products) setVisCols(hammerCols.products)
 }, [hammerCols])
@@ -33,7 +34,7 @@ useEffect(()=>{ if(!prodBatch) setSelIds([]) },[prodBatch])
 useEffect(()=>{ if(prodBatchVersion>0) reload() },[prodBatchVersion])
   useEffect(()=>{ if(prodBatchAllReq>0){ const all=fl.map(x=>x.id); setSelIds(selIds.length===all.length&&all.length>0?[]:all) } },[prodBatchAllReq])
 useEffect(()=>{ setProdBatchFilterLen(fl.length) },[fl.length])
-const reload = () => { api.get('/api/products').then(r=>setList(r.data?.items||r.data||[])).catch(()=>{}) }
+const reload = () => { setPgTotal(0); loadProd(1) }
 
 if(ld)return<div className='card'><div className='section-title'><span>{t("nav.products")}</span></div><Skeleton/></div>
 
@@ -64,6 +65,6 @@ return<div className='card' style={{containerType:'inline-size'}}>
   return <td key={col.id} className="small muted" style={{fontSize:11}}>-</td>
 })}
 </tr>)}
-</tbody></table>
+</tbody></table>{loadingMore&&<div style={{textAlign:'center',padding:'10px 0',fontSize:12,color:'var(--muted2)'}}>加载更多...</div>}{!loadingMore&&pgTotal>0&&list.length>=pgTotal&&<div style={{textAlign:'center',padding:'10px 0',fontSize:11,color:'var(--muted2)'}}>已加载全部 {pgTotal} 条</div>}
 </div>}
 </div>}

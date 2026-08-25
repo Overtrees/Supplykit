@@ -21,7 +21,7 @@ def _valid(q):
 
 
 @router.get("")
-def list_products(db = get_db(), search: str = "", channel: str = 'jd', include_deleted: str = ''):
+def list_products(db = get_db(), search: str = "", channel: str = 'jd', include_deleted: str = '', page: int = 0, page_size: int = 0):
     if include_deleted:
         base = db.table("products").select("*").eq("channel", channel)
     else:
@@ -34,25 +34,41 @@ def list_products(db = get_db(), search: str = "", channel: str = 'jd', include_
         q = q1.or_(q2)
     else:
         q = base
-    data = q.order("id", desc=True).execute().data
-    # 注入批次总效期（SKU 维度最早批次）
+    _total = 0
+    _is_pg = page > 0 and page_size > 0
+    if _is_pg:
+        _cnt = db.table("products").select("count(*)").eq("channel", channel)
+        if include_deleted == '':
+            _cnt = _cnt.eq("deleted_at", "")
+        if search:
+            _cnt = _cnt.ilike("product_name", f"%{search}%")
+        _c = _cnt.execute()
+        _total = _c.count if hasattr(_c, 'count') else len(_c.data or [])
+        data = q.order("id", desc=True).limit(page_size).offset((page - 1) * page_size).execute().data
+    else:
+        data = q.order("id", desc=True).execute().data
+    # 注入批次总效期（SKU 维度最早批次，分页只查当前页 SKU）
     try:
         from app.core.database import get_conn
         _conn = get_conn()
-        _brows = _conn.execute("SELECT sku, MIN(prod_date), MIN(exp_date) FROM batches WHERE channel=? GROUP BY sku", (channel,)).fetchall()
-        _bmap = {}
-        for _r in _brows:
-            _s = str(_r[0]); _pd = str(_r[1] or '')[:10]; _ed = str(_r[2] or '')[:10]
-            if _pd and _ed:
-                _d1 = 0; _d2 = 0
-                try:
-                    _d1 = int((datetime.strptime(_ed, '%Y-%m-%d') - datetime.strptime(_pd, '%Y-%m-%d')).days)
-                except Exception: pass
-                _bmap[_s] = _d1
-        for item in data:
-            _b = _bmap.get(item.get('sku', ''))
-            item['batch_days'] = _b or 0
+        _skus = [str(x.get('sku','')) for x in data if x.get('sku')]
+        if _skus:
+            _in = ','.join(['?']*len(_skus))
+            _brows = _conn.execute(f"SELECT sku, MIN(prod_date), MIN(exp_date) FROM batches WHERE channel=? AND sku IN ({_in}) GROUP BY sku", [channel] + _skus).fetchall()
+            _bmap = {}
+            for _r in _brows:
+                _s = str(_r[0]); _pd = str(_r[1] or '')[:10]; _ed = str(_r[2] or '')[:10]
+                if _pd and _ed:
+                    _d1 = 0
+                    try:
+                        _d1 = int((datetime.strptime(_ed, '%Y-%m-%d') - datetime.strptime(_pd, '%Y-%m-%d')).days)
+                    except Exception: pass
+                    _bmap[_s] = _d1
+            for item in data:
+                item['batch_days'] = _bmap.get(item.get('sku', ''), 0) or 0
     except Exception: pass
+    if _is_pg:
+        return ok({"items": data, "total": _total, "page": page, "page_size": page_size})
     return ok(data)
 
 

@@ -500,7 +500,7 @@ def inventory_with_sales(wh_type: str = 'own', channel: str = 'jd', page: int = 
     """
     # 结果缓存 300s（_replen_version 校验：库存/订单/商品变更自动失效）
     import time as _t
-    _cache_key = f"{wh_type}|{channel}"
+    _cache_key = f"{wh_type}|{channel}|p{page}"
     _now_ts = _t.time()
     try:
         # 读 _replen_version（库存/订单/商品变更都递增它）
@@ -522,36 +522,59 @@ def inventory_with_sales(wh_type: str = 'own', channel: str = 'jd', page: int = 
             db.table("replenishment_config").upsert({"key": "_last_archive_check", "value": datetime.now(UTC).strftime('%Y-%m-%d'), "channel": "jd", "updated_at": datetime.now(UTC).isoformat()}, conflict_col='key')
     except Exception:
         pass
-    inv = db.table("inventory").select("*").eq("warehouse_type", wh_type).eq("channel", channel).execute().data or []
     from datetime import datetime, timedelta, UTC
     now = datetime.now(UTC)
     cur_month = now.strftime('%Y-%m')
     # 日销已从快照读取，orders 全量加载已移除（死代码，改用快照）
     # 出入库记录只取当月
     month_start = now.replace(day=1).strftime('%Y-%m-%d')
+    # 分页：先取当前页 inventory（真分页——只算当前页 SKU 的日销/周转）
+    _pg_total = 0
+    _inv_q = db.table("inventory").select("*").eq("warehouse_type", wh_type).eq("channel", channel)
+    if page > 0 and page_size > 0:
+        _cnt_q = db.table("inventory").select("count(*)").eq("warehouse_type", wh_type).eq("channel", channel)
+        _cnt = _cnt_q.execute()
+        _pg_total = _cnt.count if hasattr(_cnt, 'count') else len(_cnt.data or [])
+        inv = _inv_q.order("id", desc=True).limit(page_size).offset((page - 1) * page_size).execute().data or []
+    else:
+        inv = _inv_q.execute().data or []
+    _pg_skus = set(str(i.get('sku','')) for i in inv)
+    _is_pg = page > 0 and page_size > 0
+    _pg_in = list(_pg_skus) if _is_pg else []
     month_end = now.strftime('%Y-%m-%d')
-    in_records = db.table("inbound_records").select("*").gte("inbound_date", month_start).eq("channel", channel).execute().data or []
-    out_records = db.table("outbound_records").select("*").gte("outbound_date", month_start).eq("channel", channel).execute().data or []
-    # 当月出入库汇总
     inbound_month = {}
-    for r in in_records:
-        s = r['sku']
-        inbound_month[s] = inbound_month.get(s, 0) + int(r.get('quantity',0) or 0)
     outbound_month = {}
-    for r in out_records:
-        s = r['sku']
-        outbound_month[s] = outbound_month.get(s, 0) + int(r.get('quantity',0) or 0)
+    try:
+        from app.core.database import get_conn as _gconn2
+        _ic = _gconn2()
+        if _is_pg and _pg_in:
+            _in_rows = _ic.execute("SELECT sku, SUM(quantity) FROM inbound_records WHERE inbound_date>=? AND channel=? AND sku IN (%s) GROUP BY sku" % ','.join(['?']*len(_pg_in)), [month_start, channel] + _pg_in).fetchall()
+            _out_rows = _ic.execute("SELECT sku, SUM(quantity) FROM outbound_records WHERE outbound_date>=? AND channel=? AND sku IN (%s) GROUP BY sku" % ','.join(['?']*len(_pg_in)), [month_start, channel] + _pg_in).fetchall()
+        else:
+            _in_rows = _ic.execute("SELECT sku, SUM(quantity) FROM inbound_records WHERE inbound_date>=? AND channel=? GROUP BY sku", (month_start, channel)).fetchall()
+            _out_rows = _ic.execute("SELECT sku, SUM(quantity) FROM outbound_records WHERE outbound_date>=? AND channel=? GROUP BY sku", (month_start, channel)).fetchall()
+        for r in _in_rows:
+            inbound_month[r[0]] = int(r[1] or 0)
+        for r in _out_rows:
+            outbound_month[r[0]] = int(r[1] or 0)
+    except Exception as _e2:
+        import logging; logging.warning(f"[with-sales] in/out agg: {_e2}")
     sales_28 = {}
     products_for_barcode = {}
     try:
         from app.core.database import get_conn as _gconn
-        for _r in _gconn().execute("SELECT sku, barcode, price, brand FROM products WHERE (deleted_at IS NULL OR deleted_at='')").fetchall():
+        _psql = "SELECT sku, barcode, price, brand FROM products WHERE (deleted_at IS NULL OR deleted_at='')"
+        _pp = None
+        if _is_pg and _pg_in:
+            _psql += " AND sku IN (%s)" % ','.join(['?']*len(_pg_in))
+            _pp = _pg_in
+        for _r in _gconn().execute(_psql, _pp).fetchall():
             products_for_barcode[_r[0]] = {"sku": _r[0], "barcode": _r[1] or '', "price": _r[2] or 0, "brand": _r[3] or ''}
     except Exception:
         products_for_barcode = {}
     # 从快照聚合 28 天日销（替代 orders 全表遍历）
     from app.core.sales_utils import load_daily_sales, calc_sales_multi, rolling_predict
-    daily_28 = load_daily_sales(28, db, sku_barcode_map={s: (p.get('barcode','') or '') for s,p in products_for_barcode.items()})
+    daily_28 = load_daily_sales(28, db, sku_barcode_map={s: (p.get('barcode','') or '') for s,p in products_for_barcode.items()}, skus=_pg_in if (_is_pg and _pg_in) else None)
     for key, daily in daily_28.items():
         sales_28[key] = sum(daily.values())
     # 融合日销（一次遍历算 7/14/28 三窗口 + 趋势加权，用于周转天数计算）
@@ -626,7 +649,9 @@ def inventory_with_sales(wh_type: str = 'own', channel: str = 'jd', page: int = 
                 _item['batch_count'] = 0
     except Exception as _e:
         import logging; logging.warning(f"[with-sales] batch inject: {_e}")
-    total = len(result)
+    total = _pg_total if (_pg_total > 0) else len(result)
+    if page > 0 and page_size > 0:
+        return ok({"items": result, "total": total, "page": page, "page_size": page_size})
     # 写缓存（30s TTL + 版本号）
     try:
         _with_sales_cache[_cache_key] = {'data': result, 'ts': _t.time(), 'ver': _ver}

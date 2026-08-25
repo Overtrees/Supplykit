@@ -25,9 +25,27 @@ def trigger_backup(request: Request):
         return fail("鉴权失败", status=401)
     path = backup_db()
     if path and os.path.exists(path) and os.path.getsize(path) > 1024:
-        return ok({"path": path, "size": os.path.getsize(path)})
-    logging.error(f"[backup] manual trigger failed: path={path}")
-    return fail("备份失败（文件为空或过小），请查看服务日志", status=500)
+        # 进程内验证：解压 + 打开 SQLite 确认可恢复（不受 PA 下载通道 10MB 限制影响）
+        try:
+            import gzip, sqlite3
+            _sz = os.path.getsize(path)
+            with gzip.open(path, 'rb') as f:
+                _raw = f.read(200 * 1024 * 1024)  # 最多读 200MB
+            _verify_db = path + ".verify"
+            with open(_verify_db, 'wb') as f:
+                f.write(_raw)
+            _c = sqlite3.connect(_verify_db)
+            _orders = _c.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
+            _products = _c.execute("SELECT COUNT(*) FROM products").fetchone()[0]
+            _users = _c.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+            _c.close()
+            try: os.remove(_verify_db)
+            except Exception: pass
+            logging.info(f"[backup] verify OK: orders={_orders} products={_products} users={_users}")
+            return ok({"path": path, "size": _sz, "verify": {"orders": _orders, "products": _products, "users": _users}})
+        except Exception as e:
+            logging.error(f"[backup] verify failed: {e}")
+            return fail(f"备份文件已验证失败: {e}", status=500)
 
 @router.get("/api/vacuum")
 def run_vacuum():

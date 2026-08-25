@@ -29,7 +29,13 @@ def get_config(mode: str = None, channel: str = 'jd', db=get_db()):
 
 @router.put("")
 def update_config(data: dict, mode: str = '', channel: str = 'jd', db=get_db()):
-    _cfg_cache.clear()  # 配置变更，清空缓存
+    _cfg_cache.clear()
+    try:
+        from datetime import datetime, UTC
+        v = db.table("replenishment_config").select("*").eq("key", "_cfg_version").execute().data
+        nv = (int(v[0]["value"]) + 1) if v and v[0].get("value") else 1
+        db.table("replenishment_config").upsert({"key": "_cfg_version", "value": str(nv), "channel": "jd", "updated_at": datetime.now(UTC).isoformat()}, conflict_col='key')
+    except: pass  # 配置变更，清空缓存
     now = datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S')
     if mode:
         prefix = f'mode_{mode}_'

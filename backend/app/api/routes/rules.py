@@ -13,7 +13,11 @@ _rules_cache = {}
 @router.get("")
 def list_rules(channel: str = 'jd', include_deleted: bool = False, db = get_db()):
     import time
-    key = f"rules_{channel}_{'del' if include_deleted else 'live'}"
+    try:
+        _v = db.table("replenishment_config").select("*").eq("key", "_rules_version").execute().data
+        _ver = int(_v[0]["value"]) if _v and _v[0].get("value") else 0
+    except: _ver = 0
+    key = f"rules_{channel}_{'del' if include_deleted else 'live'}_{_ver}"
     cached = _rules_cache.get(key)
     if cached and time.time() - cached['ts'] < 180:
         return cached['data']

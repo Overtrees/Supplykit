@@ -220,6 +220,60 @@ def calc_sales(orders, cutoff_days, source='', wh_name=None, sku_barcode_map=Non
         return calc_sales_from_daily(daily_by_sku, cutoff_days, orders=orders, sku_barcode_map=sku_barcode_map)
 
 
+def adjust_dashboard_for_order(order, sign):
+    """删单/恢复时即时调整看板缓存（O(1) 增量，不触发全量重建）
+
+    修复: 删单后看板 10s 异步重建窗口内显示旧值。
+    直接修改缓存中的 summary/trend/stores/status_distribution。
+    """
+    try:
+        ch = order.get('channel', 'jd')
+        from app.core.dashboard_cache import _cache_by_channel
+        cached = _cache_by_channel.get(ch)
+        if not cached:
+            return False
+        data = cached['data']
+        total = float(order.get('total_amount', 0) or 0)
+        status = order.get('order_status', '')
+        qty = 1
+        store = order.get('store', '')
+        ordered_at = str(order.get('ordered_at', ''))[:10]
+        date_key = ordered_at[5:] if len(ordered_at) >= 10 else ordered_at
+
+        s = data.get('summary', {})
+        s['total_orders'] = max(0, (s.get('total_orders', 0) or 0) + sign * qty)
+        if status == '已完成':
+            s['gmv'] = max(0, round((s.get('gmv', 0) or 0) + sign * total, 2))
+        elif status == '待发货':
+            s['pending_count'] = max(0, (s.get('pending_count', 0) or 0) + sign * qty)
+        elif status == '申请退款':
+            s['refund_count'] = max(0, (s.get('refund_count', 0) or 0) + sign * qty)
+
+        for t in data.get('trend', []):
+            if t.get('日期') == date_key:
+                t['订单数'] = max(0, (t.get('订单数', 0) or 0) + sign * qty)
+                if status == '已完成':
+                    t['GMV'] = max(0, round((t.get('GMV', 0) or 0) + sign * total, 2))
+                break
+
+        for st in data.get('stores', []):
+            if st.get('name') == store:
+                st['orders'] = max(0, (st.get('orders', 0) or 0) + sign * qty)
+                if status == '已完成':
+                    st['gmv'] = max(0, round((st.get('gmv', 0) or 0) + sign * total, 2))
+                break
+
+        for sd in data.get('status_distribution', []):
+            if sd.get('name') == status:
+                sd['value'] = max(0, (sd.get('value', 0) or 0) + sign * qty)
+                break
+        return True
+    except Exception as e:
+        import logging
+        logging.warning(f"[dash] adjust: {e}")
+        return False
+
+
 def adjust_snapshot_for_order(order, sign):
     """删单(sign=-1)/恢复(sign=+1)时即时调整日销快照对应行 order_count
 

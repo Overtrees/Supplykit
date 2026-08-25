@@ -96,8 +96,9 @@ def delete_order(oid: int, db = get_db()):
     db.table("orders").update({"deleted_at": datetime.now(UTC).isoformat()}).eq("id", oid).execute()
     # 删历史订单 → 日销快照即时扣减（修复: 否则快照含已删单到次日重建）
     if _o:
-        from app.core.sales_utils import adjust_snapshot_for_order
+        from app.core.sales_utils import adjust_snapshot_for_order, adjust_dashboard_for_order
         adjust_snapshot_for_order(_o[0], -1)
+        adjust_dashboard_for_order(_o[0], -1)
     _invalidate_sales_caches()
     return {"ok": True, "id": oid}
 
@@ -107,8 +108,9 @@ def restore_order(oid: int, db = get_db()):
     db.table("orders").update({"deleted_at": ""}).eq("id", oid).execute()
     # 恢复历史订单 → 日销快照即时加回
     if _o:
-        from app.core.sales_utils import adjust_snapshot_for_order
+        from app.core.sales_utils import adjust_snapshot_for_order, adjust_dashboard_for_order
         adjust_snapshot_for_order(_o[0], 1)
+        adjust_dashboard_for_order(_o[0], 1)
     _invalidate_sales_caches()
     return {"ok": True, "id": oid}
 

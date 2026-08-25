@@ -1,9 +1,33 @@
 """Health check endpoint for monitoring"""
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from datetime import datetime, UTC
 import os, sqlite3
 
 router = APIRouter(tags=["health"])
+
+
+@router.post("/api/backup")
+def trigger_backup(request: Request):
+    """手动触发数据库备份（验证备份机制 + 应急数据保护）"""
+    from app.core.response import ok, fail
+    from app.core.database import backup_db
+    import logging
+    # 简单鉴权：需要有效 token
+    auth = request.headers.get("Authorization", "")
+    token = auth[7:] if auth.startswith("Bearer ") else ""
+    if not token:
+        return fail("未登录", status=401)
+    try:
+        from app.core.auth import verify_token
+        if not verify_token(token):
+            return fail("登录已失效", status=401)
+    except Exception:
+        return fail("鉴权失败", status=401)
+    path = backup_db()
+    if path and os.path.exists(path) and os.path.getsize(path) > 1024:
+        return ok({"path": path, "size": os.path.getsize(path)})
+    logging.error(f"[backup] manual trigger failed: path={path}")
+    return fail("备份失败（文件为空或过小），请查看服务日志", status=500)
 
 @router.get("/api/vacuum")
 def run_vacuum():

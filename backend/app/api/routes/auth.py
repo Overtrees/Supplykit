@@ -1,7 +1,7 @@
 """认证路由 — 登录/注册/验证"""
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
-from app.core.auth import create_token, verify_token, check_password, hash_password, PASSWORD_HASH
+from app.core.auth import create_token, verify_token, check_password, hash_password, _verify_hash, PASSWORD_HASH
 from app.core.database import get_db
 import os
 
@@ -23,7 +23,7 @@ def login(body: dict):
     try:
         db = get_db()
         users = db.table("users").select("*").eq("username", username).execute().data
-        if users and users[0].get("password_hash") == hash_password(password):
+        if users and _verify_hash(password, users[0].get("password_hash", "")):
             token = create_token(username)
             return {"ok": True, "token": token, "user": username}
     except Exception:

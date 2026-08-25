@@ -32,8 +32,31 @@ def _current_secret():
 
 
 def hash_password(password: str) -> str:
-    """返回密码的 sha256 哈希"""
-    return hashlib.sha256(password.encode()).hexdigest()
+    """PBKDF2-HMAC-SHA256 哈希：salt:key 格式（32 字节随机 salt，100k 迭代）
+
+    与 README 声明的"PBKDF2 + 100k 迭代"一致，防彩虹表攻击。
+    """
+    salt = os.urandom(32)
+    key = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100000)
+    return salt.hex() + ':' + key.hex()
+
+
+def _verify_hash(password: str, stored: str) -> bool:
+    """校验密码哈希，兼容两种格式：
+    - 含 ':' → PBKDF2 (salt:key)
+    - 无 ':' → 旧版裸 SHA256（历史数据兼容）
+    """
+    if not stored:
+        return False
+    if ':' not in stored:
+        return hashlib.sha256(password.encode('utf-8')).hexdigest() == stored
+    try:
+        salt_hex, key_hex = stored.split(':')
+        salt = bytes.fromhex(salt_hex)
+        key = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100000)
+        return key.hex() == key_hex
+    except Exception:
+        return False
 
 
 def create_token(username: str, expire_hours: int = 720) -> str:
@@ -71,7 +94,7 @@ def verify_token(token: str) -> Optional[str]:
 
 
 def check_password(password: str) -> bool:
-    """校验密码（环境变量模式）"""
+    """校验密码（环境变量模式，兼容新旧哈希格式）"""
     if not PASSWORD_HASH:
         return False
-    return hash_password(password) == PASSWORD_HASH
+    return _verify_hash(password, PASSWORD_HASH)

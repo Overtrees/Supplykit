@@ -64,7 +64,8 @@ const INV_WH_LABEL = { own:'自有仓', platform:'平台仓', platform_b:'B仓' 
 
 export default function App() {
   const [page, setPage] = useState('dash')
-  ;(window as any).__setPage = (p: string) => { setPage(p); closeHammerMenu() }
+  const navigateTo = (p: string) => { setPage(p); if (p === 'dash') useAppStore.getState().loadAll().catch(() => {}) }
+  ;(window as any).__setPage = (p: string) => { navigateTo(p); closeHammerMenu() }
   const [highlightSku, setHighlightSku] = useState('')
   const { inventory, qualityLogs, startPolling, stopAll, wsStatus, channel, setChannel, hammerData, setHammerPanel } = useAppStore()
   const toast = useToast()
@@ -311,7 +312,7 @@ export default function App() {
   const navAndClose = useCallback((id, sku) => {
     closeEditorMenu()
     if (sku) setHighlightSku(sku)
-    setPage(id)
+    navigateTo(id)
   }, [closeEditorMenu])
 
   useKeyboard({
@@ -346,7 +347,7 @@ export default function App() {
 
   const navigate = useCallback((newPage, sku) => {
     if (sku) setHighlightSku(sku)
-    setPage(newPage)
+    navigateTo(newPage)
   }, [])
 
   const lowStock = (inventory||[]).filter(x => Number(x.available_qty) < Number(x.safety_qty)).length
@@ -406,7 +407,7 @@ export default function App() {
             /* 其他页：左侧返回按钮，右侧锤子按钮 + 渠道筛选 */
             <>
               <div className="header-left">
-                <button className="back-btn" onClick={() => setPage('dash')}>
+                <button className="back-btn" onClick={() => navigateTo('dash')}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="19 12 5 12"/><polyline points="11 18 5 12 11 6"/></svg>
                 </button>
               </div>

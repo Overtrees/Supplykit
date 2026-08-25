@@ -493,14 +493,14 @@ def auto_adjust_inventory(order_data: dict, order_type: str, db):
             "safety_qty": 10,
         }).execute()
 @router.get('/with-sales')
-def inventory_with_sales(wh_type: str = 'own', channel: str = 'jd', page: int = 0, page_size: int = 0, db = get_db()):
+def inventory_with_sales(wh_type: str = 'own', channel: str = 'jd', page: int = 0, page_size: int = 0, search: str = '', db = get_db()):
     """库存列表 + 日销 + 在库周转 + 当月出入库
     wh_type: own=自有仓, platform=平台仓(C仓), platform_b=B仓
     page/page_size: 翻页参数，传 0 返回全部
     """
     # 结果缓存 300s（_replen_version 校验：库存/订单/商品变更自动失效）
     import time as _t
-    _cache_key = f"{wh_type}|{channel}|p{page}"
+    _cache_key = f"{wh_type}|{channel}|p{page}|s{search}"
     _now_ts = _t.time()
     try:
         # 读 _replen_version（库存/订单/商品变更都递增它）
@@ -531,8 +531,15 @@ def inventory_with_sales(wh_type: str = 'own', channel: str = 'jd', page: int = 
     # 分页：先取当前页 inventory（真分页——只算当前页 SKU 的日销/周转）
     _pg_total = 0
     _inv_q = db.table("inventory").select("*").eq("warehouse_type", wh_type).eq("channel", channel)
+    if search:
+        _like = f"%{search}%"
+        _s1 = db.table("inventory").select("*").eq("warehouse_type", wh_type).eq("channel", channel).ilike("sku", _like)
+        _s2 = db.table("inventory").select("*").eq("warehouse_type", wh_type).eq("channel", channel).ilike("product_name", _like)
+        _inv_q = _s1.or_(_s2)
     if page > 0 and page_size > 0:
         _cnt_q = db.table("inventory").select("count(*)").eq("warehouse_type", wh_type).eq("channel", channel)
+        if search:
+            _cnt_q = _cnt_q.ilike("sku", f"%{search}%")
         _cnt = _cnt_q.execute()
         _pg_total = _cnt.count if hasattr(_cnt, 'count') else len(_cnt.data or [])
         inv = _inv_q.order("id", desc=True).limit(page_size).offset((page - 1) * page_size).execute().data or []

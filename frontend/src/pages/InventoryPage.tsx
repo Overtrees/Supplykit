@@ -57,7 +57,7 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
     if (p === 1) setLoading(true)
     else setLoadingMore(true)
     try {
-      const r = await api.get('/api/insights/with-sales?wh_type=' + whType + '&channel=' + globalChannel + '&page=' + p + '&page_size=' + 100, { timeout: 90000 })
+      const r = await api.get('/api/insights/with-sales?wh_type=' + whType + '&channel=' + globalChannel + '&page=' + p + '&page_size=' + 100 + '&search=' + encodeURIComponent(s), { timeout: 90000 })
       if (seq !== reqSeq.current) { setLoading(false); setLoadingMore(false); return }  // 竞态丢弃
       const d = r.data || {}
       const items = (d.items || d || [])
@@ -72,7 +72,7 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
     } catch(e) { if (seq === reqSeq.current) setInventory([]) }
     if (seq === reqSeq.current) { setLoading(false); setLoadingMore(false) }
   }
-  useEffect(() => { setInvPage(1); loadInv(1) }, [whType, globalChannel])
+  useEffect(() => { setInvPage(1); loadInv(1) }, [whType, globalChannel, s])
   const handleScroll = (e) => {
     const el = e.target
     if (el.scrollTop + el.clientHeight >= el.scrollHeight - 200 && !loadingMore && inventory.length > 0 && (!invTotal || inventory.length < invTotal)) {
@@ -81,11 +81,7 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
   }
 
   const s = hammerSearch || ''
-  const fl = useMemo(() => {
-    if (!s) return inventory
-    const q = s.toLowerCase()
-    return inventory.filter(x => (x.sku||'').toLowerCase().includes(q) || (x.product_name||'').toLowerCase().includes(q) || (x.store||'').toLowerCase().includes(q))
-  }, [inventory, s])
+  const fl = useMemo(() => inventory, [inventory])
 
   const totalTurnover = useMemo(() => {
     const valid = inventory.filter(x => x.turnover_days != null)

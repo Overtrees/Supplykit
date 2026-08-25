@@ -305,6 +305,14 @@ def _seed_fill_async():
                 invalidate_cache(get_db())
             except Exception:
                 pass
+            # seed 重建了规则/供应商 → 清规则页缓存（避免最长 180s 显示旧数据）
+            try:
+                from app.api.routes.rules import _rules_cache
+                _rules_cache.clear()
+                from app.api.routes.suppliers import _suppliers_cache
+                _suppliers_cache.clear()
+            except Exception:
+                pass
         except Exception:
             pass
     except Exception as e:

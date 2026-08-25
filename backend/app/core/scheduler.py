@@ -90,27 +90,6 @@ def _task_archive_orders():
         logger.info(f"Order archive error: {e}")
 
 
-def _task_warmup_with_sales():
-    """预热进销存 with-sales 缓存（6 个组合），避免首次进入 14s 计算"""
-    try:
-        import threading
-        def _w():
-            try:
-                from app.api.routes.insights import inventory_with_sales
-                from app.core.database import get_db
-                db = get_db()
-                for _ch in ['jd', 'other']:
-                    for _wt in ['own', 'platform', 'platform_b']:
-                        try:
-                            inventory_with_sales(wh_type=_wt, channel=_ch, db=db)
-                        except Exception as _e:
-                            logger.warning(f"with-sales warmup {_ch}/{_wt}: {_e}")
-                logger.info("with-sales warmup done")
-            except Exception as e:
-                logger.warning(f"with-sales warmup error: {e}")
-        threading.Thread(target=_w, daemon=True).start()
-    except Exception as e:
-        logger.warning(f"warmup job error: {e}")
 
 
 def _task_cleanup_logs():
@@ -458,7 +437,6 @@ def start():
     # 每小时 WAL checkpoint（防 WAL 无限增长导致的慢/锁/配额问题）
     # 延迟预热 dashboard 缓存（reload 后 10s 执行，避开 CI health 探测窗口；修复预热线程饿死请求）
     scheduler.add_job(_task_warmup_dashboard, trigger='date', run_date=datetime.now(UTC) + timedelta(seconds=10), id='dash_warmup')
-    scheduler.add_job(_task_warmup_with_sales, trigger='date', run_date=datetime.now(UTC) + timedelta(seconds=15), id='with_sales_warmup')
     scheduler.start()
     logger.info(f"Started at {datetime.now(UTC).isoformat()}")
 

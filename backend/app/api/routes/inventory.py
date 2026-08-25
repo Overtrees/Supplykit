@@ -93,7 +93,7 @@ def _get_batch_summary(channel='jd', warehouse_type=''):
         if warehouse_type:
             # 取每个 SKU 最早过期的完整批次（prod/exp 同批次）＋ 该主体下的批次数
             rows = conn.execute("""
-                SELECT b.sku, b.prod_date, b.exp_date, b.cnt FROM (
+                SELECT b.sku, b.prod_date, b.exp_date, cc.cnt FROM (
                     SELECT sku, prod_date, exp_date,
                            ROW_NUMBER() OVER (PARTITION BY sku ORDER BY exp_date ASC) as rn FROM batches
                            WHERE channel=? AND warehouse_type=? AND exp_date != ''
@@ -104,7 +104,7 @@ def _get_batch_summary(channel='jd', warehouse_type=''):
             """, (channel, warehouse_type, channel, warehouse_type)).fetchall()
         else:
             rows = conn.execute("""
-                SELECT b.sku, b.prod_date, b.exp_date, b.cnt FROM (
+                SELECT b.sku, b.prod_date, b.exp_date, cc.cnt FROM (
                     SELECT sku, prod_date, exp_date,
                            ROW_NUMBER() OVER (PARTITION BY sku ORDER BY exp_date ASC) as rn FROM batches
                            WHERE channel=? AND exp_date != ''

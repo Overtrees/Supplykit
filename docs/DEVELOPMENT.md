@@ -446,3 +446,39 @@ feat: 新功能 | fix: Bug | refactor: 重构 | docs: 文档 | test: 测试 | st
 
 ### 15.6 已知问题
 - 规则保存后 `load()` 的冗余 API 调用可去掉（数据已写入后端），可简化为纯本地更新
+
+### 15.7 大数据分页 + 滚动懒加载 + 显示交互（复用规范）
+
+> 适用：进销存页（with-sales）、商品页（list_products）。大数据量（万级 SKU/记录）场景必须分页，禁止全量返回（几十 MB + 14s 计算 + 前端渲染卡死）。
+
+#### 后端分页规范
+1. **真分页**：先分页取主表当前页行 → **只计算当前页 SKU 的日销/周转/出入库**（关键：`load_daily_sales(skus=...)` 支持 SKU 过滤），禁止"全量算完再切片"
+2. **返回结构统一**：`ok({"items": [...], "total": N, "page": p, "page_size": s})`；`page=0/page_size=0` 时保持全量返回（兼容非分页调用方）
+3. **total 获取**：分页前 `count(*)` 查询（带同样过滤条件）
+4. **缓存按页**：缓存 key 含 `p{page}` + 搜索词，版本号校验（`_replen_version`）不变
+5. **搜索走后端**：`search` 参数后端 LIKE 过滤（`ilike sku/product_name`），前端搜索时重置第 1 页——**禁止前端只过滤已加载页**（大数据会漏匹配）
+6. **批次/效期注入只当前页**：`WHERE sku IN (<当前页 SKU>)` 查询，不扫全表
+
+#### 前端懒加载规范（对齐建议页）
+1. **IntersectionObserver 底部哨兵**（非 onScroll 手算距离）：
+```jsx
+<div ref={function(el){
+  if (el && !el._obs) {
+    el._obs = new IntersectionObserver(function(entries){
+      if (entries[0].isIntersecting && !loadingMore) loadXxx(page + 1)
+    }, {rootMargin: '200px'})  // 提前 200px 预载
+    el._obs.observe(el)
+  }
+}}><span className="btn btn-ghost">{loadingMore ? '加载中... ' : ''}({已加载}/{总数})</span></div>
+```
+2. **每次加载 100 条**，滚动到底自动 +1 页；竞态丢弃（`reqSeq.current` + `seq` 对比）
+3. **条数/列显示**（页面标题或表头上方）：
+```
+已加载 {Math.min(loaded, total)}/{total} 条 · 显示 {visCols.length}/{COLS.length} 列{搜索 ? ` · "${关键词}"` : ''}
+```
+4. 全部加载完：`已加载全部 N 条`；搜索/渠道/主体切换时重置第 1 页
+5. **api.get timeout 放宽**：大数据接口用 `{ timeout: 90000 }`（首次预热前可能慢）
+
+#### 后端性能关键点
+- `load_daily_sales(cutoff_days, db, sku_barcode_map=..., skus=[...])`：SKU 过滤下快照查询加 `AND sku IN (...)`，当天 orders 循环加 `if sku not in sku_set: continue`
+- with-sales 缓存：300s TTL + `_replen_version` 校验（库存/订单/商品/清洗/seed 变更都会递增）

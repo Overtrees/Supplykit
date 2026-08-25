@@ -223,10 +223,10 @@ async def auth_monitor_middleware(request, next):
     except Exception:
         pass
     return resp
-origins = [x.strip() for x in os.getenv("CORS_ORIGINS", "*").split(",") if x.strip()]
+origins = [x.strip() for x in os.getenv("CORS_ORIGINS", "").split(",") if x.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins if origins else ["*"],
+    allow_origins=origins if origins else ["https://supplykit-frontend.pages.dev"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

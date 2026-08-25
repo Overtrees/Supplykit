@@ -32,8 +32,22 @@ def _b64decode(s: str) -> bytes:
 
 
 def hash_password(password: str) -> str:
-    """返回密码的 sha256 哈希"""
-    return hashlib.sha256(password.encode()).hexdigest()
+    """PBKDF2-HMAC-SHA256 哈希，含 32 字节随机 salt + 100k 迭代（与 README 声明一致）"""
+    salt = os.urandom(32)
+    key = hashlib.pbkdf2_hmac('sha256', password.encode(), salt, 100000)
+    return salt.hex() + ':' + key.hex()
+
+
+def check_password(password: str, stored: str) -> bool:
+    """校验密码（兼容旧版裸 SHA256）"""
+    if ':' not in stored:
+        # 旧版裸 SHA256（无 salt）
+        return hashlib.sha256(password.encode()).hexdigest() == stored
+    # PBKDF2 格式
+    salt_hex, key_hex = stored.split(':')
+    salt = bytes.fromhex(salt_hex)
+    key = hashlib.pbkdf2_hmac('sha256', password.encode(), salt, 100000)
+    return key.hex() == key_hex
 
 
 def create_token(username: str, expire_hours: int = 720) -> str:
@@ -71,7 +85,7 @@ def verify_token(token: str) -> Optional[str]:
 
 
 def check_password(password: str) -> bool:
-    """校验密码（环境变量模式）"""
+    """校验密码（环境变量模式，兼容新旧哈希格式）"""
     if not PASSWORD_HASH:
         return False
-    return hash_password(password) == PASSWORD_HASH
+    return check_password(password, PASSWORD_HASH)

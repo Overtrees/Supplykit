@@ -103,9 +103,10 @@ async def preview_cleansing(file: UploadFile = File(...), mapping: str = Form(''
 
 # ─── 执行清洗 ────────────────────────────────────────────────────────────────
 
-def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str, template_name: str = '', channel: str = 'jd'):
+def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str, template_name: str = '', channel: str = 'jd', conflict_mode: str = 'overwrite'):
     """清洗核心逻辑，含格式校验 → 业务校验 → 补全推断"""
     db = get_db()
+    task_id = f"clean_{datetime.now(UTC).strftime('%H%M%S')}"
     # 强制恢复 WAL 模式（之前可能因配额满降级为 DELETE，大批量写入极慢）
     try:
         conn = get_conn()
@@ -323,7 +324,7 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                 col_names = ", ".join(f'"{c}"' for c in cols)
                 placeholders = ", ".join(["?"] * len(cols))
                 # 构造 ON CONFLICT 更新子句（排除主键列）
-                update_set = ", ".join([f'"{c}" = excluded."{c}"' for c in cols if c != 'id'])
+                update_set = ", ".join([f'"{c}" = excluded."{c}"' for c in cols if c not in ('id', 'deleted_at')])
                 if is_inv:
                     conflict_col = 'sku, warehouse, channel'  # 库存按 SKU+仓库+渠道 去重
                 elif is_product:
@@ -390,18 +391,25 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                     sk = o.get('sku','')
                     if sk:
                         oversell_by_sku[sk] = oversell_by_sku.get(sk,0) + int(o.get('quantity',0) or 0)
-                for sku, total_qty in oversell_by_sku.items():
-                    try:
-                        inv_items = db.table("inventory").select("*").eq("sku",sku).execute().data or []
-                        avail = sum(int(i.get('available_qty',0) or 0) for i in inv_items)
-                        if total_qty > avail > 0:
-                            db.table("alerts").upsert({
-                                "alert_type":"oversell","title":f"超卖: {sku}","status":"active",
-                                "description":f"导入订单共{total_qty}件 > 可用库存{avail}件",
-                                "severity":"error","source":"cleansing",
-                                "related_sku":sku, "channel": channel,
-                            }, conflict_col='alert_type')
-                    except Exception as e: print(f"[Cleansing] {e}")
+                # 批量查询库存（避免 N+1：1000 SKU → 1000 次独立查询）
+                if oversell_by_sku:
+                    skus = list(oversell_by_sku.keys())
+                    inv_rows = db.table("inventory").select("*").in_("sku", skus).execute().data or []
+                    inv_avail = {}
+                    for i in inv_rows:
+                        sk = i.get('sku','')
+                        inv_avail[sk] = inv_avail.get(sk, 0) + int(i.get('available_qty',0) or 0)
+                    for sku, total_qty in oversell_by_sku.items():
+                        try:
+                            avail = inv_avail.get(sku, 0)
+                            if total_qty > avail > 0:
+                                db.table("alerts").upsert({
+                                    "alert_type":"oversell","title":f"超卖: {sku}","status":"active",
+                                    "description":f"导入订单共{total_qty}件 > 可用库存{avail}件",
+                                    "severity":"error","source":"cleansing",
+                                    "related_sku":sku, "channel": channel,
+                                }, conflict_col='alert_type')
+                        except Exception as e: print(f"[Cleansing] {e}")
             # 触发事件
             try:
                 from app.core.replenishment_cache import invalidate_cache

@@ -26,8 +26,8 @@ function OrderSkeleton() {
 
 export default function OrdersPage() {
   const toast = useToast()
-  const { orders, orderPage, orderLoading, setOrderPage, orderStatus, dataLoaded, channel, hammerCols, hammerSearch, orderTotal, setHammerSearch } = useAppStore()
-  useEffect(() => { useAppStore.getState().loadAll(1); setHammerSearch('') }, [channel])
+  const { orders, orderPage, orderLoading, setOrderPage, orderStatus, dataLoaded, channel, hammerCols, hammerSearch, orderTotal, setHammerSearch, pageVersion } = useAppStore()
+  useEffect(() => { useAppStore.getState().loadAll(1); setHammerSearch('') }, [channel, pageVersion])
   useEffect(() => { useAppStore.getState().loadAll() }, [hammerSearch, orderStatus])
   const [confirmDel, setConfirmDel] = useState(null)
   // 删除撤销定时器集合：卸载时统一清理，防止软删订单残留

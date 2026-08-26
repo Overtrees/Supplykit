@@ -101,7 +101,7 @@ export default function RulesPage() {
   const defaultF = {name:'', event:'inventory.changed', alert_type:'low_stock', alert_title:'', alert_desc:'', severity:'warning', condition_json:'{}'}
   const [f, setF] = useState(defaultF)
   const [cond, setCond] = useState({left:'inv.available_qty', op:'<', right:'inv.safety_qty', rightType:'field', pctValue:100, warehouse:''})
-  const { channel: globalChannel, setChannel: setGlobalChannel, hammerRulesTab: tab, hammerRuleNewVersion, hammerRulesMode, hammerSearch, prodBatch, setProdBatch, prodSelIds, setProdBatchSel, setProdBatchFilterLen, prodBatchVersion, bumpProdBatchVersion, prodBatchAllReq } = useAppStore()
+  const { channel: globalChannel, setChannel: setGlobalChannel, hammerRulesTab: tab, hammerRuleNewVersion, hammerRulesMode, hammerSearch, prodBatch, setProdBatch, prodSelIds, setProdBatchSel, setProdBatchFilterLen, prodBatchVersion, bumpProdBatchVersion, prodBatchAllReq, pageVersion } = useAppStore()
   useEffect(() => {
     api.get('/api/replenishment-config/slow-cats?channel=' + globalChannel).then(r => { if (Array.isArray(r.data)) setSlowCats(r.data) }).catch(() => {})
   }, [globalChannel])
@@ -133,7 +133,7 @@ export default function RulesPage() {
   const loadCfg = async (mode, ch) => { try { const m=mode||cfg.replenishment_mode||'bbcc'; const c=ch||globalChannel; const r=await api.get('/api/replenishment-config?mode='+m+'&channel='+c);if(r.data&&Object.keys(r.data).length>0)setCfg(p=>({...p, ...r.data, replenishment_mode:m}));else if(c!=='jd'){const fallback=await api.get('/api/replenishment-config?mode='+m+'&channel=jd');if(fallback.data)setCfg(p=>({...p,...fallback.data,replenishment_mode:m}))}setCfg(p => ({...p, replenishment_mode: m}));return r.data||{} } catch(e) { return {} } }
   const loadSeasons = async (mode, ch) => { try { const m=mode||cfg.replenishment_mode||'bbcc'; const c=ch||globalChannel; const sk='season_config_'+m; if(cfg[sk]){try{const sd=JSON.parse(cfg[sk]||'[]');setSeasons(Array.isArray(sd)?sd:[]);return}catch{}} const r=await api.get('/api/replenishment-config/seasons?mode='+m+'&channel='+c); setSeasons(r.data||[]) } catch(e) {} }
   const loadAll = async (ch) => { setLoading(true); const c=ch||globalChannel; const savedMode=(()=>{try{return localStorage.getItem('c_replen_mode_'+c)}catch{return null}})(); const m=c!=='jd'?'traditional':(savedMode||'bbcc'); clearCache(); clearInflight(); try{const _s=localStorage.getItem('c_supplier_'+c);if(_s)setSelectedSupplier(_s)}catch{} await Promise.all([ (async()=>{try{await load(c)}catch(e){}})(), (async()=>{try{const flat=await api.get('/api/replenishment-config?channel='+c);if(flat.data){setCfg(p=>{const mP='mode_'+m+'_';const mD={};Object.entries(flat.data).forEach(([k,v])=>{if(k.startsWith(mP))mD[k.slice(mP.length)]=v});return{...p,...flat.data,...mD,replenishment_mode:m}});const sK='season_config_'+m;try{const sd=JSON.parse(flat.data[sK]||'[]');setSeasons(Array.isArray(sd)?sd:[])}catch{}}}catch(e){}})(), (async()=>{try{const sr=await api.get('/api/suppliers?channel='+c);if(sr.data)setSuppliers(sr.data.map(x=>x.supplier_code).filter(Boolean))}catch(e){}})() ]); setLoading(false) }
-  useEffect(() => { loadAll() }, [globalChannel])
+  useEffect(() => { loadAll() }, [globalChannel, pageVersion])
   // tab/模式切换时加载配置，补货参数页加骨架过渡
   useEffect(() => {
     const seq = ++reqSeq.current

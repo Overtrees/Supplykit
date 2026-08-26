@@ -9,7 +9,7 @@ const periodLabel = { today:'今日', week:'本周', month:'本月' }
 interface DashboardPageProps { onAlert?: (sku: string) => void }
 
 export default function DashboardPage({ onAlert }: DashboardPageProps) {
-  const { dashboard, inventory, qualityLogs, alerts, stockRisk, channel, loading, hammerDashPeriod: periodTab } = useAppStore()
+  const { dashboard, inventory, qualityLogs, alerts, stockRisk, channel, loading, hammerDashPeriod: periodTab, pageVersion } = useAppStore()
   const [healthTab, setHealthTab] = useState(() => { try { return localStorage.getItem('health_tab') || (channel === 'jd' ? 'own' : 'platform') } catch { return channel === 'jd' ? 'own' : 'platform' } })
   const setHealthWithSave = (tab) => { try { localStorage.setItem('health_tab', tab) } catch {} setHealthTab(tab) }
   const [bcMenuOpen, setBcMenuOpen] = useState(false)
@@ -54,7 +54,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
       }
     }).catch(() => setChLoading(false))
     load()
-  }, [channel])
+  }, [channel, pageVersion])
   // 30s 静默自动刷新（不显示 loading 骨架屏，避免闪烁）
   useEffect(() => {
     const timer = setInterval(async () => {

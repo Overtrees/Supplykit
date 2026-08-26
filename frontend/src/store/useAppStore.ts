@@ -8,7 +8,7 @@ interface OrderItem {
 }
 
 interface AppState {
-  channel: string; channelVersion: number; dataLoaded: boolean
+  channel: string; channelVersion: number; pageVersion: number; dataLoaded: boolean
   dashboard: any; orders: OrderItem[]; orderTotal: number; orderPage: number
   inventory: any[]; qualityLogs: any[]; alerts: any[]; stockRisk: any[]
   loading: boolean; orderLoading: boolean; orderSearch: string; orderStatus: string
@@ -40,6 +40,7 @@ const safeGetJSON = (key, def = null) => { try { return JSON.parse(localStorage.
 export const useAppStore = create((set, get) => ({
   channel: safeGet('c_channel') || 'jd',
   channelVersion: 0,
+  pageVersion: 0,
   dashboard: null,
   orders: [],
   orderTotal: 0,
@@ -110,6 +111,7 @@ export const useAppStore = create((set, get) => ({
     set({ hammerData: hd })
   },
   setChannel: (ch) => { try { localStorage.setItem('c_channel', ch) } catch {} clearCache(); clearInflight(); const _wh = safeGet('c_wh_type_' + ch) || 'own'; set({ channel: ch, dataLoaded: false, loading: true, hammerWhType: (ch !== 'jd' && _wh === 'platform_b') ? 'own' : _wh, hammerDashPeriod: safeGet('c_dash_period_' + ch) || 'month', hammerReplenMode: safeGet('c_replen_mode_' + ch) || (ch === 'jd' ? 'bbcc' : 'traditional'), hammerRulesMode: safeGet('c_replen_mode_' + ch) || (ch === 'jd' ? 'bbcc' : 'traditional'), hammerCleansingChannel: ch }); get().loadAll() },
+  bumpPageVersion: () => set(s => ({ pageVersion: s.pageVersion + 1 })),
 
   async loadAll(page, opts) {
     set({ loading: true, orderLoading: true })

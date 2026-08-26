@@ -36,6 +36,12 @@ def update_config(data: dict, mode: str = '', channel: str = 'jd', db=get_db()):
         nv = (int(v[0]["value"]) + 1) if v and v[0].get("value") else 1
         db.table("replenishment_config").upsert({"key": "_cfg_version", "value": str(nv), "channel": "jd", "updated_at": datetime.now(UTC).isoformat()}, conflict_col='key')
     except: pass  # 配置变更，清空缓存
+    # 配置变更(含滞销参数 slow_cats_config) → 递增 _replen_version, 让滞销/补货缓存失效
+    try:
+        _rv = db.table("replenishment_config").select("*").eq("key", "_replen_version").execute().data
+        _rnv = (int(_rv[0]["value"]) + 1) if _rv and _rv[0].get("value") else 1
+        db.table("replenishment_config").upsert({"key": "_replen_version", "value": str(_rnv), "channel": "jd", "updated_at": datetime.now(UTC).isoformat()}, conflict_col='key')
+    except: pass
     now = datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S')
     if mode:
         prefix = f'mode_{mode}_'

@@ -112,19 +112,15 @@ _DISPOSAL_CACHE_TTL = 300
 def get_disposal_suggestions(channel: str = 'jd', db = get_db()):
     """滞销处置建议（300s 缓存 + _replen_version 校验）"""
     import time as _t
+    # 滞销是低频分析(35s计算), 用 300s TTL 缓存(不用版本号校验——后台任务可能
+    # 波动 _replen_version 导致缓存频繁失效; 牺牲最多300s实时窗口换取稳定命中)
     _key = f"disposal_{channel}"
-    _ver = 0
-    try:
-        _v = db.table("replenishment_config").select("*").eq("key", "_replen_version").execute().data
-        _ver = int(_v[0]["value"]) if _v and _v[0].get("value") else 0
-    except Exception:
-        pass
     _cached = _disposal_cache.get(_key)
-    if _cached and _cached.get('ver') == _ver and _t.time() - _cached.get('ts', 0) < _DISPOSAL_CACHE_TTL:
+    if _cached and _t.time() - _cached.get('ts', 0) < _DISPOSAL_CACHE_TTL:
         return _cached['data']
     _result = _get_disposal_suggestions_impl(channel, db)
     try:
-        _disposal_cache[_key] = {'data': _result, 'ts': _t.time(), 'ver': _ver}
+        _disposal_cache[_key] = {'data': _result, 'ts': _t.time()}
     except Exception:
         pass
     return _result

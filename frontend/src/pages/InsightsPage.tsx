@@ -85,7 +85,10 @@ export default function InsightsPage() {
   const [replenLoading, setReplenLoading] = useState(true)
   const [purchaseLoading, setPurchaseLoading] = useState(true)
   const [slowLoading, setSlowLoading] = useState(true)
-  const [replenLimit, setReplenLimit] = useState(50)
+  const [replenLimit, setReplenLimit] = useState(100)
+  const [replenTotal, setReplenTotal] = useState(0)
+  const [replenPage, setReplenPage] = useState(1)
+  const [replenLoadingMore, setReplenLoadingMore] = useState(false)
   const [purchaseLimit, setPurchaseLimit] = useState(50)
   const [slowLimit, setSlowLimit] = useState(50)
 
@@ -152,25 +155,29 @@ export default function InsightsPage() {
     else setSlowVisCols(SLOW_COLS.map(c => c.id))
   }, [hammerCols, globalChannel])
   const [replenError, setReplenError] = useState('')
-  const loadReplen = async (mode, ch) => {
+  const loadReplen = async (mode, ch, page = 1) => {
     const seq = ++replenSeq.current
-    setReplenLoading(true)
+    if (page === 1) setReplenLoading(true)
+    else setReplenLoadingMore(true)
     setReplenError('')
     try {
-      const r = await api.get('/api/insights/replenishment?days=28&mode=' + mode, {timeout: 90000})
+      const r = await api.get('/api/insights/replenishment?days=28&mode=' + mode + '&channel=' + ch + '&page=' + page + '&page_size=100', {timeout: 90000})
       if (seq !== replenSeq.current) return
       let data = r.data
-      // 防双重包装兜底：{ok,data:{...}} 或 {data:[...]} 结构再解一层
-      if (!Array.isArray(data) && data && typeof data === 'object') {
-        if (Array.isArray(data.data)) data = data.data
-        else if (Array.isArray(data.data && data.data.data)) data = data.data.data
-      }
-      setReplen(Array.isArray(data) ? data : [])
-      if (!Array.isArray(data)) setReplenError('返回数据格式异常: ' + (r && r.status || '') + ' ' + String(r.data).slice(0, 120))
+      let total = 0
+      let items = []
+      // 分页结构 {items,total}
+      if (data && typeof data === 'object' && Array.isArray(data.items)) { items = data.items; total = data.total || items.length }
+      else if (Array.isArray(data)) { items = data; total = data.length }
+      setReplen(prev => page === 1 ? items : [...prev, ...items])
+      setReplenTotal(total)
+      setReplenPage(page)
+      setReplenLoading(false); setReplenLoadingMore(false)
     } catch(e) {
       console.error('loadReplen:', e)
       if (seq === replenSeq.current) {
-        setReplen([])
+        if (page === 1) setReplen([])
+        setReplenLoading(false); setReplenLoadingMore(false)
         setReplenError((e && (e.message || e.statusText)) ? String(e.message || e.statusText) : String(e))
       }
     }
@@ -295,7 +302,7 @@ export default function InsightsPage() {
         <div className="card">
           <div className="section-title" style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
             <span>补货建议</span>
-            <span className="muted2" style={{fontSize:11,fontWeight:400}}>已加载 {Math.min(replenLimit, filteredReplen.length)}/{filteredReplen.length} 条 · 显示 {visCols.length}/{currentCols.length} 列{insightSearch ? ` · "${insightSearch}"` : ''}</span>
+            <span className="muted2" style={{fontSize:11,fontWeight:400}}>已加载 {Math.min(replen.length, replenTotal || replen.length)}/{replenTotal || replen.length} 条 · 显示 {visCols.length}/{currentCols.length} 列{insightSearch ? ` · "${insightSearch}"` : ''}</span>
             {replenMode==='bbcc' && orderedKeys.length > 0 && <span className="pill success" style={{fontSize:10}}>已下单 {orderedKeys.length} 项</span>}
           </div>
           {replenLoading ? (
@@ -317,7 +324,7 @@ export default function InsightsPage() {
                 <colgroup>{visCols.map(id => {const col = currentCols.find(c => c.id === id); return col ? <col key={col.id} /> : null})}</colgroup>
                 <thead style={{position:'sticky',top:0,background:'var(--card)',zIndex:1}}><tr>{visCols.map(id => {const col = currentCols.find(c => c.id === id); return col ? <th style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}} key={col.id}>{col.label}</th> : null})}</tr></thead>
                 <tbody>
-                  {Array.isArray(filteredReplen) && filteredReplen.slice(0, replenLimit).map((x, i) => {
+                  {Array.isArray(filteredReplen) && filteredReplen.map((x, i) => {
                     const isOrdered = orderedKeys.includes(x.sku+'|'+x.store)
                     const rowStyle = isOrdered ? {opacity:0.55,background:'var(--bg)'} : {}
                     return (
@@ -381,16 +388,16 @@ export default function InsightsPage() {
                   )})}
                 </tbody>
               </table>
-              {Array.isArray(filteredReplen) && filteredReplen.length > replenLimit && (
+              {replenTotal > 0 && replen.length < replenTotal && (
                 <div className="text-center mt-8" ref={function(el) {
                   if (el && !el._observer) {
                     el._observer = new IntersectionObserver(function(entries) {
-                      if (entries[0].isIntersecting) setReplenLimit(function(prev) { return prev + 50 })
+                      if (entries[0].isIntersecting && !replenLoadingMore) loadReplen(replenMode, globalChannel, replenPage + 1)
                     }, {rootMargin: '200px'})
                     el._observer.observe(el)
                   }
                 }}>
-                  <span className="btn btn-ghost" style={{fontSize:12,padding:'6px 16px',cursor:'pointer'}}>加载中... ({replenLimit}/{filteredReplen.length})</span>
+                  <span className="btn btn-ghost" style={{fontSize:12,padding:'6px 16px',cursor:'pointer'}}>{replenLoadingMore ? '加载中... ' : ''}({replen.length}/{replenTotal})</span>
                 </div>
               )}
             </div>

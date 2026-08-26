@@ -12,14 +12,18 @@ logger = logging.getLogger("replenishment")
 
 
 @router.get('/replenishment')
-def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 'bbcc', channel: str = 'jd', db = get_db()):
+def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 'bbcc', channel: str = 'jd', page: int = 0, page_size: int = 0, db = get_db()):
     """补货建议，支持 days=7/14/28 切换，mode=bbcc/traditional 切换模型"""
     # 尝试读取缓存
     from app.core.replenishment_cache import get_cached, set_cache
     cached, hit = get_cached(mode, channel, days, db)
     if hit:
         # 缓存存储格式为 {"data": suggestions}，解包后统一返回 ok 格式
-        return ok(cached.get("data", []) if isinstance(cached, dict) else cached)
+        _sug = cached.get("data", []) if isinstance(cached, dict) else cached
+        if page > 0 and page_size > 0:
+            _total = len(_sug)
+            return ok({"items": _sug[(page - 1) * page_size: page * page_size], "total": _total, "page": page, "page_size": page_size})
+        return ok(_sug)
 
     try: db.table("alerts").update({"status": "inactive"}).eq("alert_type", "storage_fee").eq("status", "active").execute()
     except Exception as e: logger.warning(f"clear storage_fee alerts: {e}")
@@ -71,7 +75,12 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     orders = [o for o in orders if not (o.get("deleted_at") or "")]
 
     # 三周期日销：一次遍历算 3 个窗口
-    daily_28 = load_daily_sales(28, db, sku_barcode_map=sku_barcode_map, channel=channel)
+    # 只加载有库存 SKU 的日销（减少全量加载, 加速计算）
+    try:
+        _inv_skus = [x.get('sku','') for x in db.table("inventory").select("sku").eq("channel", channel).execute().data if x.get('sku')]
+    except Exception:
+        _inv_skus = None
+    daily_28 = load_daily_sales(28, db, sku_barcode_map=sku_barcode_map, channel=channel, skus=_inv_skus)
     sales_7 = calc_sales_from_daily(daily_28, 7, orders=orders, sku_barcode_map=sku_barcode_map)
     sales_14 = calc_sales_from_daily(daily_28, 14, orders=orders, sku_barcode_map=sku_barcode_map)
     sales_28 = calc_sales_from_daily(daily_28, 28, orders=orders, sku_barcode_map=sku_barcode_map)
@@ -371,6 +380,9 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     except Exception as e:
         logger.warning(f"[replenish] batch alerts: {e}")
 
+    if page > 0 and page_size > 0:
+        _total = len(suggestions)
+        return ok({"items": suggestions[(page - 1) * page_size: page * page_size], "total": _total, "page": page, "page_size": page_size})
     return ok(suggestions)
 
 

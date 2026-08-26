@@ -3,7 +3,7 @@ name: Self-Heal Backend
 on:
   workflow_dispatch:
   schedule:
-    - cron: '*/30 * * * *'
+    - cron: '*/10 * * * *'
 
 jobs:
   check-and-heal:

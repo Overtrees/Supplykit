@@ -50,6 +50,6 @@ def invalidate_cache(db):
     ver = db.table("replenishment_config").select("*").eq("key", "_replen_version").execute().data
     new_ver = str(int(ver[0]["value"]) + 1) if ver else "1"
     if ver:
-        db.table("replenishment_config").update({"value": new_ver}).eq("key", "_cache_version").execute()
+        db.table("replenishment_config").update({"value": new_ver}).eq("key", "_replen_version").execute()
     else:
-        db.table("replenishment_config").insert({"key": "_cache_version", "value": new_ver, "channel": "jd"}).execute()
+        db.table("replenishment_config").insert({"key": "_replen_version", "value": new_ver, "channel": "jd"}).execute()

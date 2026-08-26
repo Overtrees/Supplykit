@@ -16,6 +16,20 @@
 | **bug 修复** | 进销存 TDZ（`const s` 在 useEffect 后定义）；批次效期时区（aware/naive）；调试面板 JSX 位置（被当代码块丢弃）；`useToast` 在异步回调调用；`DeleteBuilder` 缺 `in_`；清洗 `task_id`/`conflict_mode`/N+1 |
 | **开发规范 15.7** | 大数据分页 + 滚动懒加载 + 显示交互（IntersectionObserver 哨兵 + 条数列数提示） |
 
+## 2026-08-26 下午：滞销/补货分页 + 告警即时失效 + 自愈 + 加载失败区分
+| 模块 | 改动 |
+|------|------|
+| **滞销建议** | SQL 聚合套用 detect_slow_moving 方案（首次 35s→4.2s）；后端分页 + 前端懒加载（套 15.7）；**版本号校验恢复**（SKU 产生销量后即时降级/移出闭环）；**滞销参数联动**（PUT 递增 _replen_version） |
+| **补货建议** | 后端分页 + 前端懒加载（传输 1000 条全量→每页 100）；**load_daily_sales 全量回退**（补货必须算所有 SKU 含缺货，不能只算库存 SKU） |
+| **严重 bug 修复** | `invalidate_cache` 写错 key（写 `_cache_version` 应写 `_replen_version`）→ 补货缓存永不失效，数据变更后最长 15 分钟旧数据 |
+| **告警** | 300s 缓存 + limit 200（7-19s→3-5s）；**双版本号校验**（`_rules_version` + `_replen_version`）——规则操作即时失效（200→127→200 验证）；rules.py 写操作统一递增 `_rules_version` |
+| **前端性能** | 切页不再全量 loadAll（原每次切页 6 请求含 /api/inventory 33s）；建议页按 tab 加载（4 请求→1-2）；pageVersion 回退只保留看板 |
+| **库存** | /api/inventory 分页（33.8s→2s） |
+| **加载失败区分** | 8 页面（看板/商品/进销存/规则/建议/订单/供应商/任务）统一 ErrorRetry 组件：加载失败显示错误+重试，不误显示"暂无数据" |
+| **自愈体系** | GitHub Actions self-heal.yml 每 10 分钟检查 health + 自动 reload（挂后 ≤10 分钟恢复）；UptimeRobot 保活 ping（已有） |
+| **部署** | Reload 重试 5 次 30s→10 次 45s（PA slow_startup 409 容忍，部署最终 success） |
+| **数据流澄清** | 在途=库存 in_transit_qty（库存变更更新）；采购订单=BBCC 已下单标记+入库时间监控 B 仓超储；删除订单直接影响日销（load_daily_sales 过滤 + 快照扣减） |
+
 ## 2026-08-24 配额管理全面修复 + 批量操作联动
 
 ### 配额管理（彻底解决爆库问题）

@@ -193,14 +193,12 @@ def _get_disposal_suggestions_impl(channel: str = 'jd', db = get_db()):
     except Exception as e:
         import logging; logging.warning(f"[disposal] sales: {e}")
         sales_28 = {}
+    # SQL 聚合取每SKU最后销售日(替代全量12万行Python遍历, 套用detect_slow_moving已有聚合方案)
     sale_90 = {}
     try:
         cutoff90 = (today - timedelta(days=90)).strftime('%Y-%m-%d')
-        for r in conn.execute("SELECT sku, ordered_at, quantity, total_amount FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at='')", (channel, cutoff90)).fetchall():
-            sk = str(r[0]); dt = str(r[1])[:10]
-            s90 = sale_90.setdefault(sk, {'qty':0,'amt':0,'days':set()})
-            s90['qty'] += int(r[2] or 0); s90['amt'] += float(r[3] or 0)
-            if dt: s90['days'].add(str(dt))
+        for r in conn.execute("SELECT sku, MAX(ordered_at) FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at='') GROUP BY sku", (channel, cutoff90)).fetchall():
+            if r[0]: sale_90[str(r[0])] = str(r[1] or '')[:10]
     except Exception as e:
         import logging; logging.warning(f"[disposal] sale90: {e}")
     # 最后销售日
@@ -210,11 +208,9 @@ def _get_disposal_suggestions_impl(channel: str = 'jd', db = get_db()):
             last_order[str(r[0])] = str(r[1] or '')[:10]
     except Exception as e:
         import logging; logging.warning(f"[disposal] snap date: {e}")
-    for sk, v in sale_90.items():
-        if v['days']:
-            mx = max(v['days'])
-            if mx > last_order.get(sk, ''):
-                last_order[sk] = mx
+    for sk, mx in sale_90.items():
+        if mx and mx > last_order.get(sk, ''):
+            last_order[sk] = mx
     # B 仓入库批次
     b_arrival = {}
     try:

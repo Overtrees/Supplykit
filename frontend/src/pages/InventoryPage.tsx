@@ -40,7 +40,7 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
   const [confirmDel, setConfirmDel] = useState(null)
   const [monthRange, setMonthRange] = useState('')
   const reqSeq = useRef(0)
-  const { channel: globalChannel, hammerWhType, hammerCols, hammerSearch, setHammerSearch, pageVersion } = useAppStore()
+  const { channel: globalChannel, hammerWhType, hammerCols, hammerSearch, setHammerSearch } = useAppStore()
   const whType = hammerWhType
   useEffect(() => { if (visCols.length === 0) setVisCols(getVis('own', globalChannel) || INV_COLS['own'].map(c=>c.id)) }, [globalChannel])
 
@@ -76,7 +76,7 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
     } catch(e) { if (seq === reqSeq.current) { setInventory([]); setLoadErr('加载失败，可能是网络异常或服务暂不可用') } }
     if (seq === reqSeq.current) { setLoading(false); setLoadingMore(false) }
   }
-  useEffect(() => { setInvPage(1); loadInv(1) }, [whType, globalChannel, s, pageVersion])
+  useEffect(() => { setInvPage(1); loadInv(1) }, [whType, globalChannel, s])
   const handleScroll = (e) => {
     const el = e.target
     if (el.scrollTop + el.clientHeight >= el.scrollHeight - 200 && !loadingMore && inventory.length > 0 && (!invTotal || inventory.length < invTotal)) {

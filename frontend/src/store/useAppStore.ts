@@ -151,7 +151,7 @@ export const useAppStore = create((set, get) => ({
         dataLoaded: true,
         loading: false,
         orderLoading: false,
-  orderLoadErr: '',
+        orderLoadErr: results[1] && results[1].status === 'rejected' ? '加载失败，可能是网络异常或服务暂不可用' : '',
       })
     } catch (e) {
       console.error('loadAll failed:', e)

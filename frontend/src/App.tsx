@@ -64,7 +64,7 @@ const INV_WH_LABEL = { own:'自有仓', platform:'平台仓', platform_b:'B仓' 
 
 export default function App() {
   const [page, setPage] = useState('dash')
-  const navigateTo = (p: string) => { setPage(p); clearCache(); clearInflight(); useAppStore.getState().bumpPageVersion(); if (p === 'dash') { useAppStore.getState().loadAll().catch(() => {}); setTimeout(function() { api.get('/api/dashboard/summary?channel=jd&refresh=1').then(function(r) { useAppStore.setState({dashboard: r.data || null}) }).catch(() => {}) }, 2000) } }
+  const navigateTo = (p: string) => { setPage(p); clearCache(); clearInflight(); if (p === 'dash') { useAppStore.getState().bumpPageVersion(); useAppStore.getState().loadAll().catch(() => {}) } }
   ;(window as any).__setPage = (p: string) => { navigateTo(p); closeHammerMenu() }
   const [highlightSku, setHighlightSku] = useState('')
   const { inventory, qualityLogs, startPolling, stopAll, wsStatus, channel, setChannel, hammerData, setHammerPanel } = useAppStore()

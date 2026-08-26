@@ -75,12 +75,9 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     orders = [o for o in orders if not (o.get("deleted_at") or "")]
 
     # 三周期日销：一次遍历算 3 个窗口
-    # 只加载有库存 SKU 的日销（减少全量加载, 加速计算）
-    try:
-        _inv_skus = [x.get('sku','') for x in db.table("inventory").select("sku").eq("channel", channel).execute().data if x.get('sku')]
-    except Exception:
-        _inv_skus = None
-    daily_28 = load_daily_sales(28, db, sku_barcode_map=sku_barcode_map, channel=channel, skus=_inv_skus)
+    # 全量日销(所有SKU)——补货必须算所有SKU(含缺货/无库存的),
+    # 不能只加载库存SKU, 否则卖光缺货的SKU会被遗漏(最需要补货)
+    daily_28 = load_daily_sales(28, db, sku_barcode_map=sku_barcode_map, channel=channel)
     sales_7 = calc_sales_from_daily(daily_28, 7, orders=orders, sku_barcode_map=sku_barcode_map)
     sales_14 = calc_sales_from_daily(daily_28, 14, orders=orders, sku_barcode_map=sku_barcode_map)
     sales_28 = calc_sales_from_daily(daily_28, 28, orders=orders, sku_barcode_map=sku_barcode_map)

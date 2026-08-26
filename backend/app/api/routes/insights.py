@@ -109,21 +109,29 @@ _DISPOSAL_CACHE_TTL = 300
 
 
 @router.get('/disposal-suggestions')
-def get_disposal_suggestions(channel: str = 'jd', db = get_db()):
-    """滞销处置建议（300s 缓存 + _replen_version 校验）"""
+def get_disposal_suggestions(channel: str = 'jd', page: int = 0, page_size: int = 0, db = get_db()):
+    """滞销处置建议（300s TTL 缓存全量 + 分页返回）
+
+    缓存存全量 suggestions(低频计算35s, 二次命中快), 分页在缓存后切片。
+    page/page_size: 传0返回全部。
+    """
     import time as _t
-    # 滞销是低频分析(35s计算), 用 300s TTL 缓存(不用版本号校验——后台任务可能
-    # 波动 _replen_version 导致缓存频繁失效; 牺牲最多300s实时窗口换取稳定命中)
     _key = f"disposal_{channel}"
     _cached = _disposal_cache.get(_key)
     if _cached and _t.time() - _cached.get('ts', 0) < _DISPOSAL_CACHE_TTL:
-        return _cached['data']
-    _result = _get_disposal_suggestions_impl(channel, db)
-    try:
-        _disposal_cache[_key] = {'data': _result, 'ts': _t.time()}
-    except Exception:
-        pass
-    return _result
+        suggestions = _cached['data']
+    else:
+        _res = _get_disposal_suggestions_impl(channel, db)
+        suggestions = _res.get('data') if isinstance(_res, dict) else (_res if isinstance(_res, list) else [])
+        try:
+            _disposal_cache[_key] = {'data': suggestions, 'ts': _t.time()}
+        except Exception:
+            pass
+    total = len(suggestions)
+    if page > 0 and page_size > 0:
+        items = suggestions[(page - 1) * page_size: page * page_size]
+        return ok({"items": items, "total": total, "page": page, "page_size": page_size})
+    return ok(suggestions)
 
 
 def _get_disposal_suggestions_impl(channel: str = 'jd', db = get_db()):

@@ -72,6 +72,9 @@ export default function InsightsPage() {
   // 滞销处置建议（SKU×仓库粒度 + 批量处置）
   const [disposals, setDisposals] = useState([])
   const [disposalsLoading, setDisposalsLoading] = useState(true)
+  const [slowPage, setSlowPage] = useState(1)
+  const [slowTotal, setSlowTotal] = useState(0)
+  const [slowLoadingMore, setSlowLoadingMore] = useState(false)
   const [dispSel, setDispSel] = useState([])
   const [dispAction, setDispAction] = useState('mark')
   const [dispNote, setDispNote] = useState('')
@@ -237,11 +240,15 @@ export default function InsightsPage() {
         setPurchaseLoading(false)
       }).catch(() => setPurchaseLoading(false))
     } else if (tab === 'slow') {
-      // 仅拉滞销处置建议
+      // 仅拉滞销处置建议（分页，第1页）
       setDisposalsLoading(true)
-      api.get('/api/insights/disposal-suggestions?channel=' + globalChannel).then(r => {
+      setSlowPage(1)
+      api.get('/api/insights/disposal-suggestions?channel=' + globalChannel + '&page=1&page_size=100').then(r => {
         if (seq !== reqSeq.current) { setDisposalsLoading(false); return }
-        setDisposals(r.data || [])
+        const d = r.data || {}
+        const items = d.items || d || []
+        setDisposals(items)
+        setSlowTotal(d.total || items.length || 0)
         setDisposalsLoading(false)
       }).catch(() => setDisposalsLoading(false))
     } else {
@@ -251,6 +258,19 @@ export default function InsightsPage() {
       loadReplen(mode, globalChannel)
     }
   }, [globalChannel, replenMode, dataVersion, tab])
+
+  const loadSlowMore = () => {
+    if (slowLoadingMore || (slowTotal > 0 && disposals.length >= slowTotal)) return
+    setSlowLoadingMore(true)
+    api.get('/api/insights/disposal-suggestions?channel=' + globalChannel + '&page=' + (slowPage + 1) + '&page_size=100').then(r => {
+      const d = r.data || {}
+      const items = d.items || []
+      setDisposals(prev => [...prev, ...items])
+      setSlowPage(prev => prev + 1)
+      setSlowTotal(d.total || slowTotal)
+      setSlowLoadingMore(false)
+    }).catch(() => setSlowLoadingMore(false))
+  }
 
   const doDispose = async () => {
     if (dispSel.length === 0) { toast.error('请先勾选要处置的项'); return }
@@ -543,6 +563,16 @@ export default function InsightsPage() {
                   <input value={dispNote} onChange={e=>setDispNote(e.target.value)} placeholder="备注(可选)" style={{flex:1,minWidth:80,fontSize:12,padding:'6px 10px',borderRadius:99,border:'1px solid var(--border)',background:'var(--card)',outline:'none'}} />
                   <button onClick={doDispose} disabled={dispBusy} className="btn btn-primary" style={{minHeight:32,padding:'0 14px',fontSize:12,flexShrink:0}}>{dispBusy?'处理中...':'批量处置'}</button>
                 </div>
+              )}
+              {slowTotal > 0 && filteredDisp.length < slowTotal && (
+                <div style={{textAlign:'center',padding:'10px 0'}} ref={function(el){
+                  if (el && !el._obs) {
+                    el._obs = new IntersectionObserver(function(entries){
+                      if (entries[0].isIntersecting && !slowLoadingMore) loadSlowMore()
+                    }, {rootMargin: '200px'})
+                    el._obs.observe(el)
+                  }
+                }}><span className="btn btn-ghost" style={{fontSize:12,padding:'6px 16px',cursor:'pointer'}}>{slowLoadingMore ? '加载中... ' : ''}({filteredDisp.length}/{slowTotal})</span></div>
               )}
             </>
           ))}

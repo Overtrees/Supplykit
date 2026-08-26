@@ -10,6 +10,17 @@ router = APIRouter(prefix="/api/rules", tags=["rules"])
 # 规则缓存（30s TTL，创建/更新/删除规则时自动失效）
 _rules_cache = {}
 
+
+def _bump_rules_version(db):
+    """递增 _rules_version(规则变更版本)——alerts 缓存校验它, 规则操作后告警即时失效"""
+    try:
+        from datetime import datetime, UTC
+        v = db.table("replenishment_config").select("*").eq("key", "_rules_version").execute().data
+        nv = (int(v[0]["value"]) + 1) if v and v[0].get("value") else 1
+        db.table("replenishment_config").upsert({"key": "_rules_version", "value": str(nv), "channel": "jd", "updated_at": datetime.now(UTC).isoformat()}, conflict_col='key')
+    except Exception:
+        pass
+
 @router.get("")
 def list_rules(channel: str = 'jd', include_deleted: bool = False, db = get_db()):
     import time
@@ -37,7 +48,7 @@ def list_rules(channel: str = 'jd', include_deleted: bool = False, db = get_db()
 
 @router.post("")
 def create_rule(data: RuleCreate, db = get_db()):
-    _rules_cache.clear()
+    _rules_cache.clear(); _bump_rules_version(db)
     try:
         payload = {
             "name": data.name, "event": data.event,
@@ -65,7 +76,7 @@ def create_rule(data: RuleCreate, db = get_db()):
 
 @router.put("/{rule_id}")
 def update_rule(rule_id: int, data: RuleUpdate, db = get_db()):
-    _rules_cache.clear()
+    _rules_cache.clear(); _bump_rules_version(db)
     if not db.table("rules").select("id").eq("id", rule_id).execute().data:
         raise HTTPException(status_code=404, detail="规则不存在")
     update = {}
@@ -84,7 +95,7 @@ def update_rule(rule_id: int, data: RuleUpdate, db = get_db()):
 
 @router.delete("/{rule_id}")
 def delete_rule(rule_id: int, db = get_db()):
-    _rules_cache.clear()
+    _rules_cache.clear(); _bump_rules_version(db)
     try:
         # 软删除
         from datetime import datetime, UTC
@@ -104,14 +115,14 @@ def delete_rule(rule_id: int, db = get_db()):
 
 @router.post("/{rule_id}/restore")
 def restore_rule(rule_id: int, db = get_db()):
-    _rules_cache.clear()
+    _rules_cache.clear(); _bump_rules_version(db)
     db.table("rules").update({"is_active": 1, "deleted_at": ""}).eq("id", rule_id).execute()
     _sync_alerts_for_rules([rule_id], False, db)
     from app.api.routes.ws import broadcast_sync; broadcast_sync("data.updated"); return ok({"message": "已恢复", "id": rule_id})
 
 @router.post("/{rule_id}/permanent-delete")
 def permanent_delete_rule(rule_id: int, db = get_db()):
-    _rules_cache.clear()
+    _rules_cache.clear(); _bump_rules_version(db)
     db.table("rules").delete().eq("id", rule_id).execute()
     _sync_alerts_for_rules([rule_id], True, db)
     from app.api.routes.ws import broadcast_sync; broadcast_sync("data.updated")
@@ -155,7 +166,7 @@ def batch_rules(body: dict, db = get_db()):
     ids = [int(x) for x in (body.get("ids") or []) if isinstance(x, int) or str(x).isdigit()]
     if not ids:
         return ok({"updated": 0})
-    _rules_cache.clear()
+    _rules_cache.clear(); _bump_rules_version(db)
     if action == 'delete':
         db.table("rules").update({"is_active": 0, "deleted_at": datetime.now(UTC).isoformat()}).in_("id", ids).execute()
         _sync_alerts_for_rules(ids, True, db)

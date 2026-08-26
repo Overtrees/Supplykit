@@ -37,12 +37,6 @@ def create_purchase_order(sku: str, store: str = '', product_name: str = '',
             "status": "pending",
             "channel": channel,
         })
-        # 采购订单变更 → 补货缓存失效(在途/B仓数据变化)
-        try:
-            from app.core.replenishment_cache import invalidate_cache
-            invalidate_cache(db)
-        except Exception:
-            pass
         return ok({"sku": sku, "store": store})
     except Exception as e:
         return fail(str(e))
@@ -53,11 +47,6 @@ def update_purchase_order(iid: int, body: PurchaseOrderUpdate, db = get_db()):
     data = {k: v for k, v in body.model_dump(exclude_none=True).items()}
     if data:
         db.table("purchase_orders").update(data).eq("id", iid).execute()
-        try:
-            from app.core.replenishment_cache import invalidate_cache
-            invalidate_cache(db)
-        except Exception:
-            pass
     return ok({})
 
 
@@ -65,11 +54,6 @@ def update_purchase_order(iid: int, body: PurchaseOrderUpdate, db = get_db()):
 def delete_purchase_order(sku: str, store: str = '', channel: str = 'jd', db = get_db()):
     try:
         db.table("purchase_orders").delete().eq("sku", sku).eq("store", store).eq("channel", channel).execute()
-        try:
-            from app.core.replenishment_cache import invalidate_cache
-            invalidate_cache(db)
-        except Exception:
-            pass
         return ok({"sku": sku, "store": store})
     except Exception as e:
         return fail(str(e))

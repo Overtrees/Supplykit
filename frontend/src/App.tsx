@@ -320,8 +320,8 @@ export default function App() {
     'esc': () => { if (showMenu) closeEditorMenu() },
   })
   useEffect(() => { startPolling(); return () => stopAll() }, [])
-  // channel 切换时自动加载数据
-  useEffect(() => { useAppStore.getState().loadAll().catch(() => {}) }, [channel, page])
+  // channel 切换时自动加载数据（不再依赖 page——切页由各页面挂载自拉, 避免每次切页全量 loadAll 含慢接口）
+  useEffect(() => { useAppStore.getState().loadAll().catch(() => {}) }, [channel])
 
   // 同步 html/body 背景色 + browser chrome 色
   useEffect(() => {

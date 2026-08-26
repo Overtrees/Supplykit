@@ -131,12 +131,11 @@ export const useAppStore = create((set, get) => ({
       const results = await Promise.allSettled([
         api.get(dashUrl),
         api.get('/api/orders?page=' + p + '&page_size=30&search=' + encodeURIComponent(s) + '&status=' + encodeURIComponent(st)),
-        api.get('/api/inventory'),
         api.get('/api/quality-logs'),
         api.get('/api/alerts'),
         api.get('/api/dashboard/stock-risk'),
       ])
-      const [dashboard, orders, inventory, qualityLogs, alerts, stockRisk] = results.map(r =>
+      const [dashboard, orders, qualityLogs, alerts, stockRisk] = results.map(r =>
         r.status === 'fulfilled' ? r.value : { data: null }
       )
       set({
@@ -144,8 +143,7 @@ export const useAppStore = create((set, get) => ({
         orders: orders.data?.items || orders.data || [],
         orderTotal: orders.data?.total || (orders.data || []).length || 0,
         orderPage: orders.data?.page || p,
-        inventory: inventory.data?.items || inventory.data || [],
-        qualityLogs: qualityLogs.data || [],
+                qualityLogs: qualityLogs.data || [],
         alerts: alerts.data || [],
         stockRisk: stockRisk.data || [],
         dataLoaded: true,

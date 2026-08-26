@@ -1,3 +1,21 @@
+## 2026-08-25/26 数据库异常防治 + 大数据分页 + 四维一致性核验
+| 模块 | 改动 |
+|------|------|
+| **备份机制 P0** | `backup_db` 从 VACUUM INTO（PA 静默失败→0字节）改 **sqlite3 在线备份 API**（`src.backup`）；生成后 gzip 解压+SQLite 查询验证；`/api/backup` 手动备份端点进程内恢复验证；备份 24.6MB 有效可恢复（18.5万订单） |
+| **写操作锁重试** | `_write_execute` 锁冲突指数退避重试 3 次；`busy_timeout` 5000→15000 |
+| **认证 P1** | PBKDF2-HMAC-SHA256（32字节 salt + 100k 迭代），`_verify_hash` 兼容旧 SHA256；JWT secret 改动态读取（修复登录成功立即 401） |
+| **软删除全链路** | orders/products/rules/alerts 77 处查询统一过滤（补 10 处）；迁移 v16 统一 deleted_at NULL→'' |
+| **看板性能** | OR 条件→单条件（4.4s→1.3s）；增量更新 `adjust_dashboard_for_order`（删单即时修正，不被异步重建覆盖）；改回**同步重建**（消除 10s 窗口） |
+| **归档** | 60天→90天（对齐看板/滞销窗口，消除 60-90 天数据缺口） |
+| **删单联动** | `adjust_snapshot_for_order` 即时扣减日销快照（修复历史订单删除后补货日销偏高） |
+| **大数据分页** | 进销存/商品页真分页（只算当前页 SKU）+ 前端 IntersectionObserver 滚动懒加载 + 搜索走后端；`load_daily_sales` 加 `skus` 参数 |
+| **进销存批次** | 汇总按 `warehouse_type` 主体隔离 + `ROW_NUMBER` 取最早过期完整批次；单批次不展开；超3/1列优化 |
+| **规则页缓存** | suppliers 加缓存；rules/config/suppliers 缓存 TTL 30→180s；DB 版本号（跨 worker 兼容） |
+| **with-sales** | 缓存 300s + `_replen_version` 校验；预热（已移除，占满 GIL 导致进程挂） |
+| **数据库迁移** | v13 `alerts.related_rule_id`；v14 `rules.deleted_at`；v15 `orders.deleted_at`；v16 NULL→''；v17 `warehouse_registry` |
+| **bug 修复** | 进销存 TDZ（`const s` 在 useEffect 后定义）；批次效期时区（aware/naive）；调试面板 JSX 位置（被当代码块丢弃）；`useToast` 在异步回调调用；`DeleteBuilder` 缺 `in_`；清洗 `task_id`/`conflict_mode`/N+1 |
+| **开发规范 15.7** | 大数据分页 + 滚动懒加载 + 显示交互（IntersectionObserver 哨兵 + 条数列数提示） |
+
 ## 2026-08-24 配额管理全面修复 + 批量操作联动
 
 ### 配额管理（彻底解决爆库问题）

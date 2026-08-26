@@ -12,7 +12,6 @@ _CACHE_TTL = 180
 _cache_by_channel = {}
 _stock_risk_cache = {}
 _cache_version = 0
-_rebuilding = set()  # 正在异步重建的 channel（防并发重复重建）
 
 def _compute_funnel(orders):
     """Order conversion funnel."""
@@ -210,41 +209,22 @@ def get_cached_dashboard(channel):
     stale = check_db_version()
     cached = _cache_by_channel.get(channel)
     if cached is None:
-        # 首次无缓存，同步重建
+        # 无缓存，同步重建
         data = _rebuild(channel)
         _cache_by_channel[channel] = {'data': data, 'ts': now}
         _cache_dirty = False
         return data
     if _cache_dirty or stale or (now - cached['ts']) > _CACHE_TTL:
-        # 有旧缓存：一律异步重建，本次返回旧缓存（不阻塞请求，避免单 worker 排队卡死其他接口）
+        # 同步重建（不再返回旧缓存，消除 10s 窗口）
         try:
-            import threading
-            def _rebuild_async():
-                global _cache_dirty
-                try:
-                    _cache_by_channel[channel] = {'data': _rebuild(channel), 'ts': time.time()}
-                    _cache_dirty = False
-                    # 异步重建完成 → 广播通知前端可拉取新数据
-                    try:
-                        import app.core.events as _ev
-                        _ev.bus.emit('dashboard.updated', {'channel': channel})
-                    except Exception:
-                        pass
-                except Exception as e:
-                    import logging; logging.warning(f"[dash-cache] async rebuild: {e}")
-                finally:
-                    _rebuilding.discard(channel)
-            # 同一 channel 防并发重复重建
-            if channel not in _rebuilding:
-                _rebuilding.add(channel)
-                threading.Thread(target=_rebuild_async, daemon=True).start()
-            return cached['data']
-        except Exception:
-            pass
-        # 异步启动失败（极端情况）：同步重建
-        data = _rebuild(channel)
-        _cache_by_channel[channel] = {'data': data, 'ts': now}
-        _cache_dirty = False
+            data = _rebuild(channel)
+            _cache_by_channel[channel] = {'data': data, 'ts': time.time()}
+            _cache_dirty = False
+            return data
+        except Exception as e:
+            import logging; logging.warning(f"[dash-cache] rebuild: {e}")
+            if cached:
+                return cached['data']
     return _cache_by_channel[channel]['data']
 
 
@@ -281,16 +261,19 @@ def check_db_version():
 def invalidate():
     global _cache_dirty, _cache_by_channel, _cache_version, _stock_risk_cache
     _cache_dirty = True
-    # 关键：不再 clear _cache_by_channel —— 保留旧缓存，
-    # 下次请求经 stale 检测走异步重建并降级返回旧值（单 worker 不阻塞）
     _stock_risk_cache.clear()
     _cache_version += 1
+    # 持久化版本号到 DB（跨 worker 兼容），但 busy_timeout=0 不阻塞
+    # 如果被其他写操作锁住，立即失败，不影响当前请求处理
     try:
-        conn = get_conn()
-        conn.execute("INSERT OR REPLACE INTO replenishment_config(key,value) VALUES('_cache_version',?)", (str(_cache_version),))
-        conn.commit()
-    except Exception as e:
-        import logging; logging.warning(f"[dash-cache] persist version: {e}")
+        import sqlite3
+        _c = sqlite3.connect(DB_PATH)
+        _c.execute("PRAGMA busy_timeout=0")
+        _c.execute("INSERT OR REPLACE INTO replenishment_config(key,value) VALUES('_cache_version',?)", (str(_cache_version),))
+        _c.commit()
+        _c.close()
+    except Exception:
+        pass  # 写失败不影响功能（下次请求 stale 检测时版本号一致，但缓存仍有效）
 
 def get_stock_risk(channel='jd'):
     global _stock_risk_cache

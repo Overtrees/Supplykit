@@ -78,6 +78,7 @@ export default function RulesPage() {
   }
   const [loading, setLoading] = useState(true)
   const [rules, setRules] = useState([])
+  const [rulesErr, setRulesErr] = useState('')
   const [debugLog, setDebugLog] = useState([])
   const addDebug = (msg, data) => { const t = new Date().toLocaleTimeString(); setDebugLog(p => [{t, msg, data}, ...p].slice(0,50)) }
   const [editing, setEditing] = useState(null)
@@ -122,8 +123,9 @@ export default function RulesPage() {
       const newData = d.data || d || []
       addDebug('load 返回', {status: r.status, 条数: newData.length, ids: newData.map(x=>x.id).slice(0,10)})
       setRules(newData)
+      setRulesErr('')
       addDebug('setRules 完成', {条数: newData.length})
-    } catch(e) { addDebug('load 异常', {error: e.message}) } 
+    } catch(e) { addDebug('load 异常', {error: e.message}); setRulesErr('加载失败，可能是网络异常或服务暂不可用') } 
   }
   useEffect(() => {
     const h = () => load(globalChannel)
@@ -336,7 +338,7 @@ export default function RulesPage() {
         </div>
         </div>
       </div>})}
-      {rules.length===0 && <div className='small muted' style={{textAlign:'center',padding:40}}>{t("rules.empty")}</div>}
+      {rules.length===0 && (rulesErr ? <ErrorRetry error={rulesErr} onRetry={()=>load(globalChannel)} /> : <div className='small muted' style={{textAlign:'center',padding:40}}>{t("rules.empty")}</div>)}
     </>}
 
     {/* ── 补货参数 ── */}

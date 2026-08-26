@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useAppStore } from '../store/useAppStore'
 import EmptyState from '../components/EmptyState'
+import ErrorRetry from '../components/ErrorRetry'
 import { useToast } from '../components/Toast'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { t } from "../locale"
@@ -26,7 +27,7 @@ function OrderSkeleton() {
 
 export default function OrdersPage() {
   const toast = useToast()
-  const { orders, orderPage, orderLoading, setOrderPage, orderStatus, dataLoaded, channel, hammerCols, hammerSearch, orderTotal, setHammerSearch, pageVersion } = useAppStore()
+  const { orders, orderPage, orderLoading, setOrderPage, orderStatus, dataLoaded, channel, hammerCols, hammerSearch, orderTotal, setHammerSearch, pageVersion, orderLoadErr } = useAppStore()
   useEffect(() => { useAppStore.getState().loadAll(1); setHammerSearch('') }, [channel, pageVersion])
   useEffect(() => { useAppStore.getState().loadAll() }, [hammerSearch, orderStatus])
   const [confirmDel, setConfirmDel] = useState(null)
@@ -74,7 +75,7 @@ export default function OrdersPage() {
     <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>订单 <span className="small muted" style={{fontWeight:400}}>{t("common.total")} {orderTotal || 0} {t("common.items")}</span></div>
     {orderLoading || !dataLoaded ? <OrderSkeleton />
     : orders.length === 0
-      ? <EmptyState icon='clipboard' title={s?t("order.empty_matched"):t("order.empty")} desc={s?'换个关键词试试':'通过清洗导入订单数据'} action={!s&&<button className="btn btn-primary" onClick={()=>window.__setPage&&window.__setPage('cleansing')}>去导入数据 →</button>} />
+      ? (orderLoadErr ? <ErrorRetry error={orderLoadErr} onRetry={() => useAppStore.getState().loadAll()} /> : <EmptyState icon='clipboard' title={s?t("order.empty_matched"):t("order.empty")} desc={s?'换个关键词试试':'通过清洗导入订单数据'} action={!s&&<button className="btn btn-primary" onClick={()=>window.__setPage&&window.__setPage('cleansing')}>去导入数据 →</button>} />)
       : <div style={{overflow:'auto',maxHeight:"calc(100vh - 180px)"}}>
         <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>{t("common.showing")} {visCols.length}/{COLS.length} {t("common.columns")}</div>
       <table><colgroup>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>

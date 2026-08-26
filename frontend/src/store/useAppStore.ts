@@ -11,7 +11,7 @@ interface AppState {
   channel: string; channelVersion: number; pageVersion: number; dataLoaded: boolean
   dashboard: any; orders: OrderItem[]; orderTotal: number; orderPage: number
   inventory: any[]; qualityLogs: any[]; alerts: any[]; stockRisk: any[]
-  loading: boolean; orderLoading: boolean; orderSearch: string; orderStatus: string
+  loading: boolean; orderLoading: boolean; orderLoadErr: string; orderSearch: string; orderStatus: string
   wsStatus: string; ws: WebSocket | null; importLogs: any[]
   hammerPanel: string | null; hammerSearch: string; hammerData: Record<string, any>
   hammerCleansingTarget: string; hammerCleansingConflict: string
@@ -60,6 +60,7 @@ export const useAppStore = create((set, get) => ({
   orderSearch: '',
   orderStatus: '',
   orderLoading: false,
+  orderLoadErr: '',
   dataLoaded: false,
   sidebarOpen: false,
   setSidebarOpen: (v) => set({ sidebarOpen: v }),
@@ -150,6 +151,7 @@ export const useAppStore = create((set, get) => ({
         dataLoaded: true,
         loading: false,
         orderLoading: false,
+  orderLoadErr: '',
       })
     } catch (e) {
       console.error('loadAll failed:', e)

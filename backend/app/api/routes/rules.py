@@ -124,7 +124,6 @@ def _sync_alerts_for_rules(ids: list, disabled: bool, db):
     - 停用/删除：该 (alert_type, channel) 下已无 active 规则 → 整类告警置 inactive
     - 恢复/启用：该类型恢复 active 规则 → 该类 rules_engine 告警恢复 active
     """
-    from app.core.dashboard_cache import invalidate as invalidate_dashboard
     # 收集这些规则的 (alert_type, channel)
     pairs = set()
     try:
@@ -134,6 +133,7 @@ def _sync_alerts_for_rules(ids: list, disabled: bool, db):
                 pairs.add((at, r.get('channel', 'jd')))
     except Exception as e:
         import logging; logging.warning(f"[rules] collect alert_type: {e}")
+    from app.core.dashboard_cache import invalidate as invalidate_dashboard
     for at, ch in pairs:
         others = db.table("rules").select("id").eq("alert_type", at).eq("channel", ch).eq("is_active", 1).execute().data
         if disabled:

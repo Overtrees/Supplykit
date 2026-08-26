@@ -3,6 +3,7 @@ import { useAppStore } from '../store/useAppStore'
 import { useToast } from '../components/Toast'
 import { IconRefresh, IconBroom, IconExport, IconClipboard, IconUndo } from '../components/Icons'
 import { t } from '../locale'
+import ErrorRetry from '../components/ErrorRetry'
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
 
@@ -78,7 +79,7 @@ export default function TaskPage() {
       <div className="small muted" style={{ padding: '0 0 8px 0', fontSize: 12 }}>{channel === 'jd' ? '京东' : '其他渠道'} · 异步任务</div>
       {loading ? <div className="skeleton" style={{ height: 40 }} /> :
         tasks.length === 0 ? <div className="small muted" style={{ padding: 24, textAlign: 'center' }}>
-          {loadErr ? '加载失败: ' + loadErr : <><div style={{marginBottom:10}}>暂无任务</div>
+          {loadErr ? <ErrorRetry error={'加载失败：' + loadErr} onRetry={loadTasks} /> : <><div style={{marginBottom:10}}>暂无任务</div>
           <button className="btn btn-primary" onClick={()=>window.__setPage&&window.__setPage('settings')}>去一键填充种子数据 →</button></>}
         </div> :
           tasks.map(task => {

@@ -116,15 +116,23 @@ def get_disposal_suggestions(channel: str = 'jd', page: int = 0, page_size: int 
     page/page_size: 传0返回全部。
     """
     import time as _t
+    # 版本号校验：数据变更(_replen_version递增)即时失效 → 导入订单后滞销SKU
+    # 立即重算降级/移出(闭环实时性)。无变更时缓存命中(快)。
     _key = f"disposal_{channel}"
+    _ver = 0
+    try:
+        _v = db.table("replenishment_config").select("*").eq("key", "_replen_version").execute().data
+        _ver = int(_v[0]["value"]) if _v and _v[0].get("value") else 0
+    except Exception:
+        pass
     _cached = _disposal_cache.get(_key)
-    if _cached and _t.time() - _cached.get('ts', 0) < _DISPOSAL_CACHE_TTL:
+    if _cached and _cached.get('ver') == _ver and _t.time() - _cached.get('ts', 0) < _DISPOSAL_CACHE_TTL:
         suggestions = _cached['data']
     else:
         _res = _get_disposal_suggestions_impl(channel, db)
         suggestions = _res.get('data') if isinstance(_res, dict) else (_res if isinstance(_res, list) else [])
         try:
-            _disposal_cache[_key] = {'data': suggestions, 'ts': _t.time()}
+            _disposal_cache[_key] = {'data': suggestions, 'ts': _t.time(), 'ver': _ver}
         except Exception:
             pass
     total = len(suggestions)

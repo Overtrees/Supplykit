@@ -2,6 +2,7 @@ import React,{useEffect,useState, useRef} from 'react'
 import {api} from '../api/client'
 import { useToast } from '../components/Toast'
 import EmptyState from '../components/EmptyState'
+import ErrorRetry from '../components/ErrorRetry'
 
 import { useAppStore } from '../store/useAppStore'
 import { t } from "../locale"
@@ -15,7 +16,7 @@ function Skeleton(){return <div>{[1,2,3,4].map(i=><div key={i} style={{display:'
   <div className="skeleton" style={{width:50,height:14}}/><div className="skeleton" style={{width:40,height:14}}/>
 </div>)}</div>}
 
-export default function ProductPage(){const[list,setList]=useState([]);const[ld,setLd]=useState(true);const[pg,setPg]=useState(1);const[pgTotal,setPgTotal]=useState(0);const[loadingMore,setLoadingMore]=useState(false);const reqSeq=useRef(0)
+export default function ProductPage(){const[list,setList]=useState([]);const[ld,setLd]=useState(true);const[pg,setPg]=useState(1);const[pgTotal,setPgTotal]=useState(0);const[loadingMore,setLoadingMore]=useState(false);const reqSeq=useRef(0);const[loadErr,setLoadErr]=useState('')
 const[visCols,setVisCols]=useState(()=>getVis(COL_KEY())||COLS.map(c=>c.id))
 const toast = useToast()
 const { channel: globalChannel, hammerSearch, hammerCols, prodBatch, setProdBatch, prodSelIds, setProdBatchSel, setProdBatchFilterLen, prodBatchVersion, bumpProdBatchVersion, prodBatchAllReq, pageVersion } = useAppStore()
@@ -24,7 +25,7 @@ const setSelIds = setProdBatchSel
 const [batchBusy, setBatchBusy] = useState(false)
 const s = hammerSearch || ''
 const fl = ld ? [] : list
-const loadProd=(p)=>{const seq=++reqSeq.current;if(p===1)setLd(true);else setLoadingMore(true);api.get('/api/products?page='+p+'&page_size=100&channel='+globalChannel+'&search='+encodeURIComponent(s),{timeout:90000}).then(r=>{if(seq!==reqSeq.current)return;const d=r.data||{};const items=d.items||d||[];setPgTotal(d.total||items.length||0);setPg(p);setList(prev=>p===1?items:[...prev,...items]);setLd(false);setLoadingMore(false)}).catch(()=>{if(seq===reqSeq.current){setLd(false);setLoadingMore(false)}})}
+const loadProd=(p)=>{const seq=++reqSeq.current;if(p===1)setLd(true);else setLoadingMore(true);api.get('/api/products?page='+p+'&page_size=100&channel='+globalChannel+'&search='+encodeURIComponent(s),{timeout:90000}).then(r=>{if(seq!==reqSeq.current)return;const d=r.data||{};const items=d.items||d||[];setPgTotal(d.total||items.length||0);setPg(p);setList(prev=>p===1?items:[...prev,...items]);setLoadErr('');setLd(false);setLoadingMore(false)}).catch(()=>{if(seq===reqSeq.current){setLd(false);setLoadingMore(false);setList([]);setLoadErr('加载失败，可能是网络异常或服务暂不可用')}})}
 useEffect(()=>{setPg(1);loadProd(1)}, [globalChannel, s, pageVersion])
 useEffect(() => {
   if (hammerCols?.products) setVisCols(hammerCols.products)
@@ -42,7 +43,7 @@ return<div className='card' style={{containerType:'inline-size'}}>
 <div className='section-title' style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
   <span>商品管理 <span className='small muted' style={{fontSize:11,fontWeight:400}}>已加载 {Math.min(list.length, pgTotal||list.length)}/{pgTotal||list.length} 条 · 显示 {visCols.length}/{COLS.length} 列{s ? ` · "${s}"` : ''}</span></span>
 </div>
-{fl.length===0?<EmptyState icon='tag' title={s?t("product.empty_matched"):t("product.empty")} desc={s?'换个关键词试试':'通过清洗页导入商品数据'} action={!s&&<button className="btn btn-primary" onClick={()=>window.__setPage&&window.__setPage('cleansing')}>去导入数据 →</button>}/>:<div style={{overflow:'auto',maxHeight:"calc(100vh - 180px)"}}>
+{fl.length===0?(loadErr?<ErrorRetry error={loadErr} onRetry={()=>loadProd(1)}/>:<EmptyState icon='tag' title={s?t("product.empty_matched"):t("product.empty")} desc={s?'换个关键词试试':'通过清洗页导入商品数据'} action={!s&&<button className="btn btn-primary" onClick={()=>window.__setPage&&window.__setPage('cleansing')}>去导入数据 →</button>}/>):<div style={{overflow:'auto',maxHeight:"calc(100vh - 180px)"}}>
 
 <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>{t("common.showing")} {visCols.length}/{COLS.length} {t("common.columns")}</div>
 <table><colgroup>{visCols.map(id=>{const col=COLS.find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>

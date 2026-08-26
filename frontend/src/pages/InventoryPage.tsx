@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react'
 import { api } from '../api/client'
 import EmptyState from '../components/EmptyState'
+import ErrorRetry from '../components/ErrorRetry'
 import { useToast } from '../components/Toast'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { useAppStore } from '../store/useAppStore'
@@ -34,6 +35,7 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
   const [invPage, setInvPage] = useState(1)
   const [invTotal, setInvTotal] = useState(0)
   const [loadingMore, setLoadingMore] = useState(false)
+  const [loadErr, setLoadErr] = useState('')
   const [visCols, setVisCols] = useState([])
   const [confirmDel, setConfirmDel] = useState(null)
   const [monthRange, setMonthRange] = useState('')
@@ -60,6 +62,7 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
     try {
       const r = await api.get('/api/insights/with-sales?wh_type=' + whType + '&channel=' + globalChannel + '&page=' + p + '&page_size=' + 100 + '&search=' + encodeURIComponent(s), { timeout: 90000 })
       if (seq !== reqSeq.current) { setLoading(false); setLoadingMore(false); return }  // 竞态丢弃
+      setLoadErr('')
       const d = r.data || {}
       const items = (d.items || d || [])
       setInvTotal(d.total || items.length || 0)
@@ -70,7 +73,7 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
         const e = items[0].month_end?.slice(5) || ''
         setMonthRange(`${s}至${e}`)
       }
-    } catch(e) { if (seq === reqSeq.current) setInventory([]) }
+    } catch(e) { if (seq === reqSeq.current) { setInventory([]); setLoadErr('加载失败，可能是网络异常或服务暂不可用') } }
     if (seq === reqSeq.current) { setLoading(false); setLoadingMore(false) }
   }
   useEffect(() => { setInvPage(1); loadInv(1) }, [whType, globalChannel, s, pageVersion])
@@ -106,7 +109,7 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
     </div>
     {loading ? <div>{[1,2,3,4].map(i=><div key={i} className='skeleton' style={{height:36,marginBottom:4}}/>)}</div>
     : fl.length === 0
-      ? <EmptyState icon='package' title={s?t("inv.empty_matched"):t("common.empty")} desc={s?'换个关键词试试':'通过清洗导入库存数据'} action={!s&&<button className="btn btn-primary" onClick={()=>window.__setPage&&window.__setPage('cleansing')}>去导入数据 →</button>} />
+      ? (loadErr ? <ErrorRetry error={loadErr} onRetry={() => loadInv(1)} /> : <EmptyState icon='package' title={s?t("inv.empty_matched"):t("common.empty")} desc={s?'换个关键词试试':'通过清洗导入库存数据'} action={!s&&<button className="btn btn-primary" onClick={()=>window.__setPage&&window.__setPage('cleansing')}>去导入数据 →</button>} />)
       : <div style={{overflow:'auto',maxHeight:'calc(100vh - 180px)'}}>
         <div style={{fontSize:11,color:'var(--muted2)',marginBottom:4}}>{t("common.showing")} {visCols.length}/{INV_COLS[whType].length} {t("common.columns")}</div>
       <table><colgroup>{visCols.map(id=>{const col=INV_COLS[whType].find(c=>c.id===id);return col?<col key={col.id} />:null})}</colgroup>

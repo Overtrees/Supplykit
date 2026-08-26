@@ -136,6 +136,16 @@
 | 🏷️ **商品/供应商** | CRUD / 搜索 / **平台列标识渠道** |
 | ⚠️ **异常记录** | 数据质量日志 |
 
+### 大数据能力（万级 SKU 业务量）
+
+| 能力 | 说明 |
+|------|------|
+| **后端真分页** | 滞销/补货/进销存/商品接口 `page/page_size` 返回 `{items,total}`，只算当前页 |
+| **前端滚动懒加载** | IntersectionObserver 哨兵逐页加载（200px 预载），避免一次拉全量 |
+| **SQL 聚合** | 滞销最后销售日 `GROUP BY sku` 替代全量遍历（35s→4.2s） |
+| **缓存版本号联动** | 订单/库存/商品/清洗/规则/参数变更 → 版本号递增 → 缓存即时失效重算 |
+| **加载失败区分** | ErrorRetry 组件：加载失败显示错误+重试，不误显示"暂无数据" |
+
 ---
 
 ## 快速开始（开发）
@@ -231,7 +241,7 @@ backend/app/
 ├── core/
 │   ├── database.py               SQLite ORM + 任务持久化 + 索引 + 渠道迁移
 │   ├── sales_utils.py            三窗口日销滚动预测 + sku_to_channel
-│   ├── replenishment_cache.py     补货缓存(3min) + dashboard_cache.py 看板缓存
+│   ├── replenishment_cache.py     补货缓存(15min + 版本号失效) + dashboard_cache.py 看板缓存(同步重建)
 │   ├── response.py               统一响应 ok()/fail()
 │   ├── dashboard_cache.py        看板缓存
 │   ├── cleansing_parser.py       文件解析 + 字段清洗
@@ -278,9 +288,9 @@ C仓缺口 = max(日销×前置期 − C仓可用 − B→C在途, 0)
 
 ```bash
 cd backend
-python -m pytest tests/ -v          # 全部 56 个
-python -m pytest tests/test_e2e.py  # 端到端 13 个
-python -m pytest tests/test_more.py # 补充 9 个
+python -m pytest tests/ -v          # 全部 90+ 个
+python -m pytest tests/test_e2e.py  # 端到端
+python -m pytest tests/test_more.py # 补充测试
 ```
 
 ---
@@ -295,11 +305,14 @@ python -m pytest tests/test_more.py # 补充 9 个
 | 数据库 | SQLite | 每日 2:00 自动备份 |
 
 > **CI/CD**：后端使用 GitHub Actions（`.github/workflows/deploy-backend.yml`）自动上传 + reload + health check；前端由 Cloudflare Pages 监听 `main` 分支自动构建。Sentry sourcemap 在构建时自动上传。
+>
+> **自愈体系**：GitHub Actions `self-heal.yml` 每 10 分钟检查 `/api/health`，非 200 自动调 PA API reload（挂后 ≤10 分钟恢复）；UptimeRobot 每 5 分钟 ping 保活。
 
 | 时间 | 任务 |
 |------|------|
+| 每 10 分钟 | 自愈检查（health + 自动 reload） |
 | 每 30 分钟 | 库存同步 |
-| 每天 02:00 | 数据库备份 |
+| 每天 02:00 | 数据库备份（sqlite3 在线备份 API + 进程内验证） |
 | 每天 03:00 | 日志清理 |
 | 每天 04:00 | 规则评估（滞销识别等） |
 

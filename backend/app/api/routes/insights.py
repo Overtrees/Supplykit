@@ -104,8 +104,34 @@ def get_slow_moving_products(db = get_db()):
     return detect_slow_moving_products(db, create_alerts=False)
 
 
+_disposal_cache = {}
+_DISPOSAL_CACHE_TTL = 300
+
+
 @router.get('/disposal-suggestions')
 def get_disposal_suggestions(channel: str = 'jd', db = get_db()):
+    """滞销处置建议（300s 缓存 + _replen_version 校验）"""
+    import time as _t
+    _key = f"disposal_{channel}"
+    _ver = 0
+    try:
+        _v = db.table("replenishment_config").select("*").eq("key", "_replen_version").execute().data
+        _ver = int(_v[0]["value"]) if _v and _v[0].get("value") else 0
+    except Exception:
+        pass
+    _cached = _disposal_cache.get(_key)
+    if _cached and _cached.get('ver') == _ver and _t.time() - _cached.get('ts', 0) < _DISPOSAL_CACHE_TTL:
+        return _cached['data']
+    _result = _get_disposal_suggestions_impl(channel, db)
+    try:
+        _disposal_cache[_key] = {'data': _result, 'ts': _t.time(), 'ver': _ver}
+    except Exception:
+        pass
+    return _result
+
+
+def _get_disposal_suggestions_impl(channel: str = 'jd', db = get_db()):
+
     """滞销品自动处置建议（精简版）— SKU×仓库粒度
 
     核心: 卖不动(零销售超品类滞销线) + 成本压力(临期/B仓超免费期)

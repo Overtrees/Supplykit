@@ -224,25 +224,33 @@ export default function InsightsPage() {
   const todayStr = new Date().toISOString().slice(0, 10)
 
   useEffect(() => {
-    loadOrdered()
-    setReplenLoading(true)
-    setPurchaseLoading(true)
+    setDispSel([])
     const seq = ++reqSeq.current
     const mode = globalChannel === 'jd' ? replenMode : 'traditional'
     if (globalChannel !== 'jd' && replenMode === 'bbcc') setHammerReplenMode('traditional')
-    loadReplen(mode, globalChannel)
-    api.get('/api/insights/purchase?days=28&mode=' + replenMode + '&channel=' + globalChannel).then(r => {
-      if (seq !== reqSeq.current) { setPurchaseLoading(false); return }
-      setPurchase(r.data?.suggestions || r.data || [])
-      setPurchaseLoading(false)
-    }).catch(() => setPurchaseLoading(false))
-
-    api.get('/api/insights/disposal-suggestions?channel=' + globalChannel).then(r => {
-      if (seq !== reqSeq.current) { setDisposalsLoading(false); return }
-      setDisposals(r.data || [])
-      setDisposalsLoading(false)
-    }).catch(() => setDisposalsLoading(false))
-  }, [globalChannel, replenMode, dataVersion])
+    if (tab === 'purchase') {
+      // 仅拉采购建议
+      setPurchaseLoading(true)
+      api.get('/api/insights/purchase?days=28&mode=' + replenMode + '&channel=' + globalChannel).then(r => {
+        if (seq !== reqSeq.current) { setPurchaseLoading(false); return }
+        setPurchase(r.data?.suggestions || r.data || [])
+        setPurchaseLoading(false)
+      }).catch(() => setPurchaseLoading(false))
+    } else if (tab === 'slow') {
+      // 仅拉滞销处置建议
+      setDisposalsLoading(true)
+      api.get('/api/insights/disposal-suggestions?channel=' + globalChannel).then(r => {
+        if (seq !== reqSeq.current) { setDisposalsLoading(false); return }
+        setDisposals(r.data || [])
+        setDisposalsLoading(false)
+      }).catch(() => setDisposalsLoading(false))
+    } else {
+      // 补货 tab（默认）：补货建议 + 采购订单
+      loadOrdered()
+      setReplenLoading(true)
+      loadReplen(mode, globalChannel)
+    }
+  }, [globalChannel, replenMode, dataVersion, tab])
 
   const doDispose = async () => {
     if (dispSel.length === 0) { toast.error('请先勾选要处置的项'); return }

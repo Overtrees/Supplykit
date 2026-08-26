@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from "react"
 import { api } from '../api/client'
 import { useAppStore } from '../store/useAppStore'
+import ErrorRetry from '../components/ErrorRetry'
 import Chart from '../components/Chart'
 import { t } from "../locale"
 
@@ -16,6 +17,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
   const [showAllLowStock, setShowAllLowStock] = useState(false)
   const [showAllReplenish, setShowAllReplenish] = useState(false)
   const [chLoading, setChLoading] = useState(false)
+  const [dashErr, setDashErr] = useState('')
   const reqSeq = useRef(0)
   useEffect(() => {
     const seq = ++reqSeq.current
@@ -27,6 +29,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
     ]).then(([s, a, r]) => {
       if (seq !== reqSeq.current) { setChLoading(false); return }  // 竞态丢弃
       const dash = s.status === 'fulfilled' ? s.value.data : null
+      setDashErr(s.status === 'rejected' ? '加载失败，可能是网络异常或服务暂不可用' : '')
       const alerts = a.status === 'fulfilled' ? (a.value.data || []) : []
       const stockRisk = r.status === 'fulfilled' ? (r.value.data || []) : []
       useAppStore.setState({ dashboard: dash, alerts, stockRisk, loading: false, dataLoaded: true })
@@ -147,6 +150,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
   const rpWh = countByWh(replenishAlerts)
 
   if (chLoading) return <div className="card" style={{padding:16}}>{[1,2,3,4,5,6,7].map(i=><div key={i} className="skeleton" style={{height:80,marginBottom:8,borderRadius:24}}/>)}</div>
+  if (dashErr && !dashboard) return <ErrorRetry error={dashErr} onRetry={() => { window.__setPage && window.__setPage('dash') }} />
   return <>
     <div className="card-grid" style={{marginBottom:16}}>
       {/* 1. GMV 卡 — 加环比微趋势线 + 日均 */}

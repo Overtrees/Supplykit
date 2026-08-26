@@ -187,7 +187,7 @@ curl -X POST https://overtrees.pythonanywhere.com/api/seed/fill
 └──────────────────────┬─────────────────────────┘
                        │ HTTPS
 ┌─ 后端 (PythonAnywhere) ───────────────────────┐
-│  FastAPI · 18 路由模块 · 56 个测试             │
+│  FastAPI · 18 路由模块 · 90+ 个测试             │
 │  ├─ 业务: dashboard / replenishment / purchase │
 │  │        insights / cleansing / rules / ...   │
 │  ├─ 核心: sales_utils(日销融合)                │
@@ -249,7 +249,7 @@ backend/app/
 │   ├── rules.py                 规则引擎
 │   ├── events.py                EventBus
 │   └── scheduler.py             APScheduler
-├── tests/ (3个文件, 56个测试)
+├── tests/ (11个文件, 90+个测试)
 │   test_core.py (34) / test_e2e.py (13) / test_more.py (9)
 └── seed_realistic.py             模拟数据生成器
 ```

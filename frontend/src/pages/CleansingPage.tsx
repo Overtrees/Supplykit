@@ -158,7 +158,7 @@ export default function CleansingPage() {
     }
     const fd = new FormData(); fd.append('file', f); fd.append('mapping', JSON.stringify(mp)); fd.append('target', tt); fd.append('channel', ch); fd.append('conflict_mode', hammerCleansingConflict)
     try {
-      const r = await api.post('/api/cleansing/execute-async', fd)
+      const r = await api.postHeavy('/api/cleansing/execute-async', fd)  // postHeavy 90s: 大文件上传/提交不超PA 30s
       const d = r.data
       if (!d.ok) { toast.error(d.error||'提交失败'); setBs(''); execLock.current = false; return }
       const totalRows = d.total_rows || '?'

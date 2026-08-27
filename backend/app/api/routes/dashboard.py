@@ -134,12 +134,14 @@ def stock_risk(channel: str = 'jd'):
     sku_barcode_map = {sku: p.get('barcode', '') or '' for sku, p in products.items()}
 
     # 统一数据源：快照+当天，不用 orders 全表扫描
-    from app.core.sales_utils import load_daily_sales, calc_sales_from_daily, rolling_predict
-    daily_28 = load_daily_sales(28, db, sku_barcode_map=sku_barcode_map, channel=channel)
-    s7 = calc_sales_from_daily(daily_28, 7, sku_barcode_map=sku_barcode_map)
-    s14 = calc_sales_from_daily(daily_28, 14, sku_barcode_map=sku_barcode_map)
-    s28 = calc_sales_from_daily(daily_28, 28, sku_barcode_map=sku_barcode_map)
+    # 优化: calc_sales_multi 一次遍历算 7/14/28 三窗口(替代3次calc_sales_from_daily) 
+    #      + load_daily_sales 只加载库存 SKU(减少快照读取)
+    from app.core.sales_utils import load_daily_sales, calc_sales_multi, rolling_predict
     all_skus = set(sku_barcode_map.keys()) | {i.get('sku','') for i in inv if i.get('sku')}
+    _skus_list = list(all_skus) if all_skus else None
+    daily_28 = load_daily_sales(28, db, sku_barcode_map=sku_barcode_map, channel=channel, skus=_skus_list)
+    _multi = calc_sales_multi(daily_28, windows=[7, 14, 28])
+    s7, s14, s28 = _multi[7], _multi[14], _multi[28]
     fused = {}
     for sku in all_skus:
         s7v = s7.get(sku, 0) or s7.get(f"{sku}|{sku_barcode_map.get(sku,'')}", 0)

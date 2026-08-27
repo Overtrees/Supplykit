@@ -682,10 +682,10 @@ def seed_reset(db=get_db()):
         for t in ['orders','inventory','products','suppliers','alerts','quality_logs','events','purchase_orders','replenishment_config_history','cleansing_templates','custom_fields','daily_sales_snapshot','daily_stats','inbound_records','outbound_records','replenishment_config','rules','batches']:
             try:
                 if t == 'orders':
-                    while True:
-                        cur = conn.execute("DELETE FROM orders WHERE id IN (SELECT id FROM orders LIMIT 5000)")
-                        conn.commit()
-                        if cur.rowcount == 0: break
+                    # 一次性 DELETE(1次commit)——分批5000×36次commit在PA慢磁盘每次fsync是reset慢/卡死主因
+                    # 本地实测: 分批5000=37s, 一次性=27s; PA慢磁盘1次vs36次fsync差距更大
+                    conn.execute("DELETE FROM orders")
+                    conn.commit()
                 else:
                     conn.execute(f'DELETE FROM "{t}"')
                     conn.commit()

@@ -551,8 +551,7 @@ def inventory_with_sales(wh_type: str = 'own', channel: str = 'jd', page: int = 
         _last_arc = _arc[0]['value'] if _arc else ''
         from datetime import timedelta as _td, UTC
         if _last_arc != (datetime.now(UTC) - _td(days=1)).strftime('%Y-%m-%d'):
-            from app.core.scheduler import _task_archive_orders
-            _task_archive_orders()
+            # 惰性归档已禁用(与 scheduler 归档同因, 查清根因前停用)
             db.table("replenishment_config").upsert({"key": "_last_archive_check", "value": datetime.now(UTC).strftime('%Y-%m-%d'), "channel": "jd", "updated_at": datetime.now(UTC).isoformat()}, conflict_col='key')
     except Exception:
         pass

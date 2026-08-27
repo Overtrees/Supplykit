@@ -220,3 +220,27 @@ def health():
         "checks": checks,
         "version": version,
     }
+
+
+@router.get("/api/diag-orders")
+def diag_orders():
+    """诊断: orders 表真实状态（不过滤软删）"""
+    import sqlite3
+    from app.core.database import DB_PATH
+    db_path = DB_PATH
+    try:
+        conn = sqlite3.connect(db_path)
+        tables = [r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").fetchall()]
+        orders_exists = 'orders' in tables
+        if not orders_exists:
+            return {"orders_exists": False, "tables": tables, "db_path": db_path}
+        total = conn.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
+        active = conn.execute("SELECT COUNT(*) FROM orders WHERE (deleted_at IS NULL OR deleted_at='')").fetchone()[0]
+        soft_del = conn.execute("SELECT COUNT(*) FROM orders WHERE deleted_at IS NOT NULL AND deleted_at != ''").fetchone()[0]
+        mmin = conn.execute("SELECT MIN(ordered_at) FROM orders").fetchone()[0]
+        mmax = conn.execute("SELECT MAX(ordered_at) FROM orders").fetchone()[0]
+        daily_stats = conn.execute("SELECT COUNT(*), COALESCE(SUM(order_count),0) FROM daily_stats").fetchone()
+        conn.close()
+        return {"total": total, "active": active, "soft_del": soft_del, "min_date": mmin, "max_date": mmax, "daily_stats_rows": daily_stats[0], "daily_stats_orders": daily_stats[1]}
+    except Exception as e:
+        return {"error": str(e)}

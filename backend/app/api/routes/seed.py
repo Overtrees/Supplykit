@@ -432,14 +432,14 @@ def _seed_inventory(db, skus_data):
                     wh_name = '集货仓' if skus is jd_s else '三方仓'
                 else: wh_name = wn
                 if low and wt == 'platform':
-                    q = random.randint(0, 15)      # C 仓低库存 → 触发补货
+                    q = random.randint(0, 5)       # C 仓极低库存(7仓汇总0-35<需求65) → 触发补货
                 elif low and wt == 'platform_b':
-                    q = random.randint(0, 5)       # B 仓也低
+                    q = random.randint(0, 3)       # B 仓也低
                 elif low and wt == 'own':
-                    q = random.randint(0, 10)      # 自有仓也低 → 系统总库存低，触发采购
+                    q = random.randint(0, 8)       # 自有仓也低 → 系统总库存低，触发采购
                 else:
                     q = random.randint(50, 800)
-                inv.append({'sku':sk['sku'],'product_name':sk['name'],'warehouse':wh_name,'warehouse_type':wt,'available_qty':q,'in_transit_qty':random.randint(0,20) if low else random.randint(0,200),'safety_qty':random.randint(30,200),'channel':'jd' if skus is jd_s else 'other'})
+                inv.append({'sku':sk['sku'],'product_name':sk['name'],'warehouse':wh_name,'warehouse_type':wt,'available_qty':q,'in_transit_qty':0 if low else random.randint(0,200),'safety_qty':random.randint(30,200),'channel':'jd' if skus is jd_s else 'other'})
     db.table("inventory").insert(inv).execute()
 
 def _seed_batches(db, skus_data):

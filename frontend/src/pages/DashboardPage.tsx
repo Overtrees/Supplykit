@@ -24,8 +24,8 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
     // 无感刷新: 仅当无 dashboard 数据(首次/清空后)才骨架, 有旧数据则不骨架(先显示旧值, 后台拉新替换)
     setChLoading(!useAppStore.getState().dashboard)
     const load = () => Promise.allSettled([
-      api.get('/api/dashboard/summary?t=' + Date.now(), {timeout: 90000}),  // PA慢时段summary重建可能9-30s, 90s不超时
-      api.get('/api/dashboard/aux?channel=' + channel + '&t=' + Date.now(), {timeout: 90000}),
+      api.get('/api/dashboard/summary?t=' + Date.now(), {timeout: 60000}),  // PA慢时段summary重建可能9-30s, 90s不超时
+      api.get('/api/dashboard/aux?channel=' + channel + '&t=' + Date.now(), {timeout: 60000}),
     ]).then(([s, ax]) => {
       if (seq !== reqSeq.current) { setChLoading(false); return }  // 竞态丢弃
       // 兜底: summary 必须 fulfilled 且 data.summary 存在才算成功(seed填充/表重建期间
@@ -74,8 +74,8 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
       try {
         const _t = 't=' + Date.now()
         const [s, ax] = await Promise.all([
-          api.get('/api/dashboard/summary?' + _t, {timeout: 90000}),
-          api.get('/api/dashboard/aux?channel=' + channel + '&' + _t, {timeout: 90000}),
+          api.get('/api/dashboard/summary?' + _t, {timeout: 60000}),
+          api.get('/api/dashboard/aux?channel=' + channel + '&' + _t, {timeout: 60000}),
         ])
         const aux = ax.data || {}
         useAppStore.setState({ dashboard: s.data, alerts: aux.alerts || [], stockRisk: aux.stockRisk || [], inventory: (aux.stockOverview || {}).items || [], loading: false, dataLoaded: true })

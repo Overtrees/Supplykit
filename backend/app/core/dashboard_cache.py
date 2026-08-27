@@ -80,44 +80,43 @@ def _rebuild(channel='jd'):
     bj_date = bj_now.date()
     _month_cut = (bj_date - timedelta(days=29)).isoformat()
     
-    # 并行 2 查询（走 idx_orders_ch_ordered_at / idx_orders_cdate 索引）
-    def _q_rows():
+    # 单次扫描: date,status,store 三维 GROUP BY——替代原3次扫orders(90天d,status + 90天store + 30天d,store),
+    # PA慢磁盘12万行×3次=~10s → 1次(~3s)。Python一次遍历拆出所有维度
+    def _q_all():
         import sqlite3
         _c = sqlite3.connect(_DB_PATH)
         _c.row_factory = sqlite3.Row
         _c.execute("PRAGMA busy_timeout=30000")
-        return _c.execute("SELECT substr(ordered_at,1,10) as d, order_status, SUM(total_amount) as g, COUNT(*) as cnt FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at='') GROUP BY d, order_status", (ch, _cut90)).fetchall()
-    def _q_stores():
-        import sqlite3
-        _c = sqlite3.connect(_DB_PATH)
-        _c.row_factory = sqlite3.Row
-        _c.execute("PRAGMA busy_timeout=30000")
-        return _c.execute("SELECT store, COUNT(*) as cnt, SUM(CASE WHEN order_status='已完成' THEN total_amount ELSE 0 END) as g FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at='') GROUP BY store ORDER BY store", (ch, _cut90)).fetchall()
+        return _c.execute(
+            "SELECT substr(ordered_at,1,10) as d, order_status, store, SUM(CASE WHEN order_status='已完成' THEN total_amount ELSE 0 END) as g, COUNT(*) as cnt "
+            "FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at='') GROUP BY d, order_status, store",
+            (ch, _cut90)).fetchall()
     def _q_inv():
         import sqlite3
         _c = sqlite3.connect(_DB_PATH)
         _c.row_factory = sqlite3.Row
         _c.execute("PRAGMA busy_timeout=30000")
         return _c.execute("SELECT sku, product_name, warehouse, warehouse_type, available_qty, safety_qty, store FROM inventory WHERE channel=?", (ch,)).fetchall()
-    with ThreadPoolExecutor(max_workers=3) as _ex:
-        _f_rows = _ex.submit(_q_rows)
-        _f_stores = _ex.submit(_q_stores)
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=2) as _ex:
+        _f_all = _ex.submit(_q_all)
         _f_inv = _ex.submit(_q_inv)
-        rows = _f_rows.result()
-        store_rows = _f_stores.result()
+        all_rows = _f_all.result()
         inv = _f_inv.result()
-    
-    # 一遍遍历 rows 同时聚合：agg + trend + status_dist + 30天周期数据（替代 _agg/_pstore/_pfunnel）
+
+    # 一遍遍历 all_rows 拆: gmv/pending/refund/total + trend + status_dist + stores + 30天周期(ps/pf)
     gmv = pending = refund = total_orders = 0
     by_date = {}
     _status_agg = {}
+    _store_map = {}
     _ps_agg = {}
     _pf_agg = {}
-    for r in rows:
+    for r in all_rows:
         _d = r[0] or ''
         _st = r[1] or '未知'
-        _g = r[2] or 0
-        _cnt = r[3] or 0
+        _store = r[2] or ''
+        _g = r[3] or 0
+        _cnt = r[4] or 0
         total_orders += _cnt
         if _st == '已完成': gmv += _g
         elif _st == '待发货': pending += _cnt
@@ -127,21 +126,17 @@ def _rebuild(channel='jd'):
         by_date[_key]["订单数"] += _cnt
         if _st == '已完成': by_date[_key]["GMV"] += _g
         _status_agg[_st] = _status_agg.get(_st, 0) + _cnt
-        # 30 天周期数据（漏斗/店铺 GMV 需要 store 维度，此处只算漏斗；店铺靠 _q_stores 的 period 过滤）
+        _sm = _store_map.setdefault(_store, {"name": _store, "orders": 0, "gmv": 0})
+        _sm["orders"] += _cnt
+        if _st == '已完成': _sm["gmv"] += _g
         if _d >= _month_cut:
             _pf_agg[(_d, _st)] = _pf_agg.get((_d, _st), 0) + _cnt
+            if _st == '已完成':
+                _ps_agg[(_d, _store)] = _ps_agg.get((_d, _store), 0) + _g
     trend = [{"日期": k, **v} for k, v in sorted(by_date.items())]
     status_dist = [{"name": k, "value": v} for k, v in _status_agg.items()]
-    
-    stores = [{"name": r[0], "orders": r[1], "gmv": r[2]} for r in store_rows]
-    
-    # ── 周期店铺 GMV（从 stores 的 30 天子集 —— 但 _q_stores 是 90 天全量，需 30 天单独算）
-    # 为减少查询，周期店铺 GMV 从 StoreRows 的 90 天数据用 Python 过滤？不精确（按 store 维度无日期）。
-    # 保留 30 天独立查询（仅 30 天，扫描量是 90 天的 1/3，快）
-    _pstore_rows = conn.execute("SELECT substr(ordered_at,1,10) as d, store, SUM(CASE WHEN order_status='已完成' THEN total_amount ELSE 0 END) FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at='') GROUP BY d, store", (ch, _month_cut)).fetchall()
-    _ps_agg = {}
-    for r in _pstore_rows:
-        _ps_agg[(r[0], r[1])] = _ps_agg.get((r[0], r[1]), 0) + (r[2] or 0)
+    store_rows = sorted(_store_map.values(), key=lambda x: x['name'])
+    stores = [{"name": r["name"], "orders": r["orders"], "gmv": r["gmv"]} for r in store_rows]
     
     inv_list = [{"sku":r[0],"product_name":r[1],"warehouse":r[2],"warehouse_type":r[3],"available_qty":r[4],"safety_qty":r[5],"store":r[6]} for r in inv]
     

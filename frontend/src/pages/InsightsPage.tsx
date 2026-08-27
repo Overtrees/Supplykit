@@ -579,7 +579,7 @@ export default function InsightsPage() {
                     }, {rootMargin: '200px'})
                     el._obs.observe(el)
                   }
-                }}><span className="btn btn-ghost" style={{fontSize:12,padding:'6px 16px',cursor:'pointer'}}>{slowLoadingMore ? '加载中... ' : ''}({filteredDisp.length}/{slowTotal})</span></div>
+                }}><span className="btn btn-ghost" onClick={() => !slowLoadingMore && loadSlowMore()} style={{fontSize:12,padding:'6px 16px',cursor:'pointer'}}>{slowLoadingMore ? '加载中... ' : '点击加载更多'}({filteredDisp.length}/{slowTotal})</span></div>
               )}
             </>
           ))}

@@ -152,11 +152,17 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
         row_errors = []
         data = {}
 
-        # 更新进度
+        # 更新进度 + WS 实时推送(切页也能收)
         if idx % 50 == 0:
             try:
                 from app.core.database import update_task
-                update_task(task_id, progress=round(idx / len(rows) * 100))
+                _p = round(idx / len(rows) * 100)
+                update_task(task_id, progress=_p)
+                try:
+                    from app.api.routes.ws import broadcast_sync
+                    broadcast_sync('cleansing_progress', {'task_id': task_id, 'progress': _p, 'status': 'running'})
+                except Exception:
+                    pass
             except Exception:
                 pass
 
@@ -499,11 +505,21 @@ async def execute_cleansing_async(file: UploadFile = File(...), mapping: str = F
                                    target: str = Form('order'), template_name: str = Form(''), channel: str = 'jd'):
     import uuid
     content = await file.read()
+    # 阈值防护: <400行同步(约<8s PA慢磁盘), >=400行异步(规避30s超时)
+    # 行数估算: 数换行符(快, 不完整解析)
+    _line_count = content.count(b'\n')
+    if _line_count < 400:
+        try:
+            _res = _run_cleansing(content, file.filename, mapping, target, template_name, channel)
+            return _res  # 同步返回结果(success/failed)
+        except Exception as _e:
+            import logging; logging.error(f"[cleansing] sync execute: {_e}")
+            return {'ok': False, 'error': str(_e)[:200], 'success': 0, 'failed': 0}
     task_id = str(uuid.uuid4())[:8]
     submit_task(task_id, _run_cleansing, content, file.filename, mapping, target, template_name, channel, channel=channel, task_type='cleansing')
     from app.core.database import update_task
     update_task(task_id, progress=0, target=target)
-    return {'ok': True, 'task_id': task_id, 'message': '任务已提交'}
+    return {'ok': True, 'task_id': task_id, 'message': '任务已提交(异步)'}
 
 @router.get('/templates')
 def list_templates_route(db = get_db()):

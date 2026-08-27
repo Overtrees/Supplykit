@@ -161,6 +161,12 @@ export default function CleansingPage() {
       const r = await api.postHeavy('/api/cleansing/execute-async', fd)  // postHeavy 90s: 大文件上传/提交不超PA 30s
       const d = r.data
       if (!d.ok) { toast.error(d.error||'提交失败'); setBs(''); execLock.current = false; return }
+      // 同步结果(<400行后端直接返回success/failed) → 直接显示, 不走轮询
+      if (d.success !== undefined) {
+        setRes(d); setS(3); setBs(''); execLock.current = false
+        toast.success('清洗完成，数据已归入「' + (ch === 'jd' ? '京东' : '其他渠道') + '」渠道')
+        return
+      }
       const totalRows = d.total_rows || '?'
       let finished = false; let threshold = setTimeout(() => {
         if (!finished) {

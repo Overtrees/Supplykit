@@ -366,10 +366,11 @@ def _task_cleanup_recycle():
     try:
         from app.core.database import get_conn
         conn = get_conn()
-        # orders: deleted_at 不为空且超过 30 天
-        cur1 = conn.execute("DELETE FROM orders WHERE deleted_at IS NOT NULL AND deleted_at < datetime('now','-30 days')")
-        # rules: is_active=0 且 deleted_at 超过 30 天
-        cur2 = conn.execute("DELETE FROM rules WHERE is_active=0 AND deleted_at IS NOT NULL AND deleted_at < datetime('now','-30 days')")
+        # orders: 真软删(deleted_at非空非'')且超过 30 天
+        # (修复: deleted_at IS NOT NULL 会匹配 ''(active), 导致每天删光所有订单)
+        cur1 = conn.execute("DELETE FROM orders WHERE deleted_at != '' AND deleted_at IS NOT NULL AND deleted_at < datetime('now','-30 days')")
+        # rules: 已软删(is_active=0 且 deleted_at 非空非'')且超过 30 天
+        cur2 = conn.execute("DELETE FROM rules WHERE is_active=0 AND deleted_at != '' AND deleted_at IS NOT NULL AND deleted_at < datetime('now','-30 days')")
         conn.commit()
         _n = (cur1.rowcount or 0) + (cur2.rowcount or 0)
         if _n > 0:

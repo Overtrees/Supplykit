@@ -76,6 +76,7 @@ export default function InsightsPage() {
   const [slowTotal, setSlowTotal] = useState(0)
   const [slowLoadingMore, setSlowLoadingMore] = useState(false)
   const slowSentinelRef = useRef(null)
+  const slowLoadingRef = useRef(false)
   const [dispSel, setDispSel] = useState([])
   const [dispAction, setDispAction] = useState('mark')
   const [dispNote, setDispNote] = useState('')
@@ -268,7 +269,9 @@ export default function InsightsPage() {
   }, [globalChannel, replenMode, dataVersion, tab])
 
   const loadSlowMore = () => {
-    if (slowLoadingMore || (slowTotal > 0 && disposals.length >= slowTotal)) return
+    // ref 门闩(同步最新)——避免 IntersectionObserver 闭包旧 state 导致并发/循环
+    if (slowLoadingRef.current || (slowTotal > 0 && disposals.length >= slowTotal)) return
+    slowLoadingRef.current = true
     setSlowLoadingMore(true)
     api.get('/api/insights/disposal-suggestions?channel=' + globalChannel + '&page=' + (slowPage + 1) + '&page_size=100').then(r => {
       const d = r.data || {}
@@ -276,12 +279,11 @@ export default function InsightsPage() {
       setDisposals(prev => [...prev, ...items])
       setSlowPage(prev => prev + 1)
       setSlowTotal(d.total || slowTotal)
+      slowLoadingRef.current = false
       setSlowLoadingMore(false)
-    }).catch(() => setSlowLoadingMore(false)).finally(() => {
-      // 加载完成重新观察哨兵——IntersectionObserver 仅在状态变化时回调,
-      // 重新 observe 强制触发下一次状态变化(解决持续在视口不重复回调的卡加载根因)
-      setTimeout(function(){ const el = slowSentinelRef.current; if (el && el._obs) el._obs.observe(el) }, 50)
-    })
+    }).catch(() => { slowLoadingRef.current = false; setSlowLoadingMore(false) })
+    // 不 reobserve——IntersectionObserver 触发后表增长哨兵下移(状态变化),
+    // 用户滚动再进入视口触发(同补货模式, 无循环无卡)
   }
 
   const doDispose = async () => {
@@ -588,7 +590,9 @@ export default function InsightsPage() {
               <div style={{height:1}} ref={function(el){
                 if (el && !el._obs) {
                   el._obs = new IntersectionObserver(function(entries){
-                    if (entries[0].isIntersecting && !slowLoadingMore && (slowTotal === 0 || filteredDisp.length < slowTotal)) {
+                    // ref 门闩(最新, 非闭包旧state)——触发后表增长哨兵移出视口,
+                    // 用户滚动再进入触发(补货同模式), 无需 reobserve
+                    if (entries[0].isIntersecting && !slowLoadingRef.current && (slowTotal === 0 || filteredDisp.length < slowTotal)) {
                       el._obs.disconnect()
                       loadSlowMore()
                     }

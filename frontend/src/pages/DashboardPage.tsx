@@ -64,13 +64,15 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
     load()
   }, [channel, pageVersion])
   // 30s 静默自动刷新（不显示 loading 骨架屏，避免闪烁）
+  // 修复: 加 ?t= 绕过前端30s缓存(否则命中缓存不发请求拿旧数据, 静默刷新无效)
   useEffect(() => {
     const timer = setInterval(async () => {
       try {
+        const _t = 't=' + Date.now()
         const [s, a, r] = await Promise.all([
-          api.get('/api/dashboard/summary'),
-          api.get('/api/alerts'),
-          api.get('/api/dashboard/stock-risk'),
+          api.get('/api/dashboard/summary?' + _t),
+          api.get('/api/alerts?' + _t),
+          api.get('/api/dashboard/stock-risk?' + _t),
         ])
         useAppStore.setState({ dashboard: s.data, alerts: a.data || [], stockRisk: r.data || [], loading: false, dataLoaded: true })
       } catch {}

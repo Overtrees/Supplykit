@@ -28,8 +28,11 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
       api.get('/api/dashboard/aux?channel=' + channel + '&t=' + Date.now()),
     ]).then(([s, ax]) => {
       if (seq !== reqSeq.current) { setChLoading(false); return }  // 竞态丢弃
-      const dash = s.status === 'fulfilled' ? s.value.data : null
-      setDashErr(s.status === 'rejected' ? '加载失败，可能是网络异常或服务暂不可用' : '')
+      // 兜底: summary 必须 fulfilled 且 data.summary 存在才算成功(seed填充/表重建期间
+      // 可能返回异常结构 → dash=null 且无ErrorRetry → 看板空白缺口)
+      const dashOk = s.status === 'fulfilled' && s.value.data && s.value.data.summary
+      const dash = dashOk ? s.value.data : null
+      setDashErr((s.status === 'rejected' || !dashOk) ? '加载失败，可能是网络异常或数据正在处理中' : '')
       const aux = (ax && ax.status === 'fulfilled') ? (ax.value.data || {}) : {}
       const alerts = aux.alerts || []
       const stockRisk = aux.stockRisk || []

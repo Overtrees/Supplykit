@@ -7,8 +7,12 @@ router = APIRouter(prefix="/api/batches", tags=["batches"])
 
 
 @router.get("")
-def get_batches(sku: str = '', warehouse: str = '', channel: str = 'jd', limit: int = 50, db = get_db()):
-    """按 SKU×仓库 查询批次明细（按截止日升序，最早/最危险排最前）"""
+def get_batches(sku: str = '', warehouse: str = '', warehouse_type: str = '', channel: str = 'jd', limit: int = 50, db = get_db()):
+    """按 SKU×仓库×主体 查询批次明细（按截止日升序，最早/最危险排最前）
+
+    warehouse_type: 主体隔离(own/platform/platform_b)——进销存各维度只显示本主体批次,
+    避免展开态混入其他主体(如自有仓展开看到平台/B仓批次)
+    """
     from app.core.database import get_conn
     conn = get_conn()
     q = "SELECT sku, warehouse, warehouse_type, channel, prod_date, exp_date, qty, created_at FROM batches WHERE channel=?"
@@ -19,6 +23,9 @@ def get_batches(sku: str = '', warehouse: str = '', channel: str = 'jd', limit: 
     if warehouse:
         q += " AND warehouse=?"
         params.append(warehouse)
+    if warehouse_type:
+        q += " AND warehouse_type=?"
+        params.append(warehouse_type)
     q += " ORDER BY exp_date ASC, prod_date ASC LIMIT ?"
     params.append(limit)
     try:

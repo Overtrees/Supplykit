@@ -19,22 +19,27 @@ export default function HammerCleansing({ channel }: HammerCleansingProps) {
         ))}
       </div>
       <div className="hammer-panel">
-        <div style={{fontSize:10,color:'var(--muted2)',textAlign:'center',marginBottom:4}}>导入的数据将归入「{target}」渠道</div>
         {!sameAsGlobal && (
           <div style={{fontSize:10,color:'var(--warning)',textAlign:'center',background:'rgba(245,158,11,0.1)',borderRadius:32,padding:'4px 8px'}}>
             ⚠️ 当前全局主体是「{channel === 'jd' ? '京东' : '其他渠道'}」，导入后请切换主体查看该数据
           </div>
         )}
         {isInOut && (
-          <div style={{display:'flex',alignItems:'center',gap:8,marginTop:8,background:'var(--card)',borderRadius:32,padding:'8px 12px'}}>
-            <span style={{fontSize:12,fontWeight:600}}>重复数据冲突处理</span>
-            <span onClick={()=>setHammerCleansingConflict('sum')} className="clickable hammer-tab" style={{flex:1,textAlign:'center',fontWeight:600,...(hammerCleansingConflict==='sum'?{color:'var(--primary)',borderColor:'var(--primary)'}:{})}}>累加求和</span>
-            <span onClick={()=>setHammerCleansingConflict('overwrite')} className="clickable hammer-tab" style={{flex:1,textAlign:'center',fontWeight:600,...(hammerCleansingConflict==='overwrite'?{color:'var(--primary)',borderColor:'var(--primary)'}:{})}}>覆盖</span>
+          <div style={{marginTop:8}}>
+            <div style={{fontSize:12,fontWeight:600,marginBottom:4}}>重复数据冲突处理</div>
+            <div className="hammer-segmented">
+              <span onClick={()=>setHammerCleansingConflict('sum')}
+                className={'hammer-segment' + (hammerCleansingConflict==='sum' ? ' active' : '')}>
+                累加求和
+              </span>
+              <span onClick={()=>setHammerCleansingConflict('overwrite')}
+                className={'hammer-segment' + (hammerCleansingConflict==='overwrite' ? ' active' : '')}>
+                覆盖
+              </span>
+            </div>
           </div>
         )}
       </div>
     </div>
   )
 }
-
-/* 规则页: 锤子菜单 tab入口 + 新建 + 模式切换 + 变更历史 */

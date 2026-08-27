@@ -26,13 +26,15 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
       api.get('/api/dashboard/summary'),
       api.get('/api/alerts'),
       api.get('/api/dashboard/stock-risk'),
-    ]).then(([s, a, r]) => {
+      api.get('/api/inventory?channel=' + channel),  // 恢复: 看板低库存/缺货列表依赖 store.inventory
+    ]).then(([s, a, r, iv]) => {
       if (seq !== reqSeq.current) { setChLoading(false); return }  // 竞态丢弃
       const dash = s.status === 'fulfilled' ? s.value.data : null
       setDashErr(s.status === 'rejected' ? '加载失败，可能是网络异常或服务暂不可用' : '')
       const alerts = a.status === 'fulfilled' ? (a.value.data || []) : []
       const stockRisk = r.status === 'fulfilled' ? (r.value.data || []) : []
-      useAppStore.setState({ dashboard: dash, alerts, stockRisk, loading: false, dataLoaded: true })
+      const inv = (iv && iv.status === 'fulfilled') ? (iv.value.data?.items || iv.value.data || []) : []
+      useAppStore.setState({ dashboard: dash, alerts, stockRisk, inventory: inv, loading: false, dataLoaded: true })
       setChLoading(false)
       // 首次加载关键数据为空时自动重试（进程重启后缓存未就绪/慢接口超时兜底），最多 3 次
       if ((!dash || stockRisk.length === 0) && seq === reqSeq.current) {

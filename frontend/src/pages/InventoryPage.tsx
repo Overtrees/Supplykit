@@ -23,7 +23,7 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
     setBatchOpen(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key])
     if (!batchData[key] && !batchLoading[key]) {
       setBatchLoading(prev => ({...prev, [key]: true}))
-      api.get('/api/batches?channel=' + (x.channel || 'jd') + '&sku=' + encodeURIComponent(x.sku) + '&warehouse=' + encodeURIComponent(x.warehouse)).then(r => {
+      api.get('/api/batches?channel=' + (x.channel || 'jd') + '&sku=' + encodeURIComponent(x.sku) + '&warehouse=' + encodeURIComponent(x.warehouse) + '&warehouse_type=' + encodeURIComponent(whType)).then(r => {
         setBatchData(prev => ({...prev, [key]: r.data || []}))
         setBatchLoading(prev => ({...prev, [key]: false}))
       }).catch(() => setBatchLoading(prev => ({...prev, [key]: false})))

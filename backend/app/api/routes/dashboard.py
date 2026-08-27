@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from app.core.dashboard_cache import get_cached_dashboard as get_dashboard, invalidate, _compute_health
-from app.core.database import get_db, DB_PATH
+from app.core.database import get_db, get_conn, DB_PATH
 from app.core.sales_utils import calc_sales, rolling_predict
 import sqlite3
 from app.core.response import ok, fail
@@ -129,9 +129,14 @@ def stock_risk(channel: str = 'jd'):
     c_safety = int(cfg.get('c_safety_days', '0'))
     bbcc_lead = b_to_c + c_safety
 
-    inv = db.table("inventory").select("*").eq("channel", channel).execute().data or []
-    products = {p["sku"]: p for p in (db.table("products").select("*").eq("deleted_at", "").execute().data or [])}
-    sku_barcode_map = {sku: p.get('barcode', '') or '' for sku, p in products.items()}
+    # 原始 SQL 只取所需字段(替代 ORM select(*) 17000行全字段转dict——PA慢磁盘慢)
+    _conn = get_conn()
+    _inv_rows = _conn.execute("SELECT sku, warehouse_type, warehouse, available_qty, in_transit_qty, safety_qty, product_name FROM inventory WHERE channel=?", (channel,)).fetchall()
+    inv = [{"sku": r[0], "warehouse_type": r[1] or '', "warehouse": r[2] or '', "available_qty": r[3] or 0,
+            "in_transit_qty": r[4] or 0, "safety_qty": r[5] or 0, "product_name": r[6] or r[0]} for r in _inv_rows]
+    _prod_rows = _conn.execute("SELECT sku, barcode, product_name FROM products WHERE deleted_at='' AND channel=?", (channel,)).fetchall()
+    products = {str(r[0]): {"sku": str(r[0]), "barcode": r[1] or '', "product_name": r[2] or ''} for r in _prod_rows}
+    sku_barcode_map = {sku: p['barcode'] for sku, p in products.items()}
 
     # 统一数据源：快照+当天，不用 orders 全表扫描
     # 优化: calc_sales_multi 一次遍历算 7/14/28 三窗口(替代3次calc_sales_from_daily) 

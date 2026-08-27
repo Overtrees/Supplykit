@@ -167,10 +167,17 @@ export const useAppStore = create((set, get) => ({
         set({ wsStatus: 'connected', ws })
         get().loadAll().catch(() => {})
       }
-      ws.onmessage = () => {
-        // Any WS event → reload data for real-time updates
+      ws.onmessage = (evt) => {
+        // 按事件类型分发: 清洗进度不触发全局刷新(避免导入期间频繁loadAll), 只通知进度
+        try {
+          const msg = JSON.parse(evt.data || '{}')
+          if (msg && msg.type === 'cleansing_progress') {
+            window.dispatchEvent(new CustomEvent('cleansing-progress', { detail: msg.payload || msg }))
+            return
+          }
+        } catch {}
+        // 其他 WS 事件 → reload data for real-time updates
         get().loadAll().catch(() => {})
-        // 通知建议页等非 loadAll 覆盖的页面刷新
         get().bumpDataVersion()
       }
       ws.onclose = () => {

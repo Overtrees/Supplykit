@@ -578,16 +578,8 @@ export default function InsightsPage() {
                   <button onClick={doDispose} disabled={dispBusy} className="btn btn-primary" style={{minHeight:32,padding:'0 14px',fontSize:12,flexShrink:0}}>{dispBusy?'处理中...':'批量处置'}</button>
                 </div>
               )}
-              {slowTotal > 0 && filteredDisp.length < slowTotal && (
-                <div style={{textAlign:'center',padding:'10px 0'}} ref={function(el){
-                  if (el && !el._obs) {
-                    el._obs = new IntersectionObserver(function(entries){
-                      if (entries[0].isIntersecting && !slowLoadingMore) loadSlowMore()
-                    }, {rootMargin: '200px'})
-                    el._obs.observe(el)
-                  }
-                }}><span className="btn btn-ghost" onClick={() => !slowLoadingMore && loadSlowMore()} style={{fontSize:12,padding:'6px 16px',cursor:'pointer'}}>{slowLoadingMore ? '加载中... ' : '点击加载更多'}({filteredDisp.length}/{slowTotal})</span></div>
-              )}
+              {/* 懒加载已由滚动容器 onScroll 自动触发, 无固定加载态文案 */}
+              {slowLoadingMore && <div style={{textAlign:'center',padding:'8px 0',fontSize:11,color:'var(--muted2)'}}>加载中...</div>}
             </>
           ))}
         </div>

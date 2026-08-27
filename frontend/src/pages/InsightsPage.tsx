@@ -75,6 +75,7 @@ export default function InsightsPage() {
   const [slowPage, setSlowPage] = useState(1)
   const [slowTotal, setSlowTotal] = useState(0)
   const [slowLoadingMore, setSlowLoadingMore] = useState(false)
+  const slowSentinelRef = useRef(null)
   const [dispSel, setDispSel] = useState([])
   const [dispAction, setDispAction] = useState('mark')
   const [dispNote, setDispNote] = useState('')
@@ -276,7 +277,11 @@ export default function InsightsPage() {
       setSlowPage(prev => prev + 1)
       setSlowTotal(d.total || slowTotal)
       setSlowLoadingMore(false)
-    }).catch(() => setSlowLoadingMore(false))
+    }).catch(() => setSlowLoadingMore(false)).finally(() => {
+      // 加载完成重新观察哨兵——IntersectionObserver 仅在状态变化时回调,
+      // 重新 observe 强制触发下一次状态变化(解决持续在视口不重复回调的卡加载根因)
+      setTimeout(function(){ const el = slowSentinelRef.current; if (el && el._obs) el._obs.observe(el) }, 50)
+    })
   }
 
   const doDispose = async () => {
@@ -397,7 +402,7 @@ export default function InsightsPage() {
                     el._observer.observe(el)
                   }
                 }}>
-                  <span className="btn btn-ghost" style={{fontSize:12,padding:'6px 16px',cursor:'pointer'}}>{replenLoadingMore ? '加载中... ' : ''}({replen.length}/{replenTotal})</span>
+                  <span className="btn btn-ghost" style={{fontSize:12,padding:'6px 16px',cursor:'pointer'}}>{replenLoadingMore ? '加载中...' : ''}</span>
                 </div>
               )}
             </div>
@@ -501,7 +506,7 @@ export default function InsightsPage() {
                     el._observer.observe(el)
                   }
                 }}>
-                  <span className="btn btn-ghost" style={{fontSize:12,padding:'6px 16px',cursor:'pointer'}}>加载中... ({purchaseLimit}/{filteredPurchase.length})</span>
+                  <span className="btn btn-ghost" style={{fontSize:12,padding:'6px 16px',cursor:'pointer'}}>加载中...</span>
                 </div>
               )}
             </div>
@@ -578,8 +583,21 @@ export default function InsightsPage() {
                   <button onClick={doDispose} disabled={dispBusy} className="btn btn-primary" style={{minHeight:32,padding:'0 14px',fontSize:12,flexShrink:0}}>{dispBusy?'处理中...':'批量处置'}</button>
                 </div>
               )}
-              {/* 懒加载已由滚动容器 onScroll 自动触发, 无固定加载态文案 */}
-              {slowLoadingMore && <div style={{textAlign:'center',padding:'8px 0',fontSize:11,color:'var(--muted2)'}}>加载中...</div>}
+              {/* IntersectionObserver 哨兵(自动加载, 无固定占位): 触发时 disconnect 防重复,
+                  加载完成 finally 重新 observe(状态变化循环)。onScroll 冗余已去 */}
+              <div style={{height:1}} ref={function(el){
+                if (el && !el._obs) {
+                  el._obs = new IntersectionObserver(function(entries){
+                    if (entries[0].isIntersecting && !slowLoadingMore && (slowTotal === 0 || filteredDisp.length < slowTotal)) {
+                      el._obs.disconnect()
+                      loadSlowMore()
+                    }
+                  }, {rootMargin: '200px'})
+                  el._obs.observe(el)
+                  slowSentinelRef.current = el
+                }
+              }} />
+              {slowLoadingMore && <div style={{textAlign:'center',padding:'6px 0',fontSize:11,color:'var(--muted2)'}}>加载中...</div>}
             </>
           ))}
         </div>

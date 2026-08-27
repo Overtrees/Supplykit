@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react'
-import { api } from '../api/client'
+import { api, clearCache } from '../api/client'
 import EmptyState from '../components/EmptyState'
 import ErrorRetry from '../components/ErrorRetry'
 import { useToast } from '../components/Toast'
@@ -76,7 +76,7 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
     } catch(e) { if (seq === reqSeq.current) { setInventory([]); setLoadErr('加载失败，可能是网络异常或服务暂不可用') } }
     if (seq === reqSeq.current) { setLoading(false); setLoadingMore(false) }
   }
-  useEffect(() => { setInvPage(1); loadInv(1) }, [whType, globalChannel, s])
+  useEffect(() => { clearCache('with-sales'); setInvPage(1); loadInv(1) }, [whType, globalChannel, s])
   const handleScroll = (e) => {
     const el = e.target
     if (el.scrollTop + el.clientHeight >= el.scrollHeight - 200 && !loadingMore && inventory.length > 0 && (!invTotal || inventory.length < invTotal)) {

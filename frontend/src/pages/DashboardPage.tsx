@@ -62,8 +62,12 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
   }, [channel, pageVersion])
   // 30s 静默自动刷新（不显示 loading 骨架屏，避免闪烁）
   // 修复: 加 ?t= 绕过前端30s缓存(否则命中缓存不发请求拿旧数据, 静默刷新无效)
+  // 防堆积: busy 标志——上次刷新未完成则跳过本次(避免 summary 慢时并发请求占 worker 阻塞其他)
+  const silentBusy = useRef(false)
   useEffect(() => {
     const timer = setInterval(async () => {
+      if (silentBusy.current) return
+      silentBusy.current = true
       try {
         const _t = 't=' + Date.now()
         const [s, ax] = await Promise.all([
@@ -72,7 +76,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
         ])
         const aux = ax.data || {}
         useAppStore.setState({ dashboard: s.data, alerts: aux.alerts || [], stockRisk: aux.stockRisk || [], inventory: (aux.stockOverview || {}).items || [], loading: false, dataLoaded: true })
-      } catch {}
+      } catch {} finally { silentBusy.current = false }
     }, 30000)
     return () => clearInterval(timer)
   }, [channel])

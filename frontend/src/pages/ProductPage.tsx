@@ -5,6 +5,7 @@ import EmptyState from '../components/EmptyState'
 import ErrorRetry from '../components/ErrorRetry'
 
 import { useAppStore } from '../store/useAppStore'
+import { clearCache } from '../api/client'
 import { t } from "../locale"
 import { PRODUCT_COLS as COLS } from '../components/hammer/configs'
 const COL_KEY = () => 'c_cols_products_' + (useAppStore.getState().channel || 'jd')
@@ -26,7 +27,7 @@ const [batchBusy, setBatchBusy] = useState(false)
 const s = hammerSearch || ''
 const fl = ld ? [] : list
 const loadProd=(p)=>{const seq=++reqSeq.current;if(p===1)setLd(true);else setLoadingMore(true);api.get('/api/products?page='+p+'&page_size=100&channel='+globalChannel+'&search='+encodeURIComponent(s),{timeout:90000}).then(r=>{if(seq!==reqSeq.current)return;const d=r.data||{};const items=d.items||d||[];setPgTotal(d.total||items.length||0);setPg(p);setList(prev=>p===1?items:[...prev,...items]);setLoadErr('');setLd(false);setLoadingMore(false)}).catch(()=>{if(seq===reqSeq.current){setLd(false);setLoadingMore(false);setList([]);setLoadErr('加载失败，可能是网络异常或服务暂不可用')}})}
-useEffect(()=>{setPg(1);loadProd(1)}, [globalChannel, s])
+useEffect(()=>{clearCache('products');setPg(1);loadProd(1)}, [globalChannel, s])
 useEffect(() => {
   if (hammerCols?.products) setVisCols(hammerCols.products)
 }, [hammerCols])

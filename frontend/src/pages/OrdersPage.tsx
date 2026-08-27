@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useAppStore } from '../store/useAppStore'
+import { clearCache } from '../api/client'
 import EmptyState from '../components/EmptyState'
 import ErrorRetry from '../components/ErrorRetry'
 import { useToast } from '../components/Toast'
@@ -28,7 +29,7 @@ function OrderSkeleton() {
 export default function OrdersPage() {
   const toast = useToast()
   const { orders, orderPage, orderLoading, setOrderPage, orderStatus, dataLoaded, channel, hammerCols, hammerSearch, orderTotal, setHammerSearch, orderLoadErr } = useAppStore()
-  useEffect(() => { useAppStore.getState().loadAll(1); setHammerSearch('') }, [channel])
+  useEffect(() => { clearCache('orders'); useAppStore.getState().loadAll(1); setHammerSearch('') }, [channel])
   useEffect(() => { useAppStore.getState().loadAll() }, [hammerSearch, orderStatus])
   const [confirmDel, setConfirmDel] = useState(null)
   // 删除撤销定时器集合：卸载时统一清理，防止软删订单残留

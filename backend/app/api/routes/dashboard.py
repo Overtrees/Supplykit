@@ -64,6 +64,33 @@ def dashboard_summary(channel: str = 'jd', start_date: str = '', end_date: str =
     data = get_dashboard(channel=channel)
     return ok(data)
 
+@router.get("/aux")
+def dashboard_aux(channel: str = 'jd', db = get_db()):
+    """看板辅助数据聚合(alerts+stockRisk+stockOverview)——次要卡片一次请求
+
+    与 summary 独立(不被 summary 同步重建拖累); 3个次要请求合并为1(省HTTP+排队)
+    """
+    # alerts
+    try:
+        alerts = db.table("alerts").select("*").eq("channel", channel).eq("status", "active").order("id", desc=True).limit(200).execute().data
+    except Exception:
+        alerts = []
+    # stock-risk（复用缓存逻辑）
+    try:
+        sr = stock_risk(channel)
+        stock_risk_data = sr.get('data', {}) if isinstance(sr, dict) else sr
+    except Exception:
+        stock_risk_data = []
+    # stock-overview（缺货列表）
+    try:
+        from app.api.routes.inventory import stock_overview
+        so = stock_overview(channel=channel, db=db)
+        so_data = so.get('data', {}) if isinstance(so, dict) else so
+    except Exception:
+        so_data = {"items": [], "out_of_stock_count": 0, "low_stock_count": 0, "total": 0}
+    return ok({"alerts": alerts, "stockRisk": stock_risk_data, "stockOverview": so_data})
+
+
 @router.get("/stock-risk")
 def stock_risk(channel: str = 'jd'):
     now = time.time()

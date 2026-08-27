@@ -24,19 +24,15 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
     setChLoading(true)
     const load = () => Promise.allSettled([
       api.get('/api/dashboard/summary'),
-      api.get('/api/alerts'),
-      api.get('/api/dashboard/stock-risk'),
-      api.get('/api/inventory/stock-overview?channel=' + channel),  // 轻量聚合: 缺货/低库存(替代全量inventory)
-    ]).then(([s, a, r, iv]) => {
+      api.get('/api/dashboard/aux?channel=' + channel),  // 辅助聚合: alerts+stockRisk+stockOverview(1请求)
+    ]).then(([s, ax]) => {
       if (seq !== reqSeq.current) { setChLoading(false); return }  // 竞态丢弃
       const dash = s.status === 'fulfilled' ? s.value.data : null
       setDashErr(s.status === 'rejected' ? '加载失败，可能是网络异常或服务暂不可用' : '')
-      const alerts = a.status === 'fulfilled' ? (a.value.data || []) : []
-      const stockRisk = r.status === 'fulfilled' ? (r.value.data || []) : []
-      // stock-overview: {items:缺货列表, low_stock_count, out_of_stock_count, total}
-      const ov = (iv && iv.status === 'fulfilled') ? (iv.value.data || {}) : {}
-      const inv = (window as any).__stockOverview = ov
-      // 模拟 inventory 数组形态(缺货项), 兼容 lowStock/outOfStockItems/skuWhMap: store.inventory = items
+      const aux = (ax && ax.status === 'fulfilled') ? (ax.value.data || {}) : {}
+      const alerts = aux.alerts || []
+      const stockRisk = aux.stockRisk || []
+      const ov = aux.stockOverview || {}
       useAppStore.setState({ dashboard: dash, alerts, stockRisk, inventory: ov.items || [], _stockOverview: ov, loading: false, dataLoaded: true })
       setChLoading(false)
       // 首次加载关键数据为空时自动重试（进程重启后缓存未就绪/慢接口超时兜底），最多 3 次
@@ -69,12 +65,12 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
     const timer = setInterval(async () => {
       try {
         const _t = 't=' + Date.now()
-        const [s, a, r] = await Promise.all([
+        const [s, ax] = await Promise.all([
           api.get('/api/dashboard/summary?' + _t),
-          api.get('/api/alerts?' + _t),
-          api.get('/api/dashboard/stock-risk?' + _t),
+          api.get('/api/dashboard/aux?channel=' + channel + '&' + _t),
         ])
-        useAppStore.setState({ dashboard: s.data, alerts: a.data || [], stockRisk: r.data || [], loading: false, dataLoaded: true })
+        const aux = ax.data || {}
+        useAppStore.setState({ dashboard: s.data, alerts: aux.alerts || [], stockRisk: aux.stockRisk || [], inventory: (aux.stockOverview || {}).items || [], loading: false, dataLoaded: true })
       } catch {}
     }, 30000)
     return () => clearInterval(timer)

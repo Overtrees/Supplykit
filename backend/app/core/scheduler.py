@@ -59,8 +59,9 @@ def _task_archive_orders():
             agg[key]['gmv'] += float(o.get('total_amount') or 0)
             agg[key]['count'] += 1
             agg[key]['qty'] += int(o.get('quantity') or 0)
-        # 写入 daily_stats
+        # 写入 daily_stats（统计成功/失败）
         conn = get_conn()
+        _ok = 0; _fail = 0
         for (date, channel, store, sku, order_status), v in agg.items():
             try:
                 conn.execute(
@@ -68,18 +69,28 @@ def _task_archive_orders():
                     "ON CONFLICT(date, channel, store, sku, order_status) DO UPDATE SET gmv=gmv+?, order_count=order_count+?, quantity=quantity+?",
                     (date, channel, store, sku, order_status, v['gmv'], v['count'], v['qty'], v['gmv'], v['count'], v['qty'])
                 )
-            except Exception as e: logger.info(f"{e}")
+                _ok += 1
+            except Exception as e:
+                _fail += 1
+                logger.warning(f"[archive] daily_stats insert fail: {e}")
         conn.commit()
-        # 删除已归档的原始订单（分批）
+        # 保护: 只要有任何 daily_stats 写入失败 → 不删除 orders(数据不丢, 下次归档重试)
+        if _fail > 0:
+            logger.error(f"[archive] ABORT: daily_stats 写入失败 {_fail}/{len(agg)}, 不删除 orders(防数据丢失)")
+            conn.close()
+            return
+        # 全部写入成功才删除已归档的原始订单（分批）
         ids = [o['id'] for o in old_orders]
         batch_size = 100
+        deleted = 0
         for i in range(0, len(ids), batch_size):
             batch = ids[i:i+batch_size]
             try:
-                conn.execute(f"DELETE FROM orders WHERE id IN ({','.join(['?']*len(batch))})", batch)
+                cur = conn.execute(f"DELETE FROM orders WHERE id IN ({','.join(['?']*len(batch))})", batch)
+                deleted += cur.rowcount
                 conn.commit()
             except Exception as e: logger.info(f"{e}")
-        logger.info(f"Order archive: {len(old_orders)} orders → {len(agg)} daily stats rows")
+        logger.info(f"Order archive: {len(old_orders)} orders → {len(agg)} daily stats rows (deleted {deleted})")
         conn.close()
         # 归档后立即增量回收空间（不需要独占锁）
         try:
@@ -427,8 +438,7 @@ def start():
     _started = True
     scheduler.add_job(_task_inventory_sync, IntervalTrigger(minutes=30), id='inventory_sync')
     scheduler.add_job(_task_build_sales_snapshot, CronTrigger(hour=3, minute=30), id='build_sales_snapshot')
-    # 已禁用: 归档曾导致 orders 全删(daily_stats 0行), 查清根因前停用
-    # scheduler.add_job(_task_archive_orders, CronTrigger(hour=1, minute=0), id='archive_orders')
+    scheduler.add_job(_task_archive_orders, CronTrigger(hour=1, minute=0), id='archive_orders')
     scheduler.add_job(_task_cleanup_logs, CronTrigger(hour=3, minute=0), id='cleanup_logs')
     scheduler.add_job(_task_backup, CronTrigger(hour=2, minute=0), id='db_backup')
     scheduler.add_job(_task_daily_rules, CronTrigger(hour=4, minute=0), id='daily_rules')

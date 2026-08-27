@@ -21,7 +21,8 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
   const reqSeq = useRef(0)
   useEffect(() => {
     const seq = ++reqSeq.current
-    setChLoading(true)
+    // 无感刷新: 仅当无 dashboard 数据(首次/清空后)才骨架, 有旧数据则不骨架(先显示旧值, 后台拉新替换)
+    setChLoading(!useAppStore.getState().dashboard)
     const load = () => Promise.allSettled([
       api.get('/api/dashboard/summary?t=' + Date.now()),  // 绕过前端缓存(拿最新, 后端180s TTL缓存兜底)
       api.get('/api/dashboard/aux?channel=' + channel + '&t=' + Date.now()),

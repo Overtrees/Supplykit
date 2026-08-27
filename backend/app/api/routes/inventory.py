@@ -5,6 +5,29 @@ from app.core.response import ok, fail
 router = APIRouter(prefix="/api/inventory", tags=["inventory"])
 
 
+@router.get("/stock-overview")
+def stock_overview(channel: str = 'jd', db = get_db()):
+    """看板缺货/低库存轻量聚合（SQL 一次查, 替代全量 inventory 前端过滤）
+
+    返回缺货 SKU 列表 + 低库存/总数（轻量, 避免全量 17000 行传输+前端遍历）
+    """
+    from app.core.database import get_conn
+    conn = get_conn()
+    try:
+        # 缺货 SKU 列表（avail<=0）+ 主体/仓库（渲染标签用）
+        rows = conn.execute(
+            "SELECT sku, product_name, warehouse_type, warehouse FROM inventory WHERE channel=? AND available_qty<=0 ORDER BY sku LIMIT 100",
+            (channel,)).fetchall()
+        items = [{"sku": str(r[0]), "product_name": str(r[1] or r[0]), "warehouse_type": str(r[2] or ''), "warehouse": str(r[3] or '')} for r in rows]
+        # 低库存数 + 总 SKU 数（SQL 聚合）
+        low_cnt = conn.execute("SELECT COUNT(*) FROM inventory WHERE channel=? AND available_qty < safety_qty", (channel,)).fetchone()[0]
+        total = conn.execute("SELECT COUNT(*) FROM inventory WHERE channel=?", (channel,)).fetchone()[0]
+        return ok({"items": items, "out_of_stock_count": len(items), "low_stock_count": low_cnt, "total": total})
+    except Exception as e:
+        import logging; logging.warning(f"[inventory] stock-overview: {e}")
+        return ok({"items": [], "out_of_stock_count": 0, "low_stock_count": 0, "total": 0})
+
+
 @router.get("")
 def list_inventory(db = get_db(), channel: str = 'jd', store: str = '', warehouse_type: str = '',
                    page: int = 0, page_size: int = 0):

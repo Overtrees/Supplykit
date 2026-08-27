@@ -77,6 +77,11 @@ def _task_archive_orders():
         # 保护: 只要有任何 daily_stats 写入失败 → 不删除 orders(数据不丢, 下次归档重试)
         if _fail > 0:
             logger.error(f"[archive] ABORT: daily_stats 写入失败 {_fail}/{len(agg)}, 不删除 orders(防数据丢失)")
+            try:
+                _c2 = get_conn()
+                _c2.execute("INSERT INTO quality_logs(log_type, level, message, source) VALUES('archive','error',?, 'scheduler')", (f"归档ABORT: daily_stats写入失败{_fail}/{len(agg)}, 未删除orders",))
+                _c2.commit()
+            except Exception: pass
             conn.close()
             return
         # 全部写入成功才删除已归档的原始订单（分批）
@@ -91,6 +96,11 @@ def _task_archive_orders():
                 conn.commit()
             except Exception as e: logger.info(f"{e}")
         logger.info(f"Order archive: {len(old_orders)} orders → {len(agg)} daily stats rows (deleted {deleted})")
+        try:
+            _c3 = get_conn()
+            _c3.execute("INSERT INTO quality_logs(log_type, level, message, source) VALUES('archive','info',?, 'scheduler')", (f"归档: {len(old_orders)}订单→{len(agg)}行daily_stats, 删除{deleted}",))
+            _c3.commit()
+        except Exception: pass
         conn.close()
         # 归档后立即增量回收空间（不需要独占锁）
         try:
@@ -375,6 +385,11 @@ def _task_cleanup_recycle():
         _n = (cur1.rowcount or 0) + (cur2.rowcount or 0)
         if _n > 0:
             logger.info(f"Recycle cleanup: purged {_n} items (>30 days)")
+            try:
+                _c4 = get_conn()
+                _c4.execute("INSERT INTO quality_logs(log_type, level, message, source) VALUES('recycle','info',?, 'scheduler')", (f"回收站清理: 永久删除{_n}条(orders+rules, 真软删超30天)",))
+                _c4.commit()
+            except Exception: pass
     except Exception as e:
         logger.warning(f"Recycle cleanup error: {e}")
 

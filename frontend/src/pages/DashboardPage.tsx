@@ -23,8 +23,8 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
     const seq = ++reqSeq.current
     setChLoading(true)
     const load = () => Promise.allSettled([
-      api.get('/api/dashboard/summary'),
-      api.get('/api/dashboard/aux?channel=' + channel),  // 辅助聚合: alerts+stockRisk+stockOverview(1请求)
+      api.get('/api/dashboard/summary?t=' + Date.now()),  // 绕过前端缓存(拿最新, 后端180s TTL缓存兜底)
+      api.get('/api/dashboard/aux?channel=' + channel + '&t=' + Date.now()),
     ]).then(([s, ax]) => {
       if (seq !== reqSeq.current) { setChLoading(false); return }  // 竞态丢弃
       const dash = s.status === 'fulfilled' ? s.value.data : null

@@ -277,3 +277,24 @@ app.include_router(tasks_router)
 @app.get("/")
 def root():
     return {"ok": True, "name": "Supplykit API"}
+
+# 全局未捕获异常 → 记录 quality_logs(快速定位) + 返回友好错误(避免前端崩溃)
+from fastapi import Request
+from fastapi.responses import JSONResponse
+import traceback as _tb
+
+
+@app.exception_handler(Exception)
+async def _unhandled_exception_handler(request: Request, exc: Exception):
+    try:
+        from app.core.database import get_conn
+        _c = get_conn()
+        _msg = str(exc)[:500] or exc.__class__.__name__
+        _tb_str = _tb.format_exc()[-3000:]
+        _c.execute(
+            "INSERT INTO quality_logs(log_type, level, message, details, source) VALUES('exception','error',?,?, 'server')",
+            (_msg, _tb_str))
+        _c.commit()
+    except Exception:
+        pass
+    return JSONResponse({"ok": False, "error": "服务器内部错误，请稍后重试", "detail": str(exc)[:200]}, status_code=500)

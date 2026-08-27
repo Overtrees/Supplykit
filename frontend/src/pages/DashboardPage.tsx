@@ -140,11 +140,8 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
   const periodDays = periodTab === 'custom' ? (periodMeta?.days || 30) : ({today:1,week:7,month:30}[periodTab]||30)
   const riskCritical = (stockRisk||[]).filter(x => x.days_to_empty < 3).length
   const riskWarning = (stockRisk||[]).filter(x => x.days_to_empty >= 3 && x.days_to_empty < 7).length
-  var outOfStockItems = (inventory||[]).filter(function(item) {
-    var filterType = healthTab === 'bc' ? 'bc' : (healthTab === 'platform' ? 'platform' : (healthTab === 'platform_b' ? 'platform_b' : 'own'))
-    if (filterType === 'bc') return Number(item.available_qty) === 0 && item.warehouse_type !== 'own'
-    return Number(item.available_qty) === 0 && item.warehouse_type === filterType
-  }).slice(0,3)
+    // 缺货列表 = stockOverview.items(本身就是 avail<=0 的缺货SKU, 含warehouse_type)
+  var outOfStockItems = (inventory||[]).slice(0,3)  // 缺货列表前3个(stockOverview.items已是avail<=0)
   // 告警 × 仓库维度拆{t("dash.score_unit")}
   const skuWhMap = Object.fromEntries((inventory||[]).map(i => [i.sku, i.warehouse_type]))
   function countByWh(items) {

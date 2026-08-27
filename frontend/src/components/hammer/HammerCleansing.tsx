@@ -25,8 +25,8 @@ export default function HammerCleansing({ channel }: HammerCleansingProps) {
           </div>
         )}
         {isInOut && (
-          <div style={{marginTop:8}}>
-            <div style={{fontSize:12,fontWeight:600,marginBottom:4}}>重复数据冲突处理</div>
+          <div style={{marginTop:12}}>
+            <div style={{fontSize:12,fontWeight:600,textAlign:'center',marginBottom:8}}>重复数据冲突处理</div>
             <div className="hammer-segmented">
               <span onClick={()=>setHammerCleansingConflict('sum')}
                 className={'hammer-segment' + (hammerCleansingConflict==='sum' ? ' active' : '')}>

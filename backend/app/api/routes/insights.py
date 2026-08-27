@@ -156,7 +156,7 @@ def _get_disposal_suggestions_impl(channel: str = 'jd', db = get_db()):
     from app.core.sales_utils import load_daily_sales, calc_sales_from_daily
     import json
     conn = get_conn()
-    today = datetime.now(UTC)
+    today = datetime.now(UTC).replace(tzinfo=None)  # naive, 与strptime一致(修复days_zero恒999+black不触发)
 
     # ── 品类配置（自定义条目列表）──
     def load_json(key, default):
@@ -176,6 +176,13 @@ def _get_disposal_suggestions_impl(channel: str = 'jd', db = get_db()):
     try:
         r = conn.execute("SELECT value FROM replenishment_config WHERE key='b_free_days' AND channel=?", (channel,)).fetchone()
         if r and r[0]: b_free = int(r[0])
+    except Exception:
+        pass
+    # 资金占用阈值(配置化, 默认1万——yellow升级red的成本压力线)
+    fund_threshold = 10000
+    try:
+        r = conn.execute("SELECT value FROM replenishment_config WHERE key='slow_fund_threshold' AND channel=?", (channel,)).fetchone()
+        if r and r[0]: fund_threshold = int(r[0])
     except Exception:
         pass
 
@@ -322,7 +329,7 @@ def _get_disposal_suggestions_impl(channel: str = 'jd', db = get_db()):
             if level is None:
                 continue  # 没过线且无临期/B仓 → 正常
         # ④ 升级: 滞销 + B仓超期 或 高资金占用 → red 处置
-        if level == 'yellow' and (b_storage or fund >= 10000):
+        if level == 'yellow' and (b_storage or fund >= fund_threshold):
             level = 'red'
             reason.append('有成本压力(仓储费或占用¥' + str(fund) + '), 建议尽快处置')
         # 伪滞销提示（不降级, 仅提示核实）

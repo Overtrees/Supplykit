@@ -8,6 +8,10 @@ import random, sqlite3, uuid, threading, os
 
 router = APIRouter(prefix="/api/seed", tags=["seed"])
 
+# 演示滞销 SKU(跨订单/库存函数共享): slow=真滞销(无单,小库存→yellow), low=低动销(观察级)
+_DEMO_SLOW = set()
+_DEMO_LOW = set()
+
 # 品牌池（真实品牌, 按品类; 调味多为区域老字号, 零食/日化头部品牌）
 BRANDS_FOOD = ['海天','李锦记','厨邦','太太乐','千禾','欣和','鲁花','东古','致美斋','味事达','加加','恒顺','千岛源']
 BRANDS_SNACK = ['乐事','旺旺','三只松鼠','良品铺子','百草味','奥利奥','格力高','趣多多','可可满分','好丽友']
@@ -385,13 +389,16 @@ def _seed_orders(db, today, skus_data):
         random.shuffle(_shuffled)
         _slow_skus = set(x['sku'] for x in _shuffled[:_n*3//100]) if _n >= 50 else set()
         _low_idx = {x['sku'] for x in _shuffled[_n*3//100:_n*5//100]} if _n >= 50 else set()
+        global _DEMO_SLOW, _DEMO_LOW
+        _DEMO_SLOW |= _slow_skus
+        _DEMO_LOW |= _low_idx
         _normal_skus = [x for x in skus if x['sku'] not in _slow_skus and x['sku'] not in _low_idx]
         for d in range(60):
             dt = today - timedelta(days=d)
             is_promo = any(d in v for v in promo.values())
             cnt = int(base * random.uniform(2,4)) if is_promo else (int(base * random.uniform(0.6,1.2)) if dt.weekday()>=5 else base)
-            # 低动销 SKU: 仅每 30 天(及 promo 期间)出 1 单
-            if d % 30 == 0 or is_promo:
+            # 低动销 SKU: 每 30 天出 1 单, 偏移 18 天(最后销售在 15-30 天前 → observe 观察级)
+            if d % 30 == 18 or is_promo:
                 for lsk in _low_idx:
                     sk = next((x for x in skus if x['sku']==lsk), None)
                     if not sk: continue
@@ -431,7 +438,11 @@ def _seed_inventory(db, skus_data):
                     seen_own = True
                     wh_name = '集货仓' if skus is jd_s else '三方仓'
                 else: wh_name = wn
-                if low and wt == 'platform':
+                if sk['sku'] in _DEMO_SLOW:
+                    q = random.randint(20, 60)     # 真滞销SKU小库存(占用<1万) → yellow
+                elif sk['sku'] in _DEMO_LOW:
+                    q = random.randint(30, 80)     # 低动销小库存 → observe
+                elif low and wt == 'platform':
                     q = random.randint(0, 5)       # C 仓极低库存(7仓汇总0-35<需求65) → 触发补货
                 elif low and wt == 'platform_b':
                     q = random.randint(0, 3)       # B 仓也低
@@ -465,9 +476,9 @@ def _seed_batches(db, skus_data):
     _all_skus = sorted({(str(r[0]), str(r[3] or 'jd')) for r in rows})
     for idx, (s, c) in enumerate(_all_skus):
         chk = random.random()
-        if chk < 0.06:      # 6% SKU 带"过期"批次演示 black
+        if chk < 0.02:      # 2% SKU 带"过期"批次演示 black
             problem_skus.add(s)
-        elif chk < 0.10:    # 4% SKU 带"接近1/3"批次演示 warn
+        elif chk < 0.04:    # 2% SKU 带"接近1/3"批次演示 warn
             problem_skus.add(s)
     for r in rows:
         sku, wh, wht, ch, qty = str(r[0]), str(r[1] or ''), str(r[2] or ''), str(r[3] or 'jd'), int(r[4] or 0)
@@ -506,6 +517,12 @@ def _seed_batches(db, skus_data):
         try:
             conn.execute("UPDATE products SET best_before=? WHERE sku=? AND (best_before='' OR best_before IS NULL)", (exp.strftime('%Y-%m-%d'), sku))
         except Exception: pass
+    # problem SKU(过期/临期批次)强制回写 best_before → 滞销建议 black 级
+    for sku in problem_skus:
+        if sku in best_map:
+            try:
+                conn.execute("UPDATE products SET best_before=? WHERE sku=?", (best_map[sku].strftime('%Y-%m-%d'), sku))
+            except Exception: pass
     conn.commit()
     return len(bdata)
 

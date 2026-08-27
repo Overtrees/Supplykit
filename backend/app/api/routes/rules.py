@@ -144,7 +144,6 @@ def _sync_alerts_for_rules(ids: list, disabled: bool, db):
                 pairs.add((at, r.get('channel', 'jd')))
     except Exception as e:
         import logging; logging.warning(f"[rules] collect alert_type: {e}")
-    from app.core.dashboard_cache import invalidate as invalidate_dashboard
     for at, ch in pairs:
         others = db.table("rules").select("id").eq("alert_type", at).eq("channel", ch).eq("is_active", 1).execute().data
         if disabled:
@@ -155,7 +154,18 @@ def _sync_alerts_for_rules(ids: list, disabled: bool, db):
             # 恢复：有 active 规则 → 恢复该类 rules_engine 告警
             if others:
                 db.table("alerts").update({"status": "active"}).eq("alert_type", at).eq("channel", ch).eq("source", "rules_engine").execute()
-    invalidate_dashboard()
+    # 增量修正看板缓存的 active_alerts(规则操作只影响告警数, 无需 invalidate_dashboard
+    # 触发 summary 同步重建 14s + stockRisk 缓存失效——这是规则操作后回看板卡10s+的根因)
+    try:
+        from app.core.dashboard_cache import _cache_by_channel
+        for _at, _ch in pairs:
+            _cached = _cache_by_channel.get(_ch)
+            if _cached and 'summary' in _cached.get('data', {}):
+                _cnt = db.table("alerts").select("count(*)").eq("channel", _ch).eq("status", "active").execute()
+                _n = _cnt.count if hasattr(_cnt, 'count') else len(_cnt.data or [])
+                _cached['data']['summary']['active_alerts'] = _n
+    except Exception:
+        pass
 
 
 @router.post("/batch")

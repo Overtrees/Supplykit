@@ -677,8 +677,10 @@ def seed_reset(db=get_db()):
     task_id = 'reset_' + uuid.uuid4().hex[:8]
     def _do_reset():
         conn = get_conn()
-        # 保持 WAL(不切 DELETE)——WAL 下一次性 DELETE 一样快且更安全(历史切DELETE为分批场景,
-        # 现在一次性DELETE无需切模式; 模式切换本身也是 PA 慢操作)
+        # 保留历史 journal_mode=DELETE 切换(历史为 reset 提速/防 WAL 卡引入, 不轻易移除)
+        # 配合一次性 DELETE(1 commit 替代分批5000×36次commit——后者是PA卡死根因)
+        try: conn.execute("PRAGMA journal_mode=DELETE")
+        except Exception: pass
         for t in ['orders','inventory','products','suppliers','alerts','quality_logs','events','purchase_orders','replenishment_config_history','cleansing_templates','custom_fields','daily_sales_snapshot','daily_stats','inbound_records','outbound_records','replenishment_config','rules','batches']:
             try:
                 if t == 'orders':

@@ -514,7 +514,7 @@ export default function InsightsPage() {
         <div className="card">
           <div className="section-title" style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
             <span>滞销预警</span>
-            <span className="muted2" style={{fontSize:11,fontWeight:400}}>显示 {slowVisCols.length}/{SLOW_COLS.length} 列 · 共 {filteredDisp.length} 条{insightSearch ? ` · "${insightSearch}"` : ''}</span>
+            <span className="muted2" style={{fontSize:11,fontWeight:400}}>已加载 {Math.min(filteredDisp.length, slowTotal || filteredDisp.length)}/{slowTotal || filteredDisp.length} 条 · 显示 {slowVisCols.length}/{SLOW_COLS.length} 列{insightSearch ? ` · "${insightSearch}"` : ''}</span>
           </div>
 
           <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',marginBottom:8}}>
@@ -529,7 +529,14 @@ export default function InsightsPage() {
             <div className="muted" style={{ padding: 12, textAlign: 'center' }}>{showDisposed ? '暂无处置记录' : '暂无滞销 🎉'}</div>
           ) : (
             <>
-              <div style={{overflow:'auto',maxHeight:"calc(100vh - 180px)"}}>
+              <div style={{overflow:'auto',maxHeight:"calc(100vh - 180px)"}} onScroll={function(e){
+                  var el = e.target
+                  // IntersectionObserver 仅在交叉状态变化时回调——持续在视口不重复触发导致卡加载
+                  // 改用滚动监听: 每次滚动检测接近底部即加载下一页
+                  if (el.scrollTop + el.clientHeight >= el.scrollHeight - 250 && !slowLoadingMore && (slowTotal === 0 || filteredDisp.length < slowTotal)) {
+                    loadSlowMore()
+                  }
+                }}>
                 <table>
                   <colgroup>{slowVisCols.map(id => {const col = SLOW_COLS.find(c => c.id === id); return col ? <col key={col.id} /> : null})}</colgroup>
                   <thead style={{position:'sticky',top:0,background:'var(--card)',zIndex:1}}><tr>{slowVisCols.map(id => {const col = SLOW_COLS.find(c => c.id === id); return col ? <th style={{whiteSpace:'nowrap',fontSize:11,padding:'8px 4px'}} key={col.id}>{col.label}</th> : null})}</tr></thead>

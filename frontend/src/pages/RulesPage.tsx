@@ -122,10 +122,13 @@ export default function RulesPage() {
       const token = (()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()
       const r = await fetch(API+'/api/rules?channel='+c, {headers:{'Authorization':'Bearer '+token}})
       const d = await r.json()
-      const newData = d.data || d || []
+      // 防御: 异常响应(401/500/结构异常)可能非数组 → setRules(object) 导致 rules.length
+      // undefined → 渲染条件全 false → 空白无提示。数组校验+格式异常提示
+      const rawData = d.data !== undefined ? d.data : d
+      const newData = Array.isArray(rawData) ? rawData : []
       addDebug('load 返回', {status: r.status, 条数: newData.length, ids: newData.map(x=>x.id).slice(0,10)})
       setRules(newData)
-      setRulesErr('')
+      setRulesErr(Array.isArray(rawData) ? '' : (r.status !== 200 ? '加载失败，可能是网络异常或服务暂不可用' : '返回数据格式异常'))
       addDebug('setRules 完成', {条数: newData.length})
     } catch(e) { addDebug('load 异常', {error: e.message}); setRulesErr('加载失败，可能是网络异常或服务暂不可用') } 
   }

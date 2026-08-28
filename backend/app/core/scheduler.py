@@ -257,13 +257,43 @@ def _task_disk_cleanup():
             _c.close()
             cleaned.append("quality_logs_trim")
         except Exception: pass
-        # 7. 报告数据库和 WAL 大小
+        # 7. 报告数据库和 WAL 大小 + 写 quality_logs(可见) + 磁盘告警
         db_size = os.path.getsize(DB_PATH) / 1024 / 1024
         wal_path = DB_PATH + "-wal"
         wal_size = os.path.getsize(wal_path) / 1024 / 1024 if os.path.exists(wal_path) else 0
         logger.info(f"Disk cleanup: {cleaned} | db={db_size:.1f}MB wal={wal_size:.1f}MB")
+        try:
+            _ql = sqlite3.connect(DB_PATH); _ql.execute("PRAGMA busy_timeout=5000")
+            _ql.execute("INSERT INTO quality_logs(log_type,level,message,source) VALUES('disk_cleanup','info',?, 'scheduler')",
+                        (f"清理:{cleaned} db={db_size:.1f}MB wal={wal_size:.1f}MB",))
+            # 磁盘用量告警(free<2GB 则 warning)
+            import shutil
+            _free = shutil.disk_usage(os.path.dirname(DB_PATH)).free / 1024/1024/1024
+            if _free < 2:
+                _ql.execute("INSERT INTO quality_logs(log_type,level,message,source) VALUES('disk_warning','error',?, 'scheduler')",
+                            (f"磁盘余量不足 {_free:.1f}GB(<2GB), 需立即清理!",))
+            _ql.commit(); _ql.close()
+        except Exception as _e:
+            logger.info(f"disk cleanup log: {_e}")
     except Exception as e:
         logger.info(f"Disk cleanup error: {e}")
+
+def _task_wal_checkpoint_periodic():
+    """每 6 小时 WAL checkpoint 防膨胀(大量写时每天一次不够)"""
+    try:
+        from app.core.database import DB_PATH
+        import sqlite3
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute("PRAGMA busy_timeout=30000")
+        conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        conn.close()
+        try:
+            _c = sqlite3.connect(DB_PATH); _c.execute("PRAGMA busy_timeout=5000")
+            _c.execute("INSERT INTO quality_logs(log_type,level,message,source) VALUES('wal_checkpoint','info',?, 'scheduler')", ("每6h WAL checkpoint 完成",))
+            _c.commit(); _c.close()
+        except Exception: pass
+    except Exception as e:
+        logger.info(f"periodic WAL checkpoint error: {e}")
 
 def _task_daily_rules():
     """每天执行定时规则（内置滞销识别 + 用户自定义 scheduled.daily 规则）
@@ -461,6 +491,7 @@ def start():
     scheduler.add_job(_task_cleanup_recycle, CronTrigger(hour=4, minute=30), id='recycle_cleanup')
     scheduler.add_job(_task_push_alerts, IntervalTrigger(minutes=30), id='push_alerts')
     scheduler.add_job(_task_disk_cleanup, CronTrigger(hour=3, minute=20), id='disk_cleanup')
+    scheduler.add_job(_task_wal_checkpoint_periodic, IntervalTrigger(minutes=360), id='wal_checkpoint_periodic')
     # 每小时 WAL checkpoint（防 WAL 无限增长导致的慢/锁/配额问题）
     # 延迟预热 dashboard 缓存（reload 后 10s 执行，避开 CI health 探测窗口；修复预热线程饿死请求）
     scheduler.add_job(_task_warmup_dashboard, trigger='date', run_date=datetime.now(UTC) + timedelta(seconds=10), id='dash_warmup')

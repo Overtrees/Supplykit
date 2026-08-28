@@ -10,7 +10,7 @@ const periodLabel = { today:'今日', week:'本周', month:'本月' }
 interface DashboardPageProps { onAlert?: (sku: string) => void }
 
 export default function DashboardPage({ onAlert }: DashboardPageProps) {
-  const { dashboard, inventory, qualityLogs, alerts, stockRisk, channel, loading, hammerDashPeriod: periodTab, pageVersion } = useAppStore()
+  const { dashboard, inventory, qualityLogs, alerts, stockRisk, alertCounts, channel, loading, hammerDashPeriod: periodTab, pageVersion } = useAppStore()
   const [healthTab, setHealthTab] = useState(() => { try { return localStorage.getItem('health_tab') || (channel === 'jd' ? 'own' : 'platform') } catch { return channel === 'jd' ? 'own' : 'platform' } })
   const setHealthWithSave = (tab) => { try { localStorage.setItem('health_tab', tab) } catch {} setHealthTab(tab) }
   const [bcMenuOpen, setBcMenuOpen] = useState(false)
@@ -37,7 +37,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
       const alerts = aux.alerts || []
       const stockRisk = aux.stockRisk || []
       const ov = aux.stockOverview || {}
-      useAppStore.setState({ dashboard: dash, alerts, stockRisk, inventory: ov.items || [], _stockOverview: ov, loading: false, dataLoaded: true })
+      useAppStore.setState({ dashboard: dash, alerts, stockRisk, alertCounts: aux.alertCounts || null, inventory: ov.items || [], _stockOverview: ov, loading: false, dataLoaded: true })
       setChLoading(false)
       // 首次加载关键数据为空时自动重试（进程重启后缓存未就绪/慢接口超时兜底），最多 3 次
       if ((!dash || stockRisk.length === 0) && seq === reqSeq.current) {
@@ -78,7 +78,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
           api.get('/api/dashboard/aux?channel=' + channel + '&' + _t, {timeout: 60000}),
         ])
         const aux = ax.data || {}
-        useAppStore.setState({ dashboard: s.data, alerts: aux.alerts || [], stockRisk: aux.stockRisk || [], inventory: (aux.stockOverview || {}).items || [], loading: false, dataLoaded: true })
+        useAppStore.setState({ dashboard: s.data, alerts: aux.alerts || [], stockRisk: aux.stockRisk || [], alertCounts: aux.alertCounts || null, inventory: (aux.stockOverview || {}).items || [], loading: false, dataLoaded: true })
       } catch {} finally { silentBusy.current = false }
     }, 30000)
     return () => clearInterval(timer)
@@ -136,7 +136,13 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
   const alertsList = Array.isArray(alerts) ? alerts.filter(x => x.status === 'active') : []
   const lowStockAlerts = alertsList.filter(x => x.alert_type !== 'replenish')
   const replenishAlerts = alertsList.filter(x => x.alert_type === 'replenish')
-  const criticalAlerts = alertsList.filter(x => x.severity === 'error').length
+  // 看板「(N 严重)」等计数一律取后端 alertCounts(独立 COUNT)，不得从截断列表 filter 得出——
+  // 列表每组各取 200 条，总数可能远大于此，filter 计数会系统性漏报
+  const _acType = (alertCounts || {}).by_type || {}
+  const _acSev = (alertCounts || {}).by_severity || {}
+  const criticalAlerts = _acSev.error != null ? _acSev.error : alertsList.filter(x => x.severity === 'error').length
+  const nonReplenishTotal = (alertCounts && alertCounts.non_replenish != null) ? alertCounts.non_replenish : lowStockAlerts.length
+  const replenishTotal = _acType.replenish != null ? _acType.replenish : replenishAlerts.length
   const periodDays = periodTab === 'custom' ? (periodMeta?.days || 30) : ({today:1,week:7,month:30}[periodTab]||30)
   const riskCritical = (stockRisk||[]).filter(x => x.days_to_empty < 3).length
   const riskWarning = (stockRisk||[]).filter(x => x.days_to_empty >= 3 && x.days_to_empty < 7).length
@@ -327,7 +333,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
                 <div className="small muted" style={{fontSize:11,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:2}}>{x.description}</div>
               </div>
             ))}
-        {lowStockAlerts.length > 5 && <button onClick={()=>setShowAllLowStock(true)} className="clickable" style={{width:'100%',padding:8,border:'none',borderRadius:0,background:'transparent',fontSize:12,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>还有 {lowStockAlerts.length - 5} 条...</button>}
+        {nonReplenishTotal > 5 && <button onClick={()=>setShowAllLowStock(true)} className="clickable" style={{width:'100%',padding:8,border:'none',borderRadius:0,background:'transparent',fontSize:12,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>还有 {nonReplenishTotal - 5} 条...</button>}
       </div>
       <div className="card" style={{height:'auto',overflow:'visible'}}>
         <div className="section-title">{t("dash.replenish_alert")}</div>
@@ -342,7 +348,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
                 <div className="small muted" style={{fontSize:11,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:2}}>{x.description}</div>
               </div>
             ))}
-        {replenishAlerts.length > 5 && <button onClick={()=>setShowAllReplenish(true)} className="clickable" style={{width:'100%',padding:8,border:'none',borderRadius:0,background:'transparent',fontSize:12,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>还有 {replenishAlerts.length - 5} 条...</button>}
+        {replenishTotal > 5 && <button onClick={()=>setShowAllReplenish(true)} className="clickable" style={{width:'100%',padding:8,border:'none',borderRadius:0,background:'transparent',fontSize:12,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>还有 {replenishTotal - 5} 条...</button>}
       </div>
     </div>
       {/* 低库存告警弹窗 */}

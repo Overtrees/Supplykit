@@ -1,32 +1,103 @@
-from fastapi import APIRouter, Depends
-from app.core.database import get_db
-from app.core.response import ok, fail
+"""告警列表端点
+
+明细列表按分组配额取数: 补货告警(replenish)每次跑建议会重生成数千条, 只按 id DESC 取 limit
+条会占满窗口把低库存/滞销挤出列表(看板低库存卡空白, 2026-08-28 18:35 报障)。
+原则: 可见性由分组配额保证, 排序只决定组内展示顺序; 计数一律独立 COUNT, 不取自截断列表。
+"""
+from fastapi import APIRouter, Request
 import time
+from app.core.database import get_conn
+from app.core.response import ok
 
-router = APIRouter(prefix="/api/alerts", tags=["alerts"])
+router = APIRouter()
 _alerts_cache = {}
-_ALERTS_TTL = 300
+_CACHE_TTL = 60
+
+_ALERT_FIELDS = ("id", "alert_type", "title", "description", "severity", "source",
+                 "channel", "status", "related_sku", "created_at")
+_ALERT_SQL = ", ".join(_ALERT_FIELDS)
+_GROUP_CASE = ("CASE WHEN alert_type='replenish' THEN 'replenish' "
+               "WHEN alert_type='low_stock' THEN 'low_stock' ELSE 'other' END")
 
 
-@router.get("")
-def list_alerts(channel: str = 'jd', status: str = 'active', limit: int = 200, db = get_db()):
-    # 300s 缓存 + 双版本号校验:
-    # _rules_version(规则启用/停用变更) + _replen_version(库存/订单/清洗/配置变更)
-    # 规则操作递增 _rules_version, 库存/订单递增 _replen_version —— 缺一 alerts 缓存不失效
+def _version_key():
+    """数据变更版本号: 规则操作递增 _rules_version, 库存/订单/清洗/配置递增 _replen_version。
+    缓存 key 含版本号 → 任何数据变更即命中失效, 不依赖 TTL(缺一 alerts 缓存不失效)"""
     try:
-        _r1 = db.table("replenishment_config").select("*").eq("key", "_rules_version").execute().data
-        _r2 = db.table("replenishment_config").select("*").eq("key", "_replen_version").execute().data
-        _ver = f"{_r1[0]['value'] if _r1 else 0}|{_r2[0]['value'] if _r2 else 0}"
+        conn = get_conn()
+        r1 = conn.execute("SELECT value FROM replenishment_config WHERE key='_rules_version'").fetchone()
+        r2 = conn.execute("SELECT value FROM replenishment_config WHERE key='_replen_version'").fetchone()
+        conn.close()
+        return f"{r1[0] if r1 else 0}|{r2[0] if r2 else 0}"
     except Exception:
-        _ver = "0|0"
-    _key = f"alerts_{channel}_{status}"
-    _cached = _alerts_cache.get(_key)
-    if _cached and _cached.get('ver') == _ver and time.time() - _cached.get('ts', 0) < _ALERTS_TTL:
-        return _cached['data']
-    q = db.table("alerts").select("*").eq("channel", channel).eq("status", status)
-    data = q.order("id", desc=True).limit(limit).execute().data
+        return "0|0"
+
+
+def _alert_channel_where(channel):
+    """渠道过滤; 空字符串/未传 = 全部渠道(旧数据 channel='' 也包含在内)"""
+    if not channel or channel == 'all':
+        return "1=1", []
+    return "channel=?", [channel]
+
+
+def _group_cond(group):
+    return f"({_GROUP_CASE} NOT IN ('replenish','low_stock'))" if group == 'other' \
+        else f"({_GROUP_CASE}='{group}')"
+
+
+def _counts(conn, ch_sql, ch_p, status):
+    """精确计数: 总数/按类型/按严重度。单次扫描聚合, 不做多次独立查询。
+    注: 不再从截断列表 filter 出计数——列表只是配额样本, 总数可能远大于列表长度。"""
+    rows = conn.execute(
+        f"SELECT {_GROUP_CASE} AS grp, alert_type, severity, COUNT(*) AS n "
+        f"FROM alerts WHERE status=? AND ({ch_sql}) GROUP BY 1,2,3", [status] + ch_p).fetchall()
+    by_type, by_sev = {}, {}
+    total = 0
+    for _grp, atype, sev, n in rows:
+        total += n
+        by_type[atype] = by_type.get(atype, 0) + n
+        by_sev[sev] = by_sev.get(sev, 0) + n
+    rp = by_type.get('replenish', 0)
+    return {"total": total, "by_type": by_type, "by_severity": by_sev,
+            "replenish": rp, "non_replenish": total - rp}
+
+
+def _grouped_query(conn, channel, per_group_limit, status):
+    ch_sql, ch_p = _alert_channel_where(channel)
+    rows = []
+    for g in ('low_stock', 'replenish', 'other'):
+        for r in conn.execute(
+            f"SELECT {_ALERT_SQL} FROM alerts "
+            f"WHERE status=? AND ({ch_sql}) AND ({_group_cond(g)}) ORDER BY id DESC LIMIT ?",
+            [status] + ch_p + [per_group_limit]).fetchall():
+            rows.append(dict(zip(_ALERT_FIELDS, r)))
+    return rows, _counts(conn, ch_sql, ch_p, status)
+
+
+def fetch_alerts_grouped(conn, channel, per_group_limit=100, status='active'):
+    """按分组各取 per_group_limit 条。看板每组 200 条, 保证低库存卡/补货卡都有数据。"""
+    return _grouped_query(conn, channel, per_group_limit, status)[0]
+
+
+def alert_counts(conn, channel, status='active'):
+    """看板计数用。调用方不得再从截断列表 filter 出计数。"""
+    ch_sql, ch_p = _alert_channel_where(channel)
+    return _counts(conn, ch_sql, ch_p, status)
+
+
+@router.get("/api/alerts")
+def list_alerts(request: Request, channel: str = '', limit: int = 100, status: str = 'active'):
+    # key 含 limit + 版本号: 此前 alerts_{channel}_{status} 不含 limit(不同 limit 共用一份缓存)
+    # 也不含版本号(靠 300s TTL, 数据变更后最长 60s 旧数据) —— 双修
+    key = f"alerts_{channel}_{status}_{limit}_{_version_key()}"
+    cached = _alerts_cache.get(key)
+    if cached and cached['ts'] + _CACHE_TTL > time.time():
+        return cached['data']
     try:
-        _alerts_cache[_key] = {'data': ok(data), 'ts': time.time(), 'ver': _ver}
+        conn = get_conn()
+        data = fetch_alerts_grouped(conn, channel, per_group_limit=limit, status=status)
+        conn.close()
     except Exception:
-        pass
+        data = []
+    _alerts_cache[key] = {'data': ok(data), 'ts': time.time()}
     return ok(data)

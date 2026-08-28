@@ -223,7 +223,39 @@ def health():
 
 
 @router.get("/api/diag-orders")
-def diag_orders():
+def diag_orders(action: str = ''):
+    # 运维操作: rebuild_rules=重建规则引擎告警, vacuum=收缩数据库释放空闲页
+    if action == 'rebuild_rules':
+        try:
+            from app.api.routes.seed import _seed_rules
+            from app.core.database import get_db, get_conn
+            from datetime import datetime, UTC
+            _seed_rules(get_db(), {'jd': [], 'other': []})
+            # 递增 _rules_version + _replen_version(alerts缓存失效——否则300s旧缓存挡住新告警)
+            _c = get_conn()
+            for _k in ['_rules_version', '_replen_version']:
+                _v = _c.execute("SELECT value FROM replenishment_config WHERE key=?", (_k,)).fetchone()
+                _nv = str(int(_v[0]) + 1) if _v and _v[0] else '1'
+                _c.execute("INSERT OR REPLACE INTO replenishment_config(key,value,channel,updated_at) VALUES(?,?,?,?)",
+                           (_k, _nv, 'jd', datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S')))
+            _c.commit()
+            # 返回生成统计
+            _cnt = _c.execute("SELECT COUNT(*) FROM alerts WHERE source='rules_engine' AND status='active'").fetchone()[0]
+            return {"ok": True, "action": "rebuild_rules", "result": f"规则引擎告警已重建, active rules_engine={_cnt}"}
+        except Exception as e:
+            return {"ok": False, "action": "rebuild_rules", "error": str(e)[:200]}
+    if action == 'rule_stat':
+        try:
+            from app.core.database import get_conn
+            _c = get_conn()
+            res = {}
+            for ch in ['jd', 'other']:
+                n = _c.execute("SELECT COUNT(*) FROM (SELECT sku FROM inventory WHERE channel=? GROUP BY sku HAVING SUM(available_qty) < SUM(safety_qty))", (ch,)).fetchone()[0]
+                n2 = _c.execute("SELECT COUNT(*) FROM (SELECT sku FROM inventory WHERE channel=? GROUP BY sku HAVING SUM(available_qty) < SUM(safety_qty) OR (SUM(available_qty) <= MAX(1, SUM(safety_qty)*0.3) AND SUM(available_qty)+SUM(in_transit_qty) <= SUM(safety_qty)))", (ch,)).fetchone()[0]
+                res[ch] = {'avail_lt_safety': n, 'rules_match': n2}
+            return {"ok": True, "action": "rule_stat", "data": res}
+        except Exception as e:
+            return {"ok": False, "action": "rule_stat", "error": str(e)[:200]}
     """诊断: orders 表真实状态（不过滤软删）"""
     import sqlite3
     from app.core.database import DB_PATH
@@ -240,7 +272,34 @@ def diag_orders():
         mmin = conn.execute("SELECT MIN(ordered_at) FROM orders").fetchone()[0]
         mmax = conn.execute("SELECT MAX(ordered_at) FROM orders").fetchone()[0]
         daily_stats = conn.execute("SELECT COUNT(*), COALESCE(SUM(order_count),0) FROM daily_stats").fetchone()
+        seq = conn.execute("SELECT seq FROM sqlite_sequence WHERE name='orders'").fetchone()
+        max_id = conn.execute("SELECT COALESCE(MAX(id),0) FROM orders").fetchone()[0]
+        inv_cnt = conn.execute("SELECT COUNT(*) FROM inventory").fetchone()[0]
+        prod_cnt = conn.execute("SELECT COUNT(*) FROM products").fetchone()[0]
+        last_arc = conn.execute("SELECT value FROM replenishment_config WHERE key='_last_archive_check'").fetchone()
+        replen_ver = conn.execute("SELECT value FROM replenishment_config WHERE key='_replen_version'").fetchone()
+        wt_dist = [{"channel": r[0], "warehouse_type": r[1], "warehouse": r[2], "c": r[3]} for r in conn.execute("SELECT channel, warehouse_type, warehouse, COUNT(*) c FROM inventory GROUP BY channel, warehouse_type, warehouse ORDER BY channel, warehouse_type").fetchall()]
         conn.close()
-        return {"total": total, "active": active, "soft_del": soft_del, "min_date": mmin, "max_date": mmax, "daily_stats_rows": daily_stats[0], "daily_stats_orders": daily_stats[1]}
+        return {"total": total, "active": active, "soft_del": soft_del, "min_date": mmin, "max_date": mmax,
+                "daily_stats_rows": daily_stats[0], "daily_stats_orders": daily_stats[1],
+                "sqlite_seq": seq[0] if seq else 0, "orders_max_id": max_id,
+                "inventory_cnt": inv_cnt, "products_cnt": prod_cnt,
+                "last_archive_check": last_arc[0] if last_arc else None,
+                "replen_version": replen_ver[0] if replen_ver else None,
+                "warehouse_type_dist": wt_dist}
     except Exception as e:
         return {"error": str(e)}
+
+@router.get("/api/health/last-errors")
+def last_errors(limit: int = 15):
+    """免登录读最近全局异常(quality_logs exception——定位500/登录失败堆栈)"""
+    import sqlite3, os
+    from app.core.database import DB_PATH
+    try:
+        _conn = sqlite3.connect(DB_PATH)
+        _conn.row_factory = sqlite3.Row
+        rows = _conn.execute("SELECT created_at, log_type, message, details FROM quality_logs WHERE log_type IN ('exception','error') ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+        _conn.close()
+        return {"ok": True, "errors": [dict(r) for r in rows]}
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:200]}

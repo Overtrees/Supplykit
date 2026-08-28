@@ -531,32 +531,58 @@ def _seed_rules(db, skus_data):
     """触发规则引擎：SQL 级聚合 + 条件筛选，批量生成告警
     （替代 Python 全量遍历，10 万 SKU 时从 O(百万行 Python) → SQL 聚合 + 仅筛选符合条件的 SKU）"""
     conn = get_conn()
-    # 批量查现有活跃告警，避免重复
-    existing = {}
-    for r in conn.execute("SELECT alert_type, related_sku FROM alerts WHERE status='active'").fetchall():
-        existing.setdefault((r[0], r[1]), True)
-    # SQL 级聚合 + HAVING 条件筛选（只返回低库存或紧急补货的 SKU，减少 Python 遍历量）
-    inv_rows = conn.execute("""
-        SELECT sku, MAX(product_name) as name, 
-               SUM(available_qty) as avail, SUM(in_transit_qty) as transit, SUM(safety_qty) as safety,
-               MAX(channel) as ch
-        FROM inventory 
-        GROUP BY sku
-        HAVING SUM(available_qty) < SUM(safety_qty)
-            OR (SUM(available_qty) <= MAX(1, SUM(safety_qty)*0.3) 
-                AND SUM(available_qty)+SUM(in_transit_qty) <= SUM(safety_qty))
-    """).fetchall()
+    # 先关闭陈旧告警：该渠道下该 SKU **所有仓行都不再低于安全线** → 告警失效。
+    # 判据与实时事件路径 rules.py:evaluate 一致（逐仓行 available_qty < safety_qty），
+    # 比本函数的跨仓 SUM 建告警判据更宽松 → 只会关掉「确实已恢复」的告警，不会误关仍在预警的。
+    # 对照 replenishment.py 有 status='closed' 收尾，rules 路径此前缺失 → 补货后历史告警仍 active。
+    closed_rows = 0
+    for ch in ('jd', 'other'):
+        cur = conn.execute("""
+            UPDATE alerts SET status='closed'
+            WHERE source='rules_engine' AND channel=? AND status='active'
+              AND alert_type IN ('low_stock','replenish')
+              AND related_sku IS NOT NULL AND related_sku != ''
+              AND NOT EXISTS (
+                  SELECT 1 FROM inventory i
+                  WHERE i.channel=? AND i.sku = alerts.related_sku
+                    AND i.available_qty < i.safety_qty
+              )
+        """, (ch, ch))
+        closed_rows += cur.rowcount or 0
+    conn.commit()
+    # 批量查现有活跃告警，避免重复。
+    # key 含 channel + source，对齐 rules.py:_alert_dedup_key 口径——此前只用
+    # (alert_type, related_sku)，other 渠道已有同 SKU 告警时会把 jd 的告警抑制掉（漏报）。
+    existing = set()
+    for r in conn.execute(
+        "SELECT alert_type, channel, related_sku, source FROM alerts WHERE status='active'"
+    ).fetchall():
+        existing.add((r[0], r[1] or 'jd', r[2], r[3] or ''))
     inserts = []
-    for r in inv_rows:
-        sku, name = r[0], r[1] or r[0]
-        avail, transit, safety, ch = int(r[2] or 0), int(r[3] or 0), int(r[4] or 0), r[5] or 'jd'
-        if avail < safety and (('low_stock', sku) not in existing):
-            inserts.append(("low_stock", f"低库存预警: {name}",
-                            f"可用 {avail} < 安全线 {safety}", "warning", ch, sku))
-        # 紧急补货：可用极低 且 可用+在途也不够安全线（真紧急，到货后仍紧张）
-        if avail <= max(1, safety * 0.3) and (avail + transit) <= safety and (('replenish', sku) not in existing):
-            inserts.append(("replenish", f"紧急补货: {name}",
-                            f"可用 {avail}（<安全线30%），含在途 {avail+transit} 仍不足安全线 {safety}", "error", ch, sku))
+    # 按渠道独立判断(修复: GROUP BY sku 无 channel 过滤——jd+other 同SKU跨渠道汇总
+    # 导致 avail 叠加不满足 HAVING, rules_engine 低库存告警 0 条)
+    for ch in ['jd', 'other']:
+        inv_rows = conn.execute("""
+            SELECT sku, MAX(product_name) as name, 
+                   SUM(available_qty) as avail, SUM(in_transit_qty) as transit, SUM(safety_qty) as safety
+            FROM inventory 
+            WHERE channel=?
+            GROUP BY sku
+            HAVING SUM(available_qty) < SUM(safety_qty)
+                OR (SUM(available_qty) <= MAX(1, SUM(safety_qty)*0.3) 
+                    AND SUM(available_qty)+SUM(in_transit_qty) <= SUM(safety_qty))
+        """, (ch,)).fetchall()
+        for r in inv_rows:
+            sku, name = r[0], r[1] or r[0]
+            avail, transit, safety = int(r[2] or 0), int(r[3] or 0), int(r[4] or 0)
+            if avail < safety and (('low_stock', ch, sku, 'rules_engine') not in existing):
+                existing.add(('low_stock', ch, sku, 'rules_engine'))
+                inserts.append(("low_stock", f"低库存预警: {name}",
+                                f"可用 {avail} < 安全线 {safety}", "warning", ch, sku))
+            if avail <= max(1, safety * 0.3) and (avail + transit) <= safety and (('replenish', ch, sku, 'rules_engine') not in existing):
+                existing.add(('replenish', ch, sku, 'rules_engine'))
+                inserts.append(("replenish", f"紧急补货: {name}",
+                                f"可用 {avail}（<安全线30%），含在途 {avail+transit} 仍不足安全线 {safety}", "error", ch, sku))
     if inserts:
         conn.executemany(
             "INSERT INTO alerts(alert_type,title,description,severity,source,channel,related_sku,status) VALUES(?,?,?,?,?,?,?,?)",

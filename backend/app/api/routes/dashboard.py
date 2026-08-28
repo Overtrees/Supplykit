@@ -70,11 +70,19 @@ def dashboard_aux(channel: str = 'jd', db = get_db()):
 
     与 summary 独立(不被 summary 同步重建拖累); 3个次要请求合并为1(省HTTP+排队)
     """
-    # alerts
+    # alerts: 非 replenish 优先(低库存/滞销告警先返回——补货告警量大占limit时低库存卡仍可见)
+    # 分组配额取列表：补货告警(replenish)每次跑建议会重生成数千条，按 id DESC 取 limit 会被其
+    # 占满窗口把低库存/滞销挤出 → 看板卡片空白。排序只决定组内顺序，可见性由分组配额保证。
+    # 同时返回 alertCounts 精确计数，看板「(N 严重)」等指标不得再从截断列表 filter 得出。
     try:
-        alerts = db.table("alerts").select("*").eq("channel", channel).eq("status", "active").order("id", desc=True).limit(200).execute().data
+        from app.api.routes.alerts import fetch_alerts_grouped, alert_counts
+        _conn = sqlite3.connect(DB_PATH)
+        alerts = fetch_alerts_grouped(_conn, channel, per_group_limit=200)
+        alert_counts_data = alert_counts(_conn, channel)
+        _conn.close()
     except Exception:
         alerts = []
+        alert_counts_data = None
     # stock-risk（复用缓存逻辑）
     try:
         sr = stock_risk(channel)
@@ -88,7 +96,7 @@ def dashboard_aux(channel: str = 'jd', db = get_db()):
         so_data = so.get('data', {}) if isinstance(so, dict) else so
     except Exception:
         so_data = {"items": [], "out_of_stock_count": 0, "low_stock_count": 0, "total": 0}
-    return ok({"alerts": alerts, "stockRisk": stock_risk_data, "stockOverview": so_data})
+    return ok({"alerts": alerts, "alertCounts": alert_counts_data, "stockRisk": stock_risk_data, "stockOverview": so_data})
 
 
 @router.get("/stock-risk")

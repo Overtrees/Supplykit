@@ -71,7 +71,7 @@ def detect_slow_moving_products(db=None, create_alerts=False):
     for s, i in inventory_map.items():
         if s not in sku_channel_map or not sku_channel_map[s]:
             sku_channel_map[s] = i.get('channel') or 'jd'
-    now = datetime.now(UTC)
+    now = datetime.now(UTC).replace(tzinfo=None)  # naive, 与strptime一致(修复slow_moving days恒999)
     result = []
     # 只遍历有库存的 SKU（无库存不需要滞销检测），避免 10 万+ SKU 全量遍历
     all_skus = set(inventory_map.keys())

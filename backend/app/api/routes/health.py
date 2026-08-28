@@ -224,16 +224,18 @@ def health():
 
 @router.get("/api/diag-orders")
 def diag_orders(action: str = ''):
-    # 运维操作: rebuild_rules=重建规则引擎告警, vacuum=收缩数据库释放空闲页
+    # 运维操作: rebuild_rules=重建规则引擎告警, rule_stat=规则匹配统计
     if action == 'rebuild_rules':
         try:
             from app.api.routes.seed import _seed_rules
             from app.core.database import get_db, get_conn
             from datetime import datetime, UTC
             _seed_rules(get_db(), {'jd': [], 'other': []})
-            # 递增 _rules_version + _replen_version(alerts缓存失效——否则300s旧缓存挡住新告警)
+            # 递增全部相关版本号(alerts 列表缓存 + 看板 summary 缓存失效):
+            #   _rules_version/_replen_version → alerts 缓存
+            #   _cache_version               → dashboard summary(active_alerts 是全量 COUNT, 必须失效)
             _c = get_conn()
-            for _k in ['_rules_version', '_replen_version']:
+            for _k in ['_rules_version', '_replen_version', '_cache_version']:
                 _v = _c.execute("SELECT value FROM replenishment_config WHERE key=?", (_k,)).fetchone()
                 _nv = str(int(_v[0]) + 1) if _v and _v[0] else '1'
                 _c.execute("INSERT OR REPLACE INTO replenishment_config(key,value,channel,updated_at) VALUES(?,?,?,?)",

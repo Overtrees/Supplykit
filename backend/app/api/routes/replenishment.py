@@ -82,13 +82,18 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     sales_14 = calc_sales_from_daily(daily_28, 14, orders=orders, sku_barcode_map=sku_barcode_map)
     sales_28 = calc_sales_from_daily(daily_28, 28, orders=orders, sku_barcode_map=sku_barcode_map)
 
+    # 复合 key 缓存(主循环每SKU×每仓×3窗口调用get_sales, 免重复拼串/查map——等价重构)
+    _sales_key_cache = {}
     def get_sales(sales_dict, sku):
-        """按 sku 查询日销，优先用复合 key sku|barcode，降级为 sku"""
-        barcode = sku_barcode_map.get(sku, '')
-        if barcode:
-            val = sales_dict.get(f"{sku}|{barcode}")
-            if val is not None:
-                return val
+        """按 sku 查询日销，优先用复合 key sku|barcode，降级为 sku（key 缓存）"""
+        key = _sales_key_cache.get(sku)
+        if key is None:
+            barcode = sku_barcode_map.get(sku, '')
+            key = f"{sku}|{barcode}" if barcode else sku
+            _sales_key_cache[sku] = key
+        val = sales_dict.get(key)
+        if val is not None:
+            return val
         return sales_dict.get(sku, 0)
 
     def fused_ds(ds7, ds14, ds28):
@@ -212,6 +217,9 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             })
     else:
         # 传统模式
+        import time as _tm
+        _t_marks = {}
+        _t_marks['start'] = _tm.time()
         all_inv = db.table("inventory").select("*").eq("channel", channel).execute().data
         # 按仓库维度加载日销（每个仓库的日销独立，非 SKU 总日销）
         _wh_daily = {}
@@ -263,6 +271,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                         '14': calc_sales_from_daily(_wh_daily_28, 14),
                         '28': calc_sales_from_daily(_wh_daily_28, 28),
                     }
+        _t_marks['pre_loop'] = _tm.time()  # 数据准备完成(快照/日销/当天订单)
         for inv in _inv_wh:
             sku = inv.get("sku", "")
             warehouse = inv.get("warehouse", "")
@@ -377,10 +386,34 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     except Exception as e:
         logger.warning(f"[replenish] batch alerts: {e}")
 
+    # 阶段计时(诊断): traditional 有 t_marks 才记录各段耗时
+    try:
+        if 't_marks' in dir() and t_marks.get('start'):
+            t_marks['end'] = _tm.time()
+            _log_replen_timing(t_marks, len(suggestions), mode, channel)
+    except Exception:
+        pass
     if page > 0 and page_size > 0:
         _total = len(suggestions)
         return ok({"items": suggestions[(page - 1) * page_size: page * page_size], "total": _total, "page": page, "page_size": page_size})
     return ok(suggestions)
+
+# ── 阶段计时(诊断): 写 quality_logs 定位补货慢点(秒级, 非cProfile) ──
+def _log_replen_timing(t_marks, total_items, mode, channel):
+    try:
+        segs = {}
+        prev = t_marks.get('start', 0)
+        for k in ['pre_loop', 'end']:
+            if k in t_marks:
+                segs[k] = round(t_marks[k] - prev, 2)
+                prev = t_marks[k]
+        _msg = f"[replen-timing] {mode}/{channel}: items={total_items} 各段={segs}"
+        from app.core.database import get_conn
+        _c = get_conn()
+        _c.execute("INSERT INTO quality_logs(log_type, level, message, source) VALUES('replen_timing','info',?, 'server')", (_msg,))
+        _c.commit()
+    except Exception:
+        pass
 
 
 @router.get('/replenishment/compare')

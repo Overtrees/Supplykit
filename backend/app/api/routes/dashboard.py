@@ -20,45 +20,100 @@ def dashboard_summary(channel: str = 'jd', start_date: str = '', end_date: str =
         return ok(get_dashboard_sync(channel))
     if start_date and end_date:
         # 自定义日期范围：实时计算，不缓存
+        # SQL 单次扫描聚合替代旧版「全表 orders 加载 + Python 遍历」——与标准 summary 同口径:
+        #   - 只取日期范围内、本渠道订单(旧版未过滤 channel, 混入另一渠道数据 → 已修)
+        #   - trend GMV 只计「已完成」、订单数计全部(旧版相反 → 已对齐标准)
+        #   - health_index: bc = platform + platform_b(B+C 总和, 京东主体口径, 勿拆成单独 B 仓)
         from datetime import datetime as dt, UTC
-        from app.core.sales_utils import calc_sales
-        db = get_db()
-        all_orders = db.table("orders").select("*").execute().data or []
-        # 软删除订单不计入统计（与订单列表过滤一致）
-        all_orders = [o for o in all_orders if not (o.get("deleted_at") or "")]
-        # 按日期过滤
-        orders = [o for o in all_orders if start_date <= str(o.get('ordered_at',''))[:10] <= end_date]
-        inv = db.table("inventory").select("*").eq("channel", channel).execute().data or []
-        products = db.table("products").select("*").eq("channel", channel).eq("deleted_at", "").execute().data or []
-        suppliers = db.table("suppliers").select("*").execute().data or []
-        alerts = db.table("alerts").select("*").eq("status", "active").eq("channel", channel).execute().data or []
-        gmv = sum(float(x.get("total_amount") or 0) for x in orders if x.get("order_status") == "已完成")
-        pending = len([x for x in orders if x.get("order_status") == "待发货"])
-        refund = len([x for x in orders if x.get("order_status") == "申请退款"])
-        low_stock = len([x for x in inv if int(x.get("available_qty") or 0) < int(x.get("safety_qty") or 0)])
-        day_count = max(1, (dt.strptime(end_date, "%Y-%m-%d") - dt.strptime(start_date, "%Y-%m-%d")).days + 1)
-        # 趋势（按天聚合）
-        trend = defaultdict(lambda: {"GMV": 0, "订单数": 0})
-        for o in orders:
-            d = str(o.get('ordered_at',''))[:10]
-            trend[d]["GMV"] += float(o.get("total_amount") or 0)
-            if o.get("order_status") == "已完成": trend[d]["订单数"] += 1
-        trend_data = [{"日期": k, "GMV": v["GMV"], "订单数": v["订单数"]} for k, v in sorted(trend.items())]
-        summary = {
-            "gmv": round(gmv, 2), "total_orders": len(orders), "pending_count": pending, "refund_count": refund,
-            "low_stock_count": low_stock, "active_alerts": len(alerts), "total_products": len(products), "total_suppliers": len(suppliers),
-        }
-        # 店铺 GMV
+        from collections import defaultdict
+        _conn = sqlite3.connect(DB_PATH)
+        _conn.row_factory = sqlite3.Row
+        _conn.execute("PRAGMA busy_timeout=30000")
+        _rows = _conn.execute(
+            "SELECT substr(ordered_at,1,10) as d, order_status, store, "
+            "SUM(CASE WHEN order_status='已完成' THEN total_amount ELSE 0 END) as g, COUNT(*) as cnt "
+            "FROM orders WHERE channel=? AND (deleted_at='') AND substr(ordered_at,1,10) BETWEEN ? AND ? "
+            "GROUP BY d, order_status, store", (channel, start_date, end_date)).fetchall()
+        gmv = pending = refund = total_orders = 0
+        trend = {}
         store_gmv = defaultdict(float)
-        for o in orders:
-            if o.get("order_status") == "已完成":
-                store_gmv[o.get('store', '其他')] += float(o.get("total_amount") or 0)
+        funnel = defaultdict(int)
+        for r in _rows:
+            _d = r[0] or ''
+            _st = r[1] or '未知'
+            _store = r[2] or ''
+            _g = float(r[3] or 0)
+            _cnt = r[4] or 0
+            total_orders += _cnt
+            if _st == '已完成':
+                gmv += _g
+                store_gmv[_store or '其他'] += _g
+            elif _st == '待发货':
+                pending += _cnt
+            elif _st == '申请退款':
+                refund += _cnt
+            t = trend.setdefault(_d, {"GMV": 0, "订单数": 0})
+            t["订单数"] += _cnt
+            if _st == '已完成':
+                t["GMV"] += _g
+            funnel[_st] += _cnt
+        trend_data = [{"日期": k, "GMV": v["GMV"], "订单数": v["订单数"]} for k, v in sorted(trend.items())]
         stores = [{"name": k, "gmv": round(v, 2)} for k, v in sorted(store_gmv.items(), key=lambda x: -x[1])]
+        # 漏斗(与 dashboard_cache._compute_funnel 同口径)
+        _ftotal = total_orders
+        _stages = [("总订单", _ftotal, 100.0)]
+        for _n in ["待确认", "待发货", "已发货", "已完成"]:
+            _v = funnel.get(_n, 0)
+            _stages.append((_n, _v, round(_v / _ftotal * 100, 1) if _ftotal else 0))
+        funnel_res = []
+        for _i, (_n, _c, _pct) in enumerate(_stages):
+            _prev = _stages[_i - 1][1] if _i > 0 else _ftotal
+            funnel_res.append({"name": _n, "value": _c, "percentage": _pct,
+                               "conversion": round(min(_c / _prev * 100, 100), 1) if _prev else 0})
+        # 计数类指标 SQL(与标准 summary 同口径)
+        low_stock = _conn.execute("SELECT COUNT(*) FROM inventory WHERE channel=? AND available_qty < safety_qty", (channel,)).fetchone()[0]
+        alert_count = _conn.execute("SELECT COUNT(*) FROM alerts WHERE channel=? AND status='active'", (channel,)).fetchone()[0]
+        product_count = _conn.execute("SELECT COUNT(*) FROM products WHERE channel=? AND (deleted_at='' OR deleted_at IS NULL)", (channel,)).fetchone()[0]
+        supplier_count = _conn.execute("SELECT COUNT(*) FROM suppliers").fetchone()[0]
+        # 健康指数: SQL GROUP BY warehouse_type(与 dashboard_cache._rebuild 同构)
+        _hw_rows = _conn.execute(
+            "SELECT warehouse_type, "
+            "SUM(CASE WHEN available_qty >= safety_qty THEN 1 ELSE 0 END) as healthy, "
+            "SUM(CASE WHEN available_qty > 0 AND available_qty < safety_qty THEN 1 ELSE 0 END) as warning, "
+            "SUM(CASE WHEN available_qty = 0 THEN 1 ELSE 0 END) as out_of_stock, COUNT(*) as total "
+            "FROM inventory WHERE channel=? GROUP BY warehouse_type", (channel,)).fetchall()
+        _hw = {r[0]: {"healthy": r[1], "warning": r[2], "out_of_stock": r[3], "total": r[4]} for r in _hw_rows}
+        def _score_hw(_cls):
+            _healthy = _cls.get('healthy', 0); _total = _cls.get('total', 0)
+            _score = round(_healthy / _total * 100, 0) if _total else 100
+            return {"score": _score, "healthy": _healthy, "warning": _cls.get('warning', 0),
+                    "out_of_stock": _cls.get('out_of_stock', 0), "total": _total,
+                    "level": "good" if _score >= 85 else ("warning" if _score >= 60 else "danger")}
+        _Z = {"healthy": 0, "warning": 0, "out_of_stock": 0, "total": 0}
+        _own_h = _hw.get('own', _Z); _plat_h = _hw.get('platform', _Z); _pb_h = _hw.get('platform_b', _Z)
+        # 京东主体: BC tab = B仓(platform_b) + C仓(platform) 总和, 不是单独 B 仓
+        _bc_h = {"healthy": _plat_h.get('healthy', 0) + _pb_h.get('healthy', 0),
+                 "warning": _plat_h.get('warning', 0) + _pb_h.get('warning', 0),
+                 "out_of_stock": _plat_h.get('out_of_stock', 0) + _pb_h.get('out_of_stock', 0),
+                 "total": _plat_h.get('total', 0) + _pb_h.get('total', 0)}
+        _all_h = {"healthy": sum(x.get('healthy', 0) for x in _hw.values()),
+                  "warning": sum(x.get('warning', 0) for x in _hw.values()),
+                  "out_of_stock": sum(x.get('out_of_stock', 0) for x in _hw.values()),
+                  "total": sum(x.get('total', 0) for x in _hw.values())}
+        health = {"own": _score_hw(_own_h), "platform": _score_hw(_plat_h), "platform_b": _score_hw(_pb_h),
+                  "bc": _score_hw(_bc_h), "score": _score_hw(_all_h)["score"], "level": _score_hw(_all_h)["level"]}
+        _conn.close()
+        summary = {
+            "gmv": round(gmv, 2), "total_orders": total_orders, "pending_count": pending, "refund_count": refund,
+            "low_stock_count": low_stock, "active_alerts": alert_count,
+            "total_products": product_count, "total_suppliers": supplier_count,
+        }
+        day_count = max(1, (dt.strptime(end_date, "%Y-%m-%d") - dt.strptime(start_date, "%Y-%m-%d")).days + 1)
         return ok({
             "summary": summary,
-            "periods": {"custom": {"gmv": round(gmv, 2), "orders": len(orders), "days": day_count}},
+            "periods": {"custom": {"gmv": round(gmv, 2), "orders": total_orders, "days": day_count}},
             "trend": trend_data,
-            "funnel": _compute_funnel(orders), "health_index": _compute_health(inv),
+            "funnel": funnel_res, "health_index": health,
             "stores": stores,
         })
     data = get_dashboard(channel=channel)

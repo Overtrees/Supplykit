@@ -1,3 +1,16 @@
+## 2026-08-28 告警列表治本修复 + 自定义summary优化 + 生产事故复盘
+| 模块 | 改动 |
+|------|------|
+| **告警列表分组配额** | alerts.py 重写：low_stock/replenish/other 三组各取 limit 条（组内 id DESC）——**可见性由配额保证，排序只决定组内顺序**。修复「补货告警 3000+ 条占满 limit 200 → 低库存卡空白」(18:35 报障)；同时消除镜像失败（非 replenish 泛滥挤空补货卡） |
+| **告警精确计数** | `alert_counts` 单次 SQL 聚合出 total/by_type/by_severity/replenish/non_replenish；看板「(N 严重)」「还有 N 条」改用它，**不再从 200 条截断列表 filter**（此前系统性漏报且随排序漂移） |
+| **缓存 key 修正** | alerts 缓存 key 补 `limit` + `_rules_version|_replen_version`（不同 limit 共用缓存拿错条数 + 数据变更 300s 才失效，双修） |
+| **seed 跨渠道修复** | `_seed_rules`：按渠道独立判断（jd+other 同 SKU 汇总掩盖低库存）；去重 key 补 `channel+source`（对齐 rules.py:_alert_dedup_key，other 已有告警不再抑制 jd）；**新增关闭陈旧告警**（UPDATE closed WHERE 该渠道该 SKU 无任何仓行 avail<safety，判据与实时路径一致，只关确实恢复的） |
+| **rebuild_rules 缓存失效** | 递增 `_rules_version`+`_replen_version`+`_cache_version`（alerts 列表 + 看板 summary 全量 COUNT 都失效） |
+| **自定义日期 summary 优化** | dashboard.py 自定义范围路径 SQL 单次扫描聚合（GROUP BY d,status,store）替代全表 orders 加载 + Python 遍历；**对齐标准口径**（trend GMV 只计已完成、订单数计全部，旧版相反）；**修复渠道隔离**（旧版 orders 不过滤 channel 混入另一渠道）；health_index bc = platform + platform_b（B+C 总和，京东主体口径） |
+| **health.py 运维** | `diag_orders(action=)` 加 rebuild_rules/rule_stat；新增免登录 `/api/health/last-errors`；**移除 vacuum 动作**（与 /api/vacuum 重复且触碰磁盘红线） |
+| **测试** | 新增 test_alert_limit_repr.py（7）+ test_custom_summary_eq.py（5）→ **110 passed** |
+| **🔴 生产事故复盘** | WAL 144MB→磁盘满(03:53)→磁盘满时 VACUUM 中断 **db 清空表全丢**→误删依赖 whl webapp 崩→误删备份无法恢复。沉淀底线红线（GLOBAL.md+DEVELOPMENT.md 15.9）；main.py 依赖自检；WAL checkpoint 6h；回退阶段计时(引入500) |
+
 ## 2026-08-27 订单消失根治 + 看板实时性重构 + 监控防护
 | 模块 | 改动 |
 |------|------|

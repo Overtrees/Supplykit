@@ -512,3 +512,20 @@ feat: 新功能 | fix: Bug | refactor: 重构 | docs: 文档 | test: 测试 | st
 #### 后端性能关键点
 - `load_daily_sales(cutoff_days, db, sku_barcode_map=..., skus=[...])`：SKU 过滤下快照查询加 `AND sku IN (...)`，当天 orders 循环加 `if sku not in sku_set: continue`
 - with-sales 缓存：300s TTL + `_replen_version` 校验（库存/订单/商品/清洗/seed 变更都会递增）
+
+### 15.10 告警列表与健康卡（2026-08-28 治本修复）
+
+**告警明细列表可见性由分组配额保证**，排序只决定组内顺序：
+- `alerts.py` 按 low_stock / replenish / other 三组各取 limit 条（组内 id DESC）
+- 勿用「limit*5 扩大窗口再 Python 排序」——补货告警 ≥ 窗口时低库存仍被挤空（8-28 18:35 报障教训）
+- **计数一律独立 COUNT**（`alert_counts`），看板「(N 严重)」「还有 N 条」不得从截断列表 filter
+- 缓存 key 含 limit + `_rules_version|_replen_version`
+
+**规则引擎告警**（`_seed_rules` / `rebuild_rules`）：
+- 去重 key 含 `channel+source`（对齐 `rules.py:_alert_dedup_key`）
+- 关闭陈旧告警判据=该渠道该 SKU 无任何 inventory 行 avail<safety（与实时路径逐仓行判据一致，只关确实恢复的）
+- rebuild_rules 递增三版本号：`_rules_version`+`_replen_version`+`_cache_version`
+
+**库存健康卡**（京东主体）：
+- **bc = platform(C仓) + platform_b(B仓) 总和**，不是单独 B 仓——SQL GROUP BY warehouse_type 后 Python 相加
+- 自定义日期 summary 已 SQL 单次扫描聚合；trend GMV 只计已完成、订单数计全部；orders 必须按 channel 过滤

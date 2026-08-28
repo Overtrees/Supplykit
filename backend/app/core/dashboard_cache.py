@@ -91,18 +91,7 @@ def _rebuild(channel='jd'):
             "SELECT substr(ordered_at,1,10) as d, order_status, store, SUM(CASE WHEN order_status='已完成' THEN total_amount ELSE 0 END) as g, COUNT(*) as cnt "
             "FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at='') GROUP BY d, order_status, store",
             (ch, _cut90)).fetchall()
-    def _q_inv():
-        import sqlite3
-        _c = sqlite3.connect(_DB_PATH)
-        _c.row_factory = sqlite3.Row
-        _c.execute("PRAGMA busy_timeout=30000")
-        return _c.execute("SELECT sku, product_name, warehouse, warehouse_type, available_qty, safety_qty, store FROM inventory WHERE channel=?", (ch,)).fetchall()
-    from concurrent.futures import ThreadPoolExecutor
-    with ThreadPoolExecutor(max_workers=2) as _ex:
-        _f_all = _ex.submit(_q_all)
-        _f_inv = _ex.submit(_q_inv)
-        all_rows = _f_all.result()
-        inv = _f_inv.result()
+    all_rows = _q_all()
 
     # 一遍遍历 all_rows 拆: gmv/pending/refund/total + trend + status_dist + stores + 30天周期(ps/pf)
     gmv = pending = refund = total_orders = 0
@@ -138,16 +127,11 @@ def _rebuild(channel='jd'):
     store_rows = sorted(_store_map.values(), key=lambda x: x['name'])
     stores = [{"name": r["name"], "orders": r["orders"], "gmv": r["gmv"]} for r in store_rows]
     
-    inv_list = [{"sku":r[0],"product_name":r[1],"warehouse":r[2],"warehouse_type":r[3],"available_qty":r[4],"safety_qty":r[5],"store":r[6]} for r in inv]
-    
-    # 聚合循环中定期让出 GIL
-    low_stock = 0; store_low = {}
-    for idx, x in enumerate(inv_list):
-        if idx % 2000 == 0: time.sleep(0.001)
-        is_low = int(x.get('available_qty') or 0) < int(x.get('safety_qty') or 0)
-        if is_low: low_stock += 1
-        _s = x.get('store') or ''
-        store_low[_s] = store_low.get(_s, 0) + (1 if is_low else 0)
+    # SQL 聚合替代 Python 遍历(等价重构: 同一 inventory, CASE与Python比较一致)
+    _store_low_rows = conn.execute(
+        "SELECT store, SUM(CASE WHEN available_qty < safety_qty THEN 1 ELSE 0 END) as low FROM inventory WHERE channel=? GROUP BY store", (ch,)).fetchall()
+    store_low = {r[0] or '': r[1] for r in _store_low_rows}
+    low_stock = sum(store_low.values())
     for s in stores:
         s['low_stock'] = store_low.get(s['name'], 0)
     
@@ -156,7 +140,29 @@ def _rebuild(channel='jd'):
     alert_count = conn.execute("SELECT COUNT(*) FROM alerts WHERE channel=? AND status='active'", (ch,)).fetchone()[0]
     cat_rows = conn.execute("SELECT category, COUNT(*) FROM products WHERE channel=? GROUP BY category", (ch,)).fetchall()
     cat_dist = [{"name": r[0] or '未分类', "value": r[1]} for r in cat_rows]
-    health = _compute_health(inv_list)
+    # health: SQL GROUP BY warehouse_type(替代 _compute_health Python 5次遍历)
+    _hw_rows = conn.execute(
+        "SELECT warehouse_type, SUM(CASE WHEN available_qty >= safety_qty THEN 1 ELSE 0 END) as healthy, "
+        "SUM(CASE WHEN available_qty > 0 AND available_qty < safety_qty THEN 1 ELSE 0 END) as warning, "
+        "SUM(CASE WHEN available_qty = 0 THEN 1 ELSE 0 END) as out_of_stock, COUNT(*) as total "
+        "FROM inventory WHERE channel=? GROUP BY warehouse_type", (ch,)).fetchall()
+    _hw = {}
+    for r in _hw_rows:
+        _hw[r[0]] = {"healthy": r[1], "warning": r[2], "out_of_stock": r[3], "total": r[4]}
+    def _score_hw(cls):
+        healthy = cls.get('healthy', 0); total = cls.get('total', 0)
+        score = round(healthy / total * 100, 0) if total else 100
+        return {"score": score, "healthy": healthy, "warning": cls.get('warning', 0),
+                "out_of_stock": cls.get('out_of_stock', 0), "total": total,
+                "level": "good" if score >= 85 else ("warning" if score >= 60 else "danger")}
+    _Z = {"healthy": 0, "warning": 0, "out_of_stock": 0, "total": 0}
+    _own_h = _hw.get('own', _Z); _plat_h = _hw.get('platform', _Z); _pb_h = _hw.get('platform_b', _Z)
+    _bc_h = {"healthy": _plat_h.get('healthy',0)+_pb_h.get('healthy',0), "warning": _plat_h.get('warning',0)+_pb_h.get('warning',0),
+             "out_of_stock": _plat_h.get('out_of_stock',0)+_pb_h.get('out_of_stock',0), "total": _plat_h.get('total',0)+_pb_h.get('total',0)}
+    _all_h = {"healthy": sum(r.get('healthy',0) for r in _hw.values()), "warning": sum(r.get('warning',0) for r in _hw.values()),
+              "out_of_stock": sum(r.get('out_of_stock',0) for r in _hw.values()), "total": sum(r.get('total',0) for r in _hw.values())}
+    health = {"own": _score_hw(_own_h), "platform": _score_hw(_plat_h), "platform_b": _score_hw(_pb_h),
+              "bc": _score_hw(_bc_h), "score": _score_hw(_all_h)["score"], "level": _score_hw(_all_h)["level"]}
     
     # ── 周期聚合：店铺 + 漏斗（纯 Python，30 天数据已收集）
     period_stores = {}

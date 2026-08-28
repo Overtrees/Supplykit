@@ -447,6 +447,23 @@ feat: 新功能 | fix: Bug | refactor: 重构 | docs: 文档 | test: 测试 | st
 ### 15.6 已知问题
 - 规则保存后 `load()` 的冗余 API 调用可去掉（数据已写入后端），可简化为纯本地更新
 
+### 15.8 数据优化原则（四维不可牺牲，2026-08-27 沉淀）
+
+**性能优化的前提：数据实时性/准确性/完整性/可靠性四维不可牺牲**。为快缩范围/漏数据 = 违规。
+
+| # | 原则 | 说明/教训 |
+|---|------|----------|
+| 1 | **计算范围不因快缩小** | 补货/滞销/stockRisk 必须算**全量相关 SKU**（products ∪ inventory 全集，含缺货/无库存的）。`skus` 过滤只能用覆盖全部相关方的集合——只算有库存的会漏"卖光最需补货"的 SKU |
+| 2 | **等价重构** | 多查询合并单次扫描（`GROUP BY d,status,store` → Python 拆各维度）必须数学等价；改后测完整性（字段/条数/边界） |
+| 3 | **缓存版本号校验** | 数据变更必须递增版本号（订单/库存/商品/清洗/配置/规则/采购订单全覆盖）；版本号读写 key 必须一致（曾写错 `_cache_version`/`_replen_version` → 缓存永不失效 15 分钟旧数据） |
+| 4 | **增量修正替代全量重建** | 规则/删单等只影响看板部分字段 → 直接改缓存对应字段，替代 invalidate_dashboard 全量重建（14.6s→2.7s） |
+| 5 | **强实时绕前端缓存** | 看板/数据变更页静默+进入刷新 `?t=Date.now()` 或 `clearCache(pattern)`——命中 30s 缓存拿旧数据 |
+| 6 | **聚合接口字段含消费方所需** | stockOverview.items 缺 available_qty → 前端 filter 失败（缺货列表不显示） |
+| 7 | **时区同侧** | `datetime.now(UTC)` 与 `strptime` 混用 TypeError 被吞 → 计算静默失败（days_zero 恒 999）。aware/naive 必须一致 |
+| 8 | **deleted_at 判空** | `deleted_at IS NOT NULL` 匹配 `''`(active) — 条件须 `deleted_at != ''`（曾每天 04:30 删光订单） |
+| 9 | **懒加载** | IntersectionObserver 仅状态变化回调（持续在视口不重复）— 用 onScroll 或表格增长移出视口（补货模式）；**不要 finally 重新 observe**（循环加载全部）；回调判断用 ref 门闩 |
+| 10 | **PA 环境边界** | 慢磁盘/单 worker → 并发请求排队累加；分批 commit 卡死（一次性 DELETE）；reload 409（slow_startup）上传后须验证代码生效 |
+
 ### 15.7 大数据分页 + 滚动懒加载 + 显示交互（复用规范）
 
 > 适用：进销存页（with-sales）、商品页（list_products）。大数据量（万级 SKU/记录）场景必须分页，禁止全量返回（几十 MB + 14s 计算 + 前端渲染卡死）。

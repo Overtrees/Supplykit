@@ -10,7 +10,7 @@ from collections import defaultdict
 from typing import Any, Optional
 
 DB_PATH = os.getenv("SQLITE_PATH", os.path.join(os.path.dirname(__file__), "..", "supplykit.db"))
-SCHEMA_VERSION = 18  # 当前 schema 版本，每次改表结构+1
+SCHEMA_VERSION = 19  # 当前 schema 版本，每次改表结构+1
 
 # 版本化迁移注册表：{目标版本: 迁移函数}
 # 迁移函数签名: def migrate(conn): 执行该版本的 schema 变更
@@ -258,6 +258,27 @@ def _migrate_v18(conn):
             pass  # 列已存在则跳过（幂等）
     try:
         conn.execute("ALTER TABLE orders ADD COLUMN paid_at TEXT DEFAULT ''")
+    except sqlite3.OperationalError:
+        pass
+    conn.commit()
+
+
+# 迁移 v19：告警表加 warehouse_type（触发仓库主体）——看板待处理卡 B/C/自有 分布精确化
+# 此前该分布走前端缺货SKU表 lookup, 漏缺货SKU以外的告警 → 系统性误算进 C 仓(失真)
+@_register_migration(19)
+def _migrate_v19(conn):
+    import sqlite3
+    try:
+        conn.execute("ALTER TABLE alerts ADD COLUMN warehouse_type TEXT DEFAULT ''")
+    except sqlite3.OperationalError:
+        pass
+    # 存量告警回填: 取该 SKU 在库存表中优先出现的仓库主体(无法区分多仓时取第一条)
+    try:
+        conn.execute("""UPDATE alerts SET warehouse_type = (
+            SELECT i.warehouse_type FROM inventory i
+            WHERE i.channel = alerts.channel AND i.sku = alerts.related_sku
+            ORDER BY i.warehouse_type LIMIT 1
+        ) WHERE warehouse_type = '' AND related_sku != ''""")
     except sqlite3.OperationalError:
         pass
     conn.commit()

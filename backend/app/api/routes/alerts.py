@@ -14,7 +14,7 @@ _alerts_cache = {}
 _CACHE_TTL = 60
 
 _ALERT_FIELDS = ("id", "alert_type", "title", "description", "severity", "source",
-                 "channel", "status", "related_sku", "created_at")
+                 "channel", "status", "related_sku", "warehouse_type", "created_at")
 _ALERT_SQL = ", ".join(_ALERT_FIELDS)
 _GROUP_CASE = ("CASE WHEN alert_type='replenish' THEN 'replenish' "
                "WHEN alert_type='low_stock' THEN 'low_stock' ELSE 'other' END")
@@ -71,6 +71,22 @@ def _grouped_query(conn, channel, per_group_limit, status):
             f"WHERE status=? AND ({ch_sql}) AND ({_group_cond(g)}) ORDER BY id DESC LIMIT ?",
             [status] + ch_p + [per_group_limit]).fetchall():
             rows.append(dict(zip(_ALERT_FIELDS, r)))
+    # warehouse_type 兜底: 规则/补货/滞销等生成路径未写该列的告警, 查询时按 SKU 从库存补
+    # (批量一次查, 避免逐行子查询) —— 看板 B/C/自有 分布据此精确化(曾走缺货SKU表 lookup 失真)
+    _miss = [r for r in rows if not (r.get('warehouse_type') or '')]
+    if _miss:
+        try:
+            _skus = list(dict.fromkeys(str(r.get('related_sku') or '') for r in _miss if r.get('related_sku')))
+            if _skus:
+                _p = ",".join('?' * len(_skus))
+                _wh = {str(r[0]): (r[1] or '') for r in conn.execute(
+                    f"SELECT sku, MIN(warehouse_type) FROM inventory WHERE channel=? AND sku IN ({_p}) GROUP BY sku",
+                    [channel] + _skus).fetchall()}
+                for r in _miss:
+                    if r.get('related_sku') in _wh:
+                        r['warehouse_type'] = _wh[r['related_sku']]
+        except Exception:
+            pass
     return rows, _counts(conn, ch_sql, ch_p, status)
 
 

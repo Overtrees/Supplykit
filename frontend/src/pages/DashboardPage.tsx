@@ -166,12 +166,11 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
   const riskWarning = (stockRisk||[]).filter(x => x.days_to_empty >= 3 && x.days_to_empty < 7).length
     // 缺货列表 = stockOverview.items(本身就是 avail<=0 的缺货SKU, 含warehouse_type)
   var outOfStockItems = (inventory||[]).slice(0,3)  // 缺货列表前3个(stockOverview.items已是avail<=0)
-  // 告警 × 仓库维度拆{t("dash.score_unit")}
-  const skuWhMap = Object.fromEntries((inventory||[]).map(i => [i.sku, i.warehouse_type]))
+  // 告警 × 仓库维度拆(直接用告警自带 warehouse_type——曾走缺货SKU表 lookup 导致大部分告警误算进C仓)
   function countByWh(items) {
     var result = {b:0, c:0, own:0}
     items.forEach(function(item) {
-      var whType = skuWhMap[item.related_sku] || ''
+      var whType = item.warehouse_type || ''
       if (whType === 'platform_b') result.b++
       else if (whType === 'own') result.own++
       else result.c++
@@ -189,11 +188,12 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
       <div className="card" style={{borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16,overflow:'hidden'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
           <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>{periodTab === 'custom' ? '自定义' : periodLabel[periodTab]} GMV</div>
-          {/* GMV 视角切换(总=含退款流水 / 净=剔除退款 / 回款=净-平台补贴), 样式参考健康小卡 tab */}
+          {/* GMV 视角切换(总/净/回款), 样式对齐健康小卡 tab: 紧凑segmented pill + 短标签 */}
           <div style={{display:'flex',gap:2,background:'var(--bg)',borderRadius:99,padding:2}}>
-            <span onClick={function(){setGmvView('total')}} className="clickable" style={{fontSize:9,padding:'2px 6px',borderRadius:99,cursor:'pointer',fontWeight:gmvView==='total'?600:400,background:gmvView==='total'?'var(--card)':'transparent',color:gmvView==='total'?'var(--text)':'var(--muted2)',whiteSpace:'nowrap'}}>总GMV</span>
-            <span onClick={function(){setGmvView('net')}} className="clickable" style={{fontSize:9,padding:'2px 6px',borderRadius:99,cursor:'pointer',fontWeight:gmvView==='net'?600:400,background:gmvView==='net'?'var(--card)':'transparent',color:gmvView==='net'?'var(--text)':'var(--muted2)',whiteSpace:'nowrap'}}>净GMV</span>
-            <span onClick={function(){setGmvView('payout')}} className="clickable" style={{fontSize:9,padding:'2px 6px',borderRadius:99,cursor:'pointer',fontWeight:gmvView==='payout'?600:400,background:gmvView==='payout'?'var(--card)':'transparent',color:gmvView==='payout'?'var(--text)':'var(--muted2)',whiteSpace:'nowrap'}}>回款</span>
+            {[['total','总'],['net','净'],['payout','回款']].map(([v,l]) => (
+              <span key={v} onClick={function(){setGmvView(v)}} className="clickable"
+                style={{fontSize:9,padding:'2px 6px',borderRadius:99,cursor:'pointer',fontWeight:gmvView===v?600:400,background:gmvView===v?'var(--card)':'transparent',color:gmvView===v?'var(--text)':'var(--muted2)',whiteSpace:'nowrap'}}>{l}</span>
+            ))}
           </div>
         </div>
         <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:4}}>
@@ -239,8 +239,8 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
             </div>
             {(lowStockAlerts.length > 0 || replenishAlerts.length > 0) && <>
               <div style={{fontSize:10,display:'flex',gap:8,marginTop:4}}>
-                <span style={{color:'var(--muted2)'}}>● 低库存 {lowStockAlerts.length}</span>
-                <span style={{color:'var(--muted2)'}}>● 需{t("dash.replenish")} {replenishAlerts.length}</span>
+                <span style={{color:'var(--muted2)'}}>● 低库存 {nonReplenishTotal}</span>
+                <span style={{color:'var(--muted2)'}}>● 需{t("dash.replenish")} {replenishTotal}</span>
               </div>
               <div style={{fontSize:9,display:'flex',gap:6,marginTop:3,color:'var(--muted)'}}>
                 <span>B{lsWh.b} C{lsWh.c} {t("dash.own")}{lsWh.own}</span>

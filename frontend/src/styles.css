@@ -31,15 +31,16 @@ td.mono{word-break:break-all}.col-sku{min-width:80px;font-size:12px;word-break:b
 .btn:active{transform:scale(0.96)}
 .clickable:active,.pill:active{opacity:0.7}
 /* 表格行点击/激活/批次/错误态(进销存批次展开等) */
-/* 注意: 不用 transition——背景过渡在 headless/低帧率下不推进, 会导致点击/激活态背景卡在透明(曾误判未生效) */
+/* 注意1: 不用 transition——背景过渡在 headless/低帧率下不推进, 会导致点击/激活态背景卡在透明(曾误判未生效) */
+/* 注意2: 背景作用于 td(> td)而非 tr——iOS WebKit 对 <tr> 背景只渲染第一行(批次展开"只有一行加深"根因) */
 .tr-click{cursor:pointer}
-.tr-click:hover{background:rgba(0,122,255,0.06)}
-.tr-click:active{background:rgba(0,122,255,0.12)}
-.tr-open{background:rgba(0,122,255,0.10)}
-.tr-batch{background:rgba(0,122,255,0.07)}
-.tr-err{background:rgba(239,68,68,0.06)}
+.tr-click:hover>td{background:rgba(0,122,255,0.06)}
+.tr-click:active>td{background:rgba(0,122,255,0.12)}
+.tr-open>td{background:rgba(0,122,255,0.10)}
+.tr-batch>td{background:rgba(0,122,255,0.07)}
+.tr-err>td{background:rgba(239,68,68,0.06)}
 .td-loading{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted2);padding:6px 12px}
-@media(prefers-color-scheme:dark){.tr-open{background:rgba(0,122,255,0.16)}.tr-batch{background:rgba(0,122,255,0.12)}.tr-err{background:rgba(239,68,68,0.12)}}
+@media(prefers-color-scheme:dark){.tr-open>td{background:rgba(0,122,255,0.16)}.tr-batch>td{background:rgba(0,122,255,0.12)}.tr-err>td{background:rgba(239,68,68,0.12)}}
 .btn-primary{background:rgba(0,122,255,0.88);color:#fff;border:none}.btn-primary:hover{background:rgba(0,122,255,1)}
 .btn-success{background:rgba(5,150,105,0.88);color:#fff;border:none}.btn-success:hover{background:rgba(5,150,105,1)}
 .btn-danger{background:rgba(225,29,72,0.88);color:#fff;border:none}.btn-danger:hover{background:rgba(225,29,72,1)}

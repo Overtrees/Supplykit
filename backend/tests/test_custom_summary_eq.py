@@ -164,19 +164,25 @@ class TestCustomSummaryEquivalence:
         assert h['bc']['out_of_stock'] == 1, f"BC out_of_stock 应为 1+0=1: {h['bc']['out_of_stock']}"
         assert h['platform_b']['total'] == 2, "platform_b(单独B仓)应独立存在且不等于 bc"
 
-    def test_trend_aligned_with_standard(self):
-        """有意修正: trend GMV 只计已完成、订单数计全部(对齐标准 summary, 旧版相反)"""
+    def test_trend_done_orders_scope(self):
+        """自定义路径 trend 订单数=已完成(GMV 小卡口径: 只统计已完成维度);
+        漏斗=全部状态(另一业务口径, 由 test 漏斗 覆盖)。曾误对齐成"订单数=全部"。"""
         new = client.get('/api/dashboard/summary?channel=jd&start_date=2026-08-01&end_date=2026-08-03').json()['data']
         by_date = {t['日期']: t for t in new['trend']}
         # 08-01: 2单已完成(100+50) → GMV=150, 订单数=2
         assert by_date['2026-08-01']['GMV'] == 150.0, by_date['2026-08-01']
         assert by_date['2026-08-01']['订单数'] == 2, by_date['2026-08-01']
-        # 08-02: 待发货(30) + 已完成(200) → GMV=200(仅已完成), 订单数=2(全部)
+        # 08-02: 待发货(30) + 已完成(200) → GMV=200(仅已完成), 订单数=1(仅已完成, 不含待发货)
         assert by_date['2026-08-02']['GMV'] == 200.0, by_date['2026-08-02']
-        assert by_date['2026-08-02']['订单数'] == 2, by_date['2026-08-02']
-        # 08-03: 申请退款(20)+已发货(10) → GMV=0(无已完成), 订单数=2
+        assert by_date['2026-08-02']['订单数'] == 1, by_date['2026-08-02']
+        # 08-03: 申请退款(20)+已发货(10) → GMV=0(无已完成), 订单数=0(无已完成)
         assert by_date['2026-08-03']['GMV'] == 0.0, by_date['2026-08-03']
-        assert by_date['2026-08-03']['订单数'] == 2, by_date['2026-08-03']
+        assert by_date['2026-08-03']['订单数'] == 0, by_date['2026-08-03']
+        # GMV 卡周期订单数 = 已完成(3单: 08-01两单+08-02一单)
+        assert new['periods']['custom']['orders'] == 3, new['periods']['custom']
+        # 漏斗 = 全部状态(总订单6: 2+2+2)
+        ftotal = new['funnel'][0]['value']
+        assert ftotal == 6, f"漏斗总订单应=全部状态6: {ftotal}"
 
     def test_channel_isolation_fixed(self):
         """有意修正: 旧版 orders 不过滤 channel 会混入 other 渠道(500+600) → 已修只算 jd"""

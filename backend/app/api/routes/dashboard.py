@@ -34,7 +34,7 @@ def dashboard_summary(channel: str = 'jd', start_date: str = '', end_date: str =
             "SUM(CASE WHEN order_status='已完成' THEN total_amount ELSE 0 END) as g, COUNT(*) as cnt "
             "FROM orders WHERE channel=? AND (deleted_at='') AND substr(ordered_at,1,10) BETWEEN ? AND ? "
             "GROUP BY d, order_status, store", (channel, start_date, end_date)).fetchall()
-        gmv = pending = refund = total_orders = 0
+        gmv = pending = refund = total_orders = done_orders = 0
         trend = {}
         store_gmv = defaultdict(float)
         funnel = defaultdict(int)
@@ -47,14 +47,16 @@ def dashboard_summary(channel: str = 'jd', start_date: str = '', end_date: str =
             total_orders += _cnt
             if _st == '已完成':
                 gmv += _g
+                done_orders += _cnt
                 store_gmv[_store or '其他'] += _g
             elif _st == '待发货':
                 pending += _cnt
             elif _st == '申请退款':
                 refund += _cnt
             t = trend.setdefault(_d, {"GMV": 0, "订单数": 0})
-            t["订单数"] += _cnt
+            # GMV 卡口径: 订单数只计已完成(与漏斗"全部状态"是不同业务口径)
             if _st == '已完成':
+                t["订单数"] += _cnt
                 t["GMV"] += _g
             funnel[_st] += _cnt
         trend_data = [{"日期": k, "GMV": v["GMV"], "订单数": v["订单数"]} for k, v in sorted(trend.items())]
@@ -111,7 +113,7 @@ def dashboard_summary(channel: str = 'jd', start_date: str = '', end_date: str =
         day_count = max(1, (dt.strptime(end_date, "%Y-%m-%d") - dt.strptime(start_date, "%Y-%m-%d")).days + 1)
         return ok({
             "summary": summary,
-            "periods": {"custom": {"gmv": round(gmv, 2), "orders": total_orders, "days": day_count}},
+            "periods": {"custom": {"gmv": round(gmv, 2), "orders": done_orders, "days": day_count}},
             "trend": trend_data,
             "funnel": funnel_res, "health_index": health,
             "stores": stores,

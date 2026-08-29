@@ -1,8 +1,8 @@
-"""周期聚合口径一致性测试(2026-08-29)
+"""周期聚合口径测试(2026-08-29)
 
-修复: _compute_period_trends 曾带 order_status='已完成' → periods.week/month.orders 只算已完成,
-与漏斗 period_funnel 的"总订单"(全部状态)分裂(线上同周期 4420 vs 9700)。
-修复后: GMV 只计已完成、订单数计全部(与标准 summary/漏斗一致)。
+GMV 小卡口径: 只统计已完成维度(订单数/GMV 都是已完成)
+订单阶段分布(漏斗): 统计全部状态
+两卡是不同业务口径, periods(供 GMV 卡)必须只含已完成。
 
 运行: cd backend && TZ=Asia/Shanghai python -m pytest tests/test_period_orders_scope.py -v
 """
@@ -38,8 +38,8 @@ def setup_module():
 
 class TestPeriodOrdersScope:
 
-    def test_orders_count_all_statuses(self):
-        """periods.orders 必须 = 周期内全部状态订单数(与漏斗总订单一致), 不是仅已完成"""
+    def test_periods_only_done_orders(self):
+        """periods(供 GMV 卡)的 orders 必须=已完成订单数(不是全部), gmv 也=已完成"""
         from datetime import datetime, UTC, timedelta
         from app.core.database import get_conn
         from app.core.dashboard_cache import _compute_period_trends
@@ -47,19 +47,15 @@ class TestPeriodOrdersScope:
         today = (datetime.now(UTC) + timedelta(hours=8)).date()  # 北京时间
         periods = _compute_period_trends(conn, 'jd', today)
         conn.close()
-        week = periods.get('week', {})
-        # 数据在 08-20/08-21, 若在最近7天窗口内则 orders=5(全部), gmv=350(已完成 100+50+200)
-        # 注: 该测试的数据日期可能不在 week 窗口(取决于运行日期), 只断言"orders>=gmv对应口径"
-        # 更稳: 用 month(30天) 窗口断言
         month = periods.get('month', {})
         if month.get('orders'):
-            assert month['orders'] == 5, f"month.orders 应为全部5单: {month['orders']}"
-            assert month['gmv'] == 350.0, f"month.gmv 应只计已完成3单(100+50+200): {month['gmv']}"
-        # 趋势订单数 = 全部(对齐主 trend)
+            # 数据: 08-20 已完成2单 + 待发货1 + 退款1; 08-21 已完成1单 → 已完成共3单
+            assert month['orders'] == 3, f"month.orders(GMV卡)应为已完成3单: {month['orders']}"
+            assert month['gmv'] == 350.0, f"month.gmv 应只计已完成(100+50+200): {month['gmv']}"
         trend = periods.get('month_trend', [])
         for t in trend:
             if t['日期'] == '08-20':
-                assert t['订单数'] == 4, f"08-20 订单数应4(全部状态): {t['订单数']}"
-                assert t['GMV'] == 150.0, f"08-20 GMV 应150(仅已完成100+50): {t['GMV']}"
+                assert t['订单数'] == 2, f"08-20 GMV卡订单数应2(仅已完成): {t['订单数']}"
+                assert t['GMV'] == 150.0, f"08-20 GMV 应150: {t['GMV']}"
             if t['日期'] == '08-21':
                 assert t['订单数'] == 1 and t['GMV'] == 200.0, f"08-21 应为1单200: {t}"

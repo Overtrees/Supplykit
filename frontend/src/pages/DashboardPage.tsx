@@ -72,6 +72,14 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
     window.addEventListener('rules-changed', h)
     return () => window.removeEventListener('rules-changed', h)
   }, [])
+  // 兜底: 从后台回到前台/focus 时重拉一次——覆盖 iOS 后台 JS 挂起导致事件延迟执行、
+  // 以及非事件源的数据变更(其他会话/API 级修改)等一切时序; 保证回来看板必是最新
+  useEffect(() => {
+    const onVis = () => { if (document.visibilityState === 'visible') useAppStore.getState().bumpPageVersion() }
+    document.addEventListener('visibilitychange', onVis)
+    window.addEventListener('focus', onVis)
+    return () => { document.removeEventListener('visibilitychange', onVis); window.removeEventListener('focus', onVis) }
+  }, [])
   const silentBusy = useRef(false)
   useEffect(() => {
     const timer = setInterval(async () => {

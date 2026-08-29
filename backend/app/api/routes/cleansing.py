@@ -138,6 +138,7 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
     is_inbound = (target == 'inbound')
     is_outbound = (target == 'outbound')
     is_product = (target == 'product')
+    is_supplier = (target == 'supplier')
     platform_inv = (target == 'platform_inv')
     b_inv = (target == 'inventory_b')
     orders_to_insert = [] if not is_inv else None
@@ -146,6 +147,7 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
     inbound_to_insert = [] if is_inbound else None
     outbound_to_insert = [] if is_outbound else None
     product_to_insert = [] if is_product else None
+    supplier_to_insert = [] if is_supplier else None
     sku_seen = set()
 
     for idx, row in enumerate(rows):
@@ -292,6 +294,22 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                 "warehouse": str(data.get('warehouse', ''))[:100],
             })
             success += 1
+        # 供应商导入
+        elif is_supplier:
+            _sup_code = str(data.get('supplier_code', '') or '')[:100]
+            if not _sup_code:
+                row_errors.append({'error_type': 'required_field', 'field_name': 'supplier_code', 'raw_value': data.get('supplier_code', ''), 'error_message': '供应商编号必填'})
+            supplier_to_insert.append({
+                "supplier_code": _sup_code,
+                "supplier_name": str(data.get('supplier_name', ''))[:200],
+                "contact_person": str(data.get('contact_person', ''))[:100],
+                "contact_phone": str(data.get('contact_phone', ''))[:100],
+                "score": int(float(data.get('score', 0) or 0)),
+                "status": str(data.get('status', 'active'))[:50],
+                "brand": str(data.get('brand', ''))[:200],
+                "channel": channel,
+            })
+            success += 1
         # 商品信息导入
         if is_product:
             product_to_insert.append({
@@ -302,6 +320,7 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                 "price": float(data.get('unit_price', data.get('price', 0))),
                 "box_qty": int(float(data.get('box_qty', 0))),
                 "barcode": str(data.get('barcode', ''))[:100],
+                "brand": str(data.get('brand', ''))[:100],
                 "unit": str(data.get('unit', ''))[:50],
                 "weight": float(data.get('weight', 0)),
                 "volume": float(data.get('volume', 0)),
@@ -331,8 +350,8 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
             })
             success += 1
 
-    insert_table = 'products' if is_product else ('inventory' if is_inv else ('inbound_records' if is_inbound else ('outbound_records' if is_outbound else 'orders')))
-    data_list = product_to_insert if is_product else (inv_to_insert if is_inv else (inbound_to_insert if is_inbound else (outbound_to_insert if is_outbound else orders_to_insert)))
+    insert_table = 'products' if is_product else ('suppliers' if is_supplier else ('inventory' if is_inv else ('inbound_records' if is_inbound else ('outbound_records' if is_outbound else 'orders'))))
+    data_list = product_to_insert if is_product else (supplier_to_insert if is_supplier else (inv_to_insert if is_inv else (inbound_to_insert if is_inbound else (outbound_to_insert if is_outbound else orders_to_insert))))
     if data_list:
         try:
             # 批量 upsert（executemany + ON CONFLICT + 分批 commit 防大事务 I/O error）
@@ -346,6 +365,8 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                     conflict_col = 'sku, warehouse, channel'  # 库存按 SKU+仓库+渠道 去重
                 elif is_product:
                     conflict_col = 'sku'  # 商品按 SKU 去重（sku 有 UNIQUE 约束）
+                elif is_supplier:
+                    conflict_col = 'supplier_code'  # 供应商按编号去重（唯一约束）
                 elif is_inbound:
                     conflict_col = 'sku, warehouse, channel, prod_date, exp_date, inbound_date'
                 elif is_outbound:

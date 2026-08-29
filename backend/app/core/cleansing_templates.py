@@ -119,6 +119,7 @@ SYSTEM_FIELDS = {
     'product': [
         {'key': 'sku', 'label': 'SKU', 'type': 'string', 'required': True},
         {'key': 'product_name', 'label': '商品名称', 'type': 'string'},
+        {'key': 'brand', 'label': '品牌', 'type': 'string', 'desc': '商品页"品牌"列'},
         {'key': 'store', 'label': '店铺', 'type': 'string'},
         {'key': 'category', 'label': '分类', 'type': 'string'},
         {'key': 'price', 'label': '单价', 'type': 'number'},
@@ -128,6 +129,15 @@ SYSTEM_FIELDS = {
         {'key': 'weight', 'label': '箱重/KG', 'type': 'number'},
         {'key': 'volume', 'label': '体积/方', 'type': 'number'},
         {'key': 'best_before', 'label': '保质期日期', 'type': 'date', 'format': 'YMD'},
+    ],
+    'supplier': [
+        {'key': 'supplier_code', 'label': '供应商编号', 'type': 'string', 'required': True, 'desc': '唯一标识, 同编号重复导入=覆盖'},
+        {'key': 'supplier_name', 'label': '供应商名称', 'type': 'string'},
+        {'key': 'contact_person', 'label': '联系人', 'type': 'string'},
+        {'key': 'contact_phone', 'label': '联系电话', 'type': 'string'},
+        {'key': 'score', 'label': '评分', 'type': 'number'},
+        {'key': 'status', 'label': '状态', 'type': 'string'},
+        {'key': 'brand', 'label': '品牌', 'type': 'string'},
     ],
 }
 

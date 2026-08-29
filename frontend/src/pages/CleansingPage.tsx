@@ -247,6 +247,7 @@ export default function CleansingPage() {
             <option value='outbound'>出库记录</option>
           </optgroup>
           <option value='product'>导入商品</option>
+          <option value='supplier'>导入供应商</option>
         </select>
       </div>
       <label className="btn btn-primary">

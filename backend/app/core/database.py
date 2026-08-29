@@ -10,7 +10,7 @@ from collections import defaultdict
 from typing import Any, Optional
 
 DB_PATH = os.getenv("SQLITE_PATH", os.path.join(os.path.dirname(__file__), "..", "supplykit.db"))
-SCHEMA_VERSION = 20  # 当前 schema 版本，每次改表结构+1
+SCHEMA_VERSION = 21  # 当前 schema 版本，每次改表结构+1
 
 # 版本化迁移注册表：{目标版本: 迁移函数}
 # 迁移函数签名: def migrate(conn): 执行该版本的 schema 变更
@@ -293,7 +293,23 @@ def _migrate_v20(conn):
         conn.execute("""UPDATE alerts SET warehouse_type = (
             SELECT i.warehouse_type FROM inventory i
             WHERE i.channel = alerts.channel AND i.sku = alerts.related_sku
-            ORDER BY (i.available_qty < i.safety_qty) DESC, i.warehouse_type LIMIT 1
+            ORDER BY (CASE WHEN i.safety_qty > 0 THEN i.available_qty * 1.0 / i.safety_qty ELSE 1 END) ASC, i.warehouse_type LIMIT 1
+        ) WHERE related_sku != ''""")
+    except sqlite3.OperationalError:
+        pass
+    conn.commit()
+
+
+# 迁移 v21：回填改"最缺仓优先"(avail/safety 比值最小)——多仓都有低库存风险时,
+# 取相对最缺的仓作为告警归属(更贴合告警语义); 覆盖 v20 的"低库存风险仓+字母序own优先"偏差
+@_register_migration(21)
+def _migrate_v21(conn):
+    import sqlite3
+    try:
+        conn.execute("""UPDATE alerts SET warehouse_type = (
+            SELECT i.warehouse_type FROM inventory i
+            WHERE i.channel = alerts.channel AND i.sku = alerts.related_sku
+            ORDER BY (CASE WHEN i.safety_qty > 0 THEN i.available_qty * 1.0 / i.safety_qty ELSE 1 END) ASC, i.warehouse_type LIMIT 1
         ) WHERE related_sku != ''""")
     except sqlite3.OperationalError:
         pass

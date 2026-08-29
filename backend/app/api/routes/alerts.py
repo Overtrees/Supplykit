@@ -81,7 +81,7 @@ def _grouped_query(conn, channel, per_group_limit, status):
                 _p = ",".join('?' * len(_skus))
                 _rows = conn.execute(
                     f"SELECT sku, warehouse_type FROM inventory WHERE channel=? AND sku IN ({_p}) "
-                    f"ORDER BY (available_qty < safety_qty) DESC, sku, warehouse_type",
+                    f"ORDER BY (CASE WHEN safety_qty > 0 THEN available_qty * 1.0 / safety_qty ELSE 1 END) ASC, sku, warehouse_type",
                     [channel] + _skus).fetchall()
                 _best = {}
                 for _s, _w in _rows:

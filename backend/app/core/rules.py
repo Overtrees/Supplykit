@@ -25,6 +25,7 @@ def _action_create_alert(ctx):
         "related_rule_id": int(ctx['rule'].get('id') or 0),
         "status": "active",
         "channel": ctx.get('channel', 'jd'),
+        "warehouse_type": (ctx.get('inv') or {}).get('warehouse_type') or '',
     }).execute()
     # 同时记录事件到 events 表
     try:

@@ -30,6 +30,15 @@ td.mono{word-break:break-all}.col-sku{min-width:80px;font-size:12px;word-break:b
 .btn{padding:8px 20px;border:none;border-radius:var(--radius-full);cursor:pointer;font-size:13px;font-weight:600;min-height:var(--h-btn-lg);display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:all 0.15s;white-space:nowrap;text-decoration:none;box-sizing:border-box}
 .btn:active{transform:scale(0.96)}
 .clickable:active,.pill:active{opacity:0.7}
+/* 表格行点击/激活/批次/错误态(进销存批次展开等) */
+.tr-click{cursor:pointer;transition:background-color .15s ease}
+.tr-click:hover{background:rgba(0,122,255,0.05)}
+.tr-click:active{background:rgba(0,122,255,0.12)}
+.tr-open{background:rgba(0,122,255,0.10)}
+.tr-batch{background:rgba(0,122,255,0.07)}
+.tr-err{background:rgba(239,68,68,0.06)}
+.td-loading{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted2);padding:6px 12px}
+@media(prefers-color-scheme:dark){.tr-open{background:rgba(0,122,255,0.16)}.tr-batch{background:rgba(0,122,255,0.12)}.tr-err{background:rgba(239,68,68,0.12)}}
 .btn-primary{background:rgba(0,122,255,0.88);color:#fff;border:none}.btn-primary:hover{background:rgba(0,122,255,1)}
 .btn-success{background:rgba(5,150,105,0.88);color:#fff;border:none}.btn-success:hover{background:rgba(5,150,105,1)}
 .btn-danger{background:rgba(225,29,72,0.88);color:#fff;border:none}.btn-danger:hover{background:rgba(225,29,72,1)}

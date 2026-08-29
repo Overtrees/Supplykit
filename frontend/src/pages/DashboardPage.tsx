@@ -13,6 +13,8 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
   const { dashboard, inventory, qualityLogs, alerts, stockRisk, alertCounts, channel, loading, hammerDashPeriod: periodTab, pageVersion } = useAppStore()
   const [healthTab, setHealthTab] = useState(() => { try { return localStorage.getItem('health_tab') || (channel === 'jd' ? 'own' : 'platform') } catch { return channel === 'jd' ? 'own' : 'platform' } })
   const setHealthWithSave = (tab) => { try { localStorage.setItem('health_tab', tab) } catch {} setHealthTab(tab) }
+  // GMV 视角切换: total=总GMV(含退款流水) / net=净GMV(剔除退款)——GMV小卡+店铺GMV卡共用
+  const [gmvView, setGmvView] = useState('total')
   const [bcMenuOpen, setBcMenuOpen] = useState(false)
   const [showAllLowStock, setShowAllLowStock] = useState(false)
   const [showAllReplenish, setShowAllReplenish] = useState(false)
@@ -117,13 +119,15 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
 
   const storeOption = useMemo(() => {
     var storeData = dashboard?.period_stores?.[periodTab] || dashboard?.stores || []
+    // GMV 视角切换: 净GMV=总GMV-该店退款(后端 stores/period_stores 已带 net_gmv)
+    var _g = (i) => gmvView === 'net' ? (i.net_gmv != null ? i.net_gmv : i.gmv) : i.gmv
     return {
     tooltip: { trigger: 'axis', valueFormatter: (v) => '¥' + Number(v).toLocaleString('zh-CN', {minimumFractionDigits:2,maximumFractionDigits:2}), extraCssText: 'z-index:1000', hideDelay: 100 },
     xAxis: { type: 'category', data: storeData.map(i => i.name) || [], axisLabel: { fontSize: 9 } },
     yAxis: { type: 'value', axisLabel: { fontSize: 9, formatter: (v) => v >= 10000 ? (v/10000).toFixed(0) + 'W' : v }, max: (v) => Math.ceil(v.max * 1.2 / 1000) * 1000 },
-    series: [{ type: 'bar', data: storeData.map((i, idx) => ({ value: Math.round(i.gmv * 100) / 100, itemStyle: { color: ['#f59e0b','#06b6d4','#8b5cf6','#ec4899','#10b981','#f97316'][idx % 6] } })) || [] }],
+    series: [{ type: 'bar', data: storeData.map((i, idx) => ({ value: Math.round(_g(i) * 100) / 100, itemStyle: { color: ['#f59e0b','#06b6d4','#8b5cf6','#ec4899','#10b981','#f97316'][idx % 6] } })) || [] }],
     grid: { containLabel: true, top: 8, bottom: 16 }
-  }}, [dashboard, periodTab])
+  }}, [dashboard, periodTab, gmvView])
 
   const barOption = useMemo(() => {
     const f = dashboard?.period_funnel?.[periodTab] || dashboard?.funnel || []
@@ -183,10 +187,17 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
     <div className="card-grid" style={{marginBottom:16}}>
       {/* 1. GMV 卡 — 加环比微趋势线 + 日均 */}
       <div className="card" style={{borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16,overflow:'hidden'}}>
-        <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>{periodTab === 'custom' ? '自定义' : periodLabel[periodTab]} GMV</div>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>{periodTab === 'custom' ? '自定义' : periodLabel[periodTab]} GMV</div>
+          {/* GMV 视角切换(总=含退款流水 / 净=剔除退款), 样式参考健康小卡 tab */}
+          <div style={{display:'flex',gap:2,background:'var(--bg)',borderRadius:99,padding:2}}>
+            <span onClick={function(){setGmvView('total')}} className="clickable" style={{fontSize:9,padding:'2px 6px',borderRadius:99,cursor:'pointer',fontWeight:gmvView==='total'?600:400,background:gmvView==='total'?'var(--card)':'transparent',color:gmvView==='total'?'var(--text)':'var(--muted2)',whiteSpace:'nowrap'}}>总GMV</span>
+            <span onClick={function(){setGmvView('net')}} className="clickable" style={{fontSize:9,padding:'2px 6px',borderRadius:99,cursor:'pointer',fontWeight:gmvView==='net'?600:400,background:gmvView==='net'?'var(--card)':'transparent',color:gmvView==='net'?'var(--text)':'var(--muted2)',whiteSpace:'nowrap'}}>净GMV</span>
+          </div>
+        </div>
         <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:4}}>
           <div className="card-value" style={{fontSize:'clamp(18px,9cqi,30px)',fontWeight:700,lineHeight:1.1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
-            ¥{Number(periodMeta.gmv||0).toLocaleString()}
+            {(() => { const _g = gmvView === 'net' ? (periodMeta.net_gmv != null ? periodMeta.net_gmv : ((periodMeta.gmv||0) - (dashboard?.summary?.refund_amount||0))) : periodMeta.gmv; return '¥' + Number(_g||0).toLocaleString() })()}
           </div>
           <div className="card-sub" style={{marginTop:4,display:'flex',alignItems:'center',gap:6}}>
             <span>{periodMeta.orders} 单</span>
@@ -199,7 +210,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
                 {pct >= 0 ? '↑' : '↓'} {Math.abs(pct).toFixed(1)}%
               </span>
             })()}
-            <span style={{color:'var(--muted2)',fontSize:10}}>· 日均 ¥{Math.round((periodMeta.gmv||0)/periodDays).toLocaleString()}</span>
+            <span style={{color:'var(--muted2)',fontSize:10}}>· 日均 ¥{(() => { const _g = gmvView === 'net' ? (periodMeta.net_gmv != null ? periodMeta.net_gmv : ((periodMeta.gmv||0) - (dashboard?.summary?.refund_amount||0))) : periodMeta.gmv; return Math.round((_g||0)/periodDays).toLocaleString() })()}</span>
           </div>
         </div>
         {/* 微趋势线 */}
@@ -330,7 +341,12 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
 
     <div className="mid-chart-grid">
       <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title">{t("dash.funnel")}</div><Chart option={barOption} height={200} /></div>
-      <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title">{t("dash.store_gmv")}</div><Chart option={storeOption} height={170} /></div>
+      <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>{t("dash.store_gmv")}
+          <span style={{display:'inline-flex',gap:2,background:'var(--bg)',borderRadius:99,padding:2}}>
+            <span onClick={function(){setGmvView('total')}} className="clickable" style={{fontSize:9,padding:'2px 6px',borderRadius:99,cursor:'pointer',fontWeight:gmvView==='total'?600:400,background:gmvView==='total'?'var(--card)':'transparent',color:gmvView==='total'?'var(--text)':'var(--muted2)',whiteSpace:'nowrap'}}>总</span>
+            <span onClick={function(){setGmvView('net')}} className="clickable" style={{fontSize:9,padding:'2px 6px',borderRadius:99,cursor:'pointer',fontWeight:gmvView==='net'?600:400,background:gmvView==='net'?'var(--card)':'transparent',color:gmvView==='net'?'var(--text)':'var(--muted2)',whiteSpace:'nowrap'}}>净</span>
+          </span>
+        </div><Chart option={storeOption} height={170} /></div>
     </div>
 
     <div className="chart-row-3">

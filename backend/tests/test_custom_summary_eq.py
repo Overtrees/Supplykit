@@ -119,10 +119,14 @@ def _old_logic(channel, start, end):
             trend[d]['订单数'] += 1
     trend_data = [{'日期': k, 'GMV': v['GMV'], '订单数': v['订单数']} for k, v in sorted(trend.items())]
     store_gmv = defaultdict(float)
+    store_refund = defaultdict(float)
     for o in orders:
         if o.get('order_status') in ('待发货', '已发货', '已完成', '申请退款'):
             store_gmv[o.get('store', '其他')] += float(o.get('total_amount') or 0)
-    stores = [{'name': k, 'gmv': round(v, 2)} for k, v in sorted(store_gmv.items(), key=lambda x: -x[1])]
+            if o.get('order_status') == '申请退款':
+                store_refund[o.get('store', '其他')] += float(o.get('total_amount') or 0)
+    stores = [{'name': k, 'gmv': round(v, 2), 'refund_amount': round(store_refund.get(k, 0), 2),
+               'net_gmv': round(v - store_refund.get(k, 0), 2)} for k, v in sorted(store_gmv.items(), key=lambda x: -x[1])]
     from app.core.dashboard_cache import _compute_funnel, _compute_health
     funnel = _compute_funnel(orders)
     health = _compute_health(inv)

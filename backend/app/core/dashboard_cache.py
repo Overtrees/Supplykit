@@ -42,14 +42,16 @@ def _compute_period_trends(conn, ch, today):
     periods = {}
     for pname, pdays in [('today', 1), ('week', 7), ('month', 30)]:
         cutoff = (today - timedelta(days=pdays - 1)).isoformat()
-        rows = conn.execute("SELECT ordered_at, SUM(total_amount) as g, COUNT(*) as cnt FROM orders WHERE channel=? AND ordered_at>=? AND order_status IN ('待发货','已发货','已完成','申请退款') AND (deleted_at='') GROUP BY ordered_at", (ch, cutoff)).fetchall()
+        rows = conn.execute("SELECT ordered_at, SUM(total_amount) as g, SUM(CASE WHEN order_status='申请退款' THEN total_amount ELSE 0 END) as rf, COUNT(*) as cnt FROM orders WHERE channel=? AND ordered_at>=? AND order_status IN ('待发货','已发货','已完成','申请退款') AND (deleted_at='') GROUP BY ordered_at", (ch, cutoff)).fetchall()
         daily = {}
         for r in rows:
             date_str = r[0][5:] if r[0] else '未知'
-            if date_str not in daily: daily[date_str] = {"gmv": 0, "orders": 0}
+            if date_str not in daily: daily[date_str] = {"gmv": 0, "refund": 0, "orders": 0}
             daily[date_str]["gmv"] += r[1]
-            daily[date_str]["orders"] += r[2]
-        periods[pname] = {"gmv": sum(v["gmv"] for v in daily.values()), "orders": sum(v["orders"] for v in daily.values())}
+            daily[date_str]["refund"] += r[2]
+            daily[date_str]["orders"] += r[3]
+        periods[pname] = {"gmv": sum(v["gmv"] for v in daily.values()), "orders": sum(v["orders"] for v in daily.values()),
+                          "net_gmv": round(sum(v["gmv"] for v in daily.values()) - sum(v["refund"] for v in daily.values()), 2)}
         periods[pname + "_trend"] = [{"日期": k, "GMV": round(v["gmv"], 2), "订单数": v["orders"]} for k, v in sorted(daily.items())]
     return periods
 
@@ -107,6 +109,7 @@ def _rebuild(channel='jd'):
     _status_agg = {}
     _store_map = {}
     _ps_agg = {}
+    _ps_refund = {}
     _pf_agg = {}
     for r in all_rows:
         _d = r[0] or ''
@@ -129,18 +132,24 @@ def _rebuild(channel='jd'):
             by_date[_key]["订单数"] += _cnt
             by_date[_key]["GMV"] += _g
         _status_agg[_st] = _status_agg.get(_st, 0) + _cnt
-        _sm = _store_map.setdefault(_store, {"name": _store, "orders": 0, "gmv": 0})
+        _sm = _store_map.setdefault(_store, {"name": _store, "orders": 0, "gmv": 0, "refund_amount": 0})
         if _st in _PAID_STATUSES:
             _sm["orders"] += _cnt
             _sm["gmv"] += _g
+            if _st == '申请退款':
+                _sm["refund_amount"] += _g
         if _d >= _month_cut:
             _pf_agg[(_d, _st)] = _pf_agg.get((_d, _st), 0) + _cnt
             if _st in _PAID_STATUSES:
                 _ps_agg[(_d, _store)] = _ps_agg.get((_d, _store), 0) + _g
+                if _st == '申请退款':
+                    _ps_refund[(_d, _store)] = _ps_refund.get((_d, _store), 0) + _g
     trend = [{"日期": k, **v} for k, v in sorted(by_date.items())]
     status_dist = [{"name": k, "value": v} for k, v in _status_agg.items()]
     store_rows = sorted(_store_map.values(), key=lambda x: x['name'])
-    stores = [{"name": r["name"], "orders": r["orders"], "gmv": r["gmv"]} for r in store_rows]
+    stores = [{"name": r["name"], "orders": r["orders"], "gmv": r["gmv"],
+               "refund_amount": round(r.get("refund_amount", 0), 2),
+               "net_gmv": round(r["gmv"] - r.get("refund_amount", 0), 2)} for r in store_rows]
     
     # SQL 聚合替代 Python 遍历(等价重构: 同一 inventory, CASE与Python比较一致)
     _store_low_rows = conn.execute(
@@ -186,9 +195,13 @@ def _rebuild(channel='jd'):
         cutoff = bj_date - timedelta(days=pdays - 1)
         cutoff_str = cutoff.isoformat()
         _store_gmv = {}
+        _store_refund = {}
         for (d, s), g in _ps_agg.items():
             if d >= cutoff_str: _store_gmv[s] = _store_gmv.get(s, 0) + g
-        period_stores[pname] = [{"name": k, "gmv": v} for k, v in sorted(_store_gmv.items())]
+        for (d, s), rf in _ps_refund.items():
+            if d >= cutoff_str: _store_refund[s] = _store_refund.get(s, 0) + rf
+        period_stores[pname] = [{"name": k, "gmv": v, "refund_amount": round(_store_refund.get(k, 0), 2),
+                                 "net_gmv": round(v - _store_refund.get(k, 0), 2)} for k, v in sorted(_store_gmv.items())]
         _st_cnt = {}
         for (d, st), c in _pf_agg.items():
             if d >= cutoff_str: _st_cnt[st] = _st_cnt.get(st, 0) + c

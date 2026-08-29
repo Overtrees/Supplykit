@@ -38,6 +38,7 @@ def dashboard_summary(channel: str = 'jd', start_date: str = '', end_date: str =
         gmv = pending = refund = refund_amount = total_orders = paid_orders = 0
         trend = {}
         store_gmv = defaultdict(float)
+        store_refund = defaultdict(float)
         funnel = defaultdict(int)
         for r in _rows:
             _d = r[0] or ''
@@ -56,6 +57,7 @@ def dashboard_summary(channel: str = 'jd', start_date: str = '', end_date: str =
                 elif _st == '申请退款':
                     refund += _cnt
                     refund_amount += _g
+                    store_refund[_store or '其他'] += _g
             t = trend.setdefault(_d, {"GMV": 0, "订单数": 0})
             # GMV 卡口径: 订单数=已支付(与漏斗"全部状态"是不同业务口径)
             if _st in _PAID_STATUSES:
@@ -63,7 +65,8 @@ def dashboard_summary(channel: str = 'jd', start_date: str = '', end_date: str =
                 t["GMV"] += _g
             funnel[_st] += _cnt
         trend_data = [{"日期": k, "GMV": v["GMV"], "订单数": v["订单数"]} for k, v in sorted(trend.items())]
-        stores = [{"name": k, "gmv": round(v, 2)} for k, v in sorted(store_gmv.items(), key=lambda x: -x[1])]
+        stores = [{"name": k, "gmv": round(v, 2), "refund_amount": round(store_refund.get(k, 0), 2),
+                   "net_gmv": round(v - store_refund.get(k, 0), 2)} for k, v in sorted(store_gmv.items(), key=lambda x: -x[1])]
         # 漏斗(与 dashboard_cache._compute_funnel 同口径)
         _ftotal = total_orders
         _stages = [("总订单", _ftotal, 100.0)]
@@ -117,7 +120,8 @@ def dashboard_summary(channel: str = 'jd', start_date: str = '', end_date: str =
         day_count = max(1, (dt.strptime(end_date, "%Y-%m-%d") - dt.strptime(start_date, "%Y-%m-%d")).days + 1)
         return ok({
             "summary": summary,
-            "periods": {"custom": {"gmv": round(gmv, 2), "orders": paid_orders, "days": day_count}},
+            "periods": {"custom": {"gmv": round(gmv, 2), "orders": paid_orders, "days": day_count,
+                                   "net_gmv": round(gmv - refund_amount, 2)}},
             "trend": trend_data,
             "funnel": funnel_res, "health_index": health,
             "stores": stores,

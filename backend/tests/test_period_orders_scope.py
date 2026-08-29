@@ -49,13 +49,13 @@ class TestPeriodOrdersScope:
         conn.close()
         month = periods.get('month', {})
         if month.get('orders'):
-            # 数据: 08-20 已完成2单 + 待发货1 + 退款1; 08-21 已完成1单 → 已完成共3单
-            assert month['orders'] == 3, f"month.orders(GMV卡)应为已完成3单: {month['orders']}"
-            assert month['gmv'] == 350.0, f"month.gmv 应只计已完成(100+50+200): {month['gmv']}"
+            # 数据: 08-20 已完成2 + 待发货1 + 退款1; 08-21 已完成1 → 全部5单都是已支付 → orders=5
+            assert month['orders'] == 5, f"month.orders(GMV卡)应为已支付5单: {month['orders']}"
+            assert month['gmv'] == 400.0, f"month.gmv 应=已支付(100+50+30+20+200): {month['gmv']}"
         trend = periods.get('month_trend', [])
         for t in trend:
             if t['日期'] == '08-20':
-                assert t['订单数'] == 2, f"08-20 GMV卡订单数应2(仅已完成): {t['订单数']}"
-                assert t['GMV'] == 150.0, f"08-20 GMV 应150: {t['GMV']}"
+                assert t['订单数'] == 4, f"08-20 GMV卡订单数应4(全部已支付): {t['订单数']}"
+                assert t['GMV'] == 200.0, f"08-20 GMV 应200(100+50+30+20): {t['GMV']}"
             if t['日期'] == '08-21':
                 assert t['订单数'] == 1 and t['GMV'] == 200.0, f"08-21 应为1单200: {t}"

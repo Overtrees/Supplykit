@@ -35,14 +35,14 @@ def _compute_funnel(orders):
 def _compute_period_trends(conn, ch, today):
     """Compute period trends (today/week/month) using SQL.
 
-    GMV 小卡口径: 只统计已完成维度(订单数/GMV 都是已完成)——与漏斗(订单阶段分布=全部状态)
-    是不同业务口径, 勿混。修复曾误改成全部订单数。
+    GMV 小卡口径 = 已支付(待发货/已发货/已完成/申请退款): 订单数与 GMV 都是已支付;
+    漏斗(订单阶段分布)=全部状态。两卡不同业务口径。
     """
     from datetime import timedelta, UTC
     periods = {}
     for pname, pdays in [('today', 1), ('week', 7), ('month', 30)]:
         cutoff = (today - timedelta(days=pdays - 1)).isoformat()
-        rows = conn.execute("SELECT ordered_at, SUM(total_amount) as g, COUNT(*) as cnt FROM orders WHERE channel=? AND ordered_at>=? AND order_status='已完成' AND (deleted_at='') GROUP BY ordered_at", (ch, cutoff)).fetchall()
+        rows = conn.execute("SELECT ordered_at, SUM(total_amount) as g, COUNT(*) as cnt FROM orders WHERE channel=? AND ordered_at>=? AND order_status IN ('待发货','已发货','已完成','申请退款') AND (deleted_at='') GROUP BY ordered_at", (ch, cutoff)).fetchall()
         daily = {}
         for r in rows:
             date_str = r[0][5:] if r[0] else '未知'
@@ -72,6 +72,10 @@ def _compute_health(inv):
 
 from app.core.database import DB_PATH as _DB_PATH
 
+# 已支付订单状态(计入 GMV/净GMV口径): 待发货/已发货/已完成 + 申请退款(已付款产生流水, 净GMV再扣除)
+# 不计入: 待确认(待付款)、空。GMV 卡(金额/订单数/趋势)=已支付; 漏斗(订单阶段分布)=全部状态, 两卡不同业务口径
+_PAID_STATUSES = ('待发货', '已发货', '已完成', '申请退款')
+
 def _rebuild(channel='jd'):
     """Full rebuild of dashboard data from database using SQL aggregation."""
     conn = get_conn()
@@ -92,13 +96,13 @@ def _rebuild(channel='jd'):
         _c.row_factory = sqlite3.Row
         _c.execute("PRAGMA busy_timeout=30000")
         return _c.execute(
-            "SELECT substr(ordered_at,1,10) as d, order_status, store, SUM(CASE WHEN order_status='已完成' THEN total_amount ELSE 0 END) as g, COUNT(*) as cnt "
+            "SELECT substr(ordered_at,1,10) as d, order_status, store, SUM(CASE WHEN order_status IN ('待发货','已发货','已完成','申请退款') THEN total_amount ELSE 0 END) as g, COUNT(*) as cnt "
             "FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at='') GROUP BY d, order_status, store",
             (ch, _cut90)).fetchall()
     all_rows = _q_all()
 
-    # 一遍遍历 all_rows 拆: gmv/pending/refund/total + trend + status_dist + stores + 30天周期(ps/pf)
-    gmv = pending = refund = total_orders = 0
+    # 一遍遍历 all_rows 拆: gmv/pending/refund/refund_amount/total + trend + status_dist + stores + 30天周期(ps/pf)
+    gmv = pending = refund = refund_amount = total_orders = 0
     by_date = {}
     _status_agg = {}
     _store_map = {}
@@ -111,20 +115,27 @@ def _rebuild(channel='jd'):
         _g = r[3] or 0
         _cnt = r[4] or 0
         total_orders += _cnt
-        if _st == '已完成': gmv += _g
-        elif _st == '待发货': pending += _cnt
-        elif _st == '申请退款': refund += _cnt
+        # GMV=已支付流水(待发货/已发货/已完成/申请退款); 净GMV在末尾扣申请退款金额
+        if _st in _PAID_STATUSES:
+            gmv += _g
+            if _st == '申请退款':
+                refund += _cnt
+                refund_amount += _g
+        elif _st == '待发货':
+            pending += _cnt
         _key = _d[5:] if len(_d) >= 10 else _d
         if _key not in by_date: by_date[_key] = {"订单数": 0, "GMV": 0}
-        by_date[_key]["订单数"] += _cnt
-        if _st == '已完成': by_date[_key]["GMV"] += _g
+        if _st in _PAID_STATUSES:
+            by_date[_key]["订单数"] += _cnt
+            by_date[_key]["GMV"] += _g
         _status_agg[_st] = _status_agg.get(_st, 0) + _cnt
         _sm = _store_map.setdefault(_store, {"name": _store, "orders": 0, "gmv": 0})
-        _sm["orders"] += _cnt
-        if _st == '已完成': _sm["gmv"] += _g
+        if _st in _PAID_STATUSES:
+            _sm["orders"] += _cnt
+            _sm["gmv"] += _g
         if _d >= _month_cut:
             _pf_agg[(_d, _st)] = _pf_agg.get((_d, _st), 0) + _cnt
-            if _st == '已完成':
+            if _st in _PAID_STATUSES:
                 _ps_agg[(_d, _store)] = _ps_agg.get((_d, _store), 0) + _g
     trend = [{"日期": k, **v} for k, v in sorted(by_date.items())]
     status_dist = [{"name": k, "value": v} for k, v in _status_agg.items()]
@@ -197,7 +208,8 @@ def _rebuild(channel='jd'):
     
     return {
         "summary": {
-            "gmv": round(gmv, 2), "pending_count": pending, "refund_count": refund,
+            "gmv": round(gmv, 2), "net_gmv": round(gmv - refund_amount, 2), "refund_amount": round(refund_amount, 2),
+            "pending_count": pending, "refund_count": refund,
             "low_stock_count": low_stock, "total_orders": total_orders,
             "total_products": product_count, "total_suppliers": supplier_count, "active_alerts": alert_count,
         },

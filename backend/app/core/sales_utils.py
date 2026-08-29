@@ -228,7 +228,7 @@ def adjust_dashboard_for_order(order, sign):
     """
     try:
         ch = order.get('channel', 'jd')
-        from app.core.dashboard_cache import _cache_by_channel
+        from app.core.dashboard_cache import _cache_by_channel, _PAID_STATUSES
         cached = _cache_by_channel.get(ch)
         if not cached:
             return False
@@ -242,24 +242,28 @@ def adjust_dashboard_for_order(order, sign):
 
         s = data.get('summary', {})
         s['total_orders'] = max(0, (s.get('total_orders', 0) or 0) + sign * qty)
-        if status == '已完成':
+        # 增量修正必须与重建口径一致: GMV=已支付(待发货/已发货/已完成/申请退款); 净GMV=gmv-退款金额
+        if status in _PAID_STATUSES:
             s['gmv'] = max(0, round((s.get('gmv', 0) or 0) + sign * total, 2))
+            if status == '申请退款':
+                s['refund_count'] = max(0, (s.get('refund_count', 0) or 0) + sign * qty)
+                s['refund_amount'] = max(0, round((s.get('refund_amount', 0) or 0) + sign * total, 2))
         elif status == '待发货':
             s['pending_count'] = max(0, (s.get('pending_count', 0) or 0) + sign * qty)
-        elif status == '申请退款':
-            s['refund_count'] = max(0, (s.get('refund_count', 0) or 0) + sign * qty)
+        # 净 GMV 恒 = gmv - 退款金额(删除退款单时 gmv 与 refund_amount 同减, 净GMV不变——正确)
+        s['net_gmv'] = max(0, round((s.get('gmv', 0) or 0) - (s.get('refund_amount', 0) or 0), 2))
 
         for t in data.get('trend', []):
             if t.get('日期') == date_key:
-                t['订单数'] = max(0, (t.get('订单数', 0) or 0) + sign * qty)
-                if status == '已完成':
+                if status in _PAID_STATUSES:
+                    t['订单数'] = max(0, (t.get('订单数', 0) or 0) + sign * qty)
                     t['GMV'] = max(0, round((t.get('GMV', 0) or 0) + sign * total, 2))
                 break
 
         for st in data.get('stores', []):
             if st.get('name') == store:
-                st['orders'] = max(0, (st.get('orders', 0) or 0) + sign * qty)
-                if status == '已完成':
+                if status in _PAID_STATUSES:
+                    st['orders'] = max(0, (st.get('orders', 0) or 0) + sign * qty)
                     st['gmv'] = max(0, round((st.get('gmv', 0) or 0) + sign * total, 2))
                 break
 

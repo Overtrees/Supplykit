@@ -107,20 +107,20 @@ def _old_logic(channel, start, end):
     suppliers = [dict(r) for r in c.execute("SELECT * FROM suppliers").fetchall()]
     alerts = [dict(r) for r in c.execute("SELECT * FROM alerts WHERE status='active' AND channel=?", (channel,)).fetchall()]
     c.close()
-    gmv = sum(float(x.get('total_amount') or 0) for x in orders if x.get('order_status') == '已完成')
+    gmv = sum(float(x.get('total_amount') or 0) for x in orders if x.get('order_status') in ('待发货', '已发货', '已完成', '申请退款'))
     pending = len([x for x in orders if x.get('order_status') == '待发货'])
     refund = len([x for x in orders if x.get('order_status') == '申请退款'])
     low_stock = len([x for x in inv if int(x.get('available_qty') or 0) < int(x.get('safety_qty') or 0)])
     trend = defaultdict(lambda: {'GMV': 0, '订单数': 0})
     for o in orders:
         d = str(o.get('ordered_at', ''))[:10]
-        trend[d]['GMV'] += float(o.get('total_amount') or 0)
-        if o.get('order_status') == '已完成':
+        if o.get('order_status') in ('待发货', '已发货', '已完成', '申请退款'):
+            trend[d]['GMV'] += float(o.get('total_amount') or 0)
             trend[d]['订单数'] += 1
     trend_data = [{'日期': k, 'GMV': v['GMV'], '订单数': v['订单数']} for k, v in sorted(trend.items())]
     store_gmv = defaultdict(float)
     for o in orders:
-        if o.get('order_status') == '已完成':
+        if o.get('order_status') in ('待发货', '已发货', '已完成', '申请退款'):
             store_gmv[o.get('store', '其他')] += float(o.get('total_amount') or 0)
     stores = [{'name': k, 'gmv': round(v, 2)} for k, v in sorted(store_gmv.items(), key=lambda x: -x[1])]
     from app.core.dashboard_cache import _compute_funnel, _compute_health
@@ -164,22 +164,26 @@ class TestCustomSummaryEquivalence:
         assert h['bc']['out_of_stock'] == 1, f"BC out_of_stock 应为 1+0=1: {h['bc']['out_of_stock']}"
         assert h['platform_b']['total'] == 2, "platform_b(单独B仓)应独立存在且不等于 bc"
 
-    def test_trend_done_orders_scope(self):
-        """自定义路径 trend 订单数=已完成(GMV 小卡口径: 只统计已完成维度);
-        漏斗=全部状态(另一业务口径, 由 test 漏斗 覆盖)。曾误对齐成"订单数=全部"。"""
+    def test_trend_paid_orders_scope(self):
+        """自定义路径 trend 订单数/GMV = 已支付(待发货/已发货/已完成/申请退款, GMV小卡口径);
+        漏斗=全部状态(另一业务口径)。"""
         new = client.get('/api/dashboard/summary?channel=jd&start_date=2026-08-01&end_date=2026-08-03').json()['data']
         by_date = {t['日期']: t for t in new['trend']}
         # 08-01: 2单已完成(100+50) → GMV=150, 订单数=2
         assert by_date['2026-08-01']['GMV'] == 150.0, by_date['2026-08-01']
         assert by_date['2026-08-01']['订单数'] == 2, by_date['2026-08-01']
-        # 08-02: 待发货(30) + 已完成(200) → GMV=200(仅已完成), 订单数=1(仅已完成, 不含待发货)
-        assert by_date['2026-08-02']['GMV'] == 200.0, by_date['2026-08-02']
-        assert by_date['2026-08-02']['订单数'] == 1, by_date['2026-08-02']
-        # 08-03: 申请退款(20)+已发货(10) → GMV=0(无已完成), 订单数=0(无已完成)
-        assert by_date['2026-08-03']['GMV'] == 0.0, by_date['2026-08-03']
-        assert by_date['2026-08-03']['订单数'] == 0, by_date['2026-08-03']
-        # GMV 卡周期订单数 = 已完成(3单: 08-01两单+08-02一单)
-        assert new['periods']['custom']['orders'] == 3, new['periods']['custom']
+        # 08-02: 待发货(30) + 已完成(200) → GMV=230(已支付含待发货), 订单数=2
+        assert by_date['2026-08-02']['GMV'] == 230.0, by_date['2026-08-02']
+        assert by_date['2026-08-02']['订单数'] == 2, by_date['2026-08-02']
+        # 08-03: 申请退款(20)+已发货(10) → GMV=30(已支付含退款/已发货), 订单数=2
+        assert by_date['2026-08-03']['GMV'] == 30.0, by_date['2026-08-03']
+        assert by_date['2026-08-03']['订单数'] == 2, by_date['2026-08-03']
+        # GMV 卡周期订单数 = 已支付(本 seed 全部6单都是已支付状态)
+        assert new['periods']['custom']['orders'] == 6, new['periods']['custom']
+        # 净GMV = GMV - 退款金额(申请退款 20)
+        assert new['summary']['gmv'] == 410.0, new['summary']
+        assert new['summary']['refund_amount'] == 20.0, new['summary']
+        assert new['summary']['net_gmv'] == 390.0, new['summary']
         # 漏斗 = 全部状态(总订单6: 2+2+2)
         ftotal = new['funnel'][0]['value']
         assert ftotal == 6, f"漏斗总订单应=全部状态6: {ftotal}"
@@ -188,7 +192,7 @@ class TestCustomSummaryEquivalence:
         """有意修正: 旧版 orders 不过滤 channel 会混入 other 渠道(500+600) → 已修只算 jd"""
         new = client.get('/api/dashboard/summary?channel=jd&start_date=2026-08-01&end_date=2026-08-03').json()['data']
         # jd 范围内已完成: 100+50+200 = 350 (不含 other 的 1100)
-        assert new['summary']['gmv'] == 350.0, f"jd gmv 应 350(不含 other 1100): {new['summary']['gmv']}"
+        assert new['summary']['gmv'] == 410.0, f"jd gmv 应 410(已支付: 150+230+30, 不含 other 1100): {new['summary']['gmv']}"
         assert new['summary']['total_orders'] == 6, f"jd 订单应 6(不含 other 2): {new['summary']['total_orders']}"
 
     def test_soft_deleted_orders_excluded(self):

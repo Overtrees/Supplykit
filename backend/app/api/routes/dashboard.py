@@ -31,10 +31,11 @@ def dashboard_summary(channel: str = 'jd', start_date: str = '', end_date: str =
         _conn.execute("PRAGMA busy_timeout=30000")
         _rows = _conn.execute(
             "SELECT substr(ordered_at,1,10) as d, order_status, store, "
-            "SUM(CASE WHEN order_status='已完成' THEN total_amount ELSE 0 END) as g, COUNT(*) as cnt "
+            "SUM(CASE WHEN order_status IN ('待发货','已发货','已完成','申请退款') THEN total_amount ELSE 0 END) as g, COUNT(*) as cnt "
             "FROM orders WHERE channel=? AND (deleted_at='') AND substr(ordered_at,1,10) BETWEEN ? AND ? "
             "GROUP BY d, order_status, store", (channel, start_date, end_date)).fetchall()
-        gmv = pending = refund = total_orders = done_orders = 0
+        from app.core.dashboard_cache import _PAID_STATUSES
+        gmv = pending = refund = refund_amount = total_orders = paid_orders = 0
         trend = {}
         store_gmv = defaultdict(float)
         funnel = defaultdict(int)
@@ -45,17 +46,19 @@ def dashboard_summary(channel: str = 'jd', start_date: str = '', end_date: str =
             _g = float(r[3] or 0)
             _cnt = r[4] or 0
             total_orders += _cnt
-            if _st == '已完成':
+            # GMV=已支付流水(待发货/已发货/已完成/申请退款); 净GMV末尾扣申请退款金额
+            if _st in _PAID_STATUSES:
                 gmv += _g
-                done_orders += _cnt
+                paid_orders += _cnt
                 store_gmv[_store or '其他'] += _g
-            elif _st == '待发货':
-                pending += _cnt
-            elif _st == '申请退款':
-                refund += _cnt
+                if _st == '待发货':
+                    pending += _cnt
+                elif _st == '申请退款':
+                    refund += _cnt
+                    refund_amount += _g
             t = trend.setdefault(_d, {"GMV": 0, "订单数": 0})
-            # GMV 卡口径: 订单数只计已完成(与漏斗"全部状态"是不同业务口径)
-            if _st == '已完成':
+            # GMV 卡口径: 订单数=已支付(与漏斗"全部状态"是不同业务口径)
+            if _st in _PAID_STATUSES:
                 t["订单数"] += _cnt
                 t["GMV"] += _g
             funnel[_st] += _cnt
@@ -106,14 +109,15 @@ def dashboard_summary(channel: str = 'jd', start_date: str = '', end_date: str =
                   "bc": _score_hw(_bc_h), "score": _score_hw(_all_h)["score"], "level": _score_hw(_all_h)["level"]}
         _conn.close()
         summary = {
-            "gmv": round(gmv, 2), "total_orders": total_orders, "pending_count": pending, "refund_count": refund,
+            "gmv": round(gmv, 2), "net_gmv": round(gmv - refund_amount, 2), "refund_amount": round(refund_amount, 2),
+            "total_orders": total_orders, "pending_count": pending, "refund_count": refund,
             "low_stock_count": low_stock, "active_alerts": alert_count,
             "total_products": product_count, "total_suppliers": supplier_count,
         }
         day_count = max(1, (dt.strptime(end_date, "%Y-%m-%d") - dt.strptime(start_date, "%Y-%m-%d")).days + 1)
         return ok({
             "summary": summary,
-            "periods": {"custom": {"gmv": round(gmv, 2), "orders": done_orders, "days": day_count}},
+            "periods": {"custom": {"gmv": round(gmv, 2), "orders": paid_orders, "days": day_count}},
             "trend": trend_data,
             "funnel": funnel_res, "health_index": health,
             "stores": stores,

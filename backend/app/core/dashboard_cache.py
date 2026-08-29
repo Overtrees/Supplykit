@@ -118,11 +118,11 @@ def _rebuild(channel='jd'):
         # GMV=已支付流水(待发货/已发货/已完成/申请退款); 净GMV在末尾扣申请退款金额
         if _st in _PAID_STATUSES:
             gmv += _g
-            if _st == '申请退款':
+            if _st == '待发货':
+                pending += _cnt
+            elif _st == '申请退款':
                 refund += _cnt
                 refund_amount += _g
-        elif _st == '待发货':
-            pending += _cnt
         _key = _d[5:] if len(_d) >= 10 else _d
         if _key not in by_date: by_date[_key] = {"订单数": 0, "GMV": 0}
         if _st in _PAID_STATUSES:

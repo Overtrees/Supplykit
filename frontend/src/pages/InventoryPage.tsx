@@ -120,7 +120,14 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
         var bk=x.sku+'|'+x.warehouse
         var isOpen=batchOpen.includes(bk)
         var batchTrs=[]
-        if(isOpen&&batchData[bk]){
+        var _span = visCols.length + (prodBatch ? 1 : 0)
+        if(isOpen&&batchLoading[bk]){
+          // 展开加载中: 给出视觉反馈(此前无任何提示, 慢网络下像"点了没反应")
+          batchTrs.push(React.createElement('tr',{key:x.id+'-bl',style:{background:'rgba(29,78,216,0.04)'}},React.createElement('td',{colSpan:_span,style:{fontSize:11,color:'var(--muted2)',padding:'6px 12px'}},'⏳ 批次加载中…')))
+        } else if(isOpen&&!batchData[bk]){
+          // 批次拉取失败/异常: 提示重试(收起后再展开会重新拉取)
+          batchTrs.push(React.createElement('tr',{key:x.id+'-be',style:{background:'rgba(239,68,68,0.05)'}},React.createElement('td',{colSpan:_span,style:{fontSize:11,color:'var(--danger)',padding:'6px 12px'}},'批次加载失败，请收起后重新展开')))
+        } else if(isOpen&&batchData[bk]){
           batchData[bk].forEach(function(b,bi){
             var pct=0;if(b.exp_date&&b.prod_date){var dp=Math.abs((new Date(b.exp_date)-new Date(b.prod_date))/86400000);pct=dp>0?Math.max(0,Math.min(100,Math.round(((new Date()-new Date(b.prod_date))/86400000)/dp*100))):0}
             var bcolor=pct>=67?'var(--danger)':(pct>=40?'var(--warning)':'var(--success)')

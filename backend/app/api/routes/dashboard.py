@@ -172,7 +172,21 @@ def dashboard_aux(channel: str = 'jd', db = get_db()):
         so_data = so.get('data', {}) if isinstance(so, dict) else so
     except Exception:
         so_data = {"items": [], "out_of_stock_count": 0, "low_stock_count": 0, "total": 0}
-    return ok({"alerts": alerts, "alertCounts": alert_counts_data, "stockRisk": stock_risk_data, "stockOverview": so_data})
+    # bc(京东主体) 合计缺货 SKU: 同一 SKU 在 B+C 可用合计=0 才算缺货(bbcc 全盘口径,
+    # 与 health.bc 的 SKU 级合计判断一致; 健康卡 bc 视图的缺货列表用它)
+    bc_out = []
+    try:
+        _conn = sqlite3.connect(DB_PATH)
+        _bc_rows = _conn.execute(
+            "SELECT sku, MAX(product_name) FROM inventory "
+            "WHERE channel=? AND warehouse_type IN ('platform','platform_b') "
+            "GROUP BY sku HAVING SUM(available_qty) <= 0 ORDER BY sku LIMIT 100", (channel,)).fetchall()
+        bc_out = [{"sku": str(r[0]), "product_name": str(r[1] or r[0]), "warehouse_type": "bc"} for r in _bc_rows]
+        _conn.close()
+    except Exception:
+        bc_out = []
+    return ok({"alerts": alerts, "alertCounts": alert_counts_data, "stockRisk": stock_risk_data,
+               "stockOverview": so_data, "bcOutOfStock": bc_out})
 
 
 @router.get("/stock-risk")

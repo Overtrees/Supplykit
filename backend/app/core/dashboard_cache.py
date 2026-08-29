@@ -194,8 +194,20 @@ def _rebuild(channel='jd'):
                 "level": "good" if score >= 85 else ("warning" if score >= 60 else "danger")}
     _Z = {"healthy": 0, "warning": 0, "out_of_stock": 0, "total": 0}
     _own_h = _hw.get('own', _Z); _plat_h = _hw.get('platform', _Z); _pb_h = _hw.get('platform_b', _Z)
-    _bc_h = {"healthy": _plat_h.get('healthy',0)+_pb_h.get('healthy',0), "warning": _plat_h.get('warning',0)+_pb_h.get('warning',0),
-             "out_of_stock": _plat_h.get('out_of_stock',0)+_pb_h.get('out_of_stock',0), "total": _plat_h.get('total',0)+_pb_h.get('total',0)}
+    # bc(京东主体) = B+C 按 SKU 合计判断(bbcc 全盘视角): 同一 SKU 在 B 仓与 C 仓的可用/安全线
+    # 先合计再判断健康/偏低/缺货——行级相加会把"单仓缺但合计够"的 SKU 误判为缺货(更不精准)
+    try:
+        _bc_rows = conn.execute(
+            "SELECT SUM(CASE WHEN s_avail >= s_safety THEN 1 ELSE 0 END), "
+            "SUM(CASE WHEN s_avail > 0 AND s_avail < s_safety THEN 1 ELSE 0 END), "
+            "SUM(CASE WHEN s_avail = 0 THEN 1 ELSE 0 END), COUNT(*) "
+            "FROM (SELECT sku, SUM(available_qty) s_avail, SUM(safety_qty) s_safety "
+            "FROM inventory WHERE channel=? AND warehouse_type IN ('platform','platform_b') GROUP BY sku)",
+            (ch,)).fetchone()
+        _bc_h = {"healthy": _bc_rows[0] or 0, "warning": _bc_rows[1] or 0,
+                 "out_of_stock": _bc_rows[2] or 0, "total": _bc_rows[3] or 0}
+    except Exception:
+        _bc_h = _Z
     _all_h = {"healthy": sum(r.get('healthy',0) for r in _hw.values()), "warning": sum(r.get('warning',0) for r in _hw.values()),
               "out_of_stock": sum(r.get('out_of_stock',0) for r in _hw.values()), "total": sum(r.get('total',0) for r in _hw.values())}
     health = {"own": _score_hw(_own_h), "platform": _score_hw(_plat_h), "platform_b": _score_hw(_pb_h),

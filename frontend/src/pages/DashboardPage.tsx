@@ -10,7 +10,7 @@ const periodLabel = { today:'今日', week:'本周', month:'本月' }
 interface DashboardPageProps { onAlert?: (sku: string) => void }
 
 export default function DashboardPage({ onAlert }: DashboardPageProps) {
-  const { dashboard, inventory, qualityLogs, alerts, stockRisk, alertCounts, channel, loading, hammerDashPeriod: periodTab, pageVersion } = useAppStore()
+  const { dashboard, inventory, qualityLogs, alerts, stockRisk, alertCounts, bcOutOfStock, channel, loading, hammerDashPeriod: periodTab, pageVersion } = useAppStore()
   const [healthTab, setHealthTab] = useState(() => { try { return localStorage.getItem('health_tab') || (channel === 'jd' ? 'own' : 'platform') } catch { return channel === 'jd' ? 'own' : 'platform' } })
   const setHealthWithSave = (tab) => { try { localStorage.setItem('health_tab', tab) } catch {} setHealthTab(tab) }
   // GMV 视角切换: total=总GMV(含退款流水) / net=净GMV(剔除退款)——GMV小卡+店铺GMV卡共用
@@ -39,7 +39,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
       const alerts = aux.alerts || []
       const stockRisk = aux.stockRisk || []
       const ov = aux.stockOverview || {}
-      useAppStore.setState({ dashboard: dash, alerts, stockRisk, alertCounts: aux.alertCounts || null, inventory: ov.items || [], _stockOverview: ov, loading: false, dataLoaded: true })
+      useAppStore.setState({ dashboard: dash, alerts, stockRisk, alertCounts: aux.alertCounts || null, bcOutOfStock: aux.bcOutOfStock || [], inventory: ov.items || [], _stockOverview: ov, loading: false, dataLoaded: true })
       setChLoading(false)
       // 首次加载关键数据为空时自动重试（进程重启后缓存未就绪/慢接口超时兜底），最多 3 次
       const _srEmpty = Array.isArray(stockRisk) ? stockRisk.length === 0 : !(stockRisk && stockRisk.items && stockRisk.items.length)
@@ -95,7 +95,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
           api.get('/api/dashboard/aux?channel=' + channel + '&' + _t, {timeout: 60000}),
         ])
         const aux = ax.data || {}
-        useAppStore.setState({ dashboard: s.data, alerts: aux.alerts || [], stockRisk: aux.stockRisk || [], alertCounts: aux.alertCounts || null, inventory: (aux.stockOverview || {}).items || [], loading: false, dataLoaded: true })
+        useAppStore.setState({ dashboard: s.data, alerts: aux.alerts || [], stockRisk: aux.stockRisk || [], alertCounts: aux.alertCounts || null, bcOutOfStock: aux.bcOutOfStock || [], inventory: (aux.stockOverview || {}).items || [], loading: false, dataLoaded: true })
       } catch {} finally { silentBusy.current = false }
     }, 30000)
     return () => clearInterval(timer)
@@ -168,7 +168,9 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
   const riskCritical = _sr.critical != null ? _sr.critical : (_sr.items||[]).filter(x => x.days_to_empty < 3).length
   const riskWarning = _sr.warning != null ? _sr.warning : (_sr.items||[]).filter(x => x.days_to_empty >= 3 && x.days_to_empty < 7).length
     // 缺货列表 = stockOverview.items(本身就是 avail<=0 的缺货SKU, 含warehouse_type)
-  var outOfStockItems = (inventory||[]).slice(0,3)  // 缺货列表前3个(stockOverview.items已是avail<=0)
+  // 缺货列表前3: 按 healthTab 视图维度取源(bc=B+C合计缺货SKU, own/平台=行级过滤)——与各维度缺货计数口径一致
+  var _oosSrc = healthTab === 'bc' ? (bcOutOfStock || []) : (healthTab === 'own' ? (inventory||[]).filter(x => x.warehouse_type === 'own') : (inventory||[]).filter(x => x.warehouse_type === 'platform'))
+  var outOfStockItems = _oosSrc.slice(0,3)
   // 告警 × 仓库维度拆(直接用告警自带 warehouse_type——曾走缺货SKU表 lookup 导致大部分告警误算进C仓)
   function countByWh(items) {
     var result = {b:0, c:0, own:0}

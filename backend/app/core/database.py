@@ -10,7 +10,7 @@ from collections import defaultdict
 from typing import Any, Optional
 
 DB_PATH = os.getenv("SQLITE_PATH", os.path.join(os.path.dirname(__file__), "..", "supplykit.db"))
-SCHEMA_VERSION = 17  # 当前 schema 版本，每次改表结构+1
+SCHEMA_VERSION = 18  # 当前 schema 版本，每次改表结构+1
 
 # 版本化迁移注册表：{目标版本: 迁移函数}
 # 迁移函数签名: def migrate(conn): 执行该版本的 schema 变更
@@ -237,6 +237,30 @@ def _migrate_v17(conn):
         conn.commit()
     except sqlite3.OperationalError:
         pass  # 表已存在则跳过（幂等）
+
+
+# 迁移 v18：订单金额明细化（GMV 口径: total - discount + freight + tax）
+# freight_amount 买家运费(计入GMV) / subsidy_amount 平台补贴(单独拆解, 实际回款=净GMV-补贴)
+# tax_amount 税费(计入GMV) / discount_amount 店铺满减(已扣减, 不计入GMV) / actual_amount 用户实付(派生快照)
+@_register_migration(18)
+def _migrate_v18(conn):
+    import sqlite3
+    for _col, _ddl in [
+        ('freight_amount', 'REAL DEFAULT 0'),
+        ('subsidy_amount', 'REAL DEFAULT 0'),
+        ('tax_amount', 'REAL DEFAULT 0'),
+        ('discount_amount', 'REAL DEFAULT 0'),
+        ('actual_amount', 'REAL DEFAULT 0'),
+    ]:
+        try:
+            conn.execute(f"ALTER TABLE orders ADD COLUMN {_col} {_ddl}")
+        except sqlite3.OperationalError:
+            pass  # 列已存在则跳过（幂等）
+    try:
+        conn.execute("ALTER TABLE orders ADD COLUMN paid_at TEXT DEFAULT ''")
+    except sqlite3.OperationalError:
+        pass
+    conn.commit()
 
 _local = threading.local()
 

@@ -302,6 +302,7 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                 "price": float(data.get('unit_price', data.get('price', 0))),
                 "box_qty": int(float(data.get('box_qty', 0))),
                 "barcode": str(data.get('barcode', ''))[:100],
+                "unit": str(data.get('unit', ''))[:50],
                 "weight": float(data.get('weight', 0)),
                 "volume": float(data.get('volume', 0)),
                 "best_before": str(data.get('best_before', ''))[:50],
@@ -317,9 +318,16 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                 "total_amount": float(data.get('total_amount', 0)),
                 "order_status": str(data.get('order_status', '已完成'))[:50],
                 "ordered_at": str(data.get('ordered_at', ''))[:50],
+                "paid_at": str(data.get('paid_at', ''))[:50],
                 "data_source": data_source,
                 "channel": channel,
                 "barcode": str(data.get('barcode', ''))[:100],
+                # GMV 金额明细(方案A): 缺省 0 平滑; GMV = total - discount + freight + tax
+                "freight_amount": float(data.get('freight_amount', 0) or 0),
+                "subsidy_amount": float(data.get('subsidy_amount', 0) or 0),
+                "tax_amount": float(data.get('tax_amount', 0) or 0),
+                "discount_amount": float(data.get('discount_amount', 0) or 0),
+                "actual_amount": float(data.get('actual_amount', data.get('total_amount', 0)) or 0),
             })
             success += 1
 

@@ -64,10 +64,14 @@ def load_daily_sales(cutoff_days, db, sku_barcode_map=None, channel=None, wareho
     
     # 2. 当天 orders 补充（原始 SQL）
     try:
+        from app.core.dashboard_cache import _PAID_STATUSES
         orders = db.table("orders").select("*").gte("ordered_at", today).execute().data or []
         for o in orders:
             # 软删除订单不计入日销（修复：删单后当天日销仍含该单）
             if o.get("deleted_at"):
+                continue
+            # 统一口径: 只计已支付(待发货/已发货/已完成/申请退款)——当天未付款单不算销量
+            if (o.get('order_status') or '') not in _PAID_STATUSES:
                 continue
             sku = o.get('sku', '')
             if not sku: continue
@@ -233,7 +237,6 @@ def adjust_dashboard_for_order(order, sign):
         if not cached:
             return False
         data = cached['data']
-        total = float(order.get('total_amount', 0) or 0)
         status = order.get('order_status', '')
         qty = 1
         store = order.get('store', '')
@@ -242,29 +245,35 @@ def adjust_dashboard_for_order(order, sign):
 
         s = data.get('summary', {})
         s['total_orders'] = max(0, (s.get('total_orders', 0) or 0) + sign * qty)
+        # GMV 金额 = total - discount + freight + tax(与重建口径一致); 补贴单列(回款拆解)
+        _amt = float(order.get('total_amount', 0) or 0) - float(order.get('discount_amount', 0) or 0) \
+            + float(order.get('freight_amount', 0) or 0) + float(order.get('tax_amount', 0) or 0)
+        _sub = float(order.get('subsidy_amount', 0) or 0)
         # 增量修正必须与重建口径一致: GMV=已支付(待发货/已发货/已完成/申请退款); 净GMV=gmv-退款金额
         if status in _PAID_STATUSES:
-            s['gmv'] = max(0, round((s.get('gmv', 0) or 0) + sign * total, 2))
+            s['gmv'] = max(0, round((s.get('gmv', 0) or 0) + sign * _amt, 2))
+            s['subsidy_amount'] = max(0, round((s.get('subsidy_amount', 0) or 0) + sign * _sub, 2))
             if status == '申请退款':
                 s['refund_count'] = max(0, (s.get('refund_count', 0) or 0) + sign * qty)
-                s['refund_amount'] = max(0, round((s.get('refund_amount', 0) or 0) + sign * total, 2))
+                s['refund_amount'] = max(0, round((s.get('refund_amount', 0) or 0) + sign * _amt, 2))
         elif status == '待发货':
             s['pending_count'] = max(0, (s.get('pending_count', 0) or 0) + sign * qty)
-        # 净 GMV 恒 = gmv - 退款金额(删除退款单时 gmv 与 refund_amount 同减, 净GMV不变——正确)
+        # 净 GMV 恒 = gmv - 退款金额; 实际回款 = 净GMV - 补贴(删除退款单时 gmv 与 refund_amount 同减, 净GMV不变——正确)
         s['net_gmv'] = max(0, round((s.get('gmv', 0) or 0) - (s.get('refund_amount', 0) or 0), 2))
+        s['payout'] = max(0, round((s.get('gmv', 0) or 0) - (s.get('refund_amount', 0) or 0) - (s.get('subsidy_amount', 0) or 0), 2))
 
         for t in data.get('trend', []):
             if t.get('日期') == date_key:
                 if status in _PAID_STATUSES:
                     t['订单数'] = max(0, (t.get('订单数', 0) or 0) + sign * qty)
-                    t['GMV'] = max(0, round((t.get('GMV', 0) or 0) + sign * total, 2))
+                    t['GMV'] = max(0, round((t.get('GMV', 0) or 0) + sign * _amt, 2))
                 break
 
         for st in data.get('stores', []):
             if st.get('name') == store:
                 if status in _PAID_STATUSES:
                     st['orders'] = max(0, (st.get('orders', 0) or 0) + sign * qty)
-                    st['gmv'] = max(0, round((st.get('gmv', 0) or 0) + sign * total, 2))
+                    st['gmv'] = max(0, round((st.get('gmv', 0) or 0) + sign * _amt, 2))
                 break
 
         for sd in data.get('status_distribution', []):

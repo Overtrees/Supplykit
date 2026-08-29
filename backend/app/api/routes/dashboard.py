@@ -31,27 +31,33 @@ def dashboard_summary(channel: str = 'jd', start_date: str = '', end_date: str =
         _conn.execute("PRAGMA busy_timeout=30000")
         _rows = _conn.execute(
             "SELECT substr(ordered_at,1,10) as d, order_status, store, "
-            "SUM(CASE WHEN order_status IN ('待发货','已发货','已完成','申请退款') THEN total_amount ELSE 0 END) as g, COUNT(*) as cnt "
+            "SUM(CASE WHEN order_status IN ('待发货','已发货','已完成','申请退款') THEN total_amount - COALESCE(discount_amount,0) + COALESCE(freight_amount,0) + COALESCE(tax_amount,0) ELSE 0 END) as g, "
+            "SUM(CASE WHEN order_status IN ('待发货','已发货','已完成','申请退款') THEN COALESCE(subsidy_amount,0) ELSE 0 END) as sub, "
+            "COUNT(*) as cnt "
             "FROM orders WHERE channel=? AND (deleted_at='') AND substr(ordered_at,1,10) BETWEEN ? AND ? "
             "GROUP BY d, order_status, store", (channel, start_date, end_date)).fetchall()
         from app.core.dashboard_cache import _PAID_STATUSES
-        gmv = pending = refund = refund_amount = total_orders = paid_orders = 0
+        gmv = pending = refund = refund_amount = subsidy_all = total_orders = paid_orders = 0
         trend = {}
         store_gmv = defaultdict(float)
         store_refund = defaultdict(float)
+        store_subsidy = defaultdict(float)
         funnel = defaultdict(int)
         for r in _rows:
             _d = r[0] or ''
             _st = r[1] or '未知'
             _store = r[2] or ''
             _g = float(r[3] or 0)
-            _cnt = r[4] or 0
+            _sub = float(r[4] or 0)
+            _cnt = r[5] or 0
             total_orders += _cnt
             # GMV=已支付流水(待发货/已发货/已完成/申请退款); 净GMV末尾扣申请退款金额
             if _st in _PAID_STATUSES:
                 gmv += _g
+                subsidy_all += _sub
                 paid_orders += _cnt
                 store_gmv[_store or '其他'] += _g
+                store_subsidy[_store or '其他'] += _sub
                 if _st == '待发货':
                     pending += _cnt
                 elif _st == '申请退款':
@@ -66,7 +72,9 @@ def dashboard_summary(channel: str = 'jd', start_date: str = '', end_date: str =
             funnel[_st] += _cnt
         trend_data = [{"日期": k, "GMV": v["GMV"], "订单数": v["订单数"]} for k, v in sorted(trend.items())]
         stores = [{"name": k, "gmv": round(v, 2), "refund_amount": round(store_refund.get(k, 0), 2),
-                   "net_gmv": round(v - store_refund.get(k, 0), 2)} for k, v in sorted(store_gmv.items(), key=lambda x: -x[1])]
+                   "subsidy_amount": round(store_subsidy.get(k, 0), 2),
+                   "net_gmv": round(v - store_refund.get(k, 0), 2),
+                   "payout": round(v - store_refund.get(k, 0) - store_subsidy.get(k, 0), 2)} for k, v in sorted(store_gmv.items(), key=lambda x: -x[1])]
         # 漏斗(与 dashboard_cache._compute_funnel 同口径)
         _ftotal = total_orders
         _stages = [("总订单", _ftotal, 100.0)]
@@ -113,6 +121,7 @@ def dashboard_summary(channel: str = 'jd', start_date: str = '', end_date: str =
         _conn.close()
         summary = {
             "gmv": round(gmv, 2), "net_gmv": round(gmv - refund_amount, 2), "refund_amount": round(refund_amount, 2),
+            "subsidy_amount": round(subsidy_all, 2), "payout": round(gmv - refund_amount - subsidy_all, 2),
             "total_orders": total_orders, "pending_count": pending, "refund_count": refund,
             "low_stock_count": low_stock, "active_alerts": alert_count,
             "total_products": product_count, "total_suppliers": supplier_count,
@@ -121,7 +130,9 @@ def dashboard_summary(channel: str = 'jd', start_date: str = '', end_date: str =
         return ok({
             "summary": summary,
             "periods": {"custom": {"gmv": round(gmv, 2), "orders": paid_orders, "days": day_count,
-                                   "net_gmv": round(gmv - refund_amount, 2)}},
+                                   "net_gmv": round(gmv - refund_amount, 2),
+                                   "subsidy_amount": round(subsidy_all, 2),
+                                   "payout": round(gmv - refund_amount - subsidy_all, 2)}},
             "trend": trend_data,
             "funnel": funnel_res, "health_index": health,
             "stores": stores,

@@ -126,7 +126,9 @@ def _old_logic(channel, start, end):
             if o.get('order_status') == '申请退款':
                 store_refund[o.get('store', '其他')] += float(o.get('total_amount') or 0)
     stores = [{'name': k, 'gmv': round(v, 2), 'refund_amount': round(store_refund.get(k, 0), 2),
-               'net_gmv': round(v - store_refund.get(k, 0), 2)} for k, v in sorted(store_gmv.items(), key=lambda x: -x[1])]
+               'subsidy_amount': 0.0,
+               'net_gmv': round(v - store_refund.get(k, 0), 2),
+               'payout': round(v - store_refund.get(k, 0), 2)} for k, v in sorted(store_gmv.items(), key=lambda x: -x[1])]
     from app.core.dashboard_cache import _compute_funnel, _compute_health
     funnel = _compute_funnel(orders)
     health = _compute_health(inv)

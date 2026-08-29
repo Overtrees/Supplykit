@@ -189,15 +189,16 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
       <div className="card" style={{borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16,overflow:'hidden'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
           <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>{periodTab === 'custom' ? '自定义' : periodLabel[periodTab]} GMV</div>
-          {/* GMV 视角切换(总=含退款流水 / 净=剔除退款), 样式参考健康小卡 tab */}
+          {/* GMV 视角切换(总=含退款流水 / 净=剔除退款 / 回款=净-平台补贴), 样式参考健康小卡 tab */}
           <div style={{display:'flex',gap:2,background:'var(--bg)',borderRadius:99,padding:2}}>
             <span onClick={function(){setGmvView('total')}} className="clickable" style={{fontSize:9,padding:'2px 6px',borderRadius:99,cursor:'pointer',fontWeight:gmvView==='total'?600:400,background:gmvView==='total'?'var(--card)':'transparent',color:gmvView==='total'?'var(--text)':'var(--muted2)',whiteSpace:'nowrap'}}>总GMV</span>
             <span onClick={function(){setGmvView('net')}} className="clickable" style={{fontSize:9,padding:'2px 6px',borderRadius:99,cursor:'pointer',fontWeight:gmvView==='net'?600:400,background:gmvView==='net'?'var(--card)':'transparent',color:gmvView==='net'?'var(--text)':'var(--muted2)',whiteSpace:'nowrap'}}>净GMV</span>
+            <span onClick={function(){setGmvView('payout')}} className="clickable" style={{fontSize:9,padding:'2px 6px',borderRadius:99,cursor:'pointer',fontWeight:gmvView==='payout'?600:400,background:gmvView==='payout'?'var(--card)':'transparent',color:gmvView==='payout'?'var(--text)':'var(--muted2)',whiteSpace:'nowrap'}}>回款</span>
           </div>
         </div>
         <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:4}}>
           <div className="card-value" style={{fontSize:'clamp(18px,9cqi,30px)',fontWeight:700,lineHeight:1.1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
-            {(() => { const _g = gmvView === 'net' ? (periodMeta.net_gmv != null ? periodMeta.net_gmv : ((periodMeta.gmv||0) - (dashboard?.summary?.refund_amount||0))) : periodMeta.gmv; return '¥' + Number(_g||0).toLocaleString() })()}
+            {(() => { const _g = gmvView === 'net' ? (periodMeta.net_gmv != null ? periodMeta.net_gmv : ((periodMeta.gmv||0) - (dashboard?.summary?.refund_amount||0))) : (gmvView === 'payout' ? (periodMeta.payout != null ? periodMeta.payout : ((periodMeta.gmv||0) - (dashboard?.summary?.refund_amount||0) - (dashboard?.summary?.subsidy_amount||0))) : periodMeta.gmv); return '¥' + Number(_g||0).toLocaleString() })()}
           </div>
           <div className="card-sub" style={{marginTop:4,display:'flex',alignItems:'center',gap:6}}>
             <span>{periodMeta.orders} 单</span>
@@ -210,7 +211,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
                 {pct >= 0 ? '↑' : '↓'} {Math.abs(pct).toFixed(1)}%
               </span>
             })()}
-            <span style={{color:'var(--muted2)',fontSize:10}}>· 日均 ¥{(() => { const _g = gmvView === 'net' ? (periodMeta.net_gmv != null ? periodMeta.net_gmv : ((periodMeta.gmv||0) - (dashboard?.summary?.refund_amount||0))) : periodMeta.gmv; return Math.round((_g||0)/periodDays).toLocaleString() })()}</span>
+            <span style={{color:'var(--muted2)',fontSize:10}}>· 日均 ¥{(() => { const _g = gmvView === 'net' ? (periodMeta.net_gmv != null ? periodMeta.net_gmv : ((periodMeta.gmv||0) - (dashboard?.summary?.refund_amount||0))) : (gmvView === 'payout' ? (periodMeta.payout != null ? periodMeta.payout : ((periodMeta.gmv||0) - (dashboard?.summary?.refund_amount||0) - (dashboard?.summary?.subsidy_amount||0))) : periodMeta.gmv); return Math.round((_g||0)/periodDays).toLocaleString() })()}</span>
           </div>
         </div>
         {/* 微趋势线 */}

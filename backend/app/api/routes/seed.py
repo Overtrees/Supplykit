@@ -367,10 +367,21 @@ def _seed_orders(db, today, skus_data):
     jd_s, ot_s = skus_data['jd'], skus_data['other']
     conn = get_conn()
     cols = ['order_no','store','warehouse','sku','product_name','quantity','unit_price','total_amount',
-            'order_status','ordered_at','paid_at','channel','platform']
+            'order_status','ordered_at','paid_at','channel','platform',
+            'freight_amount','subsidy_amount','tax_amount','discount_amount','actual_amount']
     batch_size = 5000
     total = 0
     batch = []
+    def _amt(q, price):
+        """GMV 金额明细: 部分单带运费/满减/平台补贴, GMV = total - discount + freight + tax"""
+        base = round(q * price, 2)
+        disc = round(base * random.uniform(0.02, 0.10), 2) if random.random() < 0.5 else 0
+        freight = random.choice([0, 0, 0, 6, 8, 12])
+        subsidy = round(base * random.uniform(0.03, 0.12), 2) if random.random() < 0.3 else 0
+        tax = 0.0
+        return {'total_amount': base, 'discount_amount': round(disc, 2), 'freight_amount': freight,
+                'subsidy_amount': round(subsidy, 2), 'tax_amount': tax,
+                'actual_amount': round(base - disc - subsidy + freight + tax, 2)}
     def flush():
         nonlocal batch
         if not batch: return
@@ -404,7 +415,8 @@ def _seed_orders(db, today, skus_data):
                     if not sk: continue
                     q = random.randint(1,4)
                     st = random.choices(['已完成','已发货'],[80,20])[0]
-                    batch.append({'order_no':f'{label.upper()}-L{d:03d}-{lsk[-3:]}','store':sk['store'],'warehouse':random.choice(WH)[0],'sku':sk['sku'],'product_name':sk['name'],'quantity':q,'unit_price':sk['price'],'total_amount':round(q*sk['price'],2),'order_status':st,'ordered_at':dt.strftime('%Y-%m-%d'),'paid_at':dt.strftime('%Y-%m-%d'),'channel':ch,'platform':'京东' if label=='jd' else '天猫'})
+                    _a = _amt(q, sk['price'])
+                    batch.append({'order_no':f'{label.upper()}-L{d:03d}-{lsk[-3:]}','store':sk['store'],'warehouse':random.choice(WH)[0],'sku':sk['sku'],'product_name':sk['name'],'quantity':q,'unit_price':sk['price'],**_a,'order_status':st,'ordered_at':dt.strftime('%Y-%m-%d'),'paid_at':dt.strftime('%Y-%m-%d'),'channel':ch,'platform':'京东' if label=='jd' else '天猫'})
                     total += 1
             for _ in range(cnt):
                 sk = random.choice(_normal_skus if _normal_skus else skus)
@@ -412,7 +424,8 @@ def _seed_orders(db, today, skus_data):
                 st = random.choices(['已完成','已发货','待发货','待确认','申请退款'],[45,18,15,10,7])[0]
                 if random.random() < 0.03: st = '已退货'
                 paid_dt = dt + timedelta(days=random.randint(1,3))
-                batch.append({'order_no':f'{label.upper()}-{ch}{d:03d}-{total:03d}','store':sk['store'],'warehouse':random.choice(WH)[0],'sku':sk['sku'],'product_name':sk['name'],'quantity':q,'unit_price':sk['price'],'total_amount':round(q*sk['price'],2),'order_status':st,'ordered_at':dt.strftime('%Y-%m-%d'),'paid_at':paid_dt.strftime('%Y-%m-%d'),'channel':ch,'platform':'京东' if label=='jd' else '天猫'})
+                _a = _amt(q, sk['price'])
+                batch.append({'order_no':f'{label.upper()}-{ch}{d:03d}-{total:03d}','store':sk['store'],'warehouse':random.choice(WH)[0],'sku':sk['sku'],'product_name':sk['name'],'quantity':q,'unit_price':sk['price'],**_a,'order_status':st,'ordered_at':dt.strftime('%Y-%m-%d'),'paid_at':paid_dt.strftime('%Y-%m-%d'),'channel':ch,'platform':'京东' if label=='jd' else '天猫'})
                 total += 1
                 if len(batch) >= batch_size:
                     flush()

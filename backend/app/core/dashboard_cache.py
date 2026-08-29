@@ -42,16 +42,19 @@ def _compute_period_trends(conn, ch, today):
     periods = {}
     for pname, pdays in [('today', 1), ('week', 7), ('month', 30)]:
         cutoff = (today - timedelta(days=pdays - 1)).isoformat()
-        rows = conn.execute("SELECT ordered_at, SUM(total_amount) as g, SUM(CASE WHEN order_status='申请退款' THEN total_amount ELSE 0 END) as rf, COUNT(*) as cnt FROM orders WHERE channel=? AND ordered_at>=? AND order_status IN ('待发货','已发货','已完成','申请退款') AND (deleted_at='') GROUP BY ordered_at", (ch, cutoff)).fetchall()
+        rows = conn.execute("SELECT ordered_at, SUM(total_amount - COALESCE(discount_amount,0) + COALESCE(freight_amount,0) + COALESCE(tax_amount,0)) as g, SUM(CASE WHEN order_status='申请退款' THEN total_amount - COALESCE(discount_amount,0) + COALESCE(freight_amount,0) + COALESCE(tax_amount,0) ELSE 0 END) as rf, SUM(COALESCE(subsidy_amount,0)) as sub, COUNT(*) as cnt FROM orders WHERE channel=? AND ordered_at>=? AND order_status IN ('待发货','已发货','已完成','申请退款') AND (deleted_at='') GROUP BY ordered_at", (ch, cutoff)).fetchall()
         daily = {}
         for r in rows:
             date_str = r[0][5:] if r[0] else '未知'
-            if date_str not in daily: daily[date_str] = {"gmv": 0, "refund": 0, "orders": 0}
+            if date_str not in daily: daily[date_str] = {"gmv": 0, "refund": 0, "subsidy": 0, "orders": 0}
             daily[date_str]["gmv"] += r[1]
             daily[date_str]["refund"] += r[2]
-            daily[date_str]["orders"] += r[3]
+            daily[date_str]["subsidy"] += r[3]
+            daily[date_str]["orders"] += r[4]
         periods[pname] = {"gmv": sum(v["gmv"] for v in daily.values()), "orders": sum(v["orders"] for v in daily.values()),
-                          "net_gmv": round(sum(v["gmv"] for v in daily.values()) - sum(v["refund"] for v in daily.values()), 2)}
+                          "net_gmv": round(sum(v["gmv"] for v in daily.values()) - sum(v["refund"] for v in daily.values()), 2),
+                          "subsidy_amount": round(sum(v["subsidy"] for v in daily.values()), 2),
+                          "payout": round(sum(v["gmv"] for v in daily.values()) - sum(v["refund"] for v in daily.values()) - sum(v["subsidy"] for v in daily.values()), 2)}
         periods[pname + "_trend"] = [{"日期": k, "GMV": round(v["gmv"], 2), "订单数": v["orders"]} for k, v in sorted(daily.items())]
     return periods
 
@@ -98,29 +101,35 @@ def _rebuild(channel='jd'):
         _c.row_factory = sqlite3.Row
         _c.execute("PRAGMA busy_timeout=30000")
         return _c.execute(
-            "SELECT substr(ordered_at,1,10) as d, order_status, store, SUM(CASE WHEN order_status IN ('待发货','已发货','已完成','申请退款') THEN total_amount ELSE 0 END) as g, COUNT(*) as cnt "
+            "SELECT substr(ordered_at,1,10) as d, order_status, store, "
+            "SUM(CASE WHEN order_status IN ('待发货','已发货','已完成','申请退款') THEN total_amount - COALESCE(discount_amount,0) + COALESCE(freight_amount,0) + COALESCE(tax_amount,0) ELSE 0 END) as g, "
+            "SUM(CASE WHEN order_status IN ('待发货','已发货','已完成','申请退款') THEN COALESCE(subsidy_amount,0) ELSE 0 END) as sub, "
+            "COUNT(*) as cnt "
             "FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at='') GROUP BY d, order_status, store",
             (ch, _cut90)).fetchall()
     all_rows = _q_all()
 
-    # 一遍遍历 all_rows 拆: gmv/pending/refund/refund_amount/total + trend + status_dist + stores + 30天周期(ps/pf)
-    gmv = pending = refund = refund_amount = total_orders = 0
+    # 一遍遍历 all_rows 拆: gmv/pending/refund/refund_amount/subsidy/total + trend + status_dist + stores + 30天周期(ps/pf)
+    gmv = pending = refund = refund_amount = subsidy_all = total_orders = 0
     by_date = {}
     _status_agg = {}
     _store_map = {}
     _ps_agg = {}
     _ps_refund = {}
+    _ps_subsidy = {}
     _pf_agg = {}
     for r in all_rows:
         _d = r[0] or ''
         _st = r[1] or '未知'
         _store = r[2] or ''
         _g = r[3] or 0
-        _cnt = r[4] or 0
+        _sub = r[4] or 0
+        _cnt = r[5] or 0
         total_orders += _cnt
         # GMV=已支付流水(待发货/已发货/已完成/申请退款); 净GMV在末尾扣申请退款金额
         if _st in _PAID_STATUSES:
             gmv += _g
+            subsidy_all += _sub
             if _st == '待发货':
                 pending += _cnt
             elif _st == '申请退款':
@@ -132,16 +141,18 @@ def _rebuild(channel='jd'):
             by_date[_key]["订单数"] += _cnt
             by_date[_key]["GMV"] += _g
         _status_agg[_st] = _status_agg.get(_st, 0) + _cnt
-        _sm = _store_map.setdefault(_store, {"name": _store, "orders": 0, "gmv": 0, "refund_amount": 0})
+        _sm = _store_map.setdefault(_store, {"name": _store, "orders": 0, "gmv": 0, "refund_amount": 0, "subsidy_amount": 0})
         if _st in _PAID_STATUSES:
             _sm["orders"] += _cnt
             _sm["gmv"] += _g
+            _sm["subsidy_amount"] += _sub
             if _st == '申请退款':
                 _sm["refund_amount"] += _g
         if _d >= _month_cut:
             _pf_agg[(_d, _st)] = _pf_agg.get((_d, _st), 0) + _cnt
             if _st in _PAID_STATUSES:
                 _ps_agg[(_d, _store)] = _ps_agg.get((_d, _store), 0) + _g
+                _ps_subsidy[(_d, _store)] = _ps_subsidy.get((_d, _store), 0) + _sub
                 if _st == '申请退款':
                     _ps_refund[(_d, _store)] = _ps_refund.get((_d, _store), 0) + _g
     trend = [{"日期": k, **v} for k, v in sorted(by_date.items())]
@@ -149,7 +160,9 @@ def _rebuild(channel='jd'):
     store_rows = sorted(_store_map.values(), key=lambda x: x['name'])
     stores = [{"name": r["name"], "orders": r["orders"], "gmv": r["gmv"],
                "refund_amount": round(r.get("refund_amount", 0), 2),
-               "net_gmv": round(r["gmv"] - r.get("refund_amount", 0), 2)} for r in store_rows]
+               "subsidy_amount": round(r.get("subsidy_amount", 0), 2),
+               "net_gmv": round(r["gmv"] - r.get("refund_amount", 0), 2),
+               "payout": round(r["gmv"] - r.get("refund_amount", 0) - r.get("subsidy_amount", 0), 2)} for r in store_rows]
     
     # SQL 聚合替代 Python 遍历(等价重构: 同一 inventory, CASE与Python比较一致)
     _store_low_rows = conn.execute(
@@ -196,12 +209,17 @@ def _rebuild(channel='jd'):
         cutoff_str = cutoff.isoformat()
         _store_gmv = {}
         _store_refund = {}
+        _store_subsidy = {}
         for (d, s), g in _ps_agg.items():
             if d >= cutoff_str: _store_gmv[s] = _store_gmv.get(s, 0) + g
         for (d, s), rf in _ps_refund.items():
             if d >= cutoff_str: _store_refund[s] = _store_refund.get(s, 0) + rf
+        for (d, s), su in _ps_subsidy.items():
+            if d >= cutoff_str: _store_subsidy[s] = _store_subsidy.get(s, 0) + su
         period_stores[pname] = [{"name": k, "gmv": v, "refund_amount": round(_store_refund.get(k, 0), 2),
-                                 "net_gmv": round(v - _store_refund.get(k, 0), 2)} for k, v in sorted(_store_gmv.items())]
+                                 "subsidy_amount": round(_store_subsidy.get(k, 0), 2),
+                                 "net_gmv": round(v - _store_refund.get(k, 0), 2),
+                                 "payout": round(v - _store_refund.get(k, 0) - _store_subsidy.get(k, 0), 2)} for k, v in sorted(_store_gmv.items())]
         _st_cnt = {}
         for (d, st), c in _pf_agg.items():
             if d >= cutoff_str: _st_cnt[st] = _st_cnt.get(st, 0) + c
@@ -222,6 +240,7 @@ def _rebuild(channel='jd'):
     return {
         "summary": {
             "gmv": round(gmv, 2), "net_gmv": round(gmv - refund_amount, 2), "refund_amount": round(refund_amount, 2),
+            "subsidy_amount": round(subsidy_all, 2), "payout": round(gmv - refund_amount - subsidy_all, 2),
             "pending_count": pending, "refund_count": refund,
             "low_stock_count": low_stock, "total_orders": total_orders,
             "total_products": product_count, "total_suppliers": supplier_count, "active_alerts": alert_count,

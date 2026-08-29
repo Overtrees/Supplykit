@@ -10,7 +10,7 @@ from collections import defaultdict
 from typing import Any, Optional
 
 DB_PATH = os.getenv("SQLITE_PATH", os.path.join(os.path.dirname(__file__), "..", "supplykit.db"))
-SCHEMA_VERSION = 19  # 当前 schema 版本，每次改表结构+1
+SCHEMA_VERSION = 20  # 当前 schema 版本，每次改表结构+1
 
 # 版本化迁移注册表：{目标版本: 迁移函数}
 # 迁移函数签名: def migrate(conn): 执行该版本的 schema 变更
@@ -272,13 +272,29 @@ def _migrate_v19(conn):
         conn.execute("ALTER TABLE alerts ADD COLUMN warehouse_type TEXT DEFAULT ''")
     except sqlite3.OperationalError:
         pass
-    # 存量告警回填: 取该 SKU 在库存表中优先出现的仓库主体(无法区分多仓时取第一条)
+    # 存量告警回填: 优先取该 SKU 有低库存风险(available_qty<safety_qty)的库存行仓主体
     try:
         conn.execute("""UPDATE alerts SET warehouse_type = (
             SELECT i.warehouse_type FROM inventory i
             WHERE i.channel = alerts.channel AND i.sku = alerts.related_sku
-            ORDER BY i.warehouse_type LIMIT 1
-        ) WHERE warehouse_type = '' AND related_sku != ''""")
+            ORDER BY (i.available_qty < i.safety_qty) DESC, i.warehouse_type LIMIT 1
+        ) WHERE related_sku != ''""")
+    except sqlite3.OperationalError:
+        pass
+    conn.commit()
+
+
+# 迁移 v20：修正 v19 回填——曾用 MIN(warehouse_type) 按字母序把 own 排最前,
+# 全部 SKU 被回填成 own(分布失真)。改为"低库存风险仓优先"后重刷。
+@_register_migration(20)
+def _migrate_v20(conn):
+    import sqlite3
+    try:
+        conn.execute("""UPDATE alerts SET warehouse_type = (
+            SELECT i.warehouse_type FROM inventory i
+            WHERE i.channel = alerts.channel AND i.sku = alerts.related_sku
+            ORDER BY (i.available_qty < i.safety_qty) DESC, i.warehouse_type LIMIT 1
+        ) WHERE related_sku != ''""")
     except sqlite3.OperationalError:
         pass
     conn.commit()

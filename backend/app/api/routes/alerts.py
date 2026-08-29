@@ -72,19 +72,24 @@ def _grouped_query(conn, channel, per_group_limit, status):
             [status] + ch_p + [per_group_limit]).fetchall():
             rows.append(dict(zip(_ALERT_FIELDS, r)))
     # warehouse_type 兜底: 规则/补货/滞销等生成路径未写该列的告警, 查询时按 SKU 从库存补
-    # (批量一次查, 避免逐行子查询) —— 看板 B/C/自有 分布据此精确化(曾走缺货SKU表 lookup 失真)
+    # (一次查询按"低库存风险仓优先"排序, Python 每 SKU 取最优) —— 看板 B/C/自有 分布据此精确化
     _miss = [r for r in rows if not (r.get('warehouse_type') or '')]
     if _miss:
         try:
             _skus = list(dict.fromkeys(str(r.get('related_sku') or '') for r in _miss if r.get('related_sku')))
             if _skus:
                 _p = ",".join('?' * len(_skus))
-                _wh = {str(r[0]): (r[1] or '') for r in conn.execute(
-                    f"SELECT sku, MIN(warehouse_type) FROM inventory WHERE channel=? AND sku IN ({_p}) GROUP BY sku",
-                    [channel] + _skus).fetchall()}
+                _rows = conn.execute(
+                    f"SELECT sku, warehouse_type FROM inventory WHERE channel=? AND sku IN ({_p}) "
+                    f"ORDER BY (available_qty < safety_qty) DESC, sku, warehouse_type",
+                    [channel] + _skus).fetchall()
+                _best = {}
+                for _s, _w in _rows:
+                    if _s not in _best:
+                        _best[_s] = _w or ''
                 for r in _miss:
-                    if r.get('related_sku') in _wh:
-                        r['warehouse_type'] = _wh[r['related_sku']]
+                    if r.get('related_sku') in _best:
+                        r['warehouse_type'] = _best[r['related_sku']]
         except Exception:
             pass
     return rows, _counts(conn, ch_sql, ch_p, status)

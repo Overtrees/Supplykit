@@ -71,13 +71,18 @@ def setup_module():
 
 
 class TestStockRisk:
-    def test_returns_list(self):
+    def test_returns_payload(self):
         r = client.get("/api/dashboard/stock-risk")
         assert r.status_code == 200 and is_ok(r)
-        assert isinstance(unwrap(r), list)
+        d = unwrap(r)
+        # 新结构: {items, total, critical, warning}——完整性与可观测性
+        assert isinstance(d, dict)
+        assert isinstance(d.get("items"), list)
+        assert isinstance(d.get("total"), int)
+        assert d.get("total") == len(d.get("items", []))
 
     def test_sku_t01_included(self):
-        skus = [x["sku"] for x in unwrap(client.get("/api/dashboard/stock-risk"))]
+        skus = [x["sku"] for x in unwrap(client.get("/api/dashboard/stock-risk")).get("items", [])]
         assert "SKU-T01" in skus
 
 

@@ -42,7 +42,8 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
       useAppStore.setState({ dashboard: dash, alerts, stockRisk, alertCounts: aux.alertCounts || null, inventory: ov.items || [], _stockOverview: ov, loading: false, dataLoaded: true })
       setChLoading(false)
       // 首次加载关键数据为空时自动重试（进程重启后缓存未就绪/慢接口超时兜底），最多 3 次
-      if ((!dash || stockRisk.length === 0) && seq === reqSeq.current) {
+      const _srEmpty = Array.isArray(stockRisk) ? stockRisk.length === 0 : !(stockRisk && stockRisk.items && stockRisk.items.length)
+      if ((!dash || _srEmpty) && seq === reqSeq.current) {
         let retries = 0
         const timer = setInterval(() => {
           retries += 1
@@ -56,7 +57,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
             const rv2 = r2.status === 'fulfilled' ? (r2.value.data || []) : []
             useAppStore.setState({
               dashboard: d2 || useAppStore.getState().dashboard,
-              stockRisk: rv2.length ? rv2 : useAppStore.getState().stockRisk,
+              stockRisk: (Array.isArray(rv2) ? rv2.length : (rv2 && rv2.items && rv2.items.length)) ? rv2 : useAppStore.getState().stockRisk,
             })
             if (d2 && rv2.length) clearInterval(timer)
           })
@@ -162,8 +163,10 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
   const nonReplenishTotal = (alertCounts && alertCounts.non_replenish != null) ? alertCounts.non_replenish : lowStockAlerts.length
   const replenishTotal = _acType.replenish != null ? _acType.replenish : replenishAlerts.length
   const periodDays = periodTab === 'custom' ? (periodMeta?.days || 30) : ({today:1,week:7,month:30}[periodTab]||30)
-  const riskCritical = (stockRisk||[]).filter(x => x.days_to_empty < 3).length
-  const riskWarning = (stockRisk||[]).filter(x => x.days_to_empty >= 3 && x.days_to_empty < 7).length
+  // 濒临断货: 兼容旧数组/新{items,total,critical,warning}结构——卡上大数字/紧急警告用全量计数(完整性)
+  const _sr = Array.isArray(stockRisk) ? {items: stockRisk, total: stockRisk.length} : (stockRisk || {items: [], total: 0, critical: 0, warning: 0})
+  const riskCritical = _sr.critical != null ? _sr.critical : (_sr.items||[]).filter(x => x.days_to_empty < 3).length
+  const riskWarning = _sr.warning != null ? _sr.warning : (_sr.items||[]).filter(x => x.days_to_empty >= 3 && x.days_to_empty < 7).length
     // 缺货列表 = stockOverview.items(本身就是 avail<=0 的缺货SKU, 含warehouse_type)
   var outOfStockItems = (inventory||[]).slice(0,3)  // 缺货列表前3个(stockOverview.items已是avail<=0)
   // 告警 × 仓库维度拆(直接用告警自带 warehouse_type——曾走缺货SKU表 lookup 导致大部分告警误算进C仓)
@@ -208,7 +211,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
               if (!prev) return null
               const pct = ((last - prev) / prev * 100)
               return <span style={{fontSize:11,fontWeight:600,color:pct >= 0 ? 'var(--success)' : '#ef4444'}}>
-                {pct >= 0 ? '↑' : '↓'} {Math.abs(pct).toFixed(1)}%
+                {pct >= 0 ? '↑' : '↓'} {Math.abs(pct).toFixed(1)}% <span style={{fontSize:9,fontWeight:400,color:'var(--muted2)'}}>较昨日</span>
               </span>
             })()}
             <span style={{color:'var(--muted2)',fontSize:10}}>· 日均 ¥{(() => { const _g = gmvView === 'net' ? (periodMeta.net_gmv != null ? periodMeta.net_gmv : ((periodMeta.gmv||0) - (dashboard?.summary?.refund_amount||0))) : (gmvView === 'payout' ? (periodMeta.payout != null ? periodMeta.payout : ((periodMeta.gmv||0) - (dashboard?.summary?.refund_amount||0) - (dashboard?.summary?.subsidy_amount||0))) : periodMeta.gmv); return Math.round((_g||0)/periodDays).toLocaleString() })()}</span>
@@ -307,7 +310,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
             {healthData.out_of_stock > 0 && outOfStockItems.length > 0 && <div style={{marginTop:4}}>
               {outOfStockItems.map((x,i) => (
                 <div key={i} style={{fontSize:9,color:'var(--muted2)',lineHeight:1.5,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-                  <span style={{color:'var(--muted)'}}>{i+1}.</span> {x.product_name || x.sku} <span style={{fontSize:8,color:'var(--muted)',background:'var(--bg)',padding:'0 4px',borderRadius:4}}>{healthTab === 'own' ? '自有' : channel === 'jd' ? (healthTab === 'bc' ? 'BC' : 'C仓') : '平台'}</span>
+                  <span style={{color:'var(--muted)'}}>{i+1}.</span> {x.product_name || x.sku} <span style={{fontSize:8,color:'var(--muted)',background:'var(--bg)',padding:'0 4px',borderRadius:4}}>{x.warehouse_type === 'platform_b' ? 'B' : x.warehouse_type === 'own' ? '自有' : (x.warehouse_type === 'platform' ? 'C仓' : '平台')}</span>
                 </div>
               ))}
             </div>}
@@ -318,20 +321,20 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
       {/* 4. 濒临断货 TOP10 — 加危急/{t("dash.alert_warning")}分层 */}
       <div className="card" style={{borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16,overflow:'hidden'}}>
         <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>{t("dash.risk")}</div>
-        {(!stockRisk || stockRisk.length === 0)
+        {(!_sr.items || _sr.items.length === 0)
           ? <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:2}}>
               <div style={{fontSize:14,fontWeight:400,color:'var(--muted2)'}}>{t("dash.stock_ok")}</div>
             </div>
           : <>
               <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:4}}>
-                <div className="card-value" style={{fontSize:'clamp(18px,9cqi,30px)',fontWeight:700,lineHeight:1.1,color:'#ef4444'}}>{stockRisk.length}</div>
-                <div className="card-sub" style={{marginTop:4}}>{t("dash.min_days")} {stockRisk[0].days_to_empty} {t("dash.days_out")}</div>
+                <div className="card-value" style={{fontSize:'clamp(18px,9cqi,30px)',fontWeight:700,lineHeight:1.1,color:'#ef4444'}}>{_sr.total}</div>
+                <div className="card-sub" style={{marginTop:4}}>{t("dash.min_days")} {_sr.items[0].days_to_empty} {t("dash.days_out")}</div>
                 {(riskCritical > 0 || riskWarning > 0) && <div style={{fontSize:10,display:'flex',gap:4,marginTop:3,flexWrap:'wrap'}}>
                   {riskCritical > 0 && <span style={{color:'#ef4444'}}>● {riskCritical} {t("dash.critical")}</span>}
                   {riskWarning > 0 && <span style={{color:'var(--warning)'}}>● {riskWarning} {t("dash.warning")}</span>}
                 </div>}
               </div>
-              {stockRisk.slice(0,3).map((x,i) => (
+              {_sr.items.slice(0,3).map((x,i) => (
                 <div key={i} style={{fontSize:9,color:'var(--muted2)',lineHeight:1.5,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:i===0?4:0}}>
                   {i+1}. {x.product_name || x.sku} <span style={{fontSize:8,color:'var(--muted)',background:'var(--bg)',padding:'0 4px',borderRadius:4}}>{x.type === 'B' ? 'B' : x.type === 'C' ? 'C' : '自有'}</span>
                 </div>

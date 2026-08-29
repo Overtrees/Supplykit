@@ -314,5 +314,10 @@ def stock_risk(channel: str = 'jd'):
         })
 
     result.sort(key=lambda x: x["days_to_empty"])
-    _stock_risk_cache[channel] = {'data': result[:10], 'ts': time.time(), 'ver': db_ver}
-    return ok(result[:10])
+    # 全量计数(完整性): 列表截断 TOP10, 但 total/紧急/警告 必须是全量——卡上大数字不得读截断数
+    _total = len(result)
+    _crit = sum(1 for x in result if x.get("days_to_empty", 999) < 3)
+    _warn = sum(1 for x in result if 3 <= x.get("days_to_empty", 999) < 7)
+    _payload = {"items": result[:10], "total": _total, "critical": _crit, "warning": _warn}
+    _stock_risk_cache[channel] = {'data': _payload, 'ts': time.time(), 'ver': db_ver}
+    return ok(_payload)

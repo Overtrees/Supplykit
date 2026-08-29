@@ -38,6 +38,14 @@ const SYS_FIELDS = [
   {t:'freight',l:'运费',tp:'number'},{t:'category',l:'分类',tp:'string'},
   {t:'brand',l:'品牌',tp:'string'},{t:'spec',l:'规格',tp:'string'},
   {t:'weight',l:'箱重/KG',tp:'number'},{t:'volume',l:'体积/方',tp:'number'},
+  // GMV 金额明细(方案A): 运费/补贴/税费/满减/实付
+  {t:'freight_amount',l:'运费(明细)',tp:'number'},{t:'subsidy_amount',l:'平台补贴',tp:'number'},
+  {t:'tax_amount',l:'税费',tp:'number'},{t:'discount_amount',l:'店铺满减',tp:'number'},
+  {t:'actual_amount',l:'实际支付',tp:'number'},
+  // 供应商导入
+  {t:'supplier_name',l:'供应商名称',tp:'string'},{t:'contact_person',l:'联系人',tp:'string'},
+  {t:'contact_phone',l:'联系电话',tp:'string'},{t:'score',l:'评分',tp:'number'},
+  {t:'status',l:'状态',tp:'string'},
 ]
 const ALIAS = {
   "订单号":"order_no","订单编号":"order_no","采购单号":"order_no",
@@ -51,7 +59,9 @@ const ALIAS = {
   "仓库":"warehouse","京东仓库":"warehouse","发货仓":"warehouse",
   "状态":"order_status","订单状态":"order_status",
   "日期":"ordered_at","订购时间":"ordered_at","下单时间":"ordered_at","入库时间":"paid_at",
-  "供应商":"supplier","供应商名称":"supplier","供应商简码":"supplier_code",
+  "供应商":"supplier","供应商名称":"supplier_name","供应商编码":"supplier_code","供应商编号":"supplier_code","供应商简码":"supplier_code",
+  "联系人":"contact_person","联系电话":"contact_phone","评分":"score",
+  "运费":"freight_amount","折扣":"discount_amount","平台补贴":"subsidy_amount","税费":"tax_amount","税额":"tax_amount","实际支付":"actual_amount","实付金额":"actual_amount",
   "备注":"remark",
   "平台":"platform","订单来源":"platform","来源":"platform",
   "收货人":"sender","收货负责人":"sender",

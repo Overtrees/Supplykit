@@ -529,3 +529,17 @@ feat: 新功能 | fix: Bug | refactor: 重构 | docs: 文档 | test: 测试 | st
 **库存健康卡**（京东主体）：
 - **bc = platform(C仓) + platform_b(B仓) 总和**，不是单独 B 仓——SQL GROUP BY warehouse_type 后 Python 相加
 - 自定义日期 summary 已 SQL 单次扫描聚合；trend GMV 只计已完成、订单数计全部；orders 必须按 channel 过滤
+
+### 15.11 GMV 口径与健康卡/告警口径（2026-08-29 业务口径固化）
+
+**GMV（业务铁律）**：
+- 计入：待发货 / 已发货 / 已完成 / 申请退款（已支付=支付成功即计入）；**不含待确认(待付款)、空状态**
+- 退款：计入总 GMV（支付流水），**净 GMV = 总 GMV − 退款金额**；漏斗(订单阶段分布)=全部状态（两卡不同业务口径，勿混）
+- 金额：`total_amount − discount_amount + freight_amount + tax_amount`（平台补贴 subsidy 单独拆解，**实际回款 = 净GMV − subsidy**）；明细列由迁移 v18 提供，旧订单默认 0 平滑
+- summary/periods/stores 必须带 `net_gmv / refund_amount / subsidy_amount / payout`；前端 GMV 卡 总/净/回款
+
+**日销/补货/滞销**：快照构建、当天订单补充、删单增量修正**必须过滤已支付**（未付款算销量会高估补货/采购日销、误判滞销——曾每天把只有未付款单的 SKU 当有销售）
+
+**告警仓库分布**：alerts 有 `warehouse_type`（迁移 v19）；规则引擎生成写**触发行**仓；存量回填与查询兜底用"最缺仓优先"(avail/safety 比值最小)；**勿用缺货 SKU 表 lookup 推算分布**（漏非缺货 SKU，曾 79% 低库存误算 C 仓）
+
+**健康卡**（京东主体）：**bc = B+C 按 SKU 合计判断**（同一 SKU 在 B+C 可用/安全线先合计再判健康/偏低/缺货），own/平台/platform_b 维度保持行级；bc 缺货列表用合计缺货 SKU

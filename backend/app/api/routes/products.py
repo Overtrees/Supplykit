@@ -121,13 +121,20 @@ def delete_product(pid: int, db = get_db()):
 
 
 @router.post("/batch")
-def batch_products(body: dict, db = get_db()):
-    """批量操作: {action: 'delete'|'restore'|'active'|'inactive'|'purge', ids: [...]}"""
+def batch_products(body: dict, channel: str = '', db = get_db()):
+    """批量操作: {action: 'delete'|'restore'|'active'|'inactive'|'purge', ids: [...]}
+
+    主体隔离: 只允许命中本渠道商品(id 全局唯一但跨渠道误传时禁止生效)
+    """
     from datetime import datetime, UTC
     action = body.get("action", "")
     ids = [int(x) for x in (body.get("ids") or []) if isinstance(x, int) or str(x).isdigit()]
     if not ids:
         return ok({"updated": 0})
+    def _scoped(q):
+        if channel and channel != 'all':
+            return q.eq("channel", channel)
+        return q
     if action in ('delete', 'restore', 'purge'):
         if action == 'delete':
             val = {"deleted_at": datetime.now(UTC).isoformat()}
@@ -135,12 +142,12 @@ def batch_products(body: dict, db = get_db()):
             val = {"deleted_at": ""}
         else:
             # purge 硬删除
-            db.table("products").delete().in_("id", ids).execute()
+            _scoped(db.table("products").delete().in_("id", ids)).execute()
             _emit_products_changed({"action": "batch_purge", "ids": ids})
             return ok({"updated": len(ids)})
-        db.table("products").update(val).in_("id", ids).execute()
+        _scoped(db.table("products").update(val).in_("id", ids)).execute()
     elif action in ('active', 'inactive'):
-        db.table("products").update({"status": 'active' if action == 'active' else 'inactive'}).in_("id", ids).execute()
+        _scoped(db.table("products").update({"status": 'active' if action == 'active' else 'inactive'}).in_("id", ids)).execute()
     else:
         return fail(f"未知操作: {action}")
     _emit_products_changed({"action": f"batch_{action}", "ids": ids})

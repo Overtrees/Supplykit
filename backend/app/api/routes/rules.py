@@ -128,17 +128,21 @@ def permanent_delete_rule(rule_id: int, db = get_db()):
     from app.api.routes.ws import broadcast_sync; broadcast_sync("data.updated")
     return ok({"message": "已永久删除", "id": rule_id})
 
-def _sync_alerts_for_rules(ids: list, disabled: bool, db):
+def _sync_alerts_for_rules(ids: list, disabled: bool, db, channel: str = ''):
     """规则停用/启用时联动对应类型告警（不依赖 related_rule_id，兼容历史遗留告警）
 
     语义：告警按 (alert_type, channel) 与规则类型绑定。
     - 停用/删除：该 (alert_type, channel) 下已无 active 规则 → 整类告警置 inactive
     - 恢复/启用：该类型恢复 active 规则 → 该类 rules_engine 告警恢复 active
+    主体隔离: 传入 channel 时仅收集该渠道规则的 (alert_type, channel)，防跨渠道联动
     """
     # 收集这些规则的 (alert_type, channel)
     pairs = set()
     try:
-        for r in db.table("rules").select("*").in_("id", ids).execute().data:
+        q = db.table("rules").select("*").in_("id", ids)
+        if channel and channel != 'all':
+            q = q.eq("channel", channel)
+        for r in q.execute().data:
             at = r.get('alert_type', '')
             if at:
                 pairs.add((at, r.get('channel', 'jd')))
@@ -169,30 +173,38 @@ def _sync_alerts_for_rules(ids: list, disabled: bool, db):
 
 
 @router.post("/batch")
-def batch_rules(body: dict, db = get_db()):
-    """批量操作: {action: 'delete'|'restore'|'active'|'inactive', ids: [...]}"""
+def batch_rules(body: dict, channel: str = '', db = get_db()):
+    """批量操作: {action: 'delete'|'restore'|'active'|'inactive', ids: [...]}
+
+    主体隔离: 批量操作只允许命中本渠道规则(id 全局唯一但跨渠道误传时禁止生效, 双保险)
+    """
     from datetime import datetime, UTC
     action = body.get("action", "")
     ids = [int(x) for x in (body.get("ids") or []) if isinstance(x, int) or str(x).isdigit()]
     if not ids:
         return ok({"updated": 0})
     _rules_cache.clear(); _bump_rules_version(db)
+    # channel 由前端 api 拦截器自动注入; 'all'/空 表示全局(兼容任务/回收站调用)
+    def _scoped(q):
+        if channel and channel != 'all':
+            return q.eq("channel", channel)
+        return q
     if action == 'delete':
-        db.table("rules").update({"is_active": 0, "deleted_at": datetime.now(UTC).isoformat()}).in_("id", ids).execute()
-        _sync_alerts_for_rules(ids, True, db)
+        _scoped(db.table("rules").update({"is_active": 0, "deleted_at": datetime.now(UTC).isoformat()}).in_("id", ids)).execute()
+        _sync_alerts_for_rules(ids, True, db, channel)
     elif action == 'purge':
         # 批量永久删除（回收站用）：硬删除规则，关联告警一并清理
-        db.table("rules").delete().in_("id", ids).execute()
-        _sync_alerts_for_rules(ids, True, db)
+        _scoped(db.table("rules").delete().in_("id", ids)).execute()
+        _sync_alerts_for_rules(ids, True, db, channel)
     elif action == 'restore':
-        db.table("rules").update({"is_active": 1, "deleted_at": ""}).in_("id", ids).execute()
-        _sync_alerts_for_rules(ids, False, db)
+        _scoped(db.table("rules").update({"is_active": 1, "deleted_at": ""}).in_("id", ids)).execute()
+        _sync_alerts_for_rules(ids, False, db, channel)
     elif action == 'active':
-        db.table("rules").update({"is_active": 1}).in_("id", ids).execute()
-        _sync_alerts_for_rules(ids, False, db)
+        _scoped(db.table("rules").update({"is_active": 1}).in_("id", ids)).execute()
+        _sync_alerts_for_rules(ids, False, db, channel)
     elif action == 'inactive':
-        db.table("rules").update({"is_active": 0}).in_("id", ids).execute()
-        _sync_alerts_for_rules(ids, True, db)
+        _scoped(db.table("rules").update({"is_active": 0}).in_("id", ids)).execute()
+        _sync_alerts_for_rules(ids, True, db, channel)
     else:
         return fail(f"未知操作: {action}")
     try:

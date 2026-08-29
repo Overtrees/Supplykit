@@ -33,12 +33,20 @@ def _compute_funnel(orders):
     return result
 
 def _compute_period_trends(conn, ch, today):
-    """Compute period trends (today/week/month) using SQL."""
+    """Compute period trends (today/week/month) using SQL.
+
+    口径对齐标准 summary: GMV 只计已完成、订单数计全部(曾带 order_status='已完成'
+    → GMV卡"X单"只算已完成, 与漏斗"总订单"分裂, 4420 vs 9700 同周期不一致)
+    """
     from datetime import timedelta, UTC
     periods = {}
     for pname, pdays in [('today', 1), ('week', 7), ('month', 30)]:
         cutoff = (today - timedelta(days=pdays - 1)).isoformat()
-        rows = conn.execute("SELECT ordered_at, SUM(total_amount) as g, COUNT(*) as cnt FROM orders WHERE channel=? AND ordered_at>=? AND order_status='已完成' AND (deleted_at='') GROUP BY ordered_at", (ch, cutoff)).fetchall()
+        rows = conn.execute(
+            "SELECT substr(ordered_at,1,10) as d, "
+            "SUM(CASE WHEN order_status='已完成' THEN total_amount ELSE 0 END) as g, COUNT(*) as cnt "
+            "FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at='') "
+            "GROUP BY d", (ch, cutoff)).fetchall()
         daily = {}
         for r in rows:
             date_str = r[0][5:] if r[0] else '未知'

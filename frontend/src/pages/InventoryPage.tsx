@@ -123,7 +123,7 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
         var _span = visCols.length + (prodBatch ? 1 : 0)
         if(isOpen&&batchLoading[bk]){
           // 展开加载中: 给出视觉反馈(此前无任何提示, 慢网络下像"点了没反应")
-          batchTrs.push(React.createElement('tr',{key:x.id+'-bl',style:{background:'rgba(29,78,216,0.04)'}},React.createElement('td',{colSpan:_span,style:{fontSize:11,color:'var(--muted2)',padding:'6px 12px'}},'⏳ 批次加载中…')))
+          batchTrs.push(React.createElement('tr',{key:x.id+'-bl',style:{background:'rgba(29,78,216,0.06)'}},React.createElement('td',{colSpan:_span,style:{fontSize:11,color:'var(--muted2)',padding:'6px 12px',borderLeft:'3px solid var(--primary)'}},'⏳ 批次加载中…')))
         } else if(isOpen&&!batchData[bk]){
           // 批次拉取失败/异常: 提示重试(收起后再展开会重新拉取)
           batchTrs.push(React.createElement('tr',{key:x.id+'-be',style:{background:'rgba(239,68,68,0.05)'}},React.createElement('td',{colSpan:_span,style:{fontSize:11,color:'var(--danger)',padding:'6px 12px'}},'批次加载失败，请收起后重新展开')))
@@ -138,7 +138,8 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
             else if(col.id==='stock_amount'){var _amt=b.qty*(x.price||0);el=React.createElement('td',{key:col.id,style:{fontSize:11,fontWeight:600,color:_amt>0?'var(--text)':'var(--muted2)'}},_amt>0?'¥'+_amt.toLocaleString():'-')}
             else if(col.id==='turnover')el=React.createElement('td',{key:col.id,style:{fontSize:11,color:'var(--muted2)'}},'-')
             else el=React.createElement('td',{key:col.id,style:{fontSize:11}},'-');return el})
-            batchTrs.push(React.createElement('tr',{key:x.id+'-b'+bi,style:{background:'rgba(29,78,216,0.04)'}},bcells))
+            if(bcells[0] && bcells[0].props){bcells[0]=React.cloneElement(bcells[0],{style:{...(bcells[0].props.style||{}),borderLeft:'3px solid var(--primary)',paddingLeft:14}})}
+            batchTrs.push(React.createElement('tr',{key:x.id+'-b'+bi,style:{background:'rgba(29,78,216,0.06)',outline:'none'}},bcells))
           })
         }        return [React.createElement('tr',{key:x.id,id:'hl-'+x.sku,style:isHL?{background:'rgba(245,158,11,0.15)',outline:'2px solid #f59e0b'}:{}},visCells)].concat(batchTrs)      })}
       </tbody>

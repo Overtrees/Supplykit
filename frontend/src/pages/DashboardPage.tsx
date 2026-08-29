@@ -64,8 +64,14 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
     load()
   }, [channel, pageVersion])
   // 30s 静默自动刷新（不显示 loading 骨架屏，避免闪烁）
-  // 修复: 加 ?t= 绕过前端30s缓存(否则命中缓存不发请求拿旧数据, 静默刷新无效)
-  // 防堆积: busy 标志——上次刷新未完成则跳过本次(避免 summary 慢时并发请求占 worker 阻塞其他)
+  // 规则保存/删除/批量启用停用完成 → 'rules-changed' 事件 → 立即重拉看板。
+  // 覆盖场景: 操作进行中先回到看板(拿到旧值), 操作完成后事件触发即时刷新——无需手动 F5。
+  // 复用 pageVersion 路径(与 navigateTo bumpPageVersion 同一个 useEffect)，改动最小。
+  useEffect(() => {
+    const h = () => { useAppStore.getState().bumpPageVersion() }
+    window.addEventListener('rules-changed', h)
+    return () => window.removeEventListener('rules-changed', h)
+  }, [])
   const silentBusy = useRef(false)
   useEffect(() => {
     const timer = setInterval(async () => {
@@ -321,7 +327,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
 
     <div className="chart-row-3">
       <div className="card" style={{height:'auto',overflow:'visible'}}>
-        <div className="section-title">{t("dash.low_stock")}</div>
+        <div className="section-title">{t("dash.low_stock")}{nonReplenishTotal > 0 ? ` (${nonReplenishTotal})` : ''}</div>
         {lowStockAlerts.length === 0
           ? <div className="small muted" style={{padding:12,textAlign:'center'}}>{t("dash.no_alerts")}</div>
           : lowStockAlerts.slice(0,5).map(x => (
@@ -336,7 +342,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
         {nonReplenishTotal > 5 && <button onClick={()=>setShowAllLowStock(true)} className="clickable" style={{width:'100%',padding:8,border:'none',borderRadius:0,background:'transparent',fontSize:12,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>还有 {nonReplenishTotal - 5} 条...</button>}
       </div>
       <div className="card" style={{height:'auto',overflow:'visible'}}>
-        <div className="section-title">{t("dash.replenish_alert")}</div>
+        <div className="section-title">{t("dash.replenish_alert")}{replenishTotal > 0 ? ` (${replenishTotal})` : ''}</div>
         {replenishAlerts.length === 0
           ? <div className="small muted" style={{padding:12,textAlign:'center'}}>暂无告警</div>
           : replenishAlerts.slice(0,5).map(x => (

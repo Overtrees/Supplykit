@@ -195,6 +195,10 @@ def batch_rules(body: dict, db = get_db()):
         _sync_alerts_for_rules(ids, True, db)
     else:
         return fail(f"未知操作: {action}")
+    try:
+        from app.api.routes.ws import broadcast_sync; broadcast_sync("data.updated")
+    except Exception:
+        pass
     return ok({"updated": len(ids)})
 
 

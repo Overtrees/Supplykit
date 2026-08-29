@@ -435,7 +435,7 @@ def trend_analysis(days: int = 30, channel: str = 'jd', db = get_db()):
         from app.core.database import get_conn as _gconn
         _c = _gconn()
         orders = [{"ordered_at": r[0], "total_amount": r[1], "product_name": r[2]}
-                  for r in _c.execute("SELECT ordered_at, total_amount, product_name FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at='')", (channel, cutoff)).fetchall()]
+                  for r in _c.execute("SELECT ordered_at, total_amount, product_name FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at='') AND order_status IN ('待发货','已发货','已完成','申请退款')", (channel, cutoff)).fetchall()]
         inventory = [{"available_qty": r[0], "safety_qty": r[1]}
                      for r in _c.execute("SELECT available_qty, safety_qty FROM inventory WHERE channel=?", (channel,)).fetchall()]
     except Exception:

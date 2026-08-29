@@ -290,6 +290,10 @@ def adjust_snapshot_for_order(order, sign):
         _qty = int(order.get('quantity', 0) or 0)
         if _qty <= 0 or not _d:
             return False
+        # 统一口径: 快照只含已支付订单——未付款单增删不影响快照(避免与重建不一致)
+        from app.core.dashboard_cache import _PAID_STATUSES
+        if (order.get('order_status') or '') not in _PAID_STATUSES:
+            return False
         # 今天的订单不在快照(走当天 orders 补充), 无需调整
         if _d >= _today:
             return False
@@ -342,6 +346,10 @@ def build_daily_sales_snapshot(db):
     orders = db.table("orders").select("*").gte("ordered_at", start).execute().data or []
     # 软删除订单不进入快照（修复：删单后日销快照仍含该单销量）
     orders = [o for o in orders if not (o.get("deleted_at") or "")]
+    # 统一口径: 只统计已支付订单(待发货/已发货/已完成/申请退款)——未付款(待确认)不算销量,
+    # 否则补货日销高估 + 滞销误判(只有未付款单的SKU被当成有销售)
+    from app.core.dashboard_cache import _PAID_STATUSES
+    orders = [o for o in orders if (o.get('order_status') or '') in _PAID_STATUSES]
     recent = [o for o in orders if str(o.get('ordered_at',''))[:10] < today]
     if not recent:
         return 0

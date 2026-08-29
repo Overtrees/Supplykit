@@ -257,6 +257,7 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                 "available_qty": int(float(data.get('available_qty', 0))),
                 "locked_qty": int(float(data.get('locked_qty', 0))),
                 "in_transit_qty": int(float(data.get('in_transit_qty', 0))),
+                "c_transit": int(float(data.get('c_transit', 0) or 0)),
                 "safety_qty": int(float(data.get('safety_qty', 0))),
             })
             # 若行含生产/截止日期 → 收集批次
@@ -322,6 +323,7 @@ def _run_cleansing(content: bytes, filename: str, mapping_json: str, target: str
                 "barcode": str(data.get('barcode', ''))[:100],
                 "brand": str(data.get('brand', ''))[:100],
                 "unit": str(data.get('unit', ''))[:50],
+                "status": str(data.get('status', 'active'))[:50],
                 "weight": float(data.get('weight', 0)),
                 "volume": float(data.get('volume', 0)),
                 "best_before": str(data.get('best_before', ''))[:50],

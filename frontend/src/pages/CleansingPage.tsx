@@ -46,6 +46,8 @@ const SYS_FIELDS = [
   {t:'supplier_name',l:'供应商名称',tp:'string'},{t:'contact_person',l:'联系人',tp:'string'},
   {t:'contact_phone',l:'联系电话',tp:'string'},{t:'score',l:'评分',tp:'number'},
   {t:'status',l:'状态',tp:'string'},
+  // 进销存B仓
+  {t:'c_transit',l:'B-C调拨在途',tp:'number'},
 ]
 const ALIAS = {
   "订单号":"order_no","订单编号":"order_no","采购单号":"order_no",
@@ -62,6 +64,7 @@ const ALIAS = {
   "供应商":"supplier","供应商名称":"supplier_name","供应商编码":"supplier_code","供应商编号":"supplier_code","供应商简码":"supplier_code",
   "联系人":"contact_person","联系电话":"contact_phone","评分":"score",
   "运费":"freight_amount","折扣":"discount_amount","平台补贴":"subsidy_amount","税费":"tax_amount","税额":"tax_amount","实际支付":"actual_amount","实付金额":"actual_amount",
+  "B-C调拨在途":"c_transit","调拨在途":"c_transit","商品状态":"status","在售":"status","停用":"status",
   "备注":"remark",
   "平台":"platform","订单来源":"platform","来源":"platform",
   "收货人":"sender","收货负责人":"sender",

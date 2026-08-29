@@ -21,6 +21,8 @@ interface AppState {
   prodFilterLen: number
   prodBatchVersion: number
   prodBatchAllReq: number
+  /** 批量面板按钮状态判断: id → is_active(1/0), 页面加载数据后同步 */
+  batchStateMap: Record<number, number>
   hammerDashPeriod: string; hammerInsightsTab: string; hammerReplenMode: string
   hammerRulesTab: string; hammerRuleNewVersion: number; hammerRulesMode: string
   hammerWhType: string
@@ -100,6 +102,7 @@ export const useAppStore = create((set, get) => ({
   prodSelIds: [],
   prodFilterLen: 0,
   prodBatchVersion: 0,
+  batchStateMap: {},
   setProdBatchSel: (ids) => set({ prodSelIds: ids }),
   setProdBatchFilterLen: (n) => set({ prodFilterLen: n }),
   bumpProdBatchVersion: () => set((s) => ({ prodBatchVersion: s.prodBatchVersion + 1 })),

@@ -10,7 +10,12 @@ interface HammerProductsProps { channel: string }
 
 export default function HammerProducts({ channel }: HammerProductsProps) {
   const toast = useToast()
-  const { hammerPanel, setHammerPanel, hammerSearch, setHammerSearch, setHammerCols } = useAppStore()
+  const { hammerPanel, setHammerPanel, hammerSearch, setHammerSearch, setHammerCols, prodSelIds, batchStateMap } = useAppStore()
+  // 批量按钮状态判断: 所选全部启用→批量启用禁用; 全部停用→批量停用禁用; 混合→都可用
+  const selSt = prodSelIds || []
+  const stMap = batchStateMap || {}
+  const allActive = selSt.length > 0 && selSt.every(id => stMap[id] === 1)
+  const allInactive = selSt.length > 0 && selSt.every(id => stMap[id] === 0)
   const [localSearch, setLocalSearch] = useDebouncedSearch(hammerSearch, setHammerSearch)
   const [visCols, setVisCols] = useState(() => getProdVis(channel) || PRODUCT_COLS.map(c => c.id))
 
@@ -73,11 +78,11 @@ export default function HammerProducts({ channel }: HammerProductsProps) {
             <button className="hammer-btn btn-ghost" onClick={() => { const s = useAppStore.getState(); if (!s.prodBatch) s.setProdBatch(true); s.requestProdBatchAll() }}>全选/取消</button>
           </div>
           <div className="hammer-btn-row" style={{marginTop:8}}>
-            <button className="hammer-btn btn-ghost" style={{color:'var(--success)', opacity: batchBusy ? 0.5 : 1}} disabled={batchBusy} onClick={() => runBatch('active','启用')}>批量启用</button>
-            <button className="hammer-btn btn-ghost" style={{color:'var(--warning)', opacity: batchBusy ? 0.5 : 1}} disabled={batchBusy} onClick={() => runBatch('inactive','停用')}>批量停用</button>
-            <button className="hammer-btn btn-ghost" style={{color:'var(--danger)', opacity: batchBusy ? 0.5 : 1}} disabled={batchBusy} onClick={() => runBatch('delete','删除')}>批量删除</button>
+              <button className="hammer-btn btn-ghost" style={{color:'var(--success)', opacity:(batchBusy||selSt.length===0||allActive)?0.4:1}} disabled={batchBusy||selSt.length===0||allActive} onClick={() => runBatch('active','启用')}>批量启用</button>
+              <button className="hammer-btn btn-ghost" style={{color:'var(--warning)', opacity:(batchBusy||selSt.length===0||allInactive)?0.4:1}} disabled={batchBusy||selSt.length===0||allInactive} onClick={() => runBatch('inactive','停用')}>批量停用</button>
+              <button className="hammer-btn btn-ghost" style={{color:'var(--danger)', opacity:(batchBusy||selSt.length===0)?0.4:1}} disabled={batchBusy||selSt.length===0} onClick={() => runBatch('delete','删除')}>批量删除</button>
           </div>
-          <div className="muted2 text-10" style={{marginTop:8}}>勾选商品后在此批量操作</div>
+          <div className="muted2 text-10" style={{marginTop:8}}>勾选商品后在此批量操作{allActive?' · 所选商品已全部启用':allInactive?' · 所选商品已全部停用':''}</div>
         </div>
       )}
       {hammerPanel === 'columns' && (

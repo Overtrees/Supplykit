@@ -128,6 +128,10 @@ export default function RulesPage() {
       const newData = Array.isArray(rawData) ? rawData : []
       addDebug('load 返回', {status: r.status, 条数: newData.length, ids: newData.map(x=>x.id).slice(0,10)})
       setRules(newData)
+      // 同步批量面板状态判断数据(id → is_active)
+      const _m = {}
+      ;(newData || []).forEach(r => { if (r && r.id) _m[r.id] = r.is_active ? 1 : 0 })
+      useAppStore.setState({ batchStateMap: _m })
       setRulesErr(Array.isArray(rawData) ? '' : (r.status !== 200 ? '加载失败，可能是网络异常或服务暂不可用' : '返回数据格式异常'))
       addDebug('setRules 完成', {条数: newData.length})
     } catch(e) { addDebug('load 异常', {error: e.message}); setRulesErr('加载失败，可能是网络异常或服务暂不可用') } 

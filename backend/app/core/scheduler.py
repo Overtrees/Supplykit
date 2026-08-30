@@ -507,6 +507,25 @@ def start():
             threading.Thread(target=lambda: build_daily_sales_snapshot(get_db()), daemon=True).start()
     except Exception as e:
         logger.warning(f"[scheduler] snapshot freshness check: {e}")
+    # 快照 watchdog 线程(治理项③): 进程存活期间每 30 分钟查一次快照新鲜度, 陈旧自动重建——
+    # 不依赖 APScheduler CronTrigger(PA 上不可靠, 快照曾停 7/9), 也不依赖进程重启
+    def _snapshot_watchdog():
+        import time as _t
+        from app.core.database import get_conn
+        while True:
+            try:
+                _sn2 = get_conn().execute("SELECT COALESCE(MAX(date),'') FROM daily_sales_snapshot").fetchone()[0]
+                _stale = (not _sn2) or _sn2 < (datetime.now(UTC) - timedelta(days=2)).strftime('%Y-%m-%d')
+                if _stale:
+                    logger.warning(f"[scheduler] watchdog: 日销快照陈旧(max={_sn2}), 自动重建")
+                    from app.core.sales_utils import build_daily_sales_snapshot
+                    from app.core.database import get_db
+                    _n = build_daily_sales_snapshot(get_db())
+                    logger.info(f"[scheduler] watchdog: 快照已重建({_n}行)")
+            except Exception as _e:
+                logger.warning(f"[scheduler] watchdog: {_e}")
+            _t.sleep(1800)  # 30 分钟
+    threading.Thread(target=_snapshot_watchdog, daemon=True).start()
     logger.info(f"Started at {datetime.now(UTC).isoformat()}")
 
 def get_status():

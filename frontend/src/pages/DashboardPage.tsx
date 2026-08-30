@@ -241,6 +241,12 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
   }
   const _acLsWh = (alertCounts && alertCounts.ls_warehouse) || null   // 低库存/其他 组分布
   const _acRpWh = (alertCounts && alertCounts.rp_warehouse) || null   // 补货 组分布
+  // 弹窗内 SKU 仓库标签(跟随补货模式): bbcc→BC合并+自有; 传统→C+自有(不涉B)
+  const _whTag = (wt) => {
+    if (wt === 'own') return '自有'
+    if (wt === 'platform_b' || wt === 'platform') return _replMode === 'bbcc' ? 'BC' : (wt === 'platform' ? 'C' : 'B')
+    return ''
+  }
   const lsWhView = _whView(_acLsWh)
   const rpWhView = _whView(_acRpWh)
 
@@ -461,10 +467,13 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
         <div onClick={function(e){e.stopPropagation()}} className="material-regular" style={{width:"100%",maxWidth:600,borderRadius:32,padding:"18px 14px calc(14px + env(safe-area-inset-bottom))",boxShadow:"var(--shadow-sheet), inset 0 1px 0 rgba(255,255,255,0.25)",pointerEvents:"auto",maxHeight:"70vh",overflowY:"auto"}}>
           <div style={{fontSize:18,fontWeight:700,marginBottom:12,textAlign:'center',color:'var(--text)'}}>低库存告警 · 共 {lowStockTotal} 条</div>
           {(fullAlerts ? fullAlerts.filter(x => x.alert_type !== 'replenish') : lowStockAlerts).map(function(x) {
-            return <div key={x.id} onClick={function(){onAlert && onAlert(x.related_sku)}} className="clickable" style={{padding:'8px 12px',background:'var(--card)',borderRadius:16,marginBottom:6}}>
+            return <div key={x.id} onClick={function(){onAlert && onAlert(x.related_sku, x.warehouse_type)}} className="clickable" style={{padding:'8px 12px',background:'var(--card)',borderRadius:16,marginBottom:6}}>
               <div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'flex-start',marginBottom:2}}>
                 <span style={{fontWeight:600,fontSize:12,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1,minWidth:0}}>{x.title}</span>
-                <span className={'pill '+(x.severity==='error'?'danger':'warning')} style={{flexShrink:0,fontSize:10}}>{x.severity==='warning'?'警告':'超储'}</span>
+                <span style={{display:'inline-flex',gap:4,alignItems:'center',flexShrink:0}}>
+                  {_whTag(x.warehouse_type) ? <span style={{fontSize:9,padding:'1px 6px',borderRadius:99,background:'var(--bg)',color:'var(--muted)'}}>{_whTag(x.warehouse_type)}</span> : null}
+                  <span className={'pill '+(x.severity==='error'?'danger':'warning')} style={{fontSize:10}}>{x.severity==='warning'?'警告':'超储'}</span>
+                </span>
               </div>
               <div className="small muted" style={{fontSize:11}}>{x.description}</div>
             </div>
@@ -481,10 +490,13 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
         <div onClick={function(e){e.stopPropagation()}} className="material-regular" style={{width:"100%",maxWidth:600,borderRadius:32,padding:"18px 14px calc(14px + env(safe-area-inset-bottom))",boxShadow:"var(--shadow-sheet), inset 0 1px 0 rgba(255,255,255,0.25)",pointerEvents:"auto",maxHeight:"70vh",overflowY:"auto"}}>
           <div style={{fontSize:18,fontWeight:700,marginBottom:12,textAlign:'center',color:'var(--text)'}}>补货告警 · 共 {replenishTotal} 条</div>
           {(fullAlerts ? fullAlerts.filter(x => x.alert_type === 'replenish') : replenishAlerts).map(function(x) {
-            return <div key={x.id} onClick={function(){onAlert && onAlert(x.related_sku)}} className="clickable" style={{padding:'8px 12px',background:'var(--card)',borderRadius:16,marginBottom:6}}>
+            return <div key={x.id} onClick={function(){onAlert && onAlert(x.related_sku, x.warehouse_type)}} className="clickable" style={{padding:'8px 12px',background:'var(--card)',borderRadius:16,marginBottom:6}}>
               <div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'flex-start',marginBottom:2}}>
                 <span style={{fontWeight:600,fontSize:12,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1,minWidth:0}}>{x.title}</span>
-                <span className="pill danger" style={{flexShrink:0,fontSize:10}}>补货</span>
+                <span style={{display:'inline-flex',gap:4,alignItems:'center',flexShrink:0}}>
+                  {_whTag(x.warehouse_type) ? <span style={{fontSize:9,padding:'1px 6px',borderRadius:99,background:'var(--bg)',color:'var(--muted)'}}>{_whTag(x.warehouse_type)}</span> : null}
+                  <span className="pill danger" style={{fontSize:10}}>补货</span>
+                </span>
               </div>
               <div className="small muted" style={{fontSize:11}}>{x.description}</div>
             </div>

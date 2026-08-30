@@ -78,6 +78,17 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
     if (seq === reqSeq.current) { setLoading(false); setLoadingMore(false) }
   }
   useEffect(() => { clearCache('with-sales'); setInvPage(1); loadInv(1) }, [whType, globalChannel, s])
+  // 从告警跳转: 高亮 SKU 滚动到可视区(等数据渲染后, 多页时也定位)
+  useEffect(() => {
+    if (!highlightSku) return
+    const t = setTimeout(() => {
+      try {
+        const el = document.getElementById('hl-' + highlightSku)
+        if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      } catch(e) {}
+    }, 400)
+    return () => clearTimeout(t)
+  }, [highlightSku, inventory, whType])
   const handleScroll = (e) => {
     const el = e.target
     if (el.scrollTop + el.clientHeight >= el.scrollHeight - 200 && !loadingMore && inventory.length > 0 && (!invTotal || inventory.length < invTotal)) {

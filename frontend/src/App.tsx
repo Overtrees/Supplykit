@@ -345,8 +345,12 @@ export default function App() {
     return () => mq.removeEventListener('change', syncMeta)
   }, [])
 
-  const navigate = useCallback((newPage, sku) => {
+  const navigate = useCallback((newPage, sku, whType) => {
     if (sku) setHighlightSku(sku)
+    // 从告警跳进销存时同步切到对应仓库维度(own/platform/platform_b), 保证高亮可见
+    if (whType === 'own' || whType === 'platform' || whType === 'platform_b') {
+      useAppStore.getState().setHammerWhType(whType)
+    }
     navigateTo(newPage)
   }, [])
 
@@ -356,7 +360,7 @@ export default function App() {
   const renderPage = (pageId) => {
     const wrap = (el) => <ErrorBoundary key={pageId}>{el}</ErrorBoundary>
     switch (pageId) {
-      case 'dash': return wrap(<DashboardPage key={pageId} onAlert={(s)=>{navigate('inv',s)}} />)
+      case 'dash': return wrap(<DashboardPage key={pageId} onAlert={(s,wt)=>{navigate('inv',s,wt)}} />)
       case 'products': return wrap(<ProductPage key={pageId} />)
       case 'suppliers': return wrap(<SupplierPage key={pageId} />)
       case 'orders': return wrap(<OrdersPage key={pageId} />)

@@ -13,6 +13,12 @@
 | **图表UI** | 店铺/品牌GMV卡标题跟随维度; 品牌维度隐藏底部标签(35+重叠用tooltip); y轴金额改实际千分位(去W); grid.bottom压缩 |
 | **测试** | 117 passed 全绿 |
 
+### 08-30 补充：seed 仓名索引 bug 修复（一键重置填充时暴露）
+- `random.choice(WH)[0]`（元组列表取仓名）改为 `random.choice([w for w,wt in WH if wt=='platform'])[0]` 时语义已变——新表达式结果已是仓名字符串，`[0]` 误取**首字符**（"成都仓"→"成"），订单 warehouse 全变单字 → 快照/库存仓名不匹配 → BBCC 全国 C 仓日销全 0、看板 bcTotal=0
+- 修复 af099179：去掉 `[0]`；reset+fill 后 BBCC 日销恢复(SKU sel=24.6)、BC 维度恢复(bcTotal=205)
+- **教训**：改 `random.choice(元组列表)` 为 `random.choice(字符串列表)` 时不能沿用原下标，须先本地 py_compile + 小样本验证数据形态（而非仅单元测试）
+
+
 ## 2026-08-29 GMV口径业务修正 + 订单金额明细化 + 告警/健康卡四维治本
 | 模块 | 改动 |
 |------|------|

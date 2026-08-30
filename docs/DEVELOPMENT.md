@@ -559,3 +559,6 @@ feat: 新功能 | fix: Bug | refactor: 重构 | docs: 文档 | test: 测试 | st
 - **禁从截断列表 filter 出计数/分布**（列表是配额样本，曾 1164 显示成 list 200 分布失真）——一律用后端 counts
 
 **快照自愈（PA 环境）**：启动时 + health snapshot_stale + APScheduler IntervalTrigger 每小时 freshness job 三重保障；**禁 while-True 守护线程**——PA 上会导致 app 整体 500（2026-08-30 实测回退）；CronTrigger 在 PA 不可靠（快照曾停 41 天）。
+
+### 15.13 seed 数据仓名生成教训（2026-08-30）
+`random.choice(WH)[0]`（WH 为 (仓名,类型) 元组列表，[0] 取仓名）若改成 `random.choice([w for w,wt in WH if wt=='platform'])[0]`——新表达式结果已是仓名字符串，末尾 `[0]` 会误取**首字符**（"成都仓"→"成"），订单 warehouse 变单字、快照/库存仓名不匹配、BBCC 全国C仓日销全 0。**改随机选择语义时必须去掉旧下标，并用快照 warehouse 分布诊断核对数据形态**（曾致一键重置填充后看板 bcTotal=0 全链路断）。

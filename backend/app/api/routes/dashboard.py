@@ -284,7 +284,7 @@ def stock_risk(channel: str = 'jd', full: int = 0):
     for wk, wd in daily28_wh.items():
         _base = wk.rsplit('|', 1)[0]
         _w = wk.rsplit('|', 1)[1]
-        if _w in _c_whs or _w in ('', '未知'):  # C仓名 或 无仓归属订单(真实导入可能缺仓列)
+        if _w in _c_whs:  # 只算明确C仓名——源头已杜绝无仓订单(seed只落C仓/清洗未映射预警), 未知归属不入BBCC需求
             _m = daily28_c.setdefault(_base, {})
             for _dd, _qq in wd.items():
                 _m[_dd] = _m.get(_dd, 0) + _qq

@@ -88,7 +88,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             # _c1wh key = key|warehouse (key 可能含 sku|barcode), 拆出仓名
             _base = _wk.rsplit('|', 1)[0]
             _w = _wk.rsplit('|', 1)[1]
-            if _w in _c_whs or _w in ('', '未知'):
+            if _w in _c_whs:  # 只算明确C仓名——源头已杜绝无仓订单, 未知归属不入BBCC需求
                 _agg = daily_28.setdefault(_base, {})
                 for _dd, _qq in _wd.items():
                     _agg[_dd] = _agg.get(_dd, 0) + _qq

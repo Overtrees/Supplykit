@@ -84,9 +84,10 @@ def seed_data():
         ("ORD-008", "SKU-002", 30, 10),
         ("ORD-009", "SKU-002", 20, 20),
     ]
-    for no, sku, qty, days_ago in orders_data:
+    for i, (no, sku, qty, days_ago) in enumerate(orders_data):
         db.table("orders").insert({
             "order_no": no, "sku": sku, "store": "京东自营",
+            "warehouse": "北京" if i % 2 == 0 else "上海",  # C仓归属(与inv_data platform仓一致, BBCC日销可归因)
             "quantity": qty, "ordered_at": (today - timedelta(days=days_ago)).strftime("%Y-%m-%d"),
             "order_status": "已完成", "channel": "jd",
         }).execute()

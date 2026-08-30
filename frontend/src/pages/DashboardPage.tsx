@@ -157,10 +157,17 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
         : gmvView === 'payout' ? (i.payout != null ? i.payout : i.gmv) : i.gmv
     return {
     tooltip: { trigger: 'axis', valueFormatter: (v) => '¥' + Number(v).toLocaleString('zh-CN', {minimumFractionDigits:2,maximumFractionDigits:2}), extraCssText: 'z-index:1000', hideDelay: 100 },
-    xAxis: { type: 'category', data: storeData.map(i => i.name) || [], axisLabel: { fontSize: 9 } },
-    yAxis: { type: 'value', axisLabel: { fontSize: 9, formatter: (v) => v >= 10000 ? (v/10000).toFixed(0) + 'W' : v }, max: (v) => Math.ceil(v.max * 1.2 / 1000) * 1000 },
-    series: [{ type: 'bar', data: storeData.map((i, idx) => ({ value: Math.round(_g(i) * 100) / 100, itemStyle: { color: ['#f59e0b','#06b6d4','#8b5cf6','#ec4899','#10b981','#f97316'][idx % 6] } })) || [] }],
-    grid: { containLabel: true, top: 8, bottom: 16 }
+    // 底部店铺/品牌名: 全量显示不截断; 长名截断+换行; 数量多(品牌35+)时旋转避免重叠
+    xAxis: { type: 'category', data: storeData.map(i => i.name) || [],
+      // 全量显示不省略: 长名截断+省略号; 品牌/店铺多时旋转防重叠; width+overflow 兜底不重叠也不隐藏
+      axisLabel: { fontSize: 8, interval: 0, rotate: storeData.length > 8 ? 35 : 0, margin: 6,
+        formatter: (v) => { const t = String(v||''); if (t.length > 6) return t.slice(0,6)+'…'; return t },
+        width: storeData.length > 8 ? 48 : 64, overflow: 'truncate' } },
+    yAxis: { type: 'value',
+      axisLabel: { fontSize: 8, formatter: (v) => Number(v).toLocaleString('zh-CN', { maximumFractionDigits: 0 }) }, splitNumber: 4,
+      max: (v) => Math.ceil(v.max * 1.15 / 1000) * 1000 },
+    series: [{ type: 'bar', barMaxWidth: 26, data: storeData.map((i, idx) => ({ value: Math.round(_g(i) * 100) / 100, itemStyle: { color: ['#f59e0b','#06b6d4','#8b5cf6','#ec4899','#10b981','#f97316'][idx % 6] } })) || [] }],
+    grid: { containLabel: true, top: 8, bottom: storeData.length > 8 ? 42 : 30, left: 8, right: 12 }
   }}, [dashboard, periodTab, gmvView, _storeDim])
 
   const barOption = useMemo(() => {

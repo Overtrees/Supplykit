@@ -21,6 +21,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
   const [showAllRisk, setShowAllRisk] = useState(false)
   const [showAllOut, setShowAllOut] = useState(false)
   const [fullOut, setFullOut] = useState(null)        // 缺货弹窗完整数据(按当前视图维度)
+  const [oosList, setOosList] = useState(null)        // 当前维度缺货全量(随 healthTab 拉取, 预览+计数+弹窗同源)
   const [fullAlerts, setFullAlerts] = useState(null)   // 告警弹窗完整数据(点击时拉取)
   const [fullRisk, setFullRisk] = useState(null)       // 濒临断货完整列表
   const [chLoading, setChLoading] = useState(false)
@@ -29,6 +30,15 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
   const loadFullAlerts = async () => { try { const r = await api.get('/api/alerts?channel=' + channel + '&limit=5000', {timeout: 60000}); setFullAlerts(r.data || []) } catch(e) { setFullAlerts([]) } }
   const loadFullRisk = async () => { try { const r = await api.get('/api/dashboard/stock-risk?channel=' + channel + '&full=1', {timeout: 60000}); setFullRisk(Array.isArray(r.data) ? r.data : ((r.data && r.data.items) || [])) } catch(e) { setFullRisk([]) } }
   const loadFullOut = async () => { const _wh = healthTab === 'own' ? 'own' : healthTab === 'bc' ? 'bc' : healthTab === 'platform' ? 'platform' : 'platform_b'; try { const r = await api.get('/api/inventory/out-of-stock?channel=' + channel + '&wh=' + _wh, {timeout: 60000}); const d = Array.isArray(r.data) ? r.data : ((r.data && r.data.items) || []); setFullOut(d) } catch(e) { setFullOut([]) } }
+  // 健康卡缺货列表: 随视图维度(own/平台/bc)拉取全量——与 healthData.out_of_stock 计数口径一致
+  // (曾用 stockOverview.items(全渠道LIMIT100)过滤, 维度缺货SKU在窗口外时预览/计数漏显)
+  useEffect(() => {
+    const _wh = healthTab === 'own' ? 'own' : healthTab === 'bc' ? 'bc' : healthTab === 'platform' ? 'platform' : 'platform_b'
+    api.get('/api/inventory/out-of-stock?channel=' + channel + '&wh=' + _wh, {timeout: 60000}).then(r => {
+      const d = Array.isArray(r.data) ? r.data : ((r.data && r.data.items) || [])
+      setOosList(d)
+    }).catch(() => setOosList([]))
+  }, [healthTab, channel])
   const reqSeq = useRef(0)
   useEffect(() => {
     const seq = ++reqSeq.current
@@ -177,8 +187,8 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
   const riskCritical = _sr.critical != null ? _sr.critical : (_sr.items||[]).filter(x => x.days_to_empty < 3).length
   const riskWarning = _sr.warning != null ? _sr.warning : (_sr.items||[]).filter(x => x.days_to_empty >= 3 && x.days_to_empty < 7).length
     // 缺货列表 = stockOverview.items(本身就是 avail<=0 的缺货SKU, 含warehouse_type)
-  // 缺货列表前3: 按 healthTab 视图维度取源(bc=B+C合计缺货SKU, own/平台=行级过滤)——与各维度缺货计数口径一致
-  var _oosSrc = healthTab === 'bc' ? (bcOutOfStock || []) : (healthTab === 'own' ? (inventory||[]).filter(x => x.warehouse_type === 'own') : (inventory||[]).filter(x => x.warehouse_type === 'platform'))
+  // 缺货列表 = 当前视图维度全量(oosList, 随 healthTab 拉取); 未加载时回退旧逻辑
+  var _oosSrc = oosList || (healthTab === 'bc' ? (bcOutOfStock || []) : (healthTab === 'own' ? (inventory||[]).filter(x => x.warehouse_type === 'own') : (inventory||[]).filter(x => x.warehouse_type === 'platform')))
   var outOfStockItems = _oosSrc.slice(0,3)
   // 告警 × 仓库维度拆(直接用告警自带 warehouse_type——曾走缺货SKU表 lookup 导致大部分告警误算进C仓)
   function countByWh(items) {
@@ -324,7 +334,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
                   <span style={{color:'var(--muted)'}}>{i+1}.</span> {x.product_name || x.sku} <span style={{fontSize:8,color:'var(--muted)',background:'var(--bg)',padding:'0 4px',borderRadius:4}}>{healthTab === 'own' ? '自有' : channel === 'jd' ? (healthTab === 'bc' ? 'BC' : 'C仓') : '平台'}</span>
                 </div>
               ))}
-              {_oosSrc.length > 3 && <div onClick={function(){loadFullOut();setShowAllOut(true)}} className="clickable" style={{textAlign:'left',fontSize:10,color:'var(--muted)',padding:'4px 0',cursor:'pointer'}}>还有 {_oosSrc.length - 3} 条...</div>}
+              {_oosSrc.length > 3 && <div onClick={function(){setShowAllOut(true)}} className="clickable" style={{textAlign:'left',fontSize:10,color:'var(--muted)',padding:'4px 0',cursor:'pointer'}}>还有 {_oosSrc.length - 3} 条...</div>}
             </div>}
           </>
         })()}
@@ -338,7 +348,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
               <div style={{fontSize:14,fontWeight:400,color:'var(--muted2)'}}>{t("dash.stock_ok")}</div>
             </div>
           : <>
-              <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:4,paddingTop:6}}>
+              <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:4,paddingTop:12}}>
                 <div className="card-value" style={{fontSize:'clamp(18px,9cqi,30px)',fontWeight:700,lineHeight:1.1,color:'#ef4444'}}>{_sr.total}</div>
                 <div className="card-sub" style={{marginTop:4}}>{t("dash.min_days")} {_sr.items[0].days_to_empty} {t("dash.days_out")}</div>
                 {(riskCritical > 0 || riskWarning > 0) && <div style={{fontSize:10,display:'flex',gap:4,marginTop:3,flexWrap:'wrap'}}>
@@ -347,7 +357,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
                 </div>}
               </div>
               {_sr.items.slice(0,3).map((x,i) => (
-                <div key={i} style={{fontSize:9,color:'var(--muted2)',lineHeight:1.5,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:i===0?4:0}}>
+                <div key={i} style={{fontSize:9,color:'var(--muted2)',lineHeight:1.5,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:i===0?6:0}}>
                   {i+1}. {x.product_name || x.sku} <span style={{fontSize:8,color:'var(--muted)',background:'var(--bg)',padding:'0 4px',borderRadius:4}}>{x.type === 'B' ? 'B' : x.type === 'C' ? 'C' : '自有'}</span>
                 </div>
               ))}
@@ -462,8 +472,8 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
       {showAllOut && <div onClick={function(){setShowAllOut(false)}} style={{position:'fixed',inset:0,zIndex:9998,background:'transparent'}} />}
       {showAllOut && <div style={{position:'fixed',left:0,right:0,bottom:'calc(env(safe-area-inset-bottom) + 14px)',zIndex:9999,display:'flex',justifyContent:'center',padding:'0 14px',pointerEvents:'none'}}>
         <div onClick={function(e){e.stopPropagation()}} className="material-regular" style={{width:"100%",maxWidth:600,borderRadius:32,padding:"18px 14px calc(14px + env(safe-area-inset-bottom))",boxShadow:"var(--shadow-sheet), inset 0 1px 0 rgba(255,255,255,0.25)",pointerEvents:"auto",maxHeight:"70vh",overflowY:"auto"}}>
-          <div style={{fontSize:18,fontWeight:700,marginBottom:12,textAlign:'center',color:'var(--text)'}}>缺货 · 共 {(fullOut || _oosSrc).length} 条</div>
-          {(fullOut || _oosSrc).map(function(x, i) {
+          <div style={{fontSize:18,fontWeight:700,marginBottom:12,textAlign:'center',color:'var(--text)'}}>缺货 · 共 {_oosSrc.length} 条</div>
+          {_oosSrc.map(function(x, i) {
             return <div key={i} className="clickable" style={{padding:'8px 12px',background:'var(--card)',borderRadius:16,marginBottom:6,display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}}>
               <div style={{fontWeight:600,fontSize:12,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',minWidth:0}}>{i+1}. {x.product_name || x.sku}</div>
               <span style={{fontSize:10,color:'var(--muted)',background:'var(--bg)',padding:'0 6px',borderRadius:99,flexShrink:0}}>{x.warehouse_type === 'bc' ? 'BC' : (healthTab === 'own' ? '自有' : channel === 'jd' ? (healthTab === 'bc' ? 'BC' : 'C仓') : '平台')}</span>

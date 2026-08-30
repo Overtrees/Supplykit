@@ -1,3 +1,18 @@
+## 2026-08-30 补货模式全盘口径对齐 + 品牌GMV + 告警仓库维度治本
+| 模块 | 改动 |
+|------|------|
+| **补货模式口径对齐** | BBCC日销改**全国C仓合计**(platform仓名, 曾全渠道含B/自有高估需求); stockRisk B/BC维度同步fused_c; 传统C仓维度改**逐仓日销**(与补货传统引擎一致); 无仓归属订单(空/未知)保守计入, own/B销量不进BBCC需求(精度严格) |
+| **日销渠道隔离** | 当天订单补足4处漏channel过滤(jd/other互混)→load_daily_sales/grouped/补货/采购全按channel隔离 |
+| **品牌GMV维度** | dashboard_cache加brands/period_brands(join products.brand跨店归集, 与stores同构含net_gmv/payout); 前端店铺GMV卡加店铺/品牌切换tab(店铺看盘子/品牌看渗透, 多对多矩阵) |
+| **告警仓库维度治本** | 滞销生成带仓库主体(库存最多仓)+迁移v22回填; 补货告警INSERT带仓+迁移v23回填(曾全unknown致需补货563=bc383+自有63对不上); 待处理卡分布按模式聚合(BBCC→BC合计+自有, 传统→C+自有不涉B, 曾截断列表filter 200vs全量失真) |
+| **滞销/低库存拆分** | alertCounts按alert_type分仓库组(ls/slow/rp); 待处理小卡●低库存(纯low_stock)+●滞销+●需补货独立; 低库存告警卡/弹窗纯化(曾混合滞销) |
+| **断货预警模式联动** | bbcc显示BC合计维度(B+C按SKU合计, 对齐健康卡bc), traditional显示C仓+自有三方仓子tab; stockRisk含items/bcItems/cItems/ownItems四套全量计数 |
+| **看板弹窗完整化** | 濒临断货/缺货/告警弹窗用全量数据+精确计数; SKU点击跳进销存对应仓库维度并高亮(scrollIntoView); 弹窗SKU加按模式仓库标签 |
+| **数据源头仓库口径** | seed订单只落C仓(销售端, 不再随机own/B); 清洗订单导入未映射仓库列预警(防'未知'归仓) |
+| **快照自愈** | 启动+health检查新鲜度陈旧自动重建; APScheduler IntervalTrigger每小时freshness job(替代while-True watchdog——PA上守护线程致app 500已回退); health暴露snapshot_stale/scheduler状态 |
+| **图表UI** | 店铺/品牌GMV卡标题跟随维度; 品牌维度隐藏底部标签(35+重叠用tooltip); y轴金额改实际千分位(去W); grid.bottom压缩 |
+| **测试** | 117 passed 全绿 |
+
 ## 2026-08-29 GMV口径业务修正 + 订单金额明细化 + 告警/健康卡四维治本
 | 模块 | 改动 |
 |------|------|

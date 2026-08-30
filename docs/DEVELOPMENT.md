@@ -543,3 +543,19 @@ feat: 新功能 | fix: Bug | refactor: 重构 | docs: 文档 | test: 测试 | st
 **告警仓库分布**：alerts 有 `warehouse_type`（迁移 v19）；规则引擎生成写**触发行**仓；存量回填与查询兜底用"最缺仓优先"(avail/safety 比值最小)；**勿用缺货 SKU 表 lookup 推算分布**（漏非缺货 SKU，曾 79% 低库存误算 C 仓）
 
 **健康卡**（京东主体）：**bc = B+C 按 SKU 合计判断**（同一 SKU 在 B+C 可用/安全线先合计再判健康/偏低/缺货），own/平台/platform_b 维度保持行级；bc 缺货列表用合计缺货 SKU
+
+### 15.12 补货模式口径 / 品牌GMV / 告警仓库维度（2026-08-30 固化）
+
+**日销口径（补货模式二选一铁律）**：
+- **BBCC 日销 = 全国 C 仓(warehouse_type='platform' 仓名)销量合计**——B 仓是调拨仓不产生零售、自有仓集货不计入；有空仓归属订单(快照归一'未知')才保守计入，own/B 仓销量绝不进 BBCC 需求
+- **传统多仓日销 = 各 C 仓逐仓**，stockRisk C 仓维度用 SKU×仓 逐仓融合
+- **渠道绝对隔离**：日销快照 + 当天订单补足(4处曾漏过滤) + 补货/采购全部 channel 过滤，jd/other 互不混入
+
+**品牌 vs 店铺 GMV（多对多矩阵）**：店铺=store 归集所有订单(与品牌无关)；品牌=products.brand 跨店归集；dashboard_cache 返回 brands/period_brands(与 stores 同构含 net_gmv/payout)，前端店铺GMV卡 店铺|品牌 tab 切换。定位：查店铺 where store，查品牌 where 订单sku→products.brand join。
+
+**告警仓库主体**：
+- 滞销/补货告警生成即写 warehouse_type(该SKU库存最多仓=B/C/自有)；存量回填靠迁移 v22(v23)
+- alertCounts 返回 ls_warehouse(低库存)/slow_warehouse(滞销)/rp_warehouse(补货) 三组按 alert_type 分离 + by_warehouse 汇总——前端分布按补货模式聚合展示(BBCC→BC合计+自有, 传统→C+自有)
+- **禁从截断列表 filter 出计数/分布**（列表是配额样本，曾 1164 显示成 list 200 分布失真）——一律用后端 counts
+
+**快照自愈（PA 环境）**：启动时 + health snapshot_stale + APScheduler IntervalTrigger 每小时 freshness job 三重保障；**禁 while-True 守护线程**——PA 上会导致 app 整体 500（2026-08-30 实测回退）；CronTrigger 在 PA 不可靠（快照曾停 41 天）。

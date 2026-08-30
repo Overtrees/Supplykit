@@ -153,7 +153,8 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
       ? (dashboard?.period_brands?.[periodTab] || dashboard?.brands || [])
       : (dashboard?.period_stores?.[periodTab] || dashboard?.stores || [])
     // GMV 视角切换: 净GMV=总GMV-退款(后端 stores/brands 已带 net_gmv)
-    var _g = (i) => gmvView === 'net' ? (i.net_gmv != null ? i.net_gmv : i.gmv) : i.gmv
+    var _g = (i) => gmvView === 'net' ? (i.net_gmv != null ? i.net_gmv : i.gmv)
+        : gmvView === 'payout' ? (i.payout != null ? i.payout : i.gmv) : i.gmv
     return {
     tooltip: { trigger: 'axis', valueFormatter: (v) => '¥' + Number(v).toLocaleString('zh-CN', {minimumFractionDigits:2,maximumFractionDigits:2}), extraCssText: 'z-index:1000', hideDelay: 100 },
     xAxis: { type: 'category', data: storeData.map(i => i.name) || [], axisLabel: { fontSize: 9 } },
@@ -225,19 +226,18 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
   // 缺货列表 = 当前视图维度全量(oosList, 随 healthTab 拉取); 未加载时回退旧逻辑
   var _oosSrc = oosList || (healthTab === 'bc' ? (bcOutOfStock || []) : (healthTab === 'own' ? (inventory||[]).filter(x => x.warehouse_type === 'own') : (inventory||[]).filter(x => x.warehouse_type === 'platform')))
   var outOfStockItems = _oosSrc.slice(0,3)
-  // 告警 × 仓库维度拆(直接用告警自带 warehouse_type——曾走缺货SKU表 lookup 导致大部分告警误算进C仓)
-  function countByWh(items) {
-    var result = {b:0, c:0, own:0}
-    items.forEach(function(item) {
-      var whType = item.warehouse_type || ''
-      if (whType === 'platform_b') result.b++
-      else if (whType === 'own') result.own++
-      else result.c++
-    })
-    return result
+  // 待处理卡 告警×仓库维度: 用后端精确 by_warehouse(全量), 按补货模式聚合展示——
+  // BBCC 看全盘 B+C(与健康卡bc一致), 传统多仓不涉及B仓。曾用截断列表filter(200样本 vs 全量)
+  function _whView(w) {
+    w = w || {}
+    if (_replMode === 'bbcc') {
+      return { main: (w.b || 0) + (w.c || 0), own: (w.own || 0) }   // BC合计 + 自有
+    }
+    return { main: (w.c || 0), own: (w.own || 0) }                   // C仓 + 自有/三方
   }
-  const lsWh = countByWh(lowStockAlerts)
-  const rpWh = countByWh(replenishAlerts)
+  const _acWh = (alertCounts && alertCounts.by_warehouse) || null
+  const lsWhView = _whView(_acWh)
+  const rpWhView = _whView(_acWh)
 
   if (chLoading) return <div className="card" style={{padding:16}}>{[1,2,3,4,5,6,7].map(i=><div key={i} className="skeleton" style={{height:80,marginBottom:8,borderRadius:24}}/>)}</div>
   if (dashErr && !dashboard) return <ErrorRetry error={dashErr} onRetry={() => { window.__setPage && window.__setPage('dash') }} />
@@ -302,9 +302,9 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
                 <span style={{color:'var(--muted2)'}}>● 需{t("dash.replenish")} {replenishTotal}</span>
               </div>
               <div style={{fontSize:9,display:'flex',gap:6,marginTop:3,color:'var(--muted)'}}>
-                <span>B{lsWh.b} C{lsWh.c} {t("dash.own")}{lsWh.own}</span>
+                <span>{_replMode === 'bbcc' ? 'BC' : 'C'}{lsWhView.main} {t("dash.own")}{lsWhView.own}</span>
                 <span style={{color:'var(--border)'}}>|</span>
-                <span>B{rpWh.b} C{rpWh.c} 自有{rpWh.own}</span>
+                <span>{_replMode === 'bbcc' ? 'BC' : 'C'}{rpWhView.main} 自有{rpWhView.own}</span>
               </div>
             </>}
           </div>
@@ -413,8 +413,6 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
           <span style={{display:'inline-flex',gap:2,background:'var(--bg)',borderRadius:99,padding:2}}>
             <span onClick={function(){setStoreDim('store')}} className="clickable" style={{fontSize:9,padding:'2px 6px',borderRadius:99,cursor:'pointer',fontWeight:_storeDim==='store'?600:400,background:_storeDim==='store'?'var(--card)':'transparent',color:_storeDim==='store'?'var(--text)':'var(--muted2)',whiteSpace:'nowrap'}}>店铺</span>
             <span onClick={function(){setStoreDim('brand')}} className="clickable" style={{fontSize:9,padding:'2px 6px',borderRadius:99,cursor:'pointer',fontWeight:_storeDim==='brand'?600:400,background:_storeDim==='brand'?'var(--card)':'transparent',color:_storeDim==='brand'?'var(--text)':'var(--muted2)',whiteSpace:'nowrap'}}>品牌</span>
-            <span onClick={function(){setGmvView('total')}} className="clickable" style={{fontSize:9,padding:'2px 6px',borderRadius:99,cursor:'pointer',fontWeight:gmvView==='total'?600:400,background:gmvView==='total'?'var(--card)':'transparent',color:gmvView==='total'?'var(--text)':'var(--muted2)',whiteSpace:'nowrap'}}>总</span>
-            <span onClick={function(){setGmvView('net')}} className="clickable" style={{fontSize:9,padding:'2px 6px',borderRadius:99,cursor:'pointer',fontWeight:gmvView==='net'?600:400,background:gmvView==='net'?'var(--card)':'transparent',color:gmvView==='net'?'var(--text)':'var(--muted2)',whiteSpace:'nowrap'}}>净</span>
           </span>
         </div><Chart option={storeOption} height={170} /></div>
     </div>

@@ -211,7 +211,8 @@ def stock_risk(channel: str = 'jd', full: int = 0):
             _d['items'] = _d.get('_all', []) or _d.get('items', [])
             _d['bcItems'] = _d.get('bcAll', []) or _d.get('bcItems', [])
             _d['cItems'] = _d.get('cAll', []) or _d.get('cItems', [])
-            _d.pop('_all', None); _d.pop('bcAll', None); _d.pop('cAll', None)
+            _d['ownItems'] = _d.get('ownAll', []) or _d.get('ownItems', [])
+            _d.pop('_all', None); _d.pop('bcAll', None); _d.pop('cAll', None); _d.pop('ownAll', None)
         return ok(_d)
     """
     濒临断货 TOP 10 — 日销复用三窗口融合值，参考补货建议计算逻辑
@@ -295,6 +296,7 @@ def stock_risk(channel: str = 'jd', full: int = 0):
     c_total = {}   # C 仓：按 sku 汇总（可用+在途）
     b_stock = {}   # B 仓：按 sku 汇总
     bc_total = {}  # B+C 合计（bbcc 全盘视角，按 sku）
+    own_stock = {} # 自有/三方仓：按 sku 汇总(传统模式断货预警 own 维度)
 
     for i in inv:
         wt = i.get("warehouse_type", "")
@@ -304,6 +306,13 @@ def stock_risk(channel: str = 'jd', full: int = 0):
         tty = int(i.get("in_transit_qty", 0) or 0)
         safety = int(i.get("safety_qty", 0) or 0)
         pname = i.get("product_name", "")
+
+        if wt == "own":
+            if sku not in own_stock:
+                own_stock[sku] = {"available": 0, "safety": 0, "transit": 0, "product_name": pname, "warehouse": i.get("warehouse", "")}
+            own_stock[sku]["available"] += qty
+            own_stock[sku]["safety"] += safety
+            own_stock[sku]["transit"] += tty
 
         if wt in ("platform", "platform_b"):
             if sku not in bc_total:
@@ -403,6 +412,26 @@ def stock_risk(channel: str = 'jd', full: int = 0):
             })
     bc_items.sort(key=lambda x: x["days_to_empty"])
 
+    # ── 自有/三方仓维度（传统模式: 集货仓/三方仓 缺货风险, 由采购维度管控）──
+    # own 仓服务于整体销售(采购按系统总库存补), 可撑天数 = own可用 / 全渠道日销
+    own_items = []
+    for sku, st in own_stock.items():
+        avail = st["available"]
+        safety = st["safety"]
+        ds = fused.get(sku, 0)
+        if avail <= 0 or (safety > 0 and avail < safety):
+            days_left = round(avail / ds, 1) if ds > 0 else 999
+            own_items.append({
+                "sku": sku,
+                "barcode": products.get(sku, {}).get("barcode", ""),
+                "product_name": products.get(sku, {}).get("product_name", st["product_name"]),
+                "warehouse": st.get("warehouse", ""), "type": "OWN",
+                "available_qty": avail,
+                "daily_sales": round(ds, 1),
+                "days_to_empty": days_left,
+            })
+    own_items.sort(key=lambda x: x["days_to_empty"])
+
     result.sort(key=lambda x: x["days_to_empty"])
     # 全量计数(完整性): 列表截断 TOP10, 但 total/紧急/警告 必须是全量——卡上大数字不得读截断数
     # C 仓独立维度(传统多仓): result 混排 B(BBCC) + C(传统) 项, individual 传统模式只应显示 C 仓
@@ -416,10 +445,14 @@ def stock_risk(channel: str = 'jd', full: int = 0):
     _bc_total = len(bc_items)
     _bc_crit = sum(1 for x in bc_items if x.get("days_to_empty", 999) < 3)
     _bc_warn = sum(1 for x in bc_items if 3 <= x.get("days_to_empty", 999) < 7)
-    # 缓存保存全量 result/bcAll/cAll(弹窗 full=1 用), 常规返回 top10
+    _own_total = len(own_items)
+    _own_crit = sum(1 for x in own_items if x.get("days_to_empty", 999) < 3)
+    _own_warn = sum(1 for x in own_items if 3 <= x.get("days_to_empty", 999) < 7)
+    # 缓存保存全量 result/bcAll/cAll/ownAll(弹窗 full=1 用), 常规返回 top10
     _payload = {"items": result[:10], "total": _total, "critical": _crit, "warning": _warn, "_all": result,
                 "bcItems": bc_items[:10], "bcTotal": _bc_total, "bcCritical": _bc_crit, "bcWarning": _bc_warn, "bcAll": bc_items,
-                "cItems": _c_items[:10], "cTotal": _ct_total, "cCritical": _ct_crit, "cWarning": _ct_warn, "cAll": _c_items}
+                "cItems": _c_items[:10], "cTotal": _ct_total, "cCritical": _ct_crit, "cWarning": _ct_warn, "cAll": _c_items,
+                "ownItems": own_items[:10], "ownTotal": _own_total, "ownCritical": _own_crit, "ownWarning": _own_warn, "ownAll": own_items}
     _stock_risk_cache[channel] = {'data': _payload, 'ts': time.time(), 'ver': db_ver}
-    _ret = dict(_payload); _ret.pop('_all', None); _ret.pop('bcAll', None); _ret.pop('cAll', None)
+    _ret = dict(_payload); _ret.pop('_all', None); _ret.pop('bcAll', None); _ret.pop('cAll', None); _ret.pop('ownAll', None)
     return ok(_ret)

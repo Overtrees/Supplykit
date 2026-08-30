@@ -19,6 +19,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
   const [showAllLowStock, setShowAllLowStock] = useState(false)
   const [showAllReplenish, setShowAllReplenish] = useState(false)
   const [showAllRisk, setShowAllRisk] = useState(false)
+  const [_riskTab, setRiskTab] = useState('c')   // 传统模式子视图: c=C仓 / own=自有三方仓
   const [showAllOut, setShowAllOut] = useState(false)
   const [fullOut, setFullOut] = useState(null)        // 缺货弹窗完整数据(按当前视图维度)
   const [oosList, setOosList] = useState(null)        // 当前维度缺货全量(随 healthTab 拉取, 预览+计数+弹窗同源)
@@ -193,21 +194,28 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
   // 濒临断货: 兼容旧数组/新{items,total,critical,warning}结构——卡上大数字/紧急警告用全量计数(完整性)
   // 补货模式联动: bbcc→BC 合计维度(对齐库存卡 bc tab: B+C 按 SKU 合计); traditional→C 仓维度
   const _replMode = (channel !== 'jd' && (hammerReplenMode || '') !== 'traditional') ? 'traditional' : (hammerReplenMode || (channel === 'jd' ? 'bbcc' : 'traditional'))
-  const _sr0 = Array.isArray(stockRisk) ? {items: stockRisk, total: stockRisk.length} : (stockRisk || {items: [], total: 0, critical: 0, warning: 0, bcItems: [], bcTotal: 0, bcCritical: 0, bcWarning: 0, cItems: [], cTotal: 0, cCritical: 0, cWarning: 0})
+  const _sr0 = Array.isArray(stockRisk) ? {items: stockRisk, total: stockRisk.length} : (stockRisk || {items: [], total: 0, critical: 0, warning: 0, bcItems: [], bcTotal: 0, bcCritical: 0, bcWarning: 0, cItems: [], cTotal: 0, cCritical: 0, cWarning: 0, ownItems: [], ownTotal: 0, ownCritical: 0, ownWarning: 0})
   if (_replMode === 'bbcc') {
     _sr0.items = _sr0.bcItems || []
     _sr0.total = _sr0.bcTotal != null ? _sr0.bcTotal : (_sr0.items.length)
     _sr0.critical = _sr0.bcCritical != null ? _sr0.bcCritical : (_sr0.items.filter(x => x.days_to_empty < 3).length)
     _sr0.warning = _sr0.bcWarning != null ? _sr0.bcWarning : (_sr0.items.filter(x => x.days_to_empty >= 3 && x.days_to_empty < 7).length)
-  } else if (_sr0.cItems && _sr0.cTotal != null) {
-    // 传统多仓: 只显示 C 仓维度(后端 cItems 独立于混排 items, 避免 B 仓项混入)
+  } else {
+    // 传统多仓: C 仓维度(主) + 自有/三方仓维度(own, 由采购管控)
     _sr0.items = _sr0.cItems || []
-    _sr0.total = _sr0.cTotal
+    _sr0.total = _sr0.cTotal != null ? _sr0.cTotal : (_sr0.items.length)
     _sr0.critical = _sr0.cCritical != null ? _sr0.cCritical : (_sr0.items.filter(x => x.days_to_empty < 3).length)
     _sr0.warning = _sr0.cWarning != null ? _sr0.cWarning : (_sr0.items.filter(x => x.days_to_empty >= 3 && x.days_to_empty < 7).length)
+    _sr0.ownItems = _sr0.ownItems || []
+    _sr0.ownTotal = _sr0.ownTotal != null ? _sr0.ownTotal : (_sr0.ownItems.length)
+    _sr0.ownCritical = _sr0.ownCritical != null ? _sr0.ownCritical : (_sr0.ownItems.filter(x => x.days_to_empty < 3).length)
+    _sr0.ownWarning = _sr0.ownWarning != null ? _sr0.ownWarning : (_sr0.ownItems.filter(x => x.days_to_empty >= 3 && x.days_to_empty < 7).length)
   }
   const _sr = _sr0
-  const riskCritical = _sr.critical != null ? _sr.critical : (_sr.items||[]).filter(x => x.days_to_empty < 3).length
+  const _srOwn = { items: _sr0.ownItems || [], total: _sr0.ownTotal || 0, critical: _sr0.ownCritical || 0, warning: _sr0.ownWarning || 0 }
+  const _showOwn = _replMode === 'traditional' && _riskTab === 'own'
+  const _r = _showOwn ? _srOwn : _sr
+  const riskCritical = _r.critical != null ? _r.critical : (_r.items||[]).filter(x => x.days_to_empty < 3).length
   const riskWarning = _sr.warning != null ? _sr.warning : (_sr.items||[]).filter(x => x.days_to_empty >= 3 && x.days_to_empty < 7).length
     // 缺货列表 = stockOverview.items(本身就是 avail<=0 的缺货SKU, 含warehouse_type)
   // 缺货列表 = 当前视图维度全量(oosList, 随 healthTab 拉取); 未加载时回退旧逻辑
@@ -365,26 +373,32 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
 
       {/* 4. 濒临断货预警 — 全量计数, 弹窗看完整 */}
       <div className="card" style={{borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16,overflow:'hidden'}}>
-        <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>濒临断货预警{_replMode === 'bbcc' ? '（BC）' : '（C仓）'}</div>
-        {(!_sr.items || _sr.items.length === 0)
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>濒临断货预警{_replMode === 'bbcc' ? '（BC）' : (_showOwn ? '（自有三方仓）' : '（C仓）')}</div>
+          {_replMode === 'traditional' && <div style={{display:'flex',gap:2,background:'var(--bg)',borderRadius:99,padding:2}}>
+            <span onClick={function(){setRiskTab('c')}} className="clickable" style={{fontSize:9,padding:'2px 6px',borderRadius:99,cursor:'pointer',fontWeight:!_showOwn?600:400,background:!_showOwn?'var(--card)':'transparent',color:!_showOwn?'var(--text)':'var(--muted2)',whiteSpace:'nowrap'}}>C仓</span>
+            <span onClick={function(){setRiskTab('own')}} className="clickable" style={{fontSize:9,padding:'2px 6px',borderRadius:99,cursor:'pointer',fontWeight:_showOwn?600:400,background:_showOwn?'var(--card)':'transparent',color:_showOwn?'var(--text)':'var(--muted2)',whiteSpace:'nowrap'}}>自有三方</span>
+          </div>}
+        </div>
+        {(!_r.items || _r.items.length === 0)
           ? <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:2}}>
               <div style={{fontSize:14,fontWeight:400,color:'var(--muted2)'}}>{t("dash.stock_ok")}</div>
             </div>
           : <>
               <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:4,paddingTop:12}}>
-                <div className="card-value" style={{fontSize:'clamp(18px,9cqi,30px)',fontWeight:700,lineHeight:1.1,color:'#ef4444'}}>{_sr.total}</div>
-                <div className="card-sub" style={{marginTop:4}}>{t("dash.min_days")} {_sr.items[0].days_to_empty} {t("dash.days_out")}</div>
+                <div className="card-value" style={{fontSize:'clamp(18px,9cqi,30px)',fontWeight:700,lineHeight:1.1,color:'#ef4444'}}>{_r.total}</div>
+                <div className="card-sub" style={{marginTop:4}}>{t("dash.min_days")} {_r.items[0].days_to_empty} {t("dash.days_out")}</div>
                 {(riskCritical > 0 || riskWarning > 0) && <div style={{fontSize:10,display:'flex',gap:4,marginTop:3,flexWrap:'wrap'}}>
                   {riskCritical > 0 && <span style={{color:'#ef4444'}}>● {riskCritical} {t("dash.critical")}</span>}
                   {riskWarning > 0 && <span style={{color:'var(--warning)'}}>● {riskWarning} {t("dash.warning")}</span>}
                 </div>}
               </div>
-              {_sr.items.slice(0,3).map((x,i) => (
+              {_r.items.slice(0,3).map((x,i) => (
                 <div key={i} style={{fontSize:9,color:'var(--muted2)',lineHeight:1.5,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:i===0?6:0}}>
                   {i+1}. {x.product_name || x.sku} <span style={{fontSize:8,color:'var(--muted)',background:'var(--bg)',padding:'0 4px',borderRadius:4}}>{_replMode === 'bbcc' ? 'BC' : (x.warehouse ? x.warehouse : (x.type === 'B' ? 'B' : 'C仓'))}</span>
                 </div>
               ))}
-              {_sr.total > 3 && <button onClick={()=>{loadFullRisk();setShowAllRisk(true)}} className="clickable" style={{width:'100%',padding:'4px 0',border:'none',borderRadius:0,background:'transparent',fontSize:10,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>还有 {_sr.total - 3} 条...</button>}
+              {_r.total > 3 && <button onClick={()=>{loadFullRisk();setShowAllRisk(true)}} className="clickable" style={{width:'100%',padding:'4px 0',border:'none',borderRadius:0,background:'transparent',fontSize:10,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>还有 {_r.total - 3} 条...</button>}
             </>}
       </div>
     </div>
@@ -475,8 +489,8 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
       {showAllRisk && <div onClick={function(){setShowAllRisk(false)}} style={{position:'fixed',inset:0,zIndex:9998,background:'transparent'}} />}
       {showAllRisk && <div style={{position:'fixed',left:0,right:0,bottom:'calc(env(safe-area-inset-bottom) + 14px)',zIndex:9999,display:'flex',justifyContent:'center',padding:'0 14px',pointerEvents:'none'}}>
         <div onClick={function(e){e.stopPropagation()}} className="material-regular" style={{width:"100%",maxWidth:600,borderRadius:32,padding:"18px 14px calc(14px + env(safe-area-inset-bottom))",boxShadow:"var(--shadow-sheet), inset 0 1px 0 rgba(255,255,255,0.25)",pointerEvents:"auto",maxHeight:"70vh",overflowY:"auto"}}>
-          <div style={{fontSize:18,fontWeight:700,marginBottom:12,textAlign:'center',color:'var(--text)'}}>濒临断货预警{_replMode === 'bbcc' ? '（BC）' : '（C仓）'} · 共 {_sr.total} 条</div>
-          {(fullRisk || _sr.items || []).map(function(x, i) {
+          <div style={{fontSize:18,fontWeight:700,marginBottom:12,textAlign:'center',color:'var(--text)'}}>濒临断货预警{_replMode === 'bbcc' ? '（BC）' : (_showOwn ? '（自有三方仓）' : '（C仓）')} · 共 {_r.total} 条</div>
+          {(fullRisk || _r.items || []).map(function(x, i) {
             return <div key={i} onClick={function(){onAlert && onAlert(x.sku)}} className="clickable" style={{padding:'8px 12px',background:'var(--card)',borderRadius:16,marginBottom:6,display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}}>
               <div style={{minWidth:0}}>
                 <div style={{fontWeight:600,fontSize:12,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{x.product_name || x.sku}</div>

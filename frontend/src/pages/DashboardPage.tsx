@@ -235,9 +235,10 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
     }
     return { main: (w.c || 0), own: (w.own || 0) }                   // C仓 + 自有/三方
   }
-  const _acWh = (alertCounts && alertCounts.by_warehouse) || null
-  const lsWhView = _whView(_acWh)
-  const rpWhView = _whView(_acWh)
+  const _acLsWh = (alertCounts && alertCounts.ls_warehouse) || null   // 低库存/其他 组分布
+  const _acRpWh = (alertCounts && alertCounts.rp_warehouse) || null   // 补货 组分布
+  const lsWhView = _whView(_acLsWh)
+  const rpWhView = _whView(_acRpWh)
 
   if (chLoading) return <div className="card" style={{padding:16}}>{[1,2,3,4,5,6,7].map(i=><div key={i} className="skeleton" style={{height:80,marginBottom:8,borderRadius:24}}/>)}</div>
   if (dashErr && !dashboard) return <ErrorRetry error={dashErr} onRetry={() => { window.__setPage && window.__setPage('dash') }} />

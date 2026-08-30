@@ -53,19 +53,26 @@ def _counts(conn, ch_sql, ch_p, status):
         f"CASE WHEN warehouse_type IS NULL OR warehouse_type = '' THEN '' ELSE warehouse_type END AS wt, "
         f"COUNT(*) AS n FROM alerts WHERE status=? AND ({ch_sql}) GROUP BY 1,2,3,4", [status] + ch_p).fetchall()
     by_type, by_sev, by_wh = {}, {}, {}
+    by_wh_ls = {}   # 低库存/其他(非replenish) 仓库分布
+    by_wh_rp = {}   # 补货 仓库分布
     total = 0
     for _grp, atype, sev, wt, n in rows:
         total += n
         by_type[atype] = by_type.get(atype, 0) + n
         by_sev[sev] = by_sev.get(sev, 0) + n
         by_wh[wt or ''] = by_wh.get(wt or '', 0) + n
+        if _grp == 'replenish':
+            by_wh_rp[wt or ''] = by_wh_rp.get(wt or '', 0) + n
+        else:
+            by_wh_ls[wt or ''] = by_wh_ls.get(wt or '', 0) + n
     rp = by_type.get('replenish', 0)
-    # by_warehouse: 精确的告警×仓库主体计数(替代前端从截断列表 filter——曾 200 样本)
-    # BBCC 看全盘 B+C, 用 bc 键返回合计; 传统只 C+自有(不涉及B)
-    _b = by_wh.get('platform_b', 0); _c = by_wh.get('platform', 0); _o = by_wh.get('own', 0)
+    def _wmap(m):
+        _b = m.get('platform_b', 0); _c = m.get('platform', 0); _o = m.get('own', 0)
+        return {"b": _b, "c": _c, "own": _o, "bc": _b + _c, "unknown": m.get('', 0)}
     return {"total": total, "by_type": by_type, "by_severity": by_sev,
             "replenish": rp, "non_replenish": total - rp,
-            "by_warehouse": {"b": _b, "c": _c, "own": _o, "bc": _b + _c, "unknown": by_wh.get('', 0)}}
+            "by_warehouse": _wmap(by_wh),
+            "ls_warehouse": _wmap(by_wh_ls), "rp_warehouse": _wmap(by_wh_rp)}
 
 
 def _grouped_query(conn, channel, per_group_limit, status):

@@ -18,8 +18,15 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
   const [bcMenuOpen, setBcMenuOpen] = useState(false)
   const [showAllLowStock, setShowAllLowStock] = useState(false)
   const [showAllReplenish, setShowAllReplenish] = useState(false)
+  const [showAllRisk, setShowAllRisk] = useState(false)
+  const [showAllOut, setShowAllOut] = useState(false)
+  const [fullAlerts, setFullAlerts] = useState(null)   // 告警弹窗完整数据(点击时拉取)
+  const [fullRisk, setFullRisk] = useState(null)       // 濒临断货完整列表
   const [chLoading, setChLoading] = useState(false)
   const [dashErr, setDashErr] = useState('')
+  // 弹窗数据加载(四维完整性): 告警用大 limit 分组配额拿全量; 濒临断货用 full=1
+  const loadFullAlerts = async () => { try { const r = await api.get('/api/alerts?channel=' + channel + '&limit=5000', {timeout: 60000}); setFullAlerts(r.data || []) } catch(e) { setFullAlerts([]) } }
+  const loadFullRisk = async () => { try { const r = await api.get('/api/dashboard/stock-risk?channel=' + channel + '&full=1', {timeout: 60000}); setFullRisk(Array.isArray(r.data) ? r.data : ((r.data && r.data.items) || [])) } catch(e) { setFullRisk([]) } }
   const reqSeq = useRef(0)
   useEffect(() => {
     const seq = ++reqSeq.current
@@ -315,14 +322,15 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
                   <span style={{color:'var(--muted)'}}>{i+1}.</span> {x.product_name || x.sku} <span style={{fontSize:8,color:'var(--muted)',background:'var(--bg)',padding:'0 4px',borderRadius:4}}>{healthTab === 'own' ? '自有' : channel === 'jd' ? (healthTab === 'bc' ? 'BC' : 'C仓') : '平台'}</span>
                 </div>
               ))}
+              {_oosSrc.length > 3 && <div onClick={function(){setShowAllOut(true)}} className="clickable" style={{textAlign:'center',fontSize:10,color:'var(--muted)',padding:'4px 0',cursor:'pointer'}}>还有 {_oosSrc.length - 3} 条...</div>}
             </div>}
           </>
         })()}
       </div>
 
-      {/* 4. 濒临断货 TOP10 — 加危急/{t("dash.alert_warning")}分层 */}
+      {/* 4. 濒临断货 — 全量计数, 弹窗看完整 */}
       <div className="card" style={{borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16,overflow:'hidden'}}>
-        <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>{t("dash.risk")}</div>
+        <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>濒临断货</div>
         {(!_sr.items || _sr.items.length === 0)
           ? <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:2}}>
               <div style={{fontSize:14,fontWeight:400,color:'var(--muted2)'}}>{t("dash.stock_ok")}</div>
@@ -341,6 +349,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
                   {i+1}. {x.product_name || x.sku} <span style={{fontSize:8,color:'var(--muted)',background:'var(--bg)',padding:'0 4px',borderRadius:4}}>{x.type === 'B' ? 'B' : x.type === 'C' ? 'C' : '自有'}</span>
                 </div>
               ))}
+              {_sr.total > 3 && <button onClick={()=>{loadFullRisk();setShowAllRisk(true)}} className="clickable" style={{width:'100%',padding:8,border:'none',borderRadius:0,background:'transparent',fontSize:12,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>还有 {_sr.total - 3} 条...</button>}
             </>}
       </div>
     </div>
@@ -369,7 +378,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
                 <div className="small muted" style={{fontSize:11,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:2}}>{x.description}</div>
               </div>
             ))}
-        {nonReplenishTotal > 5 && <button onClick={()=>setShowAllLowStock(true)} className="clickable" style={{width:'100%',padding:8,border:'none',borderRadius:0,background:'transparent',fontSize:12,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>还有 {nonReplenishTotal - 5} 条...</button>}
+        {nonReplenishTotal > 5 && <button onClick={()=>{loadFullAlerts();setShowAllLowStock(true)}} className="clickable" style={{width:'100%',padding:8,border:'none',borderRadius:0,background:'transparent',fontSize:12,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>还有 {nonReplenishTotal - 5} 条...</button>}
       </div>
       <div className="card" style={{height:'auto',overflow:'visible'}}>
         <div className="section-title">{t("dash.replenish_alert")}{replenishTotal > 0 ? ` (${replenishTotal})` : ''}</div>
@@ -384,15 +393,15 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
                 <div className="small muted" style={{fontSize:11,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:2}}>{x.description}</div>
               </div>
             ))}
-        {replenishTotal > 5 && <button onClick={()=>setShowAllReplenish(true)} className="clickable" style={{width:'100%',padding:8,border:'none',borderRadius:0,background:'transparent',fontSize:12,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>还有 {replenishTotal - 5} 条...</button>}
+        {replenishTotal > 5 && <button onClick={()=>{loadFullAlerts();setShowAllReplenish(true)}} className="clickable" style={{width:'100%',padding:8,border:'none',borderRadius:0,background:'transparent',fontSize:12,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>还有 {replenishTotal - 5} 条...</button>}
       </div>
     </div>
       {/* 低库存告警弹窗 */}
       {showAllLowStock && <div onClick={function(){setShowAllLowStock(false)}} style={{position:'fixed',inset:0,zIndex:9998,background:'transparent'}} />}
       {showAllLowStock && <div style={{position:'fixed',left:0,right:0,bottom:'calc(env(safe-area-inset-bottom) + 14px)',zIndex:9999,display:'flex',justifyContent:'center',padding:'0 14px',pointerEvents:'none'}}>
         <div onClick={function(e){e.stopPropagation()}} className="material-regular" style={{width:"100%",maxWidth:600,borderRadius:32,padding:"18px 14px calc(14px + env(safe-area-inset-bottom))",boxShadow:"var(--shadow-sheet), inset 0 1px 0 rgba(255,255,255,0.25)",pointerEvents:"auto",maxHeight:"70vh",overflowY:"auto"}}>
-          <div style={{fontSize:18,fontWeight:700,marginBottom:12,textAlign:'center',color:'var(--text)'}}>低库存告警 · 共 {lowStockAlerts.length} 条</div>
-          {lowStockAlerts.map(function(x) {
+          <div style={{fontSize:18,fontWeight:700,marginBottom:12,textAlign:'center',color:'var(--text)'}}>低库存告警 · 共 {nonReplenishTotal} 条</div>
+          {(fullAlerts ? fullAlerts.filter(x => x.alert_type !== 'replenish') : lowStockAlerts).map(function(x) {
             return <div key={x.id} onClick={function(){onAlert && onAlert(x.related_sku)}} className="clickable" style={{padding:'8px 12px',background:'var(--card)',borderRadius:16,marginBottom:6}}>
               <div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'flex-start',marginBottom:2}}>
                 <span style={{fontWeight:600,fontSize:12,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1,minWidth:0}}>{x.title}</span>
@@ -411,8 +420,8 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
       {showAllReplenish && <div onClick={function(){setShowAllReplenish(false)}} style={{position:'fixed',inset:0,zIndex:9998,background:'transparent'}} />}
       {showAllReplenish && <div style={{position:'fixed',left:0,right:0,bottom:'calc(env(safe-area-inset-bottom) + 14px)',zIndex:9999,display:'flex',justifyContent:'center',padding:'0 14px',pointerEvents:'none'}}>
         <div onClick={function(e){e.stopPropagation()}} className="material-regular" style={{width:"100%",maxWidth:600,borderRadius:32,padding:"18px 14px calc(14px + env(safe-area-inset-bottom))",boxShadow:"var(--shadow-sheet), inset 0 1px 0 rgba(255,255,255,0.25)",pointerEvents:"auto",maxHeight:"70vh",overflowY:"auto"}}>
-          <div style={{fontSize:18,fontWeight:700,marginBottom:12,textAlign:'center',color:'var(--text)'}}>补货告警 · 共 {replenishAlerts.length} 条</div>
-          {replenishAlerts.map(function(x) {
+          <div style={{fontSize:18,fontWeight:700,marginBottom:12,textAlign:'center',color:'var(--text)'}}>补货告警 · 共 {replenishTotal} 条</div>
+          {(fullAlerts ? fullAlerts.filter(x => x.alert_type === 'replenish') : replenishAlerts).map(function(x) {
             return <div key={x.id} onClick={function(){onAlert && onAlert(x.related_sku)}} className="clickable" style={{padding:'8px 12px',background:'var(--card)',borderRadius:16,marginBottom:6}}>
               <div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'flex-start',marginBottom:2}}>
                 <span style={{fontWeight:600,fontSize:12,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1,minWidth:0}}>{x.title}</span>
@@ -422,6 +431,43 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
             </div>
           })}
           <div onClick={function(){setShowAllReplenish(false)}} className="clickable" style={{borderRadius:22,padding:12,marginTop:8,background:'var(--primary)',textAlign:'center',cursor:'pointer'}}>
+            <span style={{fontSize:15,fontWeight:600,color:'#fff'}}>关闭</span>
+          </div>
+        </div>
+      </div>}
+
+      {/* 濒临断货完整列表弹窗 */}
+      {showAllRisk && <div onClick={function(){setShowAllRisk(false)}} style={{position:'fixed',inset:0,zIndex:9998,background:'transparent'}} />}
+      {showAllRisk && <div style={{position:'fixed',left:0,right:0,bottom:'calc(env(safe-area-inset-bottom) + 14px)',zIndex:9999,display:'flex',justifyContent:'center',padding:'0 14px',pointerEvents:'none'}}>
+        <div onClick={function(e){e.stopPropagation()}} className="material-regular" style={{width:"100%",maxWidth:600,borderRadius:32,padding:"18px 14px calc(14px + env(safe-area-inset-bottom))",boxShadow:"var(--shadow-sheet), inset 0 1px 0 rgba(255,255,255,0.25)",pointerEvents:"auto",maxHeight:"70vh",overflowY:"auto"}}>
+          <div style={{fontSize:18,fontWeight:700,marginBottom:12,textAlign:'center',color:'var(--text)'}}>濒临断货 · 共 {_sr.total} 条</div>
+          {(fullRisk || _sr.items || []).map(function(x, i) {
+            return <div key={i} onClick={function(){onAlert && onAlert(x.sku)}} className="clickable" style={{padding:'8px 12px',background:'var(--card)',borderRadius:16,marginBottom:6,display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}}>
+              <div style={{minWidth:0}}>
+                <div style={{fontWeight:600,fontSize:12,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{x.product_name || x.sku}</div>
+                <div className="small muted" style={{fontSize:10}}>日销 {x.daily_sales} · 可用 {x.available_qty}</div>
+              </div>
+              <span style={{fontSize:11,fontWeight:600,color:'#ef4444',flexShrink:0}}>{x.days_to_empty} 天</span>
+            </div>
+          })}
+          <div onClick={function(){setShowAllRisk(false)}} className="clickable" style={{borderRadius:22,padding:12,marginTop:8,background:'var(--primary)',textAlign:'center',cursor:'pointer'}}>
+            <span style={{fontSize:15,fontWeight:600,color:'#fff'}}>关闭</span>
+          </div>
+        </div>
+      </div>}
+
+      {/* 缺货列表弹窗（按当前健康卡视图维度: own/平台行级, bc合计） */}
+      {showAllOut && <div onClick={function(){setShowAllOut(false)}} style={{position:'fixed',inset:0,zIndex:9998,background:'transparent'}} />}
+      {showAllOut && <div style={{position:'fixed',left:0,right:0,bottom:'calc(env(safe-area-inset-bottom) + 14px)',zIndex:9999,display:'flex',justifyContent:'center',padding:'0 14px',pointerEvents:'none'}}>
+        <div onClick={function(e){e.stopPropagation()}} className="material-regular" style={{width:"100%",maxWidth:600,borderRadius:32,padding:"18px 14px calc(14px + env(safe-area-inset-bottom))",boxShadow:"var(--shadow-sheet), inset 0 1px 0 rgba(255,255,255,0.25)",pointerEvents:"auto",maxHeight:"70vh",overflowY:"auto"}}>
+          <div style={{fontSize:18,fontWeight:700,marginBottom:12,textAlign:'center',color:'var(--text)'}}>缺货 · 共 {_oosSrc.length} 条</div>
+          {_oosSrc.map(function(x, i) {
+            return <div key={i} className="clickable" style={{padding:'8px 12px',background:'var(--card)',borderRadius:16,marginBottom:6,display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}}>
+              <div style={{fontWeight:600,fontSize:12,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',minWidth:0}}>{i+1}. {x.product_name || x.sku}</div>
+              <span style={{fontSize:10,color:'var(--muted)',background:'var(--bg)',padding:'0 6px',borderRadius:99,flexShrink:0}}>{healthTab === 'own' ? '自有' : channel === 'jd' ? (healthTab === 'bc' ? 'BC' : 'C仓') : '平台'}</span>
+            </div>
+          })}
+          <div onClick={function(){setShowAllOut(false)}} className="clickable" style={{borderRadius:22,padding:12,marginTop:8,background:'var(--primary)',textAlign:'center',cursor:'pointer'}}>
             <span style={{fontSize:15,fontWeight:600,color:'#fff'}}>关闭</span>
           </div>
         </div>

@@ -190,7 +190,7 @@ def dashboard_aux(channel: str = 'jd', db = get_db()):
 
 
 @router.get("/stock-risk")
-def stock_risk(channel: str = 'jd'):
+def stock_risk(channel: str = 'jd', full: int = 0):
     now = time.time()
     # 读取数据库版本号（跨进程缓存失效）
     try:
@@ -204,7 +204,13 @@ def stock_risk(channel: str = 'jd'):
         db_ver = 0
     cached = _stock_risk_cache.get(channel)
     if cached and cached.get('ver') == db_ver and now - cached['ts'] < _STOCK_CACHE_TTL:
-        return ok(cached['data'])
+        # full=1: 弹窗显示完整濒临断货列表(缓存存全量 result); 否则 top10
+        _d = cached['data']
+        if full:
+            _d = dict(_d)
+            _d['items'] = _d.get('_all', []) or _d.get('items', [])
+            _d.pop('_all', None)
+        return ok(_d)
     """
     濒临断货 TOP 10 — 日销复用三窗口融合值，参考补货建议计算逻辑
 
@@ -332,6 +338,8 @@ def stock_risk(channel: str = 'jd'):
     _total = len(result)
     _crit = sum(1 for x in result if x.get("days_to_empty", 999) < 3)
     _warn = sum(1 for x in result if 3 <= x.get("days_to_empty", 999) < 7)
-    _payload = {"items": result[:10], "total": _total, "critical": _crit, "warning": _warn}
+    # 缓存保存全量 result(弹窗 full=1 用), 常规返回 top10
+    _payload = {"items": result[:10], "total": _total, "critical": _crit, "warning": _warn, "_all": result}
     _stock_risk_cache[channel] = {'data': _payload, 'ts': time.time(), 'ver': db_ver}
-    return ok(_payload)
+    _ret = dict(_payload); _ret.pop('_all', None)
+    return ok(_ret)

@@ -58,7 +58,11 @@ def load_daily_sales(cutoff_days, db, sku_barcode_map=None, channel=None, wareho
             key = sku
             if sku_barcode_map and sku_barcode_map.get(sku):
                 key = f"{sku}|{sku_barcode_map[sku]}"
-            daily_by_sku.setdefault(key, {})[row[0]] = (row[2] or 0)
+            # 求和而非覆盖: 同 SKU 多仓同日时, 全渠道口径应累加各仓 order_count(曾只留最后一仓)
+            _d = row[0]
+            _v = row[2] or 0
+            _m = daily_by_sku.setdefault(key, {})
+            _m[_d] = _m.get(_d, 0) + _v
     except Exception as e:
         logger.warning(f"[sales] snapshot raw read: {e}")
     
@@ -89,6 +93,58 @@ def load_daily_sales(cutoff_days, db, sku_barcode_map=None, channel=None, wareho
         logger.warning(f"[sales] today orders: {e}")
     
     return daily_by_sku
+
+
+def load_daily_sales_grouped(cutoff_days, db, sku_barcode_map=None, channel=None, skus=None):
+    """按 SKU 与 SKU×仓库 双口径读日销(一次快照查询)——支撑补货模式口径:
+      BBCC/全盘 → 按 SKU 合计(跨仓累加); 传统多仓 → 逐仓(SKU×warehouse)独立
+    返回: (by_sku, by_sku_wh)  by_sku[key]={date:qty}  by_sku_wh[f"{key}|{wh}"]={date:qty}
+    """
+    from app.core.database import get_conn
+    cutoff = (datetime.now(UTC) - timedelta(days=cutoff_days)).strftime('%Y-%m-%d')
+    today = datetime.now(UTC).strftime('%Y-%m-%d')
+    by_sku = {}
+    by_sku_wh = {}
+    _sku_set = set(skus) if skus else None
+    _sku_filter = (' AND sku IN (%s)' % ','.join(['?'] * len(skus))) if skus else ''
+    _sku_params = list(skus) if skus else []
+    try:
+        conn = get_conn()
+        rows = conn.execute("SELECT date, sku, warehouse, order_count FROM daily_sales_snapshot WHERE channel=? AND date>=?" + _sku_filter, [channel, cutoff] + _sku_params).fetchall()
+        for date, sku, wh, cnt in rows:
+            if _sku_set is not None and sku not in _sku_set:
+                continue
+            key = str(sku)
+            if sku_barcode_map and sku_barcode_map.get(sku):
+                key = f"{sku}|{sku_barcode_map[sku]}"
+            cnt = cnt or 0
+            m = by_sku.setdefault(key, {}); m[date] = m.get(date, 0) + cnt
+            wk = f"{key}|{str(wh or '')}"
+            w = by_sku_wh.setdefault(wk, {}); w[date] = w.get(date, 0) + cnt
+    except Exception as e:
+        logger.warning(f"[sales] snapshot grouped read: {e}")
+    # 当天 orders 补充(只计已支付, 同 load_daily_sales 口径)
+    try:
+        from app.core.dashboard_cache import _PAID_STATUSES
+        orders = db.table("orders").select("*").gte("ordered_at", today).execute().data or []
+        for o in orders:
+            if o.get("deleted_at") or (o.get('order_status') or '') not in _PAID_STATUSES:
+                continue
+            sku = o.get('sku', '')
+            if not sku: continue
+            if _sku_set is not None and sku not in _sku_set:
+                continue
+            key = str(sku)
+            if sku_barcode_map and sku_barcode_map.get(sku):
+                key = f"{sku}|{sku_barcode_map[sku]}"
+            dt = str(o.get('ordered_at', ''))[:10]
+            qty = int(o.get('quantity', 0) or 0)
+            m = by_sku.setdefault(key, {}); m[dt] = m.get(dt, 0) + qty
+            wk = f"{key}|{str(o.get('warehouse', '') or '')}"
+            w = by_sku_wh.setdefault(wk, {}); w[dt] = w.get(dt, 0) + qty
+    except Exception as e:
+        logger.warning(f"[sales] today orders grouped: {e}")
+    return by_sku, by_sku_wh
 
 
 def calc_sales_multi(daily_by_sku, windows=None, sku_barcode_map=None):

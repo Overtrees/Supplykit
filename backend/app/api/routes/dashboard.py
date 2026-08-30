@@ -246,11 +246,12 @@ def stock_risk(channel: str = 'jd', full: int = 0):
     # 统一数据源：快照+当天，不用 orders 全表扫描
     # 优化: calc_sales_multi 一次遍历算 7/14/28 三窗口(替代3次calc_sales_from_daily) 
     #      + load_daily_sales 只加载库存 SKU(减少快照读取)
-    from app.core.sales_utils import load_daily_sales, calc_sales_multi, rolling_predict
+    from app.core.sales_utils import load_daily_sales_grouped, calc_sales_multi, rolling_predict
     all_skus = set(sku_barcode_map.keys()) | {i.get('sku','') for i in inv if i.get('sku')}
     _skus_list = list(all_skus) if all_skus else None
-    daily_28 = load_daily_sales(28, db, sku_barcode_map=sku_barcode_map, channel=channel, skus=_skus_list)
-    _multi = calc_sales_multi(daily_28, windows=[7, 14, 28])
+    # 双口径日销: by_sku(全盘合计, BBCC/BC维度) + by_sku_wh(逐仓, 传统C仓维度)
+    daily28_all, daily28_wh = load_daily_sales_grouped(28, db, sku_barcode_map=sku_barcode_map, channel=channel, skus=_skus_list)
+    _multi = calc_sales_multi(daily28_all, windows=[7, 14, 28])
     s7, s14, s28 = _multi[7], _multi[14], _multi[28]
     fused = {}
     for sku in all_skus:
@@ -258,6 +259,17 @@ def stock_risk(channel: str = 'jd', full: int = 0):
         s14v = s14.get(sku, 0) or s14.get(f"{sku}|{sku_barcode_map.get(sku,'')}", 0)
         s28v = s28.get(sku, 0) or s28.get(f"{sku}|{sku_barcode_map.get(sku,'')}", 0)
         fused[sku] = rolling_predict(s7v, s14v, s28v)
+    # 逐仓融合日销(传统多仓口径): 该 SKU×仓 的三窗口融合
+    fused_wh = {}
+    _whm = calc_sales_multi(daily28_wh, windows=[7, 14, 28])
+    _ws7, _ws14, _ws28 = _whm[7], _whm[14], _whm[28]
+    for wk in daily28_wh:
+        base = wk.rsplit('|', 1)[0]  # key|wh → key
+        sku = base.split('|')[0]
+        v7 = _ws7.get(wk, 0) or _ws7.get(base, 0)
+        v14 = _ws14.get(wk, 0) or _ws14.get(base, 0)
+        v28 = _ws28.get(wk, 0) or _ws28.get(base, 0)
+        fused_wh[wk] = rolling_predict(v7, v14, v28)
 
     # 分类型汇总库存
     c_stock = {}   # C 仓：按 (sku, warehouse) 分
@@ -325,12 +337,14 @@ def stock_risk(channel: str = 'jd', full: int = 0):
             "c_gap": c_gap, "c_avail": c_avail, "c_transit": c_transit,
         })
 
-    # ── C 仓维度（传统）──
+    # ── C 仓维度（传统多仓: 逐仓日销）──
     for (sku, wh), st in c_stock.items():
         avail = st["available"]
         safety = st["safety"]
         if avail <= 0 or avail >= safety: continue
-        ds = fused.get(sku, 0)
+        # 传统多仓: 用该 SKU×仓 的逐仓日销(曾用全渠道合计日销, 会因他仓销量高估可撑天数)
+        _bkey = sku_barcode_map.get(sku, '')
+        ds = fused_wh.get(f"{sku}|{_bkey}|{wh}", 0) or fused_wh.get(f"{sku}|{wh}", 0) or fused.get(sku, 0)
         if ds <= 0: continue
         days_left = round(avail / ds, 1)
         result.append({

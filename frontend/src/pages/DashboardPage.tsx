@@ -159,15 +159,17 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
     tooltip: { trigger: 'axis', valueFormatter: (v) => '¥' + Number(v).toLocaleString('zh-CN', {minimumFractionDigits:2,maximumFractionDigits:2}), extraCssText: 'z-index:1000', hideDelay: 100 },
     // 底部店铺/品牌名: 全量显示不截断; 长名截断+换行; 数量多(品牌35+)时旋转避免重叠
     xAxis: { type: 'category', data: storeData.map(i => i.name) || [],
-      // 全量显示不省略: 长名截断+省略号; 品牌/店铺多时旋转防重叠; width+overflow 兜底不重叠也不隐藏
-      axisLabel: { fontSize: 8, interval: 0, rotate: storeData.length > 8 ? 35 : 0, margin: 6,
-        formatter: (v) => { const t = String(v||''); if (t.length > 6) return t.slice(0,6)+'…'; return t },
-        width: storeData.length > 8 ? 48 : 64, overflow: 'truncate' } },
+      // 品牌维度标签太多(35+)重叠→隐藏, 用悬浮/点击 tooltip 显示名称; 店铺维度保留(数量少, 截断+旋转)
+      axisLabel: _storeDim === 'brand'
+        ? { show: false }
+        : { fontSize: 8, interval: 0, rotate: storeData.length > 8 ? 35 : 0, margin: 6,
+            formatter: (v) => { const t = String(v||''); if (t.length > 6) return t.slice(0,6)+'…'; return t },
+            width: 64, overflow: 'truncate' } },
     yAxis: { type: 'value',
       axisLabel: { fontSize: 8, formatter: (v) => Number(v).toLocaleString('zh-CN', { maximumFractionDigits: 0 }) }, splitNumber: 4,
       max: (v) => Math.ceil(v.max * 1.15 / 1000) * 1000 },
     series: [{ type: 'bar', barMaxWidth: 26, data: storeData.map((i, idx) => ({ value: Math.round(_g(i) * 100) / 100, itemStyle: { color: ['#f59e0b','#06b6d4','#8b5cf6','#ec4899','#10b981','#f97316'][idx % 6] } })) || [] }],
-    grid: { containLabel: true, top: 8, bottom: storeData.length > 8 ? 42 : 30, left: 8, right: 12 }
+    grid: { containLabel: true, top: 8, bottom: _storeDim === 'brand' ? 8 : (storeData.length > 8 ? 42 : 30), left: 8, right: 12 }
   }}, [dashboard, periodTab, gmvView, _storeDim])
 
   const barOption = useMemo(() => {
@@ -428,7 +430,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
 
     <div className="mid-chart-grid">
       <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title">{t("dash.funnel")}</div><Chart option={barOption} height={200} /></div>
-      <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>{t("dash.store_gmv")}
+      <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>{_storeDim === 'brand' ? '品牌GMV' : t("dash.store_gmv")}
           <span style={{display:'inline-flex',gap:2,background:'var(--bg)',borderRadius:99,padding:2}}>
             <span onClick={function(){setStoreDim('store')}} className="clickable" style={{fontSize:9,padding:'2px 6px',borderRadius:99,cursor:'pointer',fontWeight:_storeDim==='store'?600:400,background:_storeDim==='store'?'var(--card)':'transparent',color:_storeDim==='store'?'var(--text)':'var(--muted2)',whiteSpace:'nowrap'}}>店铺</span>
             <span onClick={function(){setStoreDim('brand')}} className="clickable" style={{fontSize:9,padding:'2px 6px',borderRadius:99,cursor:'pointer',fontWeight:_storeDim==='brand'?600:400,background:_storeDim==='brand'?'var(--card)':'transparent',color:_storeDim==='brand'?'var(--text)':'var(--muted2)',whiteSpace:'nowrap'}}>品牌</span>

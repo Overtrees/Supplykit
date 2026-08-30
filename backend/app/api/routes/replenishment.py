@@ -84,16 +84,14 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
         _c140, _c1wh = load_daily_sales_grouped(28, db, sku_barcode_map=sku_barcode_map, channel=channel)
         _c_whs = {r.get('warehouse') for r in db.table('inventory').select('warehouse').eq('warehouse_type', 'platform').eq('channel', channel).execute().data if r.get('warehouse')}
         daily_28 = {}
-        for _k, _wm in _c1wh.items():
-            _agg = daily_28.setdefault(_k, {})
-            for _w, _d in _wm.items():
-                if _w in _c_whs:
-                    for _dd, _qq in _d.items():
-                        _agg[_dd] = _agg.get(_dd, 0) + _qq
-        # 无仓归属销量保守计入(C仓无记录但全渠道有销量的SKU——避免 warehouse 缺失时漏需求)
-        for _k, _d in _c140.items():
-            if _k not in daily_28 and any(_d.values()):
-                daily_28[_k] = dict(_d)
+        for _wk, _wd in _c1wh.items():
+            # _c1wh key = key|warehouse (key 可能含 sku|barcode), 拆出仓名
+            _base = _wk.rsplit('|', 1)[0]
+            _w = _wk.rsplit('|', 1)[1]
+            if _w in _c_whs or _w in ('', '未知'):
+                _agg = daily_28.setdefault(_base, {})
+                for _dd, _qq in _wd.items():
+                    _agg[_dd] = _agg.get(_dd, 0) + _qq
     else:
         daily_28 = load_daily_sales(28, db, sku_barcode_map=sku_barcode_map, channel=channel)
     sales_7 = calc_sales_from_daily(daily_28, 7, orders=orders, sku_barcode_map=sku_barcode_map)

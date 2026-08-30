@@ -279,7 +279,7 @@ def stock_risk(channel: str = 'jd', full: int = 0):
         _base = wk.rsplit('|', 1)[0]
         _sku = _base.split('|')[0]
         for _w, _d in wm.items():
-            if _w in _c_whs:
+            if _w in _c_whs or _w in ('', '未知'):  # C仓名 或 无仓归属订单(真实导入可能缺仓列)
                 _m = daily28_c.setdefault(_base, {})
                 for _dd, _qq in _d.items():
                     _m[_dd] = _m.get(_dd, 0) + _qq
@@ -338,7 +338,7 @@ def stock_risk(channel: str = 'jd', full: int = 0):
         b_avail = st["available"]
         if b_avail <= 0: continue
         _ck = f"{sku}|{sku_barcode_map.get(sku,'')}" if sku_barcode_map and sku_barcode_map.get(sku) else sku
-        ds = fused_c.get(_ck, 0) or fused_c.get(sku, 0) or fused.get(sku, 0)  # 全国C仓日销, 无归属时兜底全渠道
+        ds = fused_c.get(_ck, 0) or fused_c.get(sku, 0)  # 全国C仓(+空归属)日销——own/B仓销量不计入BBCC需求, 严格口径
         if ds <= 0: continue
         c_avail = c_total.get(sku, {}).get("available", 0)
         c_transit = c_total.get(sku, {}).get("transit", 0)
@@ -384,7 +384,7 @@ def stock_risk(channel: str = 'jd', full: int = 0):
         avail = st["available"]
         safety = st["safety"]
         _ck = f"{sku}|{sku_barcode_map.get(sku,'')}" if sku_barcode_map and sku_barcode_map.get(sku) else sku
-        ds = fused_c.get(_ck, 0) or fused_c.get(sku, 0) or fused.get(sku, 0)  # 全国C仓日销, 无归属时兜底全渠道
+        ds = fused_c.get(_ck, 0) or fused_c.get(sku, 0)  # 全国C仓(+空归属)日销——own/B仓销量不计入BBCC需求, 严格口径
         if ds <= 0:
             continue
         if avail <= 0 or avail < safety:

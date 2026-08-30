@@ -279,15 +279,15 @@ def stock_risk(channel: str = 'jd', full: int = 0):
     # 全国 C 仓合计日销(BBCC 口径, 与传统一致): 仅 platform 仓名的逐仓日销累加——
     # 曾用全渠道(含 B/自有仓销量, 会高估 C 仓需求)
     _c_whs = set(r[0] for r in _conn.execute("SELECT DISTINCT warehouse FROM inventory WHERE channel=? AND warehouse_type='platform'", (channel,)).fetchall() if r[0])
+    # daily28_wh = {key|wh: {date:qty}} 复合 key —— 拆出仓名合并 C 仓日销
     daily28_c = {}
-    for wk, wm in daily28_wh.items():
+    for wk, wd in daily28_wh.items():
         _base = wk.rsplit('|', 1)[0]
-        _sku = _base.split('|')[0]
-        for _w, _d in wm.items():
-            if _w in _c_whs or _w in ('', '未知'):  # C仓名 或 无仓归属订单(真实导入可能缺仓列)
-                _m = daily28_c.setdefault(_base, {})
-                for _dd, _qq in _d.items():
-                    _m[_dd] = _m.get(_dd, 0) + _qq
+        _w = wk.rsplit('|', 1)[1]
+        if _w in _c_whs or _w in ('', '未知'):  # C仓名 或 无仓归属订单(真实导入可能缺仓列)
+            _m = daily28_c.setdefault(_base, {})
+            for _dd, _qq in wd.items():
+                _m[_dd] = _m.get(_dd, 0) + _qq
     fused_c = {}
     if daily28_c:
         _cm = calc_sales_multi(daily28_c, windows=[7, 14, 28])

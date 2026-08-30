@@ -6,6 +6,36 @@ router = APIRouter(prefix="/api/inventory", tags=["inventory"])
 
 
 @router.get("/stock-overview")
+@router.get("/out-of-stock")
+def out_of_stock_dim(channel: str = 'jd', wh: str = ''):
+    """按健康卡视图维度返回全量缺货列表(完整性):
+    wh=own/platform/platform_b → 该主体 available_qty<=0 的行; wh=bc → B+C 按 SKU 合计 avail=0
+    (健康卡缺货弹窗用——曾用全渠道 LIMIT100 的 stockOverview 过滤, 缺货 SKU 在100条窗口外时漏显)
+    """
+    from app.core.database import get_conn
+    try:
+        conn = get_conn()
+        if wh == 'bc':
+            rows = conn.execute(
+                "SELECT sku, MAX(product_name), 'bc' FROM inventory "
+                "WHERE channel=? AND warehouse_type IN ('platform','platform_b') "
+                "GROUP BY sku HAVING SUM(available_qty) <= 0 ORDER BY sku", (channel,)).fetchall()
+            items = [{"sku": str(r[0]), "product_name": str(r[1] or r[0]), "warehouse_type": "bc"} for r in rows]
+        elif wh:
+            rows = conn.execute(
+                "SELECT sku, product_name, warehouse_type FROM inventory "
+                "WHERE channel=? AND warehouse_type=? AND available_qty<=0 ORDER BY sku",
+                (channel, wh)).fetchall()
+            items = [{"sku": str(r[0]), "product_name": str(r[1] or r[0]), "warehouse_type": str(r[2] or '')} for r in rows]
+        else:
+            items = []
+        conn.close()
+        return ok({"items": items, "count": len(items)})
+    except Exception as e:
+        import logging; logging.warning(f"[inventory] out-of-stock: {e}")
+        return ok({"items": [], "count": 0})
+
+
 def stock_overview(channel: str = 'jd', db = get_db()):
     """看板缺货/低库存轻量聚合（SQL 一次查, 替代全量 inventory 前端过滤）
 

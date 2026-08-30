@@ -204,12 +204,13 @@ def stock_risk(channel: str = 'jd', full: int = 0):
         db_ver = 0
     cached = _stock_risk_cache.get(channel)
     if cached and cached.get('ver') == db_ver and now - cached['ts'] < _STOCK_CACHE_TTL:
-        # full=1: 弹窗显示完整濒临断货列表(缓存存全量 result); 否则 top10
+        # full=1: 弹窗显示完整濒临断货列表(缓存存全量 result/bcAll); 否则 top10
         _d = cached['data']
         if full:
             _d = dict(_d)
             _d['items'] = _d.get('_all', []) or _d.get('items', [])
-            _d.pop('_all', None)
+            _d['bcItems'] = _d.get('bcAll', []) or _d.get('bcItems', [])
+            _d.pop('_all', None); _d.pop('bcAll', None)
         return ok(_d)
     """
     濒临断货 TOP 10 — 日销复用三窗口融合值，参考补货建议计算逻辑
@@ -262,6 +263,7 @@ def stock_risk(channel: str = 'jd', full: int = 0):
     c_stock = {}   # C 仓：按 (sku, warehouse) 分
     c_total = {}   # C 仓：按 sku 汇总（可用+在途）
     b_stock = {}   # B 仓：按 sku 汇总
+    bc_total = {}  # B+C 合计（bbcc 全盘视角，按 sku）
 
     for i in inv:
         wt = i.get("warehouse_type", "")
@@ -271,6 +273,14 @@ def stock_risk(channel: str = 'jd', full: int = 0):
         tty = int(i.get("in_transit_qty", 0) or 0)
         safety = int(i.get("safety_qty", 0) or 0)
         pname = i.get("product_name", "")
+
+        if wt in ("platform", "platform_b"):
+            if sku not in bc_total:
+                bc_total[sku] = {"available": 0, "safety": 0, "transit": 0, "product_name": pname}
+            bc_total[sku]["available"] += qty
+            bc_total[sku]["safety"] += safety
+            # 在途: C 仓在途 + B仓在途(调拨/运输中) 合计(bbcc 全盘可支撑)
+            bc_total[sku]["transit"] += tty
 
         if wt == "platform_b":
             if sku not in b_stock:
@@ -333,13 +343,43 @@ def stock_risk(channel: str = 'jd', full: int = 0):
             "days_to_empty": days_left,
         })
 
+    # ── BC 合计维度（bbcc 全盘, 对齐库存卡 bc tab 口径）──
+    # 同一 SKU 在 B+C 可用合计判断: 合计可用 < 安全线 或 =0 且 有日销 → 濒临断货风险
+    bc_items = []
+    for sku, st in bc_total.items():
+        avail = st["available"]
+        safety = st["safety"]
+        ds = fused.get(sku, 0)
+        if ds <= 0:
+            continue
+        if avail <= 0 or avail < safety:
+            days_left = round(avail / ds, 1) if ds > 0 else 999
+            bc_items.append({
+                "sku": sku,
+                "barcode": products.get(sku, {}).get("barcode", ""),
+                "product_name": products.get(sku, {}).get("product_name", st["product_name"]),
+                "warehouse": "BC", "type": "BC",
+                "available_qty": avail,
+                "daily_sales": round(ds, 1),
+                "days_to_empty": days_left,
+                "b_avail": b_stock.get(sku, {}).get("available", 0),
+                "c_avail": c_total.get(sku, {}).get("available", 0),
+                "transit": st["transit"],
+            })
+    bc_items.sort(key=lambda x: x["days_to_empty"])
+
     result.sort(key=lambda x: x["days_to_empty"])
     # 全量计数(完整性): 列表截断 TOP10, 但 total/紧急/警告 必须是全量——卡上大数字不得读截断数
     _total = len(result)
     _crit = sum(1 for x in result if x.get("days_to_empty", 999) < 3)
     _warn = sum(1 for x in result if 3 <= x.get("days_to_empty", 999) < 7)
+    _bc_total = len(bc_items)
+    _bc_crit = sum(1 for x in bc_items if x.get("days_to_empty", 999) < 3)
+    _bc_warn = sum(1 for x in bc_items if 3 <= x.get("days_to_empty", 999) < 7)
     # 缓存保存全量 result(弹窗 full=1 用), 常规返回 top10
-    _payload = {"items": result[:10], "total": _total, "critical": _crit, "warning": _warn, "_all": result}
+    _payload = {"items": result[:10], "total": _total, "critical": _crit, "warning": _warn, "_all": result,
+                "bcItems": bc_items[:10], "bcTotal": _bc_total, "bcCritical": _bc_crit, "bcWarning": _bc_warn,
+                "bcAll": bc_items}
     _stock_risk_cache[channel] = {'data': _payload, 'ts': time.time(), 'ver': db_ver}
-    _ret = dict(_payload); _ret.pop('_all', None)
+    _ret = dict(_payload); _ret.pop('_all', None); _ret.pop('bcAll', None)
     return ok(_ret)

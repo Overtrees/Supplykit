@@ -193,13 +193,20 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
   // 濒临断货: 兼容旧数组/新{items,total,critical,warning}结构——卡上大数字/紧急警告用全量计数(完整性)
   // 补货模式联动: bbcc→BC 合计维度(对齐库存卡 bc tab: B+C 按 SKU 合计); traditional→C 仓维度
   const _replMode = (channel !== 'jd' && (hammerReplenMode || '') !== 'traditional') ? 'traditional' : (hammerReplenMode || (channel === 'jd' ? 'bbcc' : 'traditional'))
-  const _sr0 = Array.isArray(stockRisk) ? {items: stockRisk, total: stockRisk.length} : (stockRisk || {items: [], total: 0, critical: 0, warning: 0, bcItems: [], bcTotal: 0, bcCritical: 0, bcWarning: 0})
-  const _sr = _replMode === 'bbcc' ? {
-    items: _sr0.bcItems || [],
-    total: _sr0.bcTotal != null ? _sr0.bcTotal : ((_sr0.bcItems || []).length),
-    critical: _sr0.bcCritical != null ? _sr0.bcCritical : ((_sr0.bcItems || []).filter(x => x.days_to_empty < 3).length),
-    warning: _sr0.bcWarning != null ? _sr0.bcWarning : ((_sr0.bcItems || []).filter(x => x.days_to_empty >= 3 && x.days_to_empty < 7).length),
-  } : _sr0
+  const _sr0 = Array.isArray(stockRisk) ? {items: stockRisk, total: stockRisk.length} : (stockRisk || {items: [], total: 0, critical: 0, warning: 0, bcItems: [], bcTotal: 0, bcCritical: 0, bcWarning: 0, cItems: [], cTotal: 0, cCritical: 0, cWarning: 0})
+  if (_replMode === 'bbcc') {
+    _sr0.items = _sr0.bcItems || []
+    _sr0.total = _sr0.bcTotal != null ? _sr0.bcTotal : (_sr0.items.length)
+    _sr0.critical = _sr0.bcCritical != null ? _sr0.bcCritical : (_sr0.items.filter(x => x.days_to_empty < 3).length)
+    _sr0.warning = _sr0.bcWarning != null ? _sr0.bcWarning : (_sr0.items.filter(x => x.days_to_empty >= 3 && x.days_to_empty < 7).length)
+  } else if (_sr0.cItems && _sr0.cTotal != null) {
+    // 传统多仓: 只显示 C 仓维度(后端 cItems 独立于混排 items, 避免 B 仓项混入)
+    _sr0.items = _sr0.cItems || []
+    _sr0.total = _sr0.cTotal
+    _sr0.critical = _sr0.cCritical != null ? _sr0.cCritical : (_sr0.items.filter(x => x.days_to_empty < 3).length)
+    _sr0.warning = _sr0.cWarning != null ? _sr0.cWarning : (_sr0.items.filter(x => x.days_to_empty >= 3 && x.days_to_empty < 7).length)
+  }
+  const _sr = _sr0
   const riskCritical = _sr.critical != null ? _sr.critical : (_sr.items||[]).filter(x => x.days_to_empty < 3).length
   const riskWarning = _sr.warning != null ? _sr.warning : (_sr.items||[]).filter(x => x.days_to_empty >= 3 && x.days_to_empty < 7).length
     // 缺货列表 = stockOverview.items(本身就是 avail<=0 的缺货SKU, 含warehouse_type)

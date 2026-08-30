@@ -204,13 +204,14 @@ def stock_risk(channel: str = 'jd', full: int = 0):
         db_ver = 0
     cached = _stock_risk_cache.get(channel)
     if cached and cached.get('ver') == db_ver and now - cached['ts'] < _STOCK_CACHE_TTL:
-        # full=1: 弹窗显示完整濒临断货列表(缓存存全量 result/bcAll); 否则 top10
+        # full=1: 弹窗显示完整列表(缓存存全量 _all/bcAll/cAll)
         _d = cached['data']
         if full:
             _d = dict(_d)
             _d['items'] = _d.get('_all', []) or _d.get('items', [])
             _d['bcItems'] = _d.get('bcAll', []) or _d.get('bcItems', [])
-            _d.pop('_all', None); _d.pop('bcAll', None)
+            _d['cItems'] = _d.get('cAll', []) or _d.get('cItems', [])
+            _d.pop('_all', None); _d.pop('bcAll', None); _d.pop('cAll', None)
         return ok(_d)
     """
     濒临断货 TOP 10 — 日销复用三窗口融合值，参考补货建议计算逻辑
@@ -404,16 +405,21 @@ def stock_risk(channel: str = 'jd', full: int = 0):
 
     result.sort(key=lambda x: x["days_to_empty"])
     # 全量计数(完整性): 列表截断 TOP10, 但 total/紧急/警告 必须是全量——卡上大数字不得读截断数
+    # C 仓独立维度(传统多仓): result 混排 B(BBCC) + C(传统) 项, individual 传统模式只应显示 C 仓
+    _c_items = [x for x in result if x.get("type") == "C"]
     _total = len(result)
     _crit = sum(1 for x in result if x.get("days_to_empty", 999) < 3)
     _warn = sum(1 for x in result if 3 <= x.get("days_to_empty", 999) < 7)
+    _ct_total = len(_c_items)
+    _ct_crit = sum(1 for x in _c_items if x.get("days_to_empty", 999) < 3)
+    _ct_warn = sum(1 for x in _c_items if 3 <= x.get("days_to_empty", 999) < 7)
     _bc_total = len(bc_items)
     _bc_crit = sum(1 for x in bc_items if x.get("days_to_empty", 999) < 3)
     _bc_warn = sum(1 for x in bc_items if 3 <= x.get("days_to_empty", 999) < 7)
-    # 缓存保存全量 result(弹窗 full=1 用), 常规返回 top10
+    # 缓存保存全量 result/bcAll/cAll(弹窗 full=1 用), 常规返回 top10
     _payload = {"items": result[:10], "total": _total, "critical": _crit, "warning": _warn, "_all": result,
-                "bcItems": bc_items[:10], "bcTotal": _bc_total, "bcCritical": _bc_crit, "bcWarning": _bc_warn,
-                "bcAll": bc_items}
+                "bcItems": bc_items[:10], "bcTotal": _bc_total, "bcCritical": _bc_crit, "bcWarning": _bc_warn, "bcAll": bc_items,
+                "cItems": _c_items[:10], "cTotal": _ct_total, "cCritical": _ct_crit, "cWarning": _ct_warn, "cAll": _c_items}
     _stock_risk_cache[channel] = {'data': _payload, 'ts': time.time(), 'ver': db_ver}
     _ret = dict(_payload); _ret.pop('_all', None); _ret.pop('bcAll', None)
     return ok(_ret)

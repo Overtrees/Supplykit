@@ -77,7 +77,25 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     # 三周期日销：一次遍历算 3 个窗口
     # 全量日销(所有SKU)——补货必须算所有SKU(含缺货/无库存的),
     # 不能只加载库存SKU, 否则卖光缺货的SKU会被遗漏(最需要补货)
-    daily_28 = load_daily_sales(28, db, sku_barcode_map=sku_barcode_map, channel=channel)
+    if mode == 'bbcc':
+        # BBCC 口径: 全国 C 仓(warehouse_type='platform')销量合计——B仓是调拨仓不产生零售,
+        # 自有仓集货也不计入; 用逐仓快照筛选 C 仓名 (与传统模式 C 仓逐仓口径同源)
+        from app.core.sales_utils import load_daily_sales_grouped, calc_sales_from_daily as _csfd
+        _c140, _c1wh = load_daily_sales_grouped(28, db, sku_barcode_map=sku_barcode_map, channel=channel)
+        _c_whs = {r.get('warehouse') for r in db.table('inventory').select('warehouse').eq('warehouse_type', 'platform').eq('channel', channel).execute().data if r.get('warehouse')}
+        daily_28 = {}
+        for _k, _wm in _c1wh.items():
+            _agg = daily_28.setdefault(_k, {})
+            for _w, _d in _wm.items():
+                if _w in _c_whs:
+                    for _dd, _qq in _d.items():
+                        _agg[_dd] = _agg.get(_dd, 0) + _qq
+        # 无仓归属销量保守计入(C仓无记录但全渠道有销量的SKU——避免 warehouse 缺失时漏需求)
+        for _k, _d in _c140.items():
+            if _k not in daily_28 and any(_d.values()):
+                daily_28[_k] = dict(_d)
+    else:
+        daily_28 = load_daily_sales(28, db, sku_barcode_map=sku_barcode_map, channel=channel)
     sales_7 = calc_sales_from_daily(daily_28, 7, orders=orders, sku_barcode_map=sku_barcode_map)
     sales_14 = calc_sales_from_daily(daily_28, 14, orders=orders, sku_barcode_map=sku_barcode_map)
     sales_28 = calc_sales_from_daily(daily_28, 28, orders=orders, sku_barcode_map=sku_barcode_map)

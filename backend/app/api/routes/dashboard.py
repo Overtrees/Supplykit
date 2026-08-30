@@ -270,6 +270,24 @@ def stock_risk(channel: str = 'jd', full: int = 0):
         v14 = _ws14.get(wk, 0) or _ws14.get(base, 0)
         v28 = _ws28.get(wk, 0) or _ws28.get(base, 0)
         fused_wh[wk] = rolling_predict(v7, v14, v28)
+    # 全国 C 仓合计日销(BBCC 口径, 与传统一致): 仅 platform 仓名的逐仓日销累加——
+    # 曾用全渠道(含 B/自有仓销量, 会高估 C 仓需求)
+    _c_whs = set(r[0] for r in _conn.execute("SELECT DISTINCT warehouse FROM inventory WHERE channel=? AND warehouse_type='platform'", (channel,)).fetchall() if r[0])
+    daily28_c = {}
+    for wk, wm in daily28_wh.items():
+        _base = wk.rsplit('|', 1)[0]
+        _sku = _base.split('|')[0]
+        for _w, _d in wm.items():
+            if _w in _c_whs:
+                _m = daily28_c.setdefault(_base, {})
+                for _dd, _qq in _d.items():
+                    _m[_dd] = _m.get(_dd, 0) + _qq
+    fused_c = {}
+    if daily28_c:
+        _cm = calc_sales_multi(daily28_c, windows=[7, 14, 28])
+        _cs7, _cs14, _cs28 = _cm[7], _cm[14], _cm[28]
+        for _k in daily28_c:
+            fused_c[_k] = rolling_predict(_cs7.get(_k, 0), _cs14.get(_k, 0), _cs28.get(_k, 0))
 
     # 分类型汇总库存
     c_stock = {}   # C 仓：按 (sku, warehouse) 分
@@ -318,7 +336,8 @@ def stock_risk(channel: str = 'jd', full: int = 0):
     for sku, st in b_stock.items():
         b_avail = st["available"]
         if b_avail <= 0: continue
-        ds = fused.get(sku, 0)
+        _ck = f"{sku}|{sku_barcode_map.get(sku,'')}" if sku_barcode_map and sku_barcode_map.get(sku) else sku
+        ds = fused_c.get(_ck, 0) or fused_c.get(sku, 0) or fused.get(sku, 0)  # 全国C仓日销, 无归属时兜底全渠道
         if ds <= 0: continue
         c_avail = c_total.get(sku, {}).get("available", 0)
         c_transit = c_total.get(sku, {}).get("transit", 0)
@@ -363,7 +382,8 @@ def stock_risk(channel: str = 'jd', full: int = 0):
     for sku, st in bc_total.items():
         avail = st["available"]
         safety = st["safety"]
-        ds = fused.get(sku, 0)
+        _ck = f"{sku}|{sku_barcode_map.get(sku,'')}" if sku_barcode_map and sku_barcode_map.get(sku) else sku
+        ds = fused_c.get(_ck, 0) or fused_c.get(sku, 0) or fused.get(sku, 0)  # 全国C仓日销, 无归属时兜底全渠道
         if ds <= 0:
             continue
         if avail <= 0 or avail < safety:

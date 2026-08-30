@@ -186,7 +186,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
   const lowStock = (inventory||[]).filter(x => Number(x.available_qty) < Number(x.safety_qty)).length
   const errCount = (qualityLogs||[]).length
   const alertsList = Array.isArray(alerts) ? alerts.filter(x => x.status === 'active') : []
-  const lowStockAlerts = alertsList.filter(x => x.alert_type !== 'replenish')
+  const lowStockAlerts = alertsList.filter(x => x.alert_type === 'low_stock')
   const replenishAlerts = alertsList.filter(x => x.alert_type === 'replenish')
   // 看板「(N 严重)」等计数一律取后端 alertCounts(独立 COUNT)，不得从截断列表 filter 得出——
   // 列表每组各取 200 条，总数可能远大于此，filter 计数会系统性漏报
@@ -194,6 +194,10 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
   const _acSev = (alertCounts || {}).by_severity || {}
   const criticalAlerts = _acSev.error != null ? _acSev.error : alertsList.filter(x => x.severity === 'error').length
   const nonReplenishTotal = (alertCounts && alertCounts.non_replenish != null) ? alertCounts.non_replenish : lowStockAlerts.length
+  // 拆分类: 低库存(纯low_stock)与滞销(slow_moving)独立计数(曾合并为non_replenish导致"低库存N"含滞销误导)
+  const _acByType2 = (alertCounts && alertCounts.by_type) || {}
+  const lowStockTotal = _acByType2.low_stock != null ? _acByType2.low_stock : lowStockAlerts.filter(x => x.alert_type === 'low_stock').length
+  const slowMovingTotal = _acByType2.slow_moving != null ? _acByType2.slow_moving : lowStockAlerts.filter(x => x.alert_type === 'slow_moving').length
   const replenishTotal = _acType.replenish != null ? _acType.replenish : replenishAlerts.length
   const periodDays = periodTab === 'custom' ? (periodMeta?.days || 30) : ({today:1,week:7,month:30}[periodTab]||30)
   // 濒临断货: 兼容旧数组/新{items,total,critical,warning}结构——卡上大数字/紧急警告用全量计数(完整性)
@@ -230,11 +234,10 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
   // BBCC 看全盘 B+C(与健康卡bc一致), 传统多仓不涉及B仓。曾用截断列表filter(200样本 vs 全量)
   function _whView(w) {
     w = w || {}
-    // unknown=未归仓(滞销类无warehouse_type)单独标出, 使分布数字与总数自洽
     if (_replMode === 'bbcc') {
-      return { main: (w.b || 0) + (w.c || 0), own: (w.own || 0), unk: (w.unknown || 0) }   // BC合计 + 自有
+      return { main: (w.b || 0) + (w.c || 0), own: (w.own || 0) }   // BC合计 + 自有
     }
-    return { main: (w.c || 0), own: (w.own || 0), unk: (w.unknown || 0) }                   // C仓 + 自有/三方
+    return { main: (w.c || 0), own: (w.own || 0) }                   // C仓 + 自有/三方
   }
   const _acLsWh = (alertCounts && alertCounts.ls_warehouse) || null   // 低库存/其他 组分布
   const _acRpWh = (alertCounts && alertCounts.rp_warehouse) || null   // 补货 组分布
@@ -300,13 +303,14 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
             </div>
             {(lowStockAlerts.length > 0 || replenishAlerts.length > 0) && <>
               <div style={{fontSize:10,display:'flex',gap:8,marginTop:4}}>
-                <span style={{color:'var(--muted2)'}}>● 低库存 {nonReplenishTotal}</span>
+                <span style={{color:'var(--muted2)'}}>● 低库存 {lowStockTotal}</span>
+                {slowMovingTotal > 0 && <span style={{color:'var(--muted2)'}}>● 滞销 {slowMovingTotal}</span>}
                 <span style={{color:'var(--muted2)'}}>● 需{t("dash.replenish")} {replenishTotal}</span>
               </div>
               <div style={{fontSize:9,display:'flex',gap:6,marginTop:3,color:'var(--muted)'}}>
-                <span>{_replMode === 'bbcc' ? 'BC' : 'C'}{lsWhView.main} {t("dash.own")}{lsWhView.own}{lsWhView.unk ? ` 未归仓${lsWhView.unk}` : ''}</span>
+                <span>{_replMode === 'bbcc' ? 'BC' : 'C'}{lsWhView.main} {t("dash.own")}{lsWhView.own}</span>
                 <span style={{color:'var(--border)'}}>|</span>
-                <span>{_replMode === 'bbcc' ? 'BC' : 'C'}{rpWhView.main} 自有{rpWhView.own}{rpWhView.unk ? ` 未归仓${rpWhView.unk}` : ''}</span>
+                <span>{_replMode === 'bbcc' ? 'BC' : 'C'}{rpWhView.main} 自有{rpWhView.own}</span>
               </div>
             </>}
           </div>
@@ -421,7 +425,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
 
     <div className="chart-row-3">
       <div className="card" style={{height:'auto',overflow:'visible'}}>
-        <div className="section-title">{t("dash.low_stock")}{nonReplenishTotal > 0 ? ` (${nonReplenishTotal})` : ''}</div>
+        <div className="section-title">{t("dash.low_stock")}{lowStockTotal > 0 ? ` (${lowStockTotal})` : ''}</div>
         {lowStockAlerts.length === 0
           ? <div className="small muted" style={{padding:12,textAlign:'center'}}>{t("dash.no_alerts")}</div>
           : lowStockAlerts.slice(0,5).map(x => (
@@ -433,7 +437,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
                 <div className="small muted" style={{fontSize:11,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:2}}>{x.description}</div>
               </div>
             ))}
-        {nonReplenishTotal > 5 && <button onClick={()=>{loadFullAlerts();setShowAllLowStock(true)}} className="clickable" style={{width:'100%',padding:8,border:'none',borderRadius:0,background:'transparent',fontSize:12,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>还有 {nonReplenishTotal - 5} 条...</button>}
+        {lowStockTotal > 5 && <button onClick={()=>{loadFullAlerts();setShowAllLowStock(true)}} className="clickable" style={{width:'100%',padding:8,border:'none',borderRadius:0,background:'transparent',fontSize:12,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>还有 {lowStockTotal - 5} 条...</button>}
       </div>
       <div className="card" style={{height:'auto',overflow:'visible'}}>
         <div className="section-title">{t("dash.replenish_alert")}{replenishTotal > 0 ? ` (${replenishTotal})` : ''}</div>
@@ -455,7 +459,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
       {showAllLowStock && <div onClick={function(){setShowAllLowStock(false)}} style={{position:'fixed',inset:0,zIndex:9998,background:'transparent'}} />}
       {showAllLowStock && <div style={{position:'fixed',left:0,right:0,bottom:'calc(env(safe-area-inset-bottom) + 14px)',zIndex:9999,display:'flex',justifyContent:'center',padding:'0 14px',pointerEvents:'none'}}>
         <div onClick={function(e){e.stopPropagation()}} className="material-regular" style={{width:"100%",maxWidth:600,borderRadius:32,padding:"18px 14px calc(14px + env(safe-area-inset-bottom))",boxShadow:"var(--shadow-sheet), inset 0 1px 0 rgba(255,255,255,0.25)",pointerEvents:"auto",maxHeight:"70vh",overflowY:"auto"}}>
-          <div style={{fontSize:18,fontWeight:700,marginBottom:12,textAlign:'center',color:'var(--text)'}}>低库存告警 · 共 {nonReplenishTotal} 条</div>
+          <div style={{fontSize:18,fontWeight:700,marginBottom:12,textAlign:'center',color:'var(--text)'}}>低库存告警 · 共 {lowStockTotal} 条</div>
           {(fullAlerts ? fullAlerts.filter(x => x.alert_type !== 'replenish') : lowStockAlerts).map(function(x) {
             return <div key={x.id} onClick={function(){onAlert && onAlert(x.related_sku)}} className="clickable" style={{padding:'8px 12px',background:'var(--card)',borderRadius:16,marginBottom:6}}>
               <div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'flex-start',marginBottom:2}}>

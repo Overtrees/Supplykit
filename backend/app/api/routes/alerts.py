@@ -53,18 +53,17 @@ def _counts(conn, ch_sql, ch_p, status):
         f"CASE WHEN warehouse_type IS NULL OR warehouse_type = '' THEN '' ELSE warehouse_type END AS wt, "
         f"COUNT(*) AS n FROM alerts WHERE status=? AND ({ch_sql}) GROUP BY 1,2,3,4", [status] + ch_p).fetchall()
     by_type, by_sev, by_wh = {}, {}, {}
-    by_wh_ls = {}   # 低库存/其他(非replenish) 仓库分布
-    by_wh_rp = {}   # 补货 仓库分布
+    by_wh_ls = {}    # 低库存(low_stock) 仓库分布
+    by_wh_slow = {}  # 滞销(slow_moving) 仓库分布
+    by_wh_rp = {}    # 补货(replenish) 仓库分布
     total = 0
     for _grp, atype, sev, wt, n in rows:
         total += n
         by_type[atype] = by_type.get(atype, 0) + n
         by_sev[sev] = by_sev.get(sev, 0) + n
         by_wh[wt or ''] = by_wh.get(wt or '', 0) + n
-        if _grp == 'replenish':
-            by_wh_rp[wt or ''] = by_wh_rp.get(wt or '', 0) + n
-        else:
-            by_wh_ls[wt or ''] = by_wh_ls.get(wt or '', 0) + n
+        _tgt = by_wh_rp if atype == 'replenish' else (by_wh_slow if atype == 'slow_moving' else by_wh_ls)
+        _tgt[wt or ''] = _tgt.get(wt or '', 0) + n
     rp = by_type.get('replenish', 0)
     def _wmap(m):
         _b = m.get('platform_b', 0); _c = m.get('platform', 0); _o = m.get('own', 0)
@@ -72,7 +71,7 @@ def _counts(conn, ch_sql, ch_p, status):
     return {"total": total, "by_type": by_type, "by_severity": by_sev,
             "replenish": rp, "non_replenish": total - rp,
             "by_warehouse": _wmap(by_wh),
-            "ls_warehouse": _wmap(by_wh_ls), "rp_warehouse": _wmap(by_wh_rp)}
+            "ls_warehouse": _wmap(by_wh_ls), "slow_warehouse": _wmap(by_wh_slow), "rp_warehouse": _wmap(by_wh_rp)}
 
 
 def _grouped_query(conn, channel, per_group_limit, status):

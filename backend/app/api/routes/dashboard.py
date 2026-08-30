@@ -421,5 +421,5 @@ def stock_risk(channel: str = 'jd', full: int = 0):
                 "bcItems": bc_items[:10], "bcTotal": _bc_total, "bcCritical": _bc_crit, "bcWarning": _bc_warn, "bcAll": bc_items,
                 "cItems": _c_items[:10], "cTotal": _ct_total, "cCritical": _ct_crit, "cWarning": _ct_warn, "cAll": _c_items}
     _stock_risk_cache[channel] = {'data': _payload, 'ts': time.time(), 'ver': db_ver}
-    _ret = dict(_payload); _ret.pop('_all', None); _ret.pop('bcAll', None)
+    _ret = dict(_payload); _ret.pop('_all', None); _ret.pop('bcAll', None); _ret.pop('cAll', None)
     return ok(_ret)

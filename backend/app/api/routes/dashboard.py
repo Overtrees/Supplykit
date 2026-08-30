@@ -204,7 +204,7 @@ def stock_risk(channel: str = 'jd', full: int = 0):
         db_ver = 0
     cached = _stock_risk_cache.get(channel)
     if cached and cached.get('ver') == db_ver and now - cached['ts'] < _STOCK_CACHE_TTL:
-        # full=1: 弹窗显示完整列表(缓存存全量 _all/bcAll/cAll)
+        # full=1: 弹窗显示完整列表(缓存存全量 _all/bcAll/cAll/ownAll)
         _d = cached['data']
         if full:
             _d = dict(_d)
@@ -212,6 +212,10 @@ def stock_risk(channel: str = 'jd', full: int = 0):
             _d['bcItems'] = _d.get('bcAll', []) or _d.get('bcItems', [])
             _d['cItems'] = _d.get('cAll', []) or _d.get('cItems', [])
             _d['ownItems'] = _d.get('ownAll', []) or _d.get('ownItems', [])
+            _d.pop('_all', None); _d.pop('bcAll', None); _d.pop('cAll', None); _d.pop('ownAll', None)
+        else:
+            # 非 full: 必须剥离全量列表, 否则响应数MB截断(曾致 bcTotal=0 假象)
+            _d = dict(_d)
             _d.pop('_all', None); _d.pop('bcAll', None); _d.pop('cAll', None); _d.pop('ownAll', None)
         return ok(_d)
     """

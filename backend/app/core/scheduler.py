@@ -496,6 +496,17 @@ def start():
     # 延迟预热 dashboard 缓存（reload 后 10s 执行，避开 CI health 探测窗口；修复预热线程饿死请求）
     scheduler.add_job(_task_warmup_dashboard, trigger='date', run_date=datetime.now(UTC) + timedelta(seconds=10), id='dash_warmup')
     scheduler.start()
+    # 快照新鲜度自愈(启动即查): PA 上 03:30 CronTrigger 可能长期不触发(快照曾停 7/9 致濒临断货 0 条),
+    # 进程频繁 reload → 每次启动检查, 快照陈旧(>2天)立即重建, 不依赖单一定时
+    try:
+        _sn = get_conn().execute("SELECT COALESCE(MAX(date),'') FROM daily_sales_snapshot").fetchone()[0]
+        _today = datetime.now(UTC).strftime('%Y-%m-%d')
+        if not _sn or _sn < (datetime.now(UTC) - timedelta(days=2)).strftime('%Y-%m-%d'):
+            logger.warning(f"[scheduler] 日销快照陈旧(max={_sn}), 启动重建")
+            from app.core.sales_utils import build_daily_sales_snapshot
+            threading.Thread(target=lambda: build_daily_sales_snapshot(get_db()), daemon=True).start()
+    except Exception as e:
+        logger.warning(f"[scheduler] snapshot freshness check: {e}")
     logger.info(f"Started at {datetime.now(UTC).isoformat()}")
 
 def get_status():

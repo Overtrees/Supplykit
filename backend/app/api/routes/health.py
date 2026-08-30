@@ -1,6 +1,6 @@
 """Health check endpoint for monitoring"""
 from fastapi import APIRouter, Request
-from datetime import datetime, UTC
+from datetime import datetime, UTC, timedelta
 import os, sqlite3
 
 router = APIRouter(tags=["health"])
@@ -214,6 +214,25 @@ def health():
     except Exception:
         pass
     
+    # 调度器与快照新鲜度(自愈监控: 快照陈旧→self-heal 可感知并重建)
+    try:
+        from app.core.database import get_conn
+        _sn = get_conn().execute("SELECT COALESCE(MAX(date),'') FROM daily_sales_snapshot").fetchone()[0]
+        checks["snapshot_max"] = _sn
+        checks["snapshot_stale"] = (not _sn) or _sn < (datetime.now(UTC) - timedelta(days=2)).strftime('%Y-%m-%d')
+        if checks["snapshot_stale"]:
+            checks["snapshot"] = "warning: 日销快照陈旧, 需重建"
+            status = "degraded"
+        else:
+            checks["snapshot"] = "ok"
+        try:
+            from app.core.scheduler import get_status
+            checks["scheduler"] = get_status()
+        except Exception:
+            pass
+    except Exception as e:
+        checks["snapshot"] = f"error: {e}"
+
     return {
         "status": status,
         "timestamp": datetime.now(UTC).isoformat(),
@@ -225,6 +244,15 @@ def health():
 @router.get("/api/diag-orders")
 def diag_orders(action: str = ''):
     # 运维操作: rebuild_rules=重建规则引擎告警, rule_stat=规则匹配统计
+    if action == 'rebuild_snapshot':
+        try:
+            from app.core.database import get_db
+            from app.core.sales_utils import build_daily_sales_snapshot
+            _n = build_daily_sales_snapshot(get_db())
+            return {"ok": True, "action": "rebuild_snapshot", "result": f"日销快照已重建, 聚合行数={_n}"}
+        except Exception as e:
+            import traceback
+            return {"ok": False, "action": "rebuild_snapshot", "error": str(e)[:200], "tb": traceback.format_exc()[-500:]}
     if action == 'rebuild_rules':
         try:
             from app.api.routes.seed import _seed_rules
@@ -281,6 +309,10 @@ def diag_orders(action: str = ''):
         last_arc = conn.execute("SELECT value FROM replenishment_config WHERE key='_last_archive_check'").fetchone()
         replen_ver = conn.execute("SELECT value FROM replenishment_config WHERE key='_replen_version'").fetchone()
         wt_dist = [{"channel": r[0], "warehouse_type": r[1], "warehouse": r[2], "c": r[3]} for r in conn.execute("SELECT channel, warehouse_type, warehouse, COUNT(*) c FROM inventory GROUP BY channel, warehouse_type, warehouse ORDER BY channel, warehouse_type").fetchall()]
+        # 快照与订单状态诊断(conn 关闭前查询)
+        _snap = _diag_snapshot(conn)
+        _ob = {r[0]: r[1] for r in conn.execute("SELECT order_status, COUNT(*) FROM orders GROUP BY order_status").fetchall()}
+        _o30 = conn.execute("SELECT COUNT(*) FROM orders WHERE substr(ordered_at,1,10) >= date('now','-30 day')").fetchone()[0]
         conn.close()
         return {"total": total, "active": active, "soft_del": soft_del, "min_date": mmin, "max_date": mmax,
                 "daily_stats_rows": daily_stats[0], "daily_stats_orders": daily_stats[1],
@@ -288,9 +320,18 @@ def diag_orders(action: str = ''):
                 "inventory_cnt": inv_cnt, "products_cnt": prod_cnt,
                 "last_archive_check": last_arc[0] if last_arc else None,
                 "replen_version": replen_ver[0] if replen_ver else None,
-                "warehouse_type_dist": wt_dist}
+                "warehouse_type_dist": wt_dist,
+                "sales_snapshot": _snap, "orders_by_status": _ob, "orders_last30d": _o30}
     except Exception as e:
         return {"error": str(e)}
+
+def _diag_snapshot(conn):
+    try:
+        r = conn.execute("SELECT COUNT(*), COALESCE(MAX(date),''), COALESCE(MIN(date),'') FROM daily_sales_snapshot").fetchone()
+        r2 = conn.execute("SELECT COUNT(*) FROM daily_sales_snapshot WHERE date >= date('now','-28 day')").fetchone()
+        return {"rows": r[0], "max": r[1], "min": r[2], "last28d": r2[0]}
+    except Exception as e:
+        return {"error": str(e)[:100]}
 
 @router.get("/api/health/last-errors")
 def last_errors(limit: int = 15):

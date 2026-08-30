@@ -10,7 +10,7 @@ from collections import defaultdict
 from typing import Any, Optional
 
 DB_PATH = os.getenv("SQLITE_PATH", os.path.join(os.path.dirname(__file__), "..", "supplykit.db"))
-SCHEMA_VERSION = 21  # 当前 schema 版本，每次改表结构+1
+SCHEMA_VERSION = 22  # 当前 schema 版本，每次改表结构+1
 
 # 版本化迁移注册表：{目标版本: 迁移函数}
 # 迁移函数签名: def migrate(conn): 执行该版本的 schema 变更
@@ -313,6 +313,23 @@ def _migrate_v21(conn):
         ) WHERE related_sku != ''""")
     except sqlite3.OperationalError:
         pass
+    conn.commit()
+
+
+# 迁移 v22：滞销告警 warehouse_type 回填——滞销=库存积压在哪类仓(自有/B/C), 取库存最多的仓
+# (之前滞销生成不写仓→unknown; 现在生成即写, 存量回填)
+@_register_migration(22)
+def _migrate_v22(conn):
+    import sqlite3
+    try:
+        conn.execute("""UPDATE alerts SET warehouse_type = (
+            SELECT i.warehouse_type FROM inventory i
+            WHERE i.channel = alerts.channel AND i.sku = alerts.related_sku
+            ORDER BY i.available_qty DESC, i.warehouse_type LIMIT 1
+        ) WHERE alert_type = 'slow_moving' AND related_sku != ''""")
+    except sqlite3.OperationalError:
+        pass
+    conn.commit()
     conn.commit()
 
 _local = threading.local()

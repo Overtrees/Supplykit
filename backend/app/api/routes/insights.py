@@ -60,9 +60,14 @@ def detect_slow_moving_products(db=None, create_alerts=False):
         import logging; logging.warning(f"[slow-moving] products: {e}")
     sku_barcode_map = {s: (p.get('barcode', '') or '') for s, p in products_map.items()}
     inventory_map = {}
+    sku_wh = {}   # SKU → 库存最多仓的主体(滞销积压在哪类仓: 自有/B/C)
     try:
-        for r in _conn.execute("SELECT sku, available_qty, product_name, channel FROM inventory").fetchall():
-            inventory_map[str(r[0])] = {"sku": str(r[0]), "available_qty": r[1], "product_name": str(r[2] or '') or str(r[0]), "channel": str(r[3] or 'jd')}
+        for r in _conn.execute("SELECT sku, available_qty, product_name, channel, warehouse_type, warehouse FROM inventory").fetchall():
+            _s = str(r[0])
+            inventory_map[_s] = {"sku": _s, "available_qty": r[1], "product_name": str(r[2] or '') or _s, "channel": str(r[3] or 'jd')}
+            _aq = r[1] or 0
+            if _aq > 0 and (_s not in sku_wh or _aq > sku_wh[_s][1]):
+                sku_wh[_s] = (str(r[4] or ''), _aq)   # 取有货、库存最多仓的主体(积压研判更有意义)
     except Exception as e:
         import logging; logging.warning(f"[slow-moving] inventory: {e}")
     # SKU → channel（优先 products 主表，回退 inventory）
@@ -88,11 +93,11 @@ def detect_slow_moving_products(db=None, create_alerts=False):
         stock = int(inv.get("available_qty") or 0) if inv else 0
         if days > 30 and stock > 0:
             level = "滞销" if days > 60 else ("冷淡" if days > 30 else "正常")
-            result.append({"sku": sku, "barcode": bc, "product_name": p["product_name"] if p else inv.get("product_name",sku) if inv else sku, "last_order_date": last_date[:10], "days_since_last": days, "stock": stock, "level": level, "channel": sku_channel_map.get(sku, 'jd')})
+            result.append({"sku": sku, "barcode": bc, "product_name": p["product_name"] if p else inv.get("product_name",sku) if inv else sku, "last_order_date": last_date[:10], "days_since_last": days, "stock": stock, "level": level, "channel": sku_channel_map.get(sku, 'jd'), "warehouse_type": (sku_wh.get(sku) or ('', 0))[0]})
             if create_alerts:
                 ex = db.table("alerts").select("id").eq("alert_type","slow_moving").eq("related_sku",sku).eq("status","active").execute().data
                 if not ex:
-                    db.table("alerts").insert({"alert_type":"slow_moving", "title":f"滞销: {result[-1]['product_name']}", "description":f"{days} 天无销售，库存 {stock} 件", "severity":"warning", "source":"event_bus", "related_sku":sku, "status":"active", "channel": sku_channel_map.get(sku, 'jd')}).execute()
+                    db.table("alerts").insert({"alert_type":"slow_moving", "title":f"滞销: {result[-1]['product_name']}", "description":f"{days} 天无销售，库存 {stock} 件", "severity":"warning", "source":"event_bus", "related_sku":sku, "status":"active", "channel": sku_channel_map.get(sku, 'jd'), "warehouse_type": (sku_wh.get(sku) or ('', 0))[0]}).execute()
     result.sort(key=lambda x: -x["days_since_last"])
     # API 调用写入缓存（scheduler 不写，避免覆盖实时数据）
     if not create_alerts:

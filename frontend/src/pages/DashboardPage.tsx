@@ -513,7 +513,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
         <div onClick={function(e){e.stopPropagation()}} className="material-regular" style={{width:"100%",maxWidth:600,borderRadius:32,padding:"18px 14px calc(14px + env(safe-area-inset-bottom))",boxShadow:"var(--shadow-sheet), inset 0 1px 0 rgba(255,255,255,0.25)",pointerEvents:"auto",maxHeight:"70vh",overflowY:"auto"}}>
           <div style={{fontSize:18,fontWeight:700,marginBottom:12,textAlign:'center',color:'var(--text)'}}>濒临断货预警{_replMode === 'bbcc' ? '（BC）' : (_showOwn ? '（自有三方仓）' : '（C仓）')} · 共 {_r.total} 条</div>
           {(fullRisk || _r.items || []).map(function(x, i) {
-            return <div key={i} onClick={function(){onAlert && onAlert(x.sku)}} className="clickable" style={{padding:'8px 12px',background:'var(--card)',borderRadius:16,marginBottom:6,display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}}>
+            return <div key={i} onClick={function(){onAlert && onAlert(x.sku, _showOwn ? 'own' : 'platform')}} className="clickable" style={{padding:'8px 12px',background:'var(--card)',borderRadius:16,marginBottom:6,display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}}>
               <div style={{minWidth:0}}>
                 <div style={{fontWeight:600,fontSize:12,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{x.product_name || x.sku}</div>
                 <div className="small muted" style={{fontSize:10}}>日销 {x.daily_sales} · 可用 {x.available_qty}</div>

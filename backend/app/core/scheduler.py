@@ -38,6 +38,23 @@ def _task_build_sales_snapshot():
     except Exception as e:
         logger.info(f"Sales snapshot error: {e}")
 
+
+def _task_snapshot_freshness():
+    """快照新鲜度守护(治理项③): 每小时检查, 快照陈旧(>2天)自动重建——不依赖 03:30 CronTrigger
+    (PA 上 CronTrigger 曾长期不触发致快照停 7/9; IntervalTrigger 经验证可靠: inventory_sync/checkpoint 均正常)"""
+    try:
+        from app.core.database import get_conn, get_db
+        from app.core.sales_utils import build_daily_sales_snapshot
+        from datetime import datetime, timedelta, UTC
+        _sn = get_conn().execute("SELECT COALESCE(MAX(date),'') FROM daily_sales_snapshot").fetchone()[0]
+        _stale = (not _sn) or _sn < (datetime.now(UTC) - timedelta(days=2)).strftime('%Y-%m-%d')
+        if _stale:
+            logger.warning(f"[scheduler] freshness: 日销快照陈旧(max={_sn}), 自动重建")
+            _n = build_daily_sales_snapshot(get_db())
+            logger.info(f"[scheduler] freshness: 快照已重建({_n}行)")
+    except Exception as e:
+        logger.warning(f"[scheduler] freshness error: {e}")
+
 def _task_archive_orders():
     """每天凌晨 1 点归档 90 天前的订单（与看板/滞销 90 天窗口一致，避免缺口）"""
     try:
@@ -484,6 +501,7 @@ def start():
     _started = True
     scheduler.add_job(_task_inventory_sync, IntervalTrigger(minutes=30), id='inventory_sync')
     scheduler.add_job(_task_build_sales_snapshot, CronTrigger(hour=3, minute=30), id='build_sales_snapshot')
+    scheduler.add_job(_task_snapshot_freshness, IntervalTrigger(hours=1), id='snapshot_freshness')
     scheduler.add_job(_task_archive_orders, CronTrigger(hour=1, minute=0), id='archive_orders')
     scheduler.add_job(_task_cleanup_logs, CronTrigger(hour=3, minute=0), id='cleanup_logs')
     scheduler.add_job(_task_backup, CronTrigger(hour=2, minute=0), id='db_backup')
@@ -507,45 +525,6 @@ def start():
             threading.Thread(target=lambda: build_daily_sales_snapshot(get_db()), daemon=True).start()
     except Exception as e:
         logger.warning(f"[scheduler] snapshot freshness check: {e}")
-    # 快照 watchdog 线程(治理项③): 进程存活期间每 30 分钟查一次快照新鲜度, 陈旧自动重建——
-    # 不依赖 APScheduler CronTrigger(PA 上不可靠, 快照曾停 7/9), 也不依赖进程重启
-    def _snapshot_watchdog():
-        import time as _t
-        from app.core.database import get_conn
-        while True:
-            try:
-                _sn2 = get_conn().execute("SELECT COALESCE(MAX(date),'') FROM daily_sales_snapshot").fetchone()[0]
-                _stale = (not _sn2) or _sn2 < (datetime.now(UTC) - timedelta(days=2)).strftime('%Y-%m-%d')
-                if _stale:
-                    logger.warning(f"[scheduler] watchdog: 日销快照陈旧(max={_sn2}), 自动重建")
-                    from app.core.sales_utils import build_daily_sales_snapshot
-                    from app.core.database import get_db
-                    _n = build_daily_sales_snapshot(get_db())
-                    logger.info(f"[scheduler] watchdog: 快照已重建({_n}行)")
-            except Exception as _e:
-                logger.warning(f"[scheduler] watchdog: {_e}")
-            _t.sleep(1800)  # 30 分钟
-    threading.Thread(target=_snapshot_watchdog, daemon=True).start()
-    # 快照 watchdog 线程(治理项③): 进程存活期每 30 分钟查快照新鲜度, 陈旧自动重建——
-    # 不依赖 APScheduler CronTrigger(PA 上不可靠, 快照曾停 7/9); 首查延迟避免与启动抢 DB
-    def _snapshot_watchdog():
-        import time as _t
-        from app.core.database import get_conn
-        _t.sleep(600)  # 启动 10 分钟后首查
-        while True:
-            try:
-                _sn2 = get_conn().execute("SELECT COALESCE(MAX(date),'') FROM daily_sales_snapshot").fetchone()[0]
-                _stale = (not _sn2) or _sn2 < (datetime.now(UTC) - timedelta(days=2)).strftime('%Y-%m-%d')
-                if _stale:
-                    logger.warning(f"[scheduler] watchdog: 日销快照陈旧(max={_sn2}), 自动重建")
-                    from app.core.sales_utils import build_daily_sales_snapshot
-                    from app.core.database import get_db
-                    _n = build_daily_sales_snapshot(get_db())
-                    logger.info(f"[scheduler] watchdog: 快照已重建({_n}行)")
-            except Exception as _e:
-                logger.warning(f"[scheduler] watchdog: {_e}")
-            _t.sleep(1800)  # 30 分钟
-    threading.Thread(target=_snapshot_watchdog, daemon=True).start()
     logger.info(f"Started at {datetime.now(UTC).isoformat()}")
 
 def get_status():

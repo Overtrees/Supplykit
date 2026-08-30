@@ -70,6 +70,10 @@ async def preview_cleansing(file: UploadFile = File(...), mapping: str = Form(''
             warehouse_target = src_col
             break
     warnings = []
+    # 订单导入若未映射仓库列: 订单归"未知"仓, 日销无法按 C 仓/B 仓归因(影响补货口径)
+    _is_order = any(cfg.get('target') == 'order_no' for cfg in mapping_config.values())
+    if _is_order and not warehouse_target:
+        warnings.append('⚠️ 订单未映射「仓库」列——订单将归入"未知"仓，日销无法按 C 仓/B 仓归因（影响补货/濒临断货口径），建议映射仓库列')
     if warehouse_target:
         for row in rows[:50]:
             w = str(row.get(warehouse_target, '')).strip()

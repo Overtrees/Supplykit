@@ -230,10 +230,11 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
   // BBCC 看全盘 B+C(与健康卡bc一致), 传统多仓不涉及B仓。曾用截断列表filter(200样本 vs 全量)
   function _whView(w) {
     w = w || {}
+    // unknown=未归仓(滞销类无warehouse_type)单独标出, 使分布数字与总数自洽
     if (_replMode === 'bbcc') {
-      return { main: (w.b || 0) + (w.c || 0), own: (w.own || 0) }   // BC合计 + 自有
+      return { main: (w.b || 0) + (w.c || 0), own: (w.own || 0), unk: (w.unknown || 0) }   // BC合计 + 自有
     }
-    return { main: (w.c || 0), own: (w.own || 0) }                   // C仓 + 自有/三方
+    return { main: (w.c || 0), own: (w.own || 0), unk: (w.unknown || 0) }                   // C仓 + 自有/三方
   }
   const _acLsWh = (alertCounts && alertCounts.ls_warehouse) || null   // 低库存/其他 组分布
   const _acRpWh = (alertCounts && alertCounts.rp_warehouse) || null   // 补货 组分布
@@ -303,9 +304,9 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
                 <span style={{color:'var(--muted2)'}}>● 需{t("dash.replenish")} {replenishTotal}</span>
               </div>
               <div style={{fontSize:9,display:'flex',gap:6,marginTop:3,color:'var(--muted)'}}>
-                <span>{_replMode === 'bbcc' ? 'BC' : 'C'}{lsWhView.main} {t("dash.own")}{lsWhView.own}</span>
+                <span>{_replMode === 'bbcc' ? 'BC' : 'C'}{lsWhView.main} {t("dash.own")}{lsWhView.own}{lsWhView.unk ? ` 未归仓${lsWhView.unk}` : ''}</span>
                 <span style={{color:'var(--border)'}}>|</span>
-                <span>{_replMode === 'bbcc' ? 'BC' : 'C'}{rpWhView.main} 自有{rpWhView.own}</span>
+                <span>{_replMode === 'bbcc' ? 'BC' : 'C'}{rpWhView.main} 自有{rpWhView.own}{rpWhView.unk ? ` 未归仓${rpWhView.unk}` : ''}</span>
               </div>
             </>}
           </div>

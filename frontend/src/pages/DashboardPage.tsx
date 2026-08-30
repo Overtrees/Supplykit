@@ -20,6 +20,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
   const [showAllReplenish, setShowAllReplenish] = useState(false)
   const [showAllRisk, setShowAllRisk] = useState(false)
   const [_riskTab, setRiskTab] = useState('c')   // 传统模式子视图: c=C仓 / own=自有三方仓
+  const [_storeDim, setStoreDim] = useState('store')  // 店铺GMV卡维度: store=店铺(盘子) / brand=品牌(渗透)
   const [showAllOut, setShowAllOut] = useState(false)
   const [fullOut, setFullOut] = useState(null)        // 缺货弹窗完整数据(按当前视图维度)
   const [oosList, setOosList] = useState(null)        // 当前维度缺货全量(随 healthTab 拉取, 预览+计数+弹窗同源)
@@ -147,8 +148,11 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
   }), [periodTrend])
 
   const storeOption = useMemo(() => {
-    var storeData = dashboard?.period_stores?.[periodTab] || dashboard?.stores || []
-    // GMV 视角切换: 净GMV=总GMV-该店退款(后端 stores/period_stores 已带 net_gmv)
+    // 店铺看盘子 / 品牌看渗透(跨店按brand归集, join products.brand)
+    var storeData = _storeDim === 'brand'
+      ? (dashboard?.period_brands?.[periodTab] || dashboard?.brands || [])
+      : (dashboard?.period_stores?.[periodTab] || dashboard?.stores || [])
+    // GMV 视角切换: 净GMV=总GMV-退款(后端 stores/brands 已带 net_gmv)
     var _g = (i) => gmvView === 'net' ? (i.net_gmv != null ? i.net_gmv : i.gmv) : i.gmv
     return {
     tooltip: { trigger: 'axis', valueFormatter: (v) => '¥' + Number(v).toLocaleString('zh-CN', {minimumFractionDigits:2,maximumFractionDigits:2}), extraCssText: 'z-index:1000', hideDelay: 100 },
@@ -156,7 +160,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
     yAxis: { type: 'value', axisLabel: { fontSize: 9, formatter: (v) => v >= 10000 ? (v/10000).toFixed(0) + 'W' : v }, max: (v) => Math.ceil(v.max * 1.2 / 1000) * 1000 },
     series: [{ type: 'bar', data: storeData.map((i, idx) => ({ value: Math.round(_g(i) * 100) / 100, itemStyle: { color: ['#f59e0b','#06b6d4','#8b5cf6','#ec4899','#10b981','#f97316'][idx % 6] } })) || [] }],
     grid: { containLabel: true, top: 8, bottom: 16 }
-  }}, [dashboard, periodTab, gmvView])
+  }}, [dashboard, periodTab, gmvView, _storeDim])
 
   const barOption = useMemo(() => {
     const f = dashboard?.period_funnel?.[periodTab] || dashboard?.funnel || []
@@ -407,6 +411,8 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
       <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title">{t("dash.funnel")}</div><Chart option={barOption} height={200} /></div>
       <div className="card" style={{height:'auto',overflow:'visible'}}><div className="section-title" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>{t("dash.store_gmv")}
           <span style={{display:'inline-flex',gap:2,background:'var(--bg)',borderRadius:99,padding:2}}>
+            <span onClick={function(){setStoreDim('store')}} className="clickable" style={{fontSize:9,padding:'2px 6px',borderRadius:99,cursor:'pointer',fontWeight:_storeDim==='store'?600:400,background:_storeDim==='store'?'var(--card)':'transparent',color:_storeDim==='store'?'var(--text)':'var(--muted2)',whiteSpace:'nowrap'}}>店铺</span>
+            <span onClick={function(){setStoreDim('brand')}} className="clickable" style={{fontSize:9,padding:'2px 6px',borderRadius:99,cursor:'pointer',fontWeight:_storeDim==='brand'?600:400,background:_storeDim==='brand'?'var(--card)':'transparent',color:_storeDim==='brand'?'var(--text)':'var(--muted2)',whiteSpace:'nowrap'}}>品牌</span>
             <span onClick={function(){setGmvView('total')}} className="clickable" style={{fontSize:9,padding:'2px 6px',borderRadius:99,cursor:'pointer',fontWeight:gmvView==='total'?600:400,background:gmvView==='total'?'var(--card)':'transparent',color:gmvView==='total'?'var(--text)':'var(--muted2)',whiteSpace:'nowrap'}}>总</span>
             <span onClick={function(){setGmvView('net')}} className="clickable" style={{fontSize:9,padding:'2px 6px',borderRadius:99,cursor:'pointer',fontWeight:gmvView==='net'?600:400,background:gmvView==='net'?'var(--card)':'transparent',color:gmvView==='net'?'var(--text)':'var(--muted2)',whiteSpace:'nowrap'}}>净</span>
           </span>

@@ -163,6 +163,26 @@ def _rebuild(channel='jd'):
                "subsidy_amount": round(r.get("subsidy_amount", 0), 2),
                "net_gmv": round(r["gmv"] - r.get("refund_amount", 0), 2),
                "payout": round(r["gmv"] - r.get("refund_amount", 0) - r.get("subsidy_amount", 0), 2)} for r in store_rows]
+
+    # ── 品牌GMV(品牌看渗透, 跨店归集; 与店铺看盘子正交)——orders无brand列, join products.brand by sku
+    # 已支付口径与 GMV 表达式同 stores; 90天总量 + 30天周期(供 今日/本周/本月 维度)
+    def _brand_agg(_from):
+        return conn.execute(
+            "SELECT p.brand, "
+            "SUM(CASE WHEN o.order_status IN ('待发货','已发货','已完成','申请退款') THEN o.total_amount - COALESCE(o.discount_amount,0) + COALESCE(o.freight_amount,0) + COALESCE(o.tax_amount,0) ELSE 0 END) as g, "
+            "SUM(CASE WHEN o.order_status = '申请退款' THEN o.total_amount - COALESCE(o.discount_amount,0) + COALESCE(o.freight_amount,0) + COALESCE(o.tax_amount,0) ELSE 0 END) as rf, "
+            "SUM(CASE WHEN o.order_status IN ('待发货','已发货','已完成','申请退款') THEN COALESCE(o.subsidy_amount,0) ELSE 0 END) as sub, "
+            "SUM(CASE WHEN o.order_status IN ('待发货','已发货','已完成','申请退款') THEN 1 ELSE 0 END) as cnt "
+            "FROM orders o LEFT JOIN products p ON o.sku = p.sku AND o.channel = p.channel "
+            "WHERE o.channel=? AND o.ordered_at>=? AND (o.deleted_at='') "
+            "GROUP BY p.brand ORDER BY g DESC", (ch, _from)).fetchall()
+    def _bmap(rows):
+        return [{"name": r[0] or '未分类', "orders": r[4] or 0, "gmv": round(r[1] or 0, 2),
+                 "refund_amount": round(r[2] or 0, 2), "subsidy_amount": round(r[3] or 0, 2),
+                 "net_gmv": round((r[1] or 0) - (r[2] or 0), 2),
+                 "payout": round((r[1] or 0) - (r[2] or 0) - (r[3] or 0), 2)} for r in rows if (r[0] or '').strip()]
+    brands = _bmap(_brand_agg(_cut90))
+    period_brands = {pname: _bmap(_brand_agg(cutoff.isoformat())) for pname, cutoff in [('today', bj_date), ('week', bj_date - timedelta(days=6)), ('month', bj_date - timedelta(days=29))]}
     
     # SQL 聚合替代 Python 遍历(等价重构: 同一 inventory, CASE与Python比较一致)
     _store_low_rows = conn.execute(
@@ -262,6 +282,7 @@ def _rebuild(channel='jd'):
         "period_funnel": period_funnel,
         "status_distribution": status_dist, "category_distribution": cat_dist,
         "health_index": health,
+        "brands": brands, "period_brands": period_brands,
     }
 
 def get_cached_dashboard(channel):

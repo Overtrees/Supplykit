@@ -417,7 +417,7 @@ def _seed_orders(db, today, skus_data):
                     q = random.randint(1,4)
                     st = random.choices(['已完成','已发货'],[80,20])[0]
                     _a = _amt(q, sk['price'])
-                    batch.append({'order_no':f'{label.upper()}-L{d:03d}-{lsk[-3:]}','store':sk['store'],'warehouse':random.choice([w for w,wt in WH if wt=='platform'])[0],'sku':sk['sku'],'product_name':sk['name'],'quantity':q,'unit_price':sk['price'],**_a,'order_status':st,'ordered_at':dt.strftime('%Y-%m-%d'),'paid_at':dt.strftime('%Y-%m-%d'),'channel':ch,'platform':'京东' if label=='jd' else '天猫'})
+                    batch.append({'order_no':f'{label.upper()}-L{d:03d}-{lsk[-3:]}','store':sk['store'],'warehouse':random.choice([w for w,wt in WH if wt=='platform']),'sku':sk['sku'],'product_name':sk['name'],'quantity':q,'unit_price':sk['price'],**_a,'order_status':st,'ordered_at':dt.strftime('%Y-%m-%d'),'paid_at':dt.strftime('%Y-%m-%d'),'channel':ch,'platform':'京东' if label=='jd' else '天猫'})
                     total += 1
             for _ in range(cnt):
                 sk = random.choice(_normal_skus if _normal_skus else skus)
@@ -426,7 +426,7 @@ def _seed_orders(db, today, skus_data):
                 if random.random() < 0.03: st = '已退货'
                 paid_dt = dt + timedelta(days=random.randint(1,3))
                 _a = _amt(q, sk['price'])
-                batch.append({'order_no':f'{label.upper()}-{ch}{d:03d}-{total:03d}','store':sk['store'],'warehouse':random.choice([w for w,wt in WH if wt=='platform'])[0],'sku':sk['sku'],'product_name':sk['name'],'quantity':q,'unit_price':sk['price'],**_a,'order_status':st,'ordered_at':dt.strftime('%Y-%m-%d'),'paid_at':paid_dt.strftime('%Y-%m-%d'),'channel':ch,'platform':'京东' if label=='jd' else '天猫'})
+                batch.append({'order_no':f'{label.upper()}-{ch}{d:03d}-{total:03d}','store':sk['store'],'warehouse':random.choice([w for w,wt in WH if wt=='platform']),'sku':sk['sku'],'product_name':sk['name'],'quantity':q,'unit_price':sk['price'],**_a,'order_status':st,'ordered_at':dt.strftime('%Y-%m-%d'),'paid_at':paid_dt.strftime('%Y-%m-%d'),'channel':ch,'platform':'京东' if label=='jd' else '天猫'})
                 total += 1
                 if len(batch) >= batch_size:
                     flush()

@@ -384,11 +384,17 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             sku = s.get('sku', '')
             qty = s.get('suggested_qty', 0) or s.get('b_suggested', 0) or 0
             if qty > 0 and sku not in active:
+                # 补货告警 warehouse_type: 该 SKU 库存主体(优先有货仓, 与看板 B/C/自有 分布口径一致)
+                wt = ''
                 try:
-                    conn.execute("INSERT INTO alerts(alert_type,title,description,severity,source,related_sku,status,channel) VALUES(?,?,?,?,?,?,?,?)",
+                    _r = conn.execute("SELECT warehouse_type FROM inventory WHERE sku=? AND channel=? ORDER BY CASE WHEN available_qty>0 THEN 0 ELSE 1 END, available_qty DESC LIMIT 1", (sku, channel)).fetchone()
+                    wt = _r[0] if _r else ''
+                except Exception: pass
+                try:
+                    conn.execute("INSERT INTO alerts(alert_type,title,description,severity,source,related_sku,status,channel,warehouse_type) VALUES(?,?,?,?,?,?,?,?,?)",
                         ("replenish", f"需补货: {s.get('product_name', sku)}",
                          f"建议补{qty}件, 可撑{s.get('days_to_empty', 0)}天",
-                         "warning", "replenishment_engine", sku, "active", channel))
+                         "warning", "replenishment_engine", sku, "active", channel, wt))
                 except Exception as e: logger.warning(f"[replenish] insert alert: {e}")
             elif qty == 0 and sku in active:
                 try:

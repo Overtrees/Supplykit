@@ -10,7 +10,7 @@ from collections import defaultdict
 from typing import Any, Optional
 
 DB_PATH = os.getenv("SQLITE_PATH", os.path.join(os.path.dirname(__file__), "..", "supplykit.db"))
-SCHEMA_VERSION = 22  # 当前 schema 版本，每次改表结构+1
+SCHEMA_VERSION = 23  # 当前 schema 版本，每次改表结构+1
 
 # 版本化迁移注册表：{目标版本: 迁移函数}
 # 迁移函数签名: def migrate(conn): 执行该版本的 schema 变更
@@ -327,6 +327,22 @@ def _migrate_v22(conn):
             WHERE i.channel = alerts.channel AND i.sku = alerts.related_sku
             ORDER BY i.available_qty DESC, i.warehouse_type LIMIT 1
         ) WHERE alert_type = 'slow_moving' AND related_sku != ''""")
+    except sqlite3.OperationalError:
+        pass
+    conn.commit()
+
+
+# 迁移 v23：补货告警(replenishment_engine) warehouse_type 回填——曾 INSERT 不带仓(全部 unknown)
+# 取该 SKU 库存主体: 优先有货仓, 回退任意仓
+@_register_migration(23)
+def _migrate_v23(conn):
+    import sqlite3
+    try:
+        conn.execute("""UPDATE alerts SET warehouse_type = (
+            SELECT i.warehouse_type FROM inventory i
+            WHERE i.channel = alerts.channel AND i.sku = alerts.related_sku
+            ORDER BY CASE WHEN i.available_qty > 0 THEN 0 ELSE 1 END, i.available_qty DESC, i.warehouse_type LIMIT 1
+        ) WHERE alert_type = 'replenish' AND related_sku != ''""")
     except sqlite3.OperationalError:
         pass
     conn.commit()

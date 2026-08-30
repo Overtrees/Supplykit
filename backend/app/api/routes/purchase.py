@@ -42,7 +42,7 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', channel: str = 
     # 统一数据源：快照(历史) + 当天orders(实时)
     from app.core.sales_utils import load_daily_sales, calc_sales_from_daily
     today = now.strftime('%Y-%m-%d')
-    today_orders = [o for o in (db.table("orders").select("*").gte("ordered_at", today).execute().data or []) if not (o.get("deleted_at") or "")]
+    today_orders = [o for o in (db.table("orders").select("*").eq("channel", channel).gte("ordered_at", today).execute().data or []) if not (o.get("deleted_at") or "")]
 
     # 14+28 双窗口：从快照一次加载，分别算两个窗口
     daily_28 = load_daily_sales(28, db, sku_barcode_map=sku_barcode_map, channel=channel)

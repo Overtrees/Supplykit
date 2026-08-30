@@ -71,7 +71,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     from app.core.sales_utils import load_daily_sales, calc_sales_from_daily
     # 只加载当天订单（快照已含历史），从 2 万行 → 几十行
     today = datetime.now(UTC).strftime('%Y-%m-%d')
-    orders = db.table("orders").select("*").gte("ordered_at", today).execute().data
+    orders = db.table("orders").select("*").eq("channel", channel).gte("ordered_at", today).execute().data
     orders = [o for o in orders if not (o.get("deleted_at") or "")]
 
     # 三周期日销：一次遍历算 3 个窗口

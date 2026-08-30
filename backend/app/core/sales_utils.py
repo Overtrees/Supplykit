@@ -69,7 +69,9 @@ def load_daily_sales(cutoff_days, db, sku_barcode_map=None, channel=None, wareho
     # 2. 当天 orders 补充（原始 SQL）
     try:
         from app.core.dashboard_cache import _PAID_STATUSES
-        orders = db.table("orders").select("*").gte("ordered_at", today).execute().data or []
+        q = db.table("orders").select("*")
+        if channel: q = q.eq("channel", channel)   # 渠道隔离: 当天订单补足必须按 channel 过滤(曾漏过滤, 跨渠道混入)
+        orders = q.gte("ordered_at", today).execute().data or []
         for o in orders:
             # 软删除订单不计入日销（修复：删单后当天日销仍含该单）
             if o.get("deleted_at"):
@@ -126,7 +128,9 @@ def load_daily_sales_grouped(cutoff_days, db, sku_barcode_map=None, channel=None
     # 当天 orders 补充(只计已支付, 同 load_daily_sales 口径)
     try:
         from app.core.dashboard_cache import _PAID_STATUSES
-        orders = db.table("orders").select("*").gte("ordered_at", today).execute().data or []
+        q = db.table("orders").select("*")
+        if channel: q = q.eq("channel", channel)   # 渠道隔离
+        orders = q.gte("ordered_at", today).execute().data or []
         for o in orders:
             if o.get("deleted_at") or (o.get('order_status') or '') not in _PAID_STATUSES:
                 continue

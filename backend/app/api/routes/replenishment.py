@@ -132,16 +132,22 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     suggestions = []
 
     if mode == 'bbcc':
-        items = db.table("inventory").select("*").in_("warehouse_type", ["platform", "platform_b"]).eq("channel", channel).execute().data
-        agg = {}; wh_detail = {}; b_stock = {}
+        items = db.table("inventory").select("*").in_("warehouse_type", ["platform", "platform_b", "own"]).eq("channel", channel).execute().data
+        agg = {}; wh_detail = {}; b_stock = {}; b_transit = {}; own_stock = {}
         for inv in items:
             sku = inv.get("sku", "")
             if sku not in agg:
-                agg[sku] = {'available':0,'transit':0,'safety':0,'safety_days':0,'warehouses':set()}
-                wh_detail[sku] = []; b_stock[sku] = 0
-            wt = inv.get('warehouse_type',''); qty = int(inv.get("available_qty") or 0); tty = int(inv.get("in_transit_qty") or 0)
-            if wt == 'platform_b': b_stock[sku] += qty
-            else: agg[sku]['available'] += qty; agg[sku]['transit'] += tty
+                agg[sku] = {'available':0,'transit':0,'c_transit':0,'safety':0,'safety_days':0,'warehouses':set()}
+                wh_detail[sku] = []; b_stock[sku] = 0; b_transit[sku] = 0; own_stock[sku] = 0
+            wt = inv.get('warehouse_type',''); qty = int(inv.get("available_qty") or 0); tty = int(inv.get("in_transit_qty") or 0); ctt = int(inv.get("c_transit") or 0)
+            if wt == 'platform_b':
+                b_stock[sku] += qty          # B仓可用
+                b_transit[sku] += tty        # 供应商→B仓在途
+            elif wt == 'own': own_stock[sku] += qty  # 自有仓(集货/三方): B 维度补给源(补货时从自有调)
+            else:
+                agg[sku]['available'] += qty
+                agg[sku]['transit'] += tty   # C仓供应商在途(传统口径, BBCC 不用)
+                agg[sku]['c_transit'] += ctt  # B→C调拨在途: C 侧可用补充(用户链路: C可用+B-C调拨在途满足则不补)
             agg[sku]['safety'] += int(inv.get("safety_qty") or 0)
             sd = float(inv.get('safety_days') or 0)
             if sd > agg[sku]['safety_days']: agg[sku]['safety_days'] = sd
@@ -149,26 +155,35 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             if wh_name: agg[sku]['warehouses'].add(wh_name); wh_detail[sku].append({'warehouse':wh_name,'type':wt,'available':qty,'transit':tty})
 
         for sku, st in agg.items():
-            avail = st['available']; transit = st['transit']; safety = st['safety']
+            avail = st['available']; transit = st['transit']; c_transit = st['c_transit']; safety = st['safety']
             ds7 = round(get_sales(sales_7, sku), 1)
             ds14 = round(get_sales(sales_14, sku), 1)
             ds28 = round(get_sales(sales_28, sku), 1)
             sel_ds = round(fused_ds(ds7, ds14, ds28) * active_factor, 1)
             sku_safety_days = st['safety_days']
             safety_days = sku_safety_days if sku_safety_days > 0 else float(cfg.get('safety_multiplier', '0'))
-            effective_safety = round(sel_ds * safety_days) if sel_ds > 0 else 0
-            c_gap = max(round(sel_ds * lead_time - avail - transit), 0) if sel_ds > 0 else 0
+            effective_safety = round(sel_ds * safety_days, 1) if sel_ds > 0 else 0
+            # 业务链路(用户口径, SKU-0967 验证: 日销21.6×lead6=129.6−C可用17−c_transit0=112.6):
+            # 1) C缺口 = 日销×lead_time − C可用 − B→C调拨在途(c_transit)
+            #    注意: BBCC 的 C 仓在途只用 c_transit(B→C调拨在途), 不减 in_transit(供应商→C, 传统模式概念)
+            #    保留1位小数(例112.6)——不得 round() 取整(曾取整致112.6→113, 偏离业务值)
+            c_gap = max(round(sel_ds * lead_time - avail - c_transit, 1), 0) if sel_ds > 0 else 0
+            # 2) C建议补 = C缺口(剩余缺口, 调拨到C即满足)——显示剩余缺口本身(例112.6), 箱规由前端/后续取整
+            suggested = c_gap
+            # 3) B 维度: B缺口 = C缺口 − (B可用 + 供应商→B在途)
+            #    若 B可用+供应商到B ≥ C缺口 → B 建议补不显示值(0)
             b_available = b_stock.get(sku, 0)
-            suggested = min(c_gap, b_available)
-            # 重要: suggested = C仓缺口由 B 仓现有库存调拨的量(受 B 可用约束)。
-            # 曾用 raw_suggested=c_gap(缺口总量) 做箱规取整 → C建议补虚高(忽略B可用上限)
-            b_gap = max(c_gap - b_available, 0)
-            b_ship_days = int(cfg.get('ship_to_b_days', '0'))
-            b_replenish = round(b_gap + sel_ds * b_ship_days + effective_safety) if b_gap > 0 else 0
+            b_in_transit = b_transit.get(sku, 0)  # 供应商→B仓在途(B仓行 in_transit_qty)
+            b_cover = b_available + b_in_transit
+            b_gap = max(round(c_gap - b_cover, 1), 0) if c_gap > 0 else 0
+            b_ship_days = int(cfg.get('ship_to_b_days', '0'))  # 自有→B调拨时间(规则页)
+            # 4) B建议补 = B缺口 + 调拨期消耗(日销×(自有-b仓时间+安全天数)), 箱规取整
+            #    例: 110.6 + 21.6×(3+3)=129.6 → 240.2 → 箱规24 → 264
+            b_replenish = round(b_gap + sel_ds * b_ship_days + effective_safety, 1) if b_gap > 0 else 0
             prod = products.get(sku, {})
             box = int(prod.get('box_qty', 1) or 1)
-            box_qty = (suggested + box - 1) // box * box if suggested > 0 else 0
-            suggested = box_qty
+            # C建议补 = C缺口剩余值(例112.6)本身, 不提前箱规取整; B建议补才箱规取整(例264)
+            suggested = c_gap
             b_box_qty = (b_replenish + box - 1) // box * box if b_replenish > 0 else 0
             after_stock = avail + transit + suggested
             after_turnover = round(after_stock / sel_ds, 1) if sel_ds > 0 else 999
@@ -223,6 +238,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                 "sku": sku, "barcode": sku_barcode_map.get(sku, ''), "product_name": prod.get('product_name', ''), "brand": prod.get('brand', ''),
                 "store": prod.get('store', ''), "category": prod.get('category', ''),
                 "available_qty": avail, "safety_qty": safety, "in_transit_qty": transit,
+                "c_transit": c_transit, "b_transit": b_transit.get(sku, 0),  # B→C调拨在途/供应商→B在途(与进销存同源)
                 "b_stock": b_stock.get(sku, 0), "c_stock": avail, "b_gap": b_gap,
                 "daily_sales": sel_ds, "daily_sales_7": round(ds7, 1), "daily_sales_14": round(ds14, 1), "daily_sales_28": round(ds28, 1),
                 "raw_suggested": c_gap, "suggested_qty": suggested,

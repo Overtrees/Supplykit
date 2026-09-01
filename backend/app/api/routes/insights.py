@@ -641,13 +641,18 @@ def inventory_with_sales(wh_type: str = 'own', channel: str = 'jd', page: int = 
     for _sk in set(list(_s7.keys()) + list(_s14.keys()) + list(_s28.keys())):
         _fused[_sk] = rolling_predict(_s7.get(_sk, 0), _s14.get(_sk, 0), _s28.get(_sk, 0))
     result = []
-    # 当查询 B 仓时，预加载 C 仓在途用于 B→C 调拨在途列
+    # B→C调拨在途列: 读 inventory.c_transit 真实列(该 SKU 的 B→C 调拨在途总量, 按 SKU 聚合)
+    # 曾误用 C 仓 in_transit_qty 之和(那是供应商→C, 与 BBCC 调拨在途口径不符, 造成进销存/建议页不同源)
     c_transit = {}
-    if wh_type == 'platform_b':
-        c_inv = db.table("inventory").select("*").eq("warehouse_type", "platform").execute().data or []
-        for ci in c_inv:
-            s = ci['sku']
-            c_transit[s] = c_transit.get(s, 0) + int(ci.get('in_transit_qty', 0) or 0)
+    try:
+        _all_wh = db.table("inventory").select("*").execute().data or []
+        for _row in _all_wh:
+            _s = _row.get('sku', '')
+            _v = int(_row.get('c_transit') or 0)
+            if _v > 0:
+                c_transit[_s] = c_transit.get(_s, 0) + _v
+    except Exception as e:
+        import logging; logging.warning(f"[inv] c_transit agg: {e}")
     for i in inv:
         sku = i['sku']
         bc = (products_for_barcode.get(sku) or {}).get('barcode', '')

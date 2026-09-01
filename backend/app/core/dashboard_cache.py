@@ -310,26 +310,23 @@ def _rebuild(channel='jd'):
 def get_cached_dashboard(channel):
     global _cache_by_channel, _cache_version, _cache_dirty
     now = time.time()
-    stale = check_db_version()
+    # 修正: stale 必须比对"缓存构建时的版本 vs DB 当前版本"——曾直接取 DB 版本值当布尔,
+    # 只要 _cache_version>0 就恒真 → 每次请求强制重建(缓存永不命中), 看板 summary 60s+ 主因
+    db_ver = check_db_version() or 0
     cached = _cache_by_channel.get(channel)
-    if cached is None:
-        # 无缓存，同步重建
+    fresh = cached is not None and (cached.get('ver', -1) == db_ver) and (now - cached['ts']) <= _CACHE_TTL and not _cache_dirty
+    if fresh:
+        return cached['data']
+    # 无缓存/版本变化/超 TTL/脏标记 → 同步重建
+    try:
         data = _rebuild(channel)
-        _cache_by_channel[channel] = {'data': data, 'ts': now}
+        _cache_by_channel[channel] = {'data': data, 'ts': time.time(), 'ver': db_ver}
         _cache_dirty = False
         return data
-    if _cache_dirty or stale or (now - cached['ts']) > _CACHE_TTL:
-        # 同步重建（不再返回旧缓存，消除 10s 窗口）
-        try:
-            data = _rebuild(channel)
-            _cache_by_channel[channel] = {'data': data, 'ts': time.time()}
-            _cache_dirty = False
-            return data
-        except Exception as e:
-            import logging; logging.warning(f"[dash-cache] rebuild: {e}")
-            if cached:
-                return cached['data']
-    return _cache_by_channel[channel]['data']
+    except Exception as e:
+        import logging; logging.warning(f"[dash-cache] rebuild: {e}")
+        if cached: return cached['data']
+        raise
 
 
 def get_dashboard_sync(channel):

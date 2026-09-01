@@ -160,13 +160,14 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             c_gap = max(round(sel_ds * lead_time - avail - transit), 0) if sel_ds > 0 else 0
             b_available = b_stock.get(sku, 0)
             suggested = min(c_gap, b_available)
+            # 重要: suggested = C仓缺口由 B 仓现有库存调拨的量(受 B 可用约束)。
+            # 曾用 raw_suggested=c_gap(缺口总量) 做箱规取整 → C建议补虚高(忽略B可用上限)
             b_gap = max(c_gap - b_available, 0)
             b_ship_days = int(cfg.get('ship_to_b_days', '0'))
             b_replenish = round(b_gap + sel_ds * b_ship_days + effective_safety) if b_gap > 0 else 0
-            raw_suggested = c_gap
             prod = products.get(sku, {})
             box = int(prod.get('box_qty', 1) or 1)
-            box_qty = (raw_suggested + box - 1) // box * box if raw_suggested > 0 else 0
+            box_qty = (suggested + box - 1) // box * box if suggested > 0 else 0
             suggested = box_qty
             b_box_qty = (b_replenish + box - 1) // box * box if b_replenish > 0 else 0
             after_stock = avail + transit + suggested
@@ -224,7 +225,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                 "available_qty": avail, "safety_qty": safety, "in_transit_qty": transit,
                 "b_stock": b_stock.get(sku, 0), "c_stock": avail, "b_gap": b_gap,
                 "daily_sales": sel_ds, "daily_sales_7": round(ds7, 1), "daily_sales_14": round(ds14, 1), "daily_sales_28": round(ds28, 1),
-                "raw_suggested": raw_suggested, "suggested_qty": suggested,
+                "raw_suggested": c_gap, "suggested_qty": suggested,
                 "b_suggested": b_box_qty, "b_replenish_raw": b_replenish,
                 "days_to_empty": days_to_empty, "after_turnover": after_turnover,
                 "c_turnover": c_turnover, "transit_turnover": transit_turnover,

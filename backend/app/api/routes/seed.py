@@ -573,6 +573,12 @@ def _seed_rules(db, skus_data):
     ).fetchall():
         existing.add((r[0], r[1] or 'jd', r[2], r[3] or ''))
     inserts = []
+    # SKU → 库存最多仓主体(积压研判/看板 B/C/自有 分布一致): 生成告警带 warehouse_type
+    sku_wh = {}
+    for r in conn.execute(
+        "SELECT sku, warehouse_type, available_qty FROM inventory ORDER BY available_qty DESC").fetchall():
+        if r[0] not in sku_wh:
+            sku_wh[r[0]] = r[1] or ''
     # 按渠道独立判断(修复: GROUP BY sku 无 channel 过滤——jd+other 同SKU跨渠道汇总
     # 导致 avail 叠加不满足 HAVING, rules_engine 低库存告警 0 条)
     for ch in ['jd', 'other']:
@@ -592,15 +598,15 @@ def _seed_rules(db, skus_data):
             if avail < safety and (('low_stock', ch, sku, 'rules_engine') not in existing):
                 existing.add(('low_stock', ch, sku, 'rules_engine'))
                 inserts.append(("low_stock", f"低库存预警: {name}",
-                                f"可用 {avail} < 安全线 {safety}", "warning", ch, sku))
+                                f"可用 {avail} < 安全线 {safety}", "warning", ch, sku, sku_wh.get(sku, '')))
             if avail <= max(1, safety * 0.3) and (avail + transit) <= safety and (('replenish', ch, sku, 'rules_engine') not in existing):
                 existing.add(('replenish', ch, sku, 'rules_engine'))
                 inserts.append(("replenish", f"紧急补货: {name}",
-                                f"可用 {avail}（<安全线30%），含在途 {avail+transit} 仍不足安全线 {safety}", "error", ch, sku))
+                                f"可用 {avail}（<安全线30%），含在途 {avail+transit} 仍不足安全线 {safety}", "error", ch, sku, sku_wh.get(sku, '')))
     if inserts:
         conn.executemany(
-            "INSERT INTO alerts(alert_type,title,description,severity,source,channel,related_sku,status) VALUES(?,?,?,?,?,?,?,?)",
-            [(t, ti, de, se, "rules_engine", ch, sk, "active") for (t, ti, de, se, ch, sk) in inserts]
+            "INSERT INTO alerts(alert_type,title,description,severity,source,channel,related_sku,status,warehouse_type) VALUES(?,?,?,?,?,?,?,?,?)",
+            [(t, ti, de, se, "rules_engine", ch, sk, "active", wt) for (t, ti, de, se, ch, sk, wt) in inserts]
         )
     conn.commit()
 

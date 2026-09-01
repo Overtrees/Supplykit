@@ -53,7 +53,7 @@ export default function HammerInsights({ channel }: HammerInsightsProps) {
     try {
       const API = import.meta.env.VITE_API_BASE_URL || 'https://overtrees.pythonanywhere.com'
       const _mode = window.__hammerReplenMode || 'bbcc'
-      const _type = type === 'slow' ? 'slow' : type === 'purchase' ? 'purchase_suggestions' : 'purchase'
+      const _type = type === 'slow' ? 'slow' : type === 'purchase' ? 'purchase_suggestions' : type === 'replen' ? 'replen' : 'purchase'
       const r = await fetch(API + '/api/exports?type=' + _type + '&mode=' + _mode + '&channel=' + channel, 
         {method:'POST', headers:{'Authorization':'Bearer '+(()=>{try{return localStorage.getItem('c_token')}catch{return ''}})()}})
       const d = await r.json()

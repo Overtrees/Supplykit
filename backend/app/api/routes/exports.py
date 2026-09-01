@@ -63,6 +63,30 @@ def create_export_task(type: str = 'purchase', mode: str = 'bbcc', days: int = 2
                     # 按渠道隔离
                     if r.get('channel','jd') != channel: continue
                     ws.append([r.get('sku',''), r.get('barcode',''), r.get('product_name',''), r.get('last_order_date',''), r.get('days_since_last',0), r.get('stock',0), r.get('level',''), r.get('channel','jd')])
+            elif type == 'replen':
+                # 补货建议导出(曾缺失该类型——补货页导出被错误指向采购建议)
+                data = get_replenishment_suggestions(days=days, mode=mode, channel=channel, db=get_db())
+                items = data.get("data") if isinstance(data, dict) else data
+                if mode == 'bbcc':
+                    ws.append(["序号","品牌","SKU","69码","商品","仓库","供应商-B仓在途","B仓可用库存","B仓周转","C仓总和可用","B-C调拨在途",
+                               "C仓日销","近7日销","近14日销","近28日销","C缺口","C建议补","B缺口","B建议补","箱规",
+                               "当前综转","补后综转","C仓周转","可撑天数","备注"])
+                    for i, r in enumerate((items or []), 1):
+                        ws.append([i, r.get('brand',''), r.get('sku',''), r.get('barcode','-'), r.get('product_name',''), r.get('warehouse','-'),
+                            r.get('b_transit',0), r.get('b_stock',0), -1 if not r.get('b_stock',0) else round(r.get('b_stock',0)/r.get('daily_sales',0) or 0,1),
+                            r.get('c_stock',0), r.get('c_transit',0),
+                            r.get('daily_sales',0), r.get('daily_sales_7',0), r.get('daily_sales_14',0), r.get('daily_sales_28',0),
+                            r.get('raw_suggested',0), r.get('suggested_qty',0), r.get('b_gap',0), r.get('b_suggested',0), -1,
+                            r.get('combined_turnover_current',0), r.get('combined_turnover',0), r.get('c_turnover',0) if r.get('c_turnover') is not None else '∞',
+                            r.get('days_to_empty',0) if r.get('days_to_empty',999)<999 else '∞', r.get('note','')])
+                else:
+                    ws.append(["序号","品牌","SKU","69码","商品","仓库","现有","在途","日销(融合)","近7日销","近14日销","近28日销",
+                               "安全库存","建议补","箱规","补后周转","可撑天数","备注"])
+                    for i, r in enumerate((items or []), 1):
+                        ws.append([i, r.get('brand',''), r.get('sku',''), r.get('barcode','-'), r.get('product_name',''), r.get('warehouse','-'),
+                            r.get('available_qty',0), r.get('in_transit_qty',0), r.get('daily_sales',0), r.get('daily_sales_7',0), r.get('daily_sales_14',0), r.get('daily_sales_28',0),
+                            r.get('safety_qty',0), r.get('suggested_qty',0), -1, r.get('after_turnover',0) if r.get('after_turnover') is not None else '∞',
+                            r.get('days_to_empty',0) if r.get('days_to_empty',999)<999 else '∞', r.get('note','')])
             elif type == 'orders':
                 from app.core.database import get_conn
                 _conn = get_conn()
@@ -71,7 +95,7 @@ def create_export_task(type: str = 'purchase', mode: str = 'bbcc', days: int = 2
                     for _r in _conn.execute("SELECT sku, channel, barcode FROM products WHERE barcode!=''").fetchall():
                         _barcodes[(_r[0], _r[1])] = _r[2] or ''
                 except Exception: pass
-                _rows = _conn.execute("SELECT ordered_at,order_no,store,warehouse,product_name,sku,quantity,unit_price,total_amount,order_status,supplier,data_source,channel,paid_at FROM orders WHERE channel=? AND (deleted_at='') ORDER BY id DESC LIMIT 2000", (channel,)).fetchall()
+                _rows = _conn.execute("SELECT ordered_at,order_no,store,warehouse,product_name,sku,quantity,unit_price,total_amount,order_status,supplier,data_source,channel,paid_at FROM orders WHERE channel=? AND (deleted_at='') ORDER BY id DESC", (channel,)).fetchall()
                 ws.append(["下单日期","订单号","店铺","仓库","商品","SKU","数量","单价","金额","状态","69码","入库日期","供应商","来源"])
                 for r in _rows:
                     _bc = _barcodes.get((r[5], r[12]), '')
@@ -90,7 +114,7 @@ def create_export_task(type: str = 'purchase', mode: str = 'bbcc', days: int = 2
                 if wh_type:
                     _where += " AND warehouse_type=?"
                     _params.append(wh_type)
-                _sql = "SELECT sku,available_qty,in_transit_qty,safety_qty,warehouse,warehouse_type,channel,product_name,beginning_stock,month_inbound,month_outbound,turnover_days FROM inventory WHERE " + _where
+                _sql = "SELECT sku,available_qty,in_transit_qty,c_transit,safety_qty,warehouse,warehouse_type,channel,product_name,beginning_stock,month_inbound,month_outbound,turnover_days FROM inventory WHERE " + _where
                 _rows = _conn.execute(_sql, _params).fetchall()
                 # 批次明细（按 sku+warehouse+channel 分组，供展开每批次一行）
                 _bm = {}
@@ -112,17 +136,17 @@ def create_export_task(type: str = 'purchase', mode: str = 'bbcc', days: int = 2
                         if consumed + 3 > third: return '⚠️临近'
                         return '✓正常'
                     except Exception: return ''
-                ws.append(["SKU","69码","商品名称","仓库","类型","渠道","可用","在途","安全线","期初库存","当月入库","当月出库","周转天数","生产日期","截止日期","批次数量","效期状态"])
+                ws.append(["SKU","69码","商品名称","仓库","类型","渠道","可用","在途","B-C调拨在途","安全线","期初库存","当月入库","当月出库","周转天数","生产日期","截止日期","批次数量","效期状态"])
                 for r in _rows:
                     _bc = _barcodes.get((r[0], r[6]), '')
                     _td = round(r[11] or 0, 1) if (r[11] or 0) > 0 else None
                     _bk = (r[0], r[4], r[6])
                     _batches = _bm.get(_bk, [])
                     if not _batches:
-                        ws.append([r[0], _bc, r[7], r[4], r[5], r[6], r[1], r[2], r[3], r[8], r[9], r[10], _td, '', '', '', ''])
+                        ws.append([r[0], _bc, r[8], r[5], r[6], r[7], r[1], r[2], r[3], r[4], r[9], r[10], r[11], _td, '', '', '', ''])
                     else:
                         for _pb in _batches:
-                            ws.append([r[0], _bc, r[7], r[4], r[5], r[6], r[1], r[2], r[3], r[8], r[9], r[10], _td, _pb[0], _pb[1], _pb[2], _eff_status(_pb[0], _pb[1])])
+                            ws.append([r[0], _bc, r[8], r[5], r[6], r[7], r[1], r[2], r[3], r[4], r[9], r[10], r[11], _td, _pb[0], _pb[1], _pb[2], _eff_status(_pb[0], _pb[1])])
             filename = f"{type}_{datetime.now(UTC).strftime('%Y%m%d%H%M%S')}.xlsx"
             filepath = os.path.join(EXPORT_DIR, filename)
             wb.save(filepath)

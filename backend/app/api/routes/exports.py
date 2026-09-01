@@ -122,8 +122,11 @@ def create_export_task(type: str = 'purchase', mode: str = 'bbcc', days: int = 2
                     for _br in _conn.execute("SELECT sku, warehouse, channel, prod_date, exp_date, qty FROM batches WHERE channel=?", (channel,)).fetchall():
                         _bm.setdefault((str(_br[0]), str(_br[1]), str(_br[2] or 'jd')), []).append((str(_br[3] or '')[:10], str(_br[4] or '')[:10], int(_br[5] or 0)))
                 except Exception: pass
-                from datetime import datetime as _dt, timedelta as _tz, UTC
-                _today = _dt.utcnow()
+                from datetime import datetime as _dt, timedelta as _tz
+                def _utcnow():
+                    import datetime as _m
+                    return _m.datetime.utcnow()
+                _today = _utcnow()
                 def _eff_status(prod, exp):
                     try:
                         p = _dt.strptime(prod, '%Y-%m-%d'); e = _dt.strptime(exp, '%Y-%m-%d')

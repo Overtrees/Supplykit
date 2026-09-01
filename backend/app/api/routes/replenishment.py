@@ -203,11 +203,31 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             else: trend_text += " 平稳"
 
             parts = []
+            # ◆ 1. 趋势(优先级1: 方向)
+            if sel_ds > 0: parts.append(trend_text)
+            # ◆ 2. C缺口与C建议(优先级2: 需求端)
+            if sel_ds > 0:
+                if c_gap > 0:
+                    csrc = f"C缺口{c_gap}(日销{sel_ds}×前置{lead_time}-可用{avail}{('-' + str(c_transit) + '调拨在途') if c_transit > 0 else ''})"
+                    parts.append(csrc)
+                # 调拨计算: B可覆盖= B可用+供应商到B在途
+            # ◆ 3. B缺口与消耗(优先级3: B侧调拨)
+            if c_gap > 0:
+                if b_gap <= 0:
+                    parts.append(f"B覆盖充足(B可用{b_available}+在途{b_in_transit}≥缺口{c_gap})无需B补")
+                else:
+                    # 调拨期消耗=日销×(自有-b时间+安全天数)
+                    _consume = round(sel_ds * b_ship_days + effective_safety, 1)
+                    parts.append(f"B缺口{c_gap}-B可用{b_available}-在途{b_in_transit}(供应商→B)={b_gap}")
+                    parts.append(f"调拨期消耗{_consume}(日销×自有-b{'+安全' if safety_days > 0 else ''}期)" if b_ship_days > 0 or safety_days > 0 else f"缺口{b_gap}")
+                    parts.append(f"B建议补{_consume}+{b_gap} = {round(_consume+b_gap,1)} → 箱规{box}件 = {b_box_qty}件")
+                if suggested > 0:
+                    parts.append(f"C建议补{suggested}件(C缺口箱规取整)")
+            # ◆ 4. 风险(优先级4: 仓储费/周转)
             if b_gap > 0:
                 c_cover = round((avail + transit) / sel_ds, 1) if sel_ds > 0 else 0
                 b_idle = max(round(c_cover - b_ship_days, 1), 0)
             else: b_idle = 0
-            # B 仓免费期天数（配置 b_free_days，默认 15，与处置建议同源）
             b_free = int(cfg.get('b_free_days', '15'))
             if b_idle > b_free: parts.append(f"🔴 超{b_free}天免费期有仓储费")
             elif b_idle > b_free - 5: parts.append(f"⚠️ 接近{b_free}天免费期")
@@ -220,15 +240,12 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             elif turn_check is not None and turn_check > tw90_val - 15:
                 label = "补后综转" if has_replen else "当前综转"
                 parts.append(f"⚠️ {label}{turn_check}天接近{tw90_val}天")
-            if sel_ds > 0: parts.append(trend_text)
-            if suggested > 0 or b_box_qty > 0:
-                parts.append(f"C仓建议{suggested}件  B仓需补{b_box_qty}件 · 箱规{box}件")
             if sel_ds <= 0:
                 if b_stock.get(sku, 0) > 0: parts.append("🔴 近30天无销量，B仓库存积压")
                 elif avail > 0: parts.append("🔴 近30天无销量，C仓库存积压")
                 else: parts.append("⚪ 近30天无销量")
             if b_gap > 0:
-                parts.append(f"B仓仅{b_available}件, 缺口{b_gap}件需调拨(运输{round(sel_ds*b_ship_days)}件+安全{round(effective_safety)}件)")
+                parts.append(f"B仓可调拨缺口{b_gap}件需从自有仓调(调拨期消耗已含运输{round(sel_ds*b_ship_days)}件+安全{round(effective_safety)}件)")
                 parts.append(f"B仓预计空闲{b_idle}天后调出")
             if not parts: parts.append("库存充足")
             note = " · ".join(parts)

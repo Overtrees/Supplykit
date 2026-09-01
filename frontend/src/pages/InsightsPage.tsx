@@ -361,9 +361,9 @@ export default function InsightsPage() {
                         if (col.id === 'transit') return <td key={col.id}>{x.c_transit ?? '-'}</td>
                         // 日销
                         if (col.id === 'sales') return <td key={col.id} style={{fontSize:11,fontWeight:600,whiteSpace:'nowrap'}}>{x.daily_sales}<span style={{fontSize:10,fontWeight:400,color:'var(--muted2)'}}>
-                          /{x.daily_sales_7||0 > (x.daily_sales_14||0)*1.15 ? <IconTrendUp size={12} style={{display:'inline',verticalAlign:'middle',color:'#22c55e'}} /> : x.daily_sales_7||0 < (x.daily_sales_14||0)*0.85 ? <IconTrendDown size={12} style={{display:'inline',verticalAlign:'middle',color:'#ef4444'}} /> : <IconTrendFlat size={12} style={{display:'inline',verticalAlign:'middle',color:'#64748b'}} />}{x.daily_sales_7||0}
-                          /{x.daily_sales_14||0 > (x.daily_sales_28||0)*1.15 ? <IconTrendUp size={12} style={{display:'inline',verticalAlign:'middle',color:'#22c55e'}} /> : x.daily_sales_14||0 < (x.daily_sales_28||0)*0.85 ? <IconTrendDown size={12} style={{display:'inline',verticalAlign:'middle',color:'#ef4444'}} /> : <IconTrendFlat size={12} style={{display:'inline',verticalAlign:'middle',color:'#64748b'}} />}{x.daily_sales_14||0}
-                          /{x.daily_sales_28||0}</span></td>
+                          /{(x.daily_sales_7||0) > (x.daily_sales_14||0)*1.15 ? <IconTrendUp size={12} style={{display:'inline',verticalAlign:'middle',color:'#22c55e'}} /> : (x.daily_sales_7||0) < (x.daily_sales_14||0)*0.85 ? <IconTrendDown size={12} style={{display:'inline',verticalAlign:'middle',color:'#ef4444'}} /> : <IconTrendFlat size={12} style={{display:'inline',verticalAlign:'middle',color:'#64748b'}} />}{(x.daily_sales_7||0).toFixed(1)}
+                          /{(x.daily_sales_14||0) > (x.daily_sales_28||0)*1.15 ? <IconTrendUp size={12} style={{display:'inline',verticalAlign:'middle',color:'#22c55e'}} /> : (x.daily_sales_14||0) < (x.daily_sales_28||0)*0.85 ? <IconTrendDown size={12} style={{display:'inline',verticalAlign:'middle',color:'#ef4444'}} /> : <IconTrendFlat size={12} style={{display:'inline',verticalAlign:'middle',color:'#64748b'}} />}{(x.daily_sales_14||0).toFixed(1)}
+                          /{(x.daily_sales_28||0).toFixed(1)}</span></td>
                         // C仓周转
                         if (col.id === 'c_turn') return <td key={col.id} className="text-11 font-600">{x.c_turnover != null ? x.c_turnover+'天' : '∞'}</td>
                         // 在途周转

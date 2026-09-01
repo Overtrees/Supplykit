@@ -3,6 +3,7 @@ import { api } from '../api/client'
 import { useToast } from '../components/Toast'
 import { useAppStore } from '../store/useAppStore'
 import { IconTrendUp, IconTrendDown, IconTrendFlat, IconUndo } from '../components/Icons'
+import ErrorRetry from '../components/ErrorRetry'
 import { t } from "../locale"
 
 // 备注中 emoji 转 SVG 图标

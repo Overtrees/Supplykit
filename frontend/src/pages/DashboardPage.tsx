@@ -279,7 +279,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
           <div className="card-value" style={{fontSize:'clamp(18px,9cqi,30px)',fontWeight:700,lineHeight:1.1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
             {(() => { const _g = gmvView === 'net' ? (periodMeta.net_gmv != null ? periodMeta.net_gmv : ((periodMeta.gmv||0) - (dashboard?.summary?.refund_amount||0))) : (gmvView === 'payout' ? (periodMeta.payout != null ? periodMeta.payout : ((periodMeta.gmv||0) - (dashboard?.summary?.refund_amount||0) - (dashboard?.summary?.subsidy_amount||0))) : periodMeta.gmv); return '¥' + Number(_g||0).toLocaleString() })()}
           </div>
-          <div className="card-sub" style={{marginTop:4,display:'flex',alignItems:'center',gap:6}}>
+          <div className="card-sub" style={{marginTop:6,display:'flex',alignItems:'center',gap:6}}>
             <span>{periodMeta.orders} 单</span>
             {periodTrend.length >= 2 && (() => {
               const vals = periodTrend.map(i => Number(i['GMV'])||0)
@@ -294,7 +294,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
           </div>
         </div>
         {/* 微趋势线 */}
-        {periodTrend.length >= 3 && <div style={{height:22,marginTop:6,display:'flex',alignItems:'flex-end',gap:1.5}}>
+        {periodTrend.length >= 3 && <div style={{height:22,marginTop:8,display:'flex',alignItems:'flex-end',gap:1.5}}>
           {periodTrend.map((i,idx) => {
             const v = Number(i['GMV'])||0
             const max = Math.max(...periodTrend.map(x => Number(x['GMV'])||0), 1)
@@ -311,18 +311,18 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
           <div className="card-value" style={{fontSize:'clamp(18px,9cqi,30px)',fontWeight:700,lineHeight:1.1,color:errCount+(dashboard?.summary?.active_alerts||0) > 10 ? '#ef4444' : (errCount+(dashboard?.summary?.active_alerts||0) > 5 ? '#f59e0b' : 'var(--text)')}}>
             {errCount+(dashboard?.summary?.active_alerts||0)}
           </div>
-          <div className="card-sub" style={{marginTop:4}}>
+          <div className="card-sub" style={{marginTop:6}}>
             <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
               <span style={{display:'inline-flex',alignItems:'center',gap:3}}><span style={{width:6,height:6,borderRadius:3,background:'#ef4444'}}/>{errCount} 异常</span>
               <span style={{display:'inline-flex',alignItems:'center',gap:3}}><span style={{width:6,height:6,borderRadius:3,background:'#f59e0b'}}/>{dashboard?.summary?.active_alerts||0} 告警{criticalAlerts > 0 ? <span style={{color:'#ef4444',fontSize:10}}>({criticalAlerts} 严重)</span> : ''}</span>
             </div>
             {(lowStockAlerts.length > 0 || replenishAlerts.length > 0) && <>
-              <div style={{fontSize:10,display:'flex',gap:8,marginTop:4}}>
+              <div style={{fontSize:10,display:'flex',gap:8,marginTop:6}}>
                 <span style={{color:'var(--muted2)'}}>● 低库存 {lowStockTotal}</span>
                 {slowMovingTotal > 0 && <span style={{color:'var(--muted2)'}}>● 滞销 {slowMovingTotal}</span>}
                 <span style={{color:'var(--muted2)'}}>● 需{t("dash.replenish")} {replenishTotal}</span>
               </div>
-              <div style={{fontSize:9,display:'flex',gap:6,marginTop:3,color:'var(--muted)'}}>
+              <div style={{fontSize:9,display:'flex',gap:6,marginTop:5,color:'var(--muted)'}}>
                 <span>{_replMode === 'bbcc' ? 'BC' : 'C'}{lsWhView.main} {t("dash.own")}{lsWhView.own}</span>
                 <span style={{color:'var(--border)'}}>|</span>
                 <span>{_replMode === 'bbcc' ? 'BC' : 'C'}{rpWhView.main} 自有{rpWhView.own}</span>
@@ -445,7 +445,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
         {lowStockAlerts.length === 0
           ? <div className="small muted" style={{padding:12,textAlign:'center'}}>{t("dash.no_alerts")}</div>
           : lowStockAlerts.slice(0,5).map(x => (
-              <div key={x.id} onClick={() => onAlert && onAlert(x.related_sku)} className="clickable" style={{padding:'7px 0',borderBottom:'1px solid var(--border)',fontSize:13}}>
+              <div key={x.id} onClick={() => onAlert && onAlert(x.related_sku)} className="clickable" style={{padding:'8px 0',borderBottom:'1px solid var(--border)',fontSize:13}}>
                 <div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'flex-start'}}>
                   <span style={{fontWeight:600,fontSize:12,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1,minWidth:0}}>{x.title}</span>
                   <span className={'pill '+(x.severity==='error'?'danger':'warning')} style={{flexShrink:0}}>{x.severity==='warning'?'警告':t("dash.alert_overstock")}</span>
@@ -460,7 +460,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
         {replenishAlerts.length === 0
           ? <div className="small muted" style={{padding:12,textAlign:'center'}}>暂无告警</div>
           : replenishAlerts.slice(0,5).map(x => (
-              <div key={x.id} onClick={() => onAlert && onAlert(x.related_sku)} className="clickable" style={{padding:'7px 0',borderBottom:'1px solid var(--border)',fontSize:13}}>
+              <div key={x.id} onClick={() => onAlert && onAlert(x.related_sku)} className="clickable" style={{padding:'8px 0',borderBottom:'1px solid var(--border)',fontSize:13}}>
                 <div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'flex-start'}}>
                   <span style={{fontWeight:600,fontSize:12,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1,minWidth:0}}>{x.title}</span>
                   <span className="pill danger" style={{flexShrink:0}}>补货</span>

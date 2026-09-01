@@ -92,6 +92,7 @@ def _rebuild(channel='jd'):
     bj_now = datetime.now(UTC) + timedelta(hours=8)
     bj_date = bj_now.date()
     _month_cut = (bj_date - timedelta(days=29)).isoformat()
+    _week_cut = (bj_date - timedelta(days=6)).isoformat()
     
     # 单次扫描: date,status,store 三维 GROUP BY——替代原3次扫orders(90天d,status + 90天store + 30天d,store),
     # PA慢磁盘12万行×3次=~10s → 1次(~3s)。Python一次遍历拆出所有维度
@@ -101,13 +102,21 @@ def _rebuild(channel='jd'):
         _c.row_factory = sqlite3.Row
         _c.execute("PRAGMA busy_timeout=30000")
         return _c.execute(
-            "SELECT substr(ordered_at,1,10) as d, order_status, store, "
+            "SELECT substr(ordered_at,1,10) as d, order_status, store, sku, "
             "SUM(CASE WHEN order_status IN ('待发货','已发货','已完成','申请退款') THEN total_amount - COALESCE(discount_amount,0) + COALESCE(freight_amount,0) + COALESCE(tax_amount,0) ELSE 0 END) as g, "
             "SUM(CASE WHEN order_status IN ('待发货','已发货','已完成','申请退款') THEN COALESCE(subsidy_amount,0) ELSE 0 END) as sub, "
             "COUNT(*) as cnt "
-            "FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at='') GROUP BY d, order_status, store",
+            "FROM orders WHERE channel=? AND ordered_at>=? AND (deleted_at='') GROUP BY d, order_status, store, sku",
             (ch, _cut90)).fetchall()
     all_rows = _q_all()
+
+    # 品牌聚合: sku→brand 映射一次加载, 遍历中按品牌累计(替代 3 次 orders LEFT JOIN products 全量扫描——曾致 summary 12s)
+    _brand_map = {}
+    try:
+        for r in conn.execute("SELECT sku, brand FROM products WHERE channel=? AND (deleted_at='' OR deleted_at IS NULL)", (ch,)).fetchall():
+            _brand_map[str(r[0])] = r[1] or ''
+    except Exception:
+        pass
 
     # 一遍遍历 all_rows 拆: gmv/pending/refund/refund_amount/subsidy/total + trend + status_dist + stores + 30天周期(ps/pf)
     gmv = pending = refund = refund_amount = subsidy_all = total_orders = 0
@@ -118,14 +127,37 @@ def _rebuild(channel='jd'):
     _ps_refund = {}
     _ps_subsidy = {}
     _pf_agg = {}
+    _brand_acc = {}   # 90天品牌聚合: name→{gmv,rf,sub,cnt}
+    _brand_today = {} # 今日品牌
+    _brand_week = {}  # 本周品牌
+    _brand_month = {} # 本月品牌
     for r in all_rows:
         _d = r[0] or ''
         _st = r[1] or '未知'
         _store = r[2] or ''
-        _g = r[3] or 0
-        _sub = r[4] or 0
-        _cnt = r[5] or 0
+        _sku = r[3] or ''
+        _g = r[4] or 0
+        _sub = r[5] or 0
+        _cnt = r[6] or 0
         total_orders += _cnt
+        # 品牌聚合(用 sku→brand 映射, 避免 orders×products JOIN 全量扫描)
+        if _st in _PAID_STATUSES:
+            _br = _brand_map.get(str(_sku), '') or '未分类'
+            _ba = _brand_acc.setdefault(_br, {'g':0,'rf':0,'sub':0,'c':0})
+            _ba['g'] += _g; _ba['sub'] += _sub; _ba['c'] += _cnt
+            if _st == '申请退款': _ba['rf'] += _g
+            if _d >= _month_cut:
+                _bp = _brand_month.setdefault(_br, {'g':0,'rf':0,'sub':0,'c':0})
+                _bp['g'] += _g; _bp['sub'] += _sub; _bp['c'] += _cnt
+                if _st == '申请退款': _bp['rf'] += _g
+            if _d >= _week_cut:
+                _bw = _brand_week.setdefault(_br, {'g':0,'rf':0,'sub':0,'c':0})
+                _bw['g'] += _g; _bw['sub'] += _sub; _bw['c'] += _cnt
+                if _st == '申请退款': _bw['rf'] += _g
+            if _d >= bj_date.isoformat():
+                _bt = _brand_today.setdefault(_br, {'g':0,'rf':0,'sub':0,'c':0})
+                _bt['g'] += _g; _bt['sub'] += _sub; _bt['c'] += _cnt
+                if _st == '申请退款': _bt['rf'] += _g
         # GMV=已支付流水(待发货/已发货/已完成/申请退款); 净GMV在末尾扣申请退款金额
         if _st in _PAID_STATUSES:
             gmv += _g
@@ -166,23 +198,12 @@ def _rebuild(channel='jd'):
 
     # ── 品牌GMV(品牌看渗透, 跨店归集; 与店铺看盘子正交)——orders无brand列, join products.brand by sku
     # 已支付口径与 GMV 表达式同 stores; 90天总量 + 30天周期(供 今日/本周/本月 维度)
-    def _brand_agg(_from):
-        return conn.execute(
-            "SELECT p.brand, "
-            "SUM(CASE WHEN o.order_status IN ('待发货','已发货','已完成','申请退款') THEN o.total_amount - COALESCE(o.discount_amount,0) + COALESCE(o.freight_amount,0) + COALESCE(o.tax_amount,0) ELSE 0 END) as g, "
-            "SUM(CASE WHEN o.order_status = '申请退款' THEN o.total_amount - COALESCE(o.discount_amount,0) + COALESCE(o.freight_amount,0) + COALESCE(o.tax_amount,0) ELSE 0 END) as rf, "
-            "SUM(CASE WHEN o.order_status IN ('待发货','已发货','已完成','申请退款') THEN COALESCE(o.subsidy_amount,0) ELSE 0 END) as sub, "
-            "SUM(CASE WHEN o.order_status IN ('待发货','已发货','已完成','申请退款') THEN 1 ELSE 0 END) as cnt "
-            "FROM orders o LEFT JOIN products p ON o.sku = p.sku AND o.channel = p.channel "
-            "WHERE o.channel=? AND o.ordered_at>=? AND (o.deleted_at='') "
-            "GROUP BY p.brand ORDER BY g DESC", (ch, _from)).fetchall()
-    def _bmap(rows):
-        return [{"name": r[0] or '未分类', "orders": r[4] or 0, "gmv": round(r[1] or 0, 2),
-                 "refund_amount": round(r[2] or 0, 2), "subsidy_amount": round(r[3] or 0, 2),
-                 "net_gmv": round((r[1] or 0) - (r[2] or 0), 2),
-                 "payout": round((r[1] or 0) - (r[2] or 0) - (r[3] or 0), 2)} for r in rows if (r[0] or '').strip()]
-    brands = _bmap(_brand_agg(_cut90))
-    period_brands = {pname: _bmap(_brand_agg(cutoff.isoformat())) for pname, cutoff in [('today', bj_date), ('week', bj_date - timedelta(days=6)), ('month', bj_date - timedelta(days=29))]}
+    def _bmap(acc):
+        return [{"name": k, "orders": v['c'], "gmv": round(v['g'], 2), "refund_amount": round(v['rf'], 2),
+                 "subsidy_amount": round(v['sub'], 2), "net_gmv": round(v['g'] - v['rf'], 2),
+                 "payout": round(v['g'] - v['rf'] - v['sub'], 2)} for k, v in sorted(acc.items(), key=lambda x: -x[1]['g'])]
+    brands = _bmap(_brand_acc)
+    period_brands = {'today': _bmap(_brand_today), 'week': _bmap(_brand_week), 'month': _bmap(_brand_month)}
     
     # SQL 聚合替代 Python 遍历(等价重构: 同一 inventory, CASE与Python比较一致)
     _store_low_rows = conn.execute(

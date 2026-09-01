@@ -21,7 +21,7 @@ def get_tasks(channel: str = 'jd', limit: int = 20):
             if 'updated_at' in _cols0:
                 stale = conn.execute(
                     "SELECT task_id, updated_at FROM sync_tasks WHERE status IN ('running','pending') "
-                    "AND updated_at < datetime('now','-30 minutes')").fetchall()
+                    "AND updated_at < datetime('now','-15 minutes')").fetchall()
                 for _s in stale:
                     _payload = json.dumps({"error": "任务超时未完成，已自动标记失败（可能因服务器资源受限）"}, ensure_ascii=False)
                     conn.execute("UPDATE sync_tasks SET status='error', result=?, updated_at=datetime('now') WHERE task_id=?",

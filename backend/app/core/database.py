@@ -503,9 +503,24 @@ def get_task(task_id: str):
     try:
         import json
         conn = get_conn()
-        rows = conn.execute("SELECT status, result FROM sync_tasks WHERE task_id=?", (task_id,)).fetchall()
+        rows = conn.execute("SELECT status, result, updated_at FROM sync_tasks WHERE task_id=?", (task_id,)).fetchall()
         if rows:
-            status, result_json = rows[0]
+            status, result_json, updated_at = rows[0]
+            # 卡死任务自愈: 内存缺失(PA重启线程被杀) + running/pending 超15分钟无更新 → 标记 error
+            # 曾致前端轮询无限"进行中"直到列表接口30min清理——单任务轮询也应即时感知
+            if status in ('running', 'pending') and updated_at:
+                import time as _t
+                try:
+                    from datetime import datetime as _dt
+                    _ut = _dt.strptime(str(updated_at)[:19], '%Y-%m-%d %H:%M:%S')
+                    if (_dt.utcnow() - _ut).total_seconds() > 900:
+                        _payload = json.dumps({"error": "任务可能因服务重启中断，已自动标记失败，请重新提交"}, ensure_ascii=False)
+                        conn.execute("UPDATE sync_tasks SET status='error', result=?, updated_at=datetime('now') WHERE task_id=?", (_payload, task_id))
+                        conn.commit()
+                        status = 'error'
+                        result_json = _payload
+                except Exception:
+                    pass
             data = {"status": status}
             try:
                 payload = json.loads(result_json or '{}')

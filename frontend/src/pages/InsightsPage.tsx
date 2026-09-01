@@ -351,6 +351,8 @@ export default function InsightsPage() {
                         if (col.id === 'warehouse' || col.id === 'store') return <td key={col.id} className="col-store">{replenMode==='bbcc' ? 'B仓' : (x.warehouse || x.store || '-')}</td>
                         // 现有(TRAD)
                         if (col.id === 'avail') return <td key={col.id} style={{fontWeight:600}}>{x.available_qty}</td>
+                        // 供应商-B仓(在途, 与进销存B仓维度同源)
+                        if (col.id === 'b_transit') return <td key={col.id} style={{color:'var(--muted)',fontSize:11}}>{x.b_transit ?? '-'}</td>
                         // B仓可用库存
                         if (col.id === 'b_stock') return <td key={col.id} style={{color:'var(--primary)',fontWeight:600}}>{x.b_stock ?? '-'}</td>
                         // B仓周转

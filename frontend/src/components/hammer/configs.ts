@@ -49,7 +49,7 @@ export const INV_WH_LABEL = { own:'自有仓', platform:'平台仓', platform_b:
 
 export const INS_BBCC_COLS = [
   {id:'seq',label:''},{id:'brand',label:'品牌'},{id:'sku',label:'SKU'},{id:'barcode',label:'69码'},{id:'name',label:'商品'},{id:'warehouse',label:'仓库'},
-  {id:'b_stock',label:'B仓可用库存'},{id:'b_turn',label:'B仓周转'},{id:'c_stock',label:'C仓总和可用'},
+  {id:'b_transit',label:'供应商-B仓'},{id:'b_stock',label:'B仓可用库存'},{id:'b_turn',label:'B仓周转'},{id:'c_stock',label:'C仓总和可用'},
   {id:'transit',label:'B-C调拨在途'},{id:'sales',label:'C仓日销'},{id:'c_turn',label:'C仓周转'},
   {id:'transit_turn',label:'B→C调拨周转'},{id:'suggest',label:'C仓建议补'},{id:'b_suggest',label:'B仓需补'},
   {id:'cur_turn',label:'当前综转'},{id:'after_turn',label:'补后综转'},{id:'note',label:'备注'},{id:'action',label:'标记操作（用于B仓统计入库批次）'},
@@ -73,5 +73,5 @@ export const INS_SLOW_COLS = [
 
 export const insColKey = (m, ch) => 'c_cols_insights_' + ch + '_' + m
 export const getInsVis = (m, ch) => { try { return JSON.parse(localStorage.getItem(insColKey(m, ch)) || 'null') } catch{return null} }
-export function insDefVis(cols) { return cols.map(c=>c.id).filter((_,i)=>[0,1,2,3,4,8,11,12,15].includes(i)) }
+export function insDefVis(cols) { return cols.map(c=>c.id).filter((_,i)=>[0,1,2,3,4,6,7,11,18].includes(i)) }
 export function insDefVisTrad(cols) { return cols.map(c=>c.id).filter((_,i)=>[0,1,2,3,4,5,6,10,11].includes(i)) }

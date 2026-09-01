@@ -33,7 +33,7 @@ useEffect(() => {
 }, [hammerCols])
 // 退出批量模式时清空选择
 useEffect(()=>{ if(!prodBatch) setSelIds([]) },[prodBatch])
-useEffect(()=>{ if(prodBatchVersion>0) reload() },[prodBatchVersion])
+useEffect(()=>{ if(prodBatchVersion>0){ clearCache('products'); reload() } },[prodBatchVersion])
   useEffect(()=>{ if(prodBatchAllReq>0){ const all=fl.map(x=>x.id); setSelIds(selIds.length===all.length&&all.length>0?[]:all) } },[prodBatchAllReq])
 useEffect(()=>{ setProdBatchFilterLen(fl.length) },[fl.length])
 const reload = () => { setPgTotal(0); loadProd(1) }

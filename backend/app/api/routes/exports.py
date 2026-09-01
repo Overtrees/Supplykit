@@ -73,7 +73,7 @@ def create_export_task(type: str = 'purchase', mode: str = 'bbcc', days: int = 2
                                "当前综转","补后综转","C仓周转","可撑天数","备注"])
                     for i, r in enumerate((items or []), 1):
                         ws.append([i, r.get('brand',''), r.get('sku',''), r.get('barcode','-'), r.get('product_name',''), r.get('warehouse','-'),
-                            r.get('b_transit',0), r.get('b_stock',0), -1 if not r.get('b_stock',0) else round(r.get('b_stock',0)/r.get('daily_sales',0) or 0,1),
+                            r.get('b_transit',0), r.get('b_stock',0), (round((r.get('b_stock',0) or 0)/(r.get('daily_sales',0) or 1),1) if r.get('daily_sales',0) and r.get('b_stock',0) else '-'),
                             r.get('c_stock',0), r.get('c_transit',0),
                             r.get('daily_sales',0), r.get('daily_sales_7',0), r.get('daily_sales_14',0), r.get('daily_sales_28',0),
                             r.get('raw_suggested',0), r.get('suggested_qty',0), r.get('b_gap',0), r.get('b_suggested',0), -1,

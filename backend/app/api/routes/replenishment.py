@@ -93,10 +93,12 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                 for _dd, _qq in _wd.items():
                     _agg[_dd] = _agg.get(_dd, 0) + _qq
     else:
-        daily_28 = load_daily_sales(28, db, sku_barcode_map=sku_barcode_map, channel=channel)
+        daily_28 = load_daily_sales(60, db, sku_barcode_map=sku_barcode_map, channel=channel)
+    # 7/14/28 窗口日均不变(取前N天); 加 sales_60 作 28 天趋势图标的对比基准(曾缺近28趋势)
     sales_7 = calc_sales_from_daily(daily_28, 7, orders=orders, sku_barcode_map=sku_barcode_map)
     sales_14 = calc_sales_from_daily(daily_28, 14, orders=orders, sku_barcode_map=sku_barcode_map)
     sales_28 = calc_sales_from_daily(daily_28, 28, orders=orders, sku_barcode_map=sku_barcode_map)
+    sales_60 = calc_sales_from_daily(daily_28, 60, orders=orders, sku_barcode_map=sku_barcode_map)
 
     # 复合 key 缓存(主循环每SKU×每仓×3窗口调用get_sales, 免重复拼串/查map——等价重构)
     _sales_key_cache = {}
@@ -159,6 +161,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             ds7 = round(get_sales(sales_7, sku), 1)
             ds14 = round(get_sales(sales_14, sku), 1)
             ds28 = round(get_sales(sales_28, sku), 1)
+            ds60 = round(get_sales(sales_60, sku), 1)
             sel_ds = round(fused_ds(ds7, ds14, ds28) * active_factor, 1)
             sku_safety_days = st['safety_days']
             safety_days = sku_safety_days if sku_safety_days > 0 else float(cfg.get('safety_multiplier', '0'))
@@ -205,25 +208,17 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             parts = []
             # ◆ 1. 趋势(优先级1: 方向)
             if sel_ds > 0: parts.append(trend_text)
-            # ◆ 2. C缺口与C建议(优先级2: 需求端)
-            if sel_ds > 0:
-                if c_gap > 0:
-                    csrc = f"C缺口{c_gap}(日销{sel_ds}×前置{lead_time}-可用{avail}{('-' + str(c_transit) + '调拨在途') if c_transit > 0 else ''})"
-                    parts.append(csrc)
-                # 调拨计算: B可覆盖= B可用+供应商到B在途
-            # ◆ 3. B缺口与消耗(优先级3: B侧调拨)
+            # ◆ 2. C建议补(优先级2: 需求端结论)
             if c_gap > 0:
                 if b_gap <= 0:
-                    parts.append(f"B覆盖充足(B可用{b_available}+在途{b_in_transit}≥缺口{c_gap})无需B补")
+                    parts.append(f"C建议补{suggested}件(缺口{c_gap},B仓可覆盖)")
                 else:
-                    # 调拨期消耗=日销×(自有-b时间+安全天数)
-                    _consume = round(sel_ds * b_ship_days + effective_safety, 1)
-                    parts.append(f"B缺口{c_gap}-B可用{b_available}-在途{b_in_transit}(供应商→B)={b_gap}")
-                    parts.append(f"调拨期消耗{_consume}(日销×自有-b{'+安全' if safety_days > 0 else ''}期)" if b_ship_days > 0 or safety_days > 0 else f"缺口{b_gap}")
-                    parts.append(f"B建议补{_consume}+{b_gap} = {round(_consume+b_gap,1)} → 箱规{box}件 = {b_box_qty}件")
-                if suggested > 0:
-                    parts.append(f"C建议补{suggested}件(C缺口箱规取整)")
-            # ◆ 4. 风险(优先级4: 仓储费/周转)
+                    parts.append(f"C建议补{suggested}件 · B建议补{b_box_qty}件(缺口{b_gap},调拨消耗{round(sel_ds*b_ship_days+effective_safety,1)},箱规{box})")
+                if b_in_transit > 0 and b_gap > 0:
+                    parts.append(f"B仓仅{b_available}件需从自有仓调(供应商到B在途{b_in_transit})")
+                elif b_gap > 0:
+                    parts.append(f"B仓仅{b_available}件需从自有仓调")
+            # ◆ 3. 风险(优先级3: 仓储费/周转)
             if b_gap > 0:
                 c_cover = round((avail + transit) / sel_ds, 1) if sel_ds > 0 else 0
                 b_idle = max(round(c_cover - b_ship_days, 1), 0)
@@ -244,9 +239,10 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                 if b_stock.get(sku, 0) > 0: parts.append("🔴 近30天无销量，B仓库存积压")
                 elif avail > 0: parts.append("🔴 近30天无销量，C仓库存积压")
                 else: parts.append("⚪ 近30天无销量")
+            if b_gap > 0 and not any('B仓仅' in p for p in parts):
+                parts.append(f"B仓仅{b_available}件需从自有仓调")
             if b_gap > 0:
-                parts.append(f"B仓可调拨缺口{b_gap}件需从自有仓调(调拨期消耗已含运输{round(sel_ds*b_ship_days)}件+安全{round(effective_safety)}件)")
-                parts.append(f"B仓预计空闲{b_idle}天后调出")
+                parts.append(f"B仓预计空闲{b_idle}天")
             if not parts: parts.append("库存充足")
             note = " · ".join(parts)
             c_turnover = round(avail / sel_ds, 1) if sel_ds > 0 else None
@@ -257,7 +253,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                 "available_qty": avail, "safety_qty": safety, "in_transit_qty": transit,
                 "c_transit": c_transit, "b_transit": b_transit.get(sku, 0),  # B→C调拨在途/供应商→B在途(与进销存同源)
                 "b_stock": b_stock.get(sku, 0), "c_stock": avail, "b_gap": b_gap,
-                "daily_sales": sel_ds, "daily_sales_7": round(ds7, 1), "daily_sales_14": round(ds14, 1), "daily_sales_28": round(ds28, 1),
+                "daily_sales": sel_ds, "daily_sales_7": round(ds7, 1), "daily_sales_14": round(ds14, 1), "daily_sales_28": round(ds28, 1), "daily_sales_60": round(ds60, 1),
                 "raw_suggested": c_gap, "suggested_qty": suggested,
                 "b_suggested": b_box_qty, "b_replenish_raw": b_replenish,
                 "days_to_empty": days_to_empty, "after_turnover": after_turnover,
@@ -328,6 +324,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
             ds7 = round(get_sales(_wh_s.get('7', {}), sku), 1)
             ds14 = round(get_sales(_wh_s.get('14', {}), sku), 1)
             ds28 = round(get_sales(_wh_s.get('28', {}), sku), 1)
+            ds60 = round(get_sales(sales_60, sku), 1)
             sel_ds = round(fused_ds(ds7, ds14, ds28) * active_factor, 1)
             safety_days = float(cfg.get('safety_multiplier', '0'))
             effective_safety = round(sel_ds * safety_days) if sel_ds > 0 else 0
@@ -381,7 +378,7 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
                 "sku": sku, "barcode": sku_barcode_map.get(sku, ''), "product_name": prod.get('product_name', ''), "brand": prod.get('brand', ''),
                 "store": prod.get('store', ''), "warehouse": warehouse, "category": prod.get('category', ''),
                 "available_qty": avail, "safety_qty": safety, "in_transit_qty": transit,
-                "daily_sales": sel_ds, "daily_sales_7": round(ds7, 1), "daily_sales_14": round(ds14, 1), "daily_sales_28": round(ds28, 1),
+                "daily_sales": sel_ds, "daily_sales_7": round(ds7, 1), "daily_sales_14": round(ds14, 1), "daily_sales_28": round(ds28, 1), "daily_sales_60": round(ds60, 1),
                 "suggested_qty": box_qty, "after_turnover": after_turnover, "days_to_empty": days_to_empty,
                 "note": note,
             })

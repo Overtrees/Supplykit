@@ -347,7 +347,7 @@ export default function RulesPage() {
         </div>
         </div>
       </div>})}
-      {rules.length===0 && (rulesErr ? <ErrorRetry error={rulesErr} onRetry={()=>load(globalChannel)} /> : <div className='small muted' style={{textAlign:'center',padding:40}}>{t("rules.empty")}</div>)}
+      {filteredRules.length===0 && (rulesErr ? <ErrorRetry error={rulesErr} onRetry={()=>load(globalChannel)} /> : <div className='small muted' style={{textAlign:'center',padding:40}}>{rules.length===0 ? t("rules.empty") : (hammerSearch ? '没有匹配"'+hammerSearch+'"的规则' : t("rules.empty"))}</div>)}
     </>}
 
     {/* ── 补货参数 ── */}

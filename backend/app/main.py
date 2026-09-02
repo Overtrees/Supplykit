@@ -95,7 +95,44 @@ from app.core.scheduler import start as start_scheduler, get_status as scheduler
 from app.core.auth import verify_token
 from app.core.monitor import record as monitor_record
 
+# 灾害自愈(前置): 先检查 DB 损坏并在 init_db 前从备份恢复——曾因 init_db 连损坏库即崩致 app 全 500
+try:
+    import sqlite3 as _sqlite3, gzip as _gzip, shutil as _shutil, glob as _sglob, os as _os, time as _time
+    from app.core.database import DB_PATH as _DB_PATH
+    _ok = False
+    try:
+        _tc = _sqlite3.connect(_DB_PATH)
+        _tc.execute("PRAGMA busy_timeout=3000")
+        _q = _tc.execute("PRAGMA quick_check").fetchone()
+        _tc.close()
+        _ok = bool(_q and _q[0] == 'ok')
+    except Exception:
+        _ok = False
+    if not _ok:
+        _baks = sorted(_sglob.glob(_DB_PATH + '.bak.*.gz'), key=_os.path.getmtime, reverse=True)
+        if _baks:
+            _src = _baks[0]
+            _new = _DB_PATH + '.recover.new'
+            for _f in (_DB_PATH + '-wal', _DB_PATH + '-shm'):
+                if _os.path.exists(_f): _os.remove(_f)
+            try:
+                with _gzip.open(_src, 'rb') as _fi, open(_new, 'wb') as _fo:
+                    _shutil.copyfileobj(_fi, _fo, 1024*1024)
+                _tt = _sqlite3.connect(_new); _qq = _tt.execute("PRAGMA integrity_check").fetchone(); _tt.close()
+                if _qq and _qq[0] == 'ok':
+                    if _os.path.exists(_DB_PATH): _os.remove(_DB_PATH)
+                    _os.replace(_new, _DB_PATH, )
+                    import logging as _lg
+                    _lg.warning(f"[db] 前置自愈: 已从 {_os.path.basename(_src)} 恢复损坏数据库")
+                else:
+                    if _os.path.exists(_new): _os.remove(_new)
+            except Exception as _e:
+                if _os.path.exists(_new): _os.remove(_new)
+except Exception:
+    pass
+
 init_db()
+
 
 # 启动时清理卡死的后台任务（running 超过 10 分钟视为线程已死，标记 error 释放线程池）
 try:
@@ -161,13 +198,31 @@ except Exception as _e:
     _logging.warning(f"[db] 启动自检异常: {_e}")
 
 # 启动时 WAL checkpoint（合并 WAL 到主库，防止 reload 后 WAL 膨胀）
+# 灾害自愈: 检测 DB 损坏(database disk image is malformed)→自动从最近备份 gz 解压恢复
+# (8-28/9-2 事故沉淀: 磁盘满/SQLite写失败致 malformed, app 全500; 备份在 app 目录, 启动时无console也能恢复)
 try:
-    import sqlite3 as _sqlite3
+    import sqlite3 as _sqlite3, gzip as _gzip, shutil as _shutil, glob as _sglob, os as _os, time as _time
     from app.core.database import DB_PATH as _DB_PATH
-    _c = _sqlite3.connect(_DB_PATH)
-    _c.execute("PRAGMA busy_timeout=10000")
-    _c.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-    _c.close()
+    _dc = _sqlite3.connect(_DB_PATH)
+    _qc = _dc.execute("PRAGMA quick_check").fetchone()
+    _dc.close()
+    if not _qc or _qc[0] != 'ok':
+        _baks = sorted(_sglob.glob(_DB_PATH + '.bak.*.gz') + _sglob.glob(_DB_PATH + '.restore.gz'), key=_os.path.getmtime, reverse=True)
+        if _baks:
+            _src = _baks[0]
+            _new = _DB_PATH + '.recover.new'
+            # 先删损坏库与 WAL 释放配额(保存 corrupt 需 187+162MB 超配额致恢复失败)
+            for _f in (_DB_PATH, _DB_PATH + '-wal', _DB_PATH + '-shm'):
+                if _os.path.exists(_f): _os.remove(_f)
+            with _gzip.open(_src, 'rb') as _fi, open(_new, 'wb') as _fo:
+                _shutil.copyfileobj(_fi, _fo)
+            _v = _sqlite3.connect(_new); _q = _v.execute("PRAGMA integrity_check").fetchone(); _v.close()
+            if _q and _q[0] == 'ok':
+                _os.replace(_new, _DB_PATH)
+                import logging as _lg
+                _lg.warning(f"[db] 检测到损坏, 已从 {_os.path.basename(_src)} 自动恢复")
+            else:
+                if _os.path.exists(_new): _os.remove(_new)
 except Exception:
     pass
 register_core_handlers()

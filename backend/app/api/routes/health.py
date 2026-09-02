@@ -102,12 +102,23 @@ def health():
             _QUOTA_MB = 512
             checks["db_quota_used_mb"] = round(_pq, 1)
             checks["db_quota_pct"] = round(_pq / _QUOTA_MB * 100, 0)
-            if _pq > _QUOTA_MB * 0.9:
-                checks["quota"] = f"danger: db+wal+备份 {_pq:.0f}MB ≥ {int(_QUOTA_MB*0.9)}MB(90%), 接近配额上限, 请归档/清理"
-                status = "degraded"
-            elif _pq > _QUOTA_MB * 0.8:
-                checks["quota"] = f"warning: db+wal+备份 {_pq:.0f}MB ≥ {int(_QUOTA_MB*0.8)}MB(80%), 建议归档订单"
-                status = "degraded"
+            if _pq > _QUOTA_MB * 0.8:
+                # 自动 WAL checkpoint 防膨胀(3次事故共性: WAL暴涨撑满配额→SQLite写失败→malformed)
+                try:
+                    import sqlite3 as _sqlq
+                    _cq = _sqlq.connect(_DBQ)
+                    _cq.execute("PRAGMA busy_timeout=15000")
+                    _cq.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+                    _cq.close()
+                    checks["quota_auto_checkpoint"] = "done"
+                except Exception:
+                    pass
+                if _pq > _QUOTA_MB * 0.9:
+                    checks["quota"] = f"danger: db+wal+备份 {_pq:.0f}MB ≥ {int(_QUOTA_MB*0.9)}MB(90%), 已自动checkpoint, 接近上限请归档"
+                    status = "degraded"
+                else:
+                    checks["quota"] = f"warning: db+wal+备份 {_pq:.0f}MB ≥ {int(_QUOTA_MB*0.8)}MB(80%), 已自动checkpoint防膨胀"
+                    status = "degraded"
             else:
                 checks["quota"] = "ok"
         except Exception:

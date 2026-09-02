@@ -11,7 +11,7 @@ router = APIRouter(prefix="/api/insights", tags=["insights"])
 
 
 @router.get('/purchase')
-def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', channel: str = 'jd', db = get_db()):
+def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', channel: str = 'jd', search: str = '', db = get_db()):
     """采购建议：系统总库存视角，含目标周转控制"""
     from datetime import timedelta, UTC
     now = datetime.now(UTC)
@@ -174,6 +174,9 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', channel: str = 
                 _parts.append(f"该供应商总计{_sg['total_raw']}件不足起订量")
                 _parts.append(f"按占比{_old}/{_sg['total_raw']}提升至{_r['purchase_qty']}件")
                 _r['note'] = _r.get('note', '') + ' · ' + '，'.join(_parts)
+    if search:
+        _sq = search.lower()
+        result = [r for r in result if _sq in str(r.get('sku','')).lower() or _sq in str(r.get('product_name','')).lower() or _sq in str(r.get('barcode','')).lower()]
     result.sort(key=lambda x: x['days_to_empty'])
     # 批量处理告警（避免单 SKU 逐条查询，2000 SKU 时减少 4000 次 DB 查询）
     try:

@@ -20,6 +20,9 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
     if hit:
         # 缓存存储格式为 {"data": suggestions}，解包后统一返回 ok 格式
         _sug = cached.get("data", []) if isinstance(cached, dict) else cached
+        if search:
+            _sq = search.lower()
+            _sug = [s for s in _sug if _sq in str(s.get('sku','')).lower() or _sq in str(s.get('product_name','')).lower() or _sq in str(s.get('barcode','')).lower()]
         if page > 0 and page_size > 0:
             _total = len(_sug)
             return ok({"items": _sug[(page - 1) * page_size: page * page_size], "total": _total, "page": page, "page_size": page_size})
@@ -398,6 +401,10 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
         s.get('sku', ''),
     ))
 
+    # 搜索过滤(排序后, 搜索词相关性优先展示)
+    if search:
+        _sq = search.lower()
+        suggestions = [s for s in suggestions if _sq in str(s.get('sku','')).lower() or _sq in str(s.get('product_name','')).lower() or _sq in str(s.get('barcode','')).lower()]
     # 写入缓存
     try:
         from app.core.replenishment_cache import set_cache

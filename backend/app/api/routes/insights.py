@@ -114,7 +114,7 @@ _DISPOSAL_CACHE_TTL = 300
 
 
 @router.get('/disposal-suggestions')
-def get_disposal_suggestions(channel: str = 'jd', page: int = 0, page_size: int = 0, db = get_db()):
+def get_disposal_suggestions(channel: str = 'jd', page: int = 0, page_size: int = 0, search: str = '', db = get_db()):
     """滞销处置建议（300s TTL 缓存全量 + 分页返回）
 
     缓存存全量 suggestions(低频计算35s, 二次命中快), 分页在缓存后切片。
@@ -140,6 +140,9 @@ def get_disposal_suggestions(channel: str = 'jd', page: int = 0, page_size: int 
             _disposal_cache[_key] = {'data': suggestions, 'ts': _t.time(), 'ver': _ver}
         except Exception:
             pass
+    if search:
+        _sq = search.lower()
+        suggestions = [x for x in suggestions if _sq in str(x.get('sku','')).lower() or _sq in str(x.get('product_name','')).lower() or _sq in str(x.get('barcode','')).lower()]
     total = len(suggestions)
     if page > 0 and page_size > 0:
         items = suggestions[(page - 1) * page_size: page * page_size]

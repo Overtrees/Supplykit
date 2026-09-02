@@ -34,6 +34,7 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
   const [inventory, setInventory] = useState([])
   const [loading, setLoading] = useState(true)
   const [invPage, setInvPage] = useState(1)
+  const invPageRef = useRef(1)
   const [invTotal, setInvTotal] = useState(0)
   const [loadingMore, setLoadingMore] = useState(false)
   const [loadErr, setLoadErr] = useState('')
@@ -67,7 +68,7 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
       const d = r.data || {}
       const items = (d.items || d || [])
       setInvTotal(d.total || items.length || 0)
-      setInvPage(p)
+      setInvPage(p); invPageRef.current = p
       setInventory(prev => p === 1 ? items : [...prev, ...items])
       if (p === 1 && items.length > 0) {
         const s = items[0].month_start?.slice(5) || ''
@@ -176,7 +177,7 @@ export default function InventoryPage({ highlightSku }: InventoryPageProps) {
           <div style={{textAlign:'center',padding:'10px 0'}} ref={function(el){
             if (el && !el._obs) {
               el._obs = new IntersectionObserver(function(entries){
-                if (entries[0].isIntersecting && !loadingMore) loadInv(invPage + 1)
+                if (entries[0].isIntersecting && !loadingMore) { var np = invPageRef.current + 1; invPageRef.current = np; loadInv(np) }
               }, {rootMargin: '200px'})
               el._obs.observe(el)
             }

@@ -118,6 +118,8 @@ export default function InsightsPage() {
   const insightSearch = hammerData?.[globalChannel]?.[searchKey] || ''
   // 搜索时重置分页
   useEffect(function() { setReplenLimit(50); setPurchaseLimit(50); setSlowLimit(50) }, [insightSearch])
+  // 搜索变更→重新拉取(带search到后端, 避免只过滤已加载前100条致'搜不到')
+  useEffect(function() { if (!replenLoading && !replenLoadingMore) { loadReplen(replenMode, globalChannel, 1) } }, [insightSearch, replenMode])
   const filterBySearch = (items) => {
     if (!insightSearch) return items
     const q = insightSearch.toLowerCase()
@@ -165,7 +167,7 @@ export default function InsightsPage() {
     else setReplenLoadingMore(true)
     setReplenError('')
     try {
-      const r = await api.get('/api/insights/replenishment?days=28&mode=' + mode + '&channel=' + ch + '&page=' + page + '&page_size=100', {timeout: 90000})
+      const r = await api.get('/api/insights/replenishment?days=28&mode=' + mode + '&channel=' + ch + '&page=' + page + '&page_size=100&search=' + encodeURIComponent(insightSearch), {timeout: 90000})
       if (seq !== replenSeq.current) return
       let data = r.data
       let total = 0
@@ -246,7 +248,7 @@ export default function InsightsPage() {
     if (tab === 'purchase') {
       // 仅拉采购建议
       setPurchaseLoading(true)
-      api.get('/api/insights/purchase?days=28&mode=' + replenMode + '&channel=' + globalChannel).then(r => {
+      api.get('/api/insights/purchase?days=28&mode=' + replenMode + '&channel=' + globalChannel + '&search=' + encodeURIComponent(insightSearch)).then(r => {
         if (seq !== reqSeq.current) { setPurchaseLoading(false); return }
         setPurchase(r.data?.suggestions || r.data || [])
         setPurchaseLoading(false)
@@ -255,7 +257,7 @@ export default function InsightsPage() {
       // 仅拉滞销处置建议（分页，第1页）
       setDisposalsLoading(true)
       setSlowPage(1)
-      api.get('/api/insights/disposal-suggestions?channel=' + globalChannel + '&page=1&page_size=100').then(r => {
+      api.get('/api/insights/disposal-suggestions?channel=' + globalChannel + '&page=1&page_size=100&search=' + encodeURIComponent(insightSearch)).then(r => {
         if (seq !== reqSeq.current) { setDisposalsLoading(false); return }
         const d = r.data || {}
         const items = d.items || d || []
@@ -269,14 +271,14 @@ export default function InsightsPage() {
       setReplenLoading(true)
       loadReplen(mode, globalChannel)
     }
-  }, [globalChannel, replenMode, dataVersion, tab])
+  }, [globalChannel, replenMode, dataVersion, tab, insightSearch])
 
   const loadSlowMore = () => {
     // ref 门闩(同步最新)——避免 IntersectionObserver 闭包旧 state 导致并发/循环
     if (slowLoadingRef.current || (slowTotal > 0 && disposals.length >= slowTotal)) return
     slowLoadingRef.current = true
     setSlowLoadingMore(true)
-    api.get('/api/insights/disposal-suggestions?channel=' + globalChannel + '&page=' + (slowPage + 1) + '&page_size=100').then(r => {
+    api.get('/api/insights/disposal-suggestions?channel=' + globalChannel + '&page=' + (slowPage + 1) + '&page_size=100&search=' + encodeURIComponent(insightSearch)).then(r => {
       const d = r.data || {}
       const items = d.items || []
       setDisposals(prev => [...prev, ...items])

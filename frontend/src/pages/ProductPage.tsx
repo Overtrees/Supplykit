@@ -17,7 +17,7 @@ function Skeleton(){return <div>{[1,2,3,4].map(i=><div key={i} style={{display:'
   <div className="skeleton" style={{width:50,height:14}}/><div className="skeleton" style={{width:40,height:14}}/>
 </div>)}</div>}
 
-export default function ProductPage(){const[list,setList]=useState([]);const[ld,setLd]=useState(true);const[pg,setPg]=useState(1);const[pgTotal,setPgTotal]=useState(0);const[loadingMore,setLoadingMore]=useState(false);const reqSeq=useRef(0);const[loadErr,setLoadErr]=useState('')
+export default function ProductPage(){const[list,setList]=useState([]);const[ld,setLd]=useState(true);const[pg,setPg]=useState(1);const pgRef=useRef(1);const[pgTotal,setPgTotal]=useState(0);const[loadingMore,setLoadingMore]=useState(false);const reqSeq=useRef(0);const[loadErr,setLoadErr]=useState('')
 const[visCols,setVisCols]=useState(()=>getVis(COL_KEY())||COLS.map(c=>c.id))
 const toast = useToast()
 const { channel: globalChannel, hammerSearch, hammerCols, prodBatch, setProdBatch, prodSelIds, setProdBatchSel, setProdBatchFilterLen, prodBatchVersion, bumpProdBatchVersion, prodBatchAllReq } = useAppStore()
@@ -26,7 +26,7 @@ const setSelIds = setProdBatchSel
 const [batchBusy, setBatchBusy] = useState(false)
 const s = hammerSearch || ''
 const fl = ld ? [] : list
-const loadProd=(p)=>{const seq=++reqSeq.current;if(p===1)setLd(true);else setLoadingMore(true);api.get('/api/products?page='+p+'&page_size=100&channel='+globalChannel+'&search='+encodeURIComponent(s),{timeout:90000}).then(r=>{if(seq!==reqSeq.current)return;const d=r.data||{};const items=d.items||d||[];setPgTotal(d.total||items.length||0);setPg(p);setList(prev=>p===1?items:[...prev,...items]);setLoadErr('');setLd(false);setLoadingMore(false);const _m={...useAppStore.getState().batchStateMap};(items||[]).forEach(it=>{if(it&&it.id)_m[it.id]=it.is_active?1:0});useAppStore.setState({batchStateMap:_m})}).catch(()=>{if(seq===reqSeq.current){setLd(false);setLoadingMore(false);setList([]);setLoadErr('加载失败，可能是网络异常或服务暂不可用')}})}
+const loadProd=(p)=>{const seq=++reqSeq.current;if(p===1)setLd(true);else setLoadingMore(true);api.get('/api/products?page='+p+'&page_size=100&channel='+globalChannel+'&search='+encodeURIComponent(s),{timeout:90000}).then(r=>{if(seq!==reqSeq.current)return;const d=r.data||{};const items=d.items||d||[];setPgTotal(d.total||items.length||0);setPg(p); pgRef.current = p;setList(prev=>p===1?items:[...prev,...items]);setLoadErr('');setLd(false);setLoadingMore(false);const _m={...useAppStore.getState().batchStateMap};(items||[]).forEach(it=>{if(it&&it.id)_m[it.id]=it.is_active?1:0});useAppStore.setState({batchStateMap:_m})}).catch(()=>{if(seq===reqSeq.current){setLd(false);setLoadingMore(false);setList([]);setLoadErr('加载失败，可能是网络异常或服务暂不可用')}})}
 useEffect(()=>{clearCache('products');setPg(1);loadProd(1)}, [globalChannel, s])
 useEffect(() => {
   if (hammerCols?.products) setVisCols(hammerCols.products)
@@ -72,7 +72,7 @@ return<div className='card' style={{containerType:'inline-size'}}>
           <div style={{textAlign:'center',padding:'10px 0'}} ref={function(el){
             if (el && !el._obs) {
               el._obs = new IntersectionObserver(function(entries){
-                if (entries[0].isIntersecting && !loadingMore) loadProd(pg + 1)
+                if (entries[0].isIntersecting && !loadingMore) { var np=pgRef.current+1; pgRef.current=np; loadProd(np) }
               }, {rootMargin: '200px'})
               el._obs.observe(el)
             }

@@ -17,7 +17,8 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', channel: str = 
     now = datetime.now(UTC)
     # 尝试读取缓存（与补货建议共享 _replen_version 版本号）
     from app.core.replenishment_cache import get_cached, set_cache as _set_cache
-    _cached, _hit = get_cached(mode or 'bbcc', channel, days, db)  # mode 进 key: bbcc/traditional 缓存区分(曾固定'purchase'串模式)
+    _pkey = 'purchase_' + (mode or 'bbcc')  # 与补货建议(纯mode)key隔离, 且教采购bbcc/traditional区分
+    _cached, _hit = get_cached(_pkey, channel, days, db)
     if _hit:
         return ok(_cached)
 
@@ -197,7 +198,7 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', channel: str = 
         logger.warning(f"[purchase] batch alerts: {e}")
     # 写入缓存
     try:
-        _set_cache(mode or 'bbcc', channel, days, result, db)
+        _set_cache(_pkey, channel, days, result, db)
     except Exception:
         pass
     return ok(result)

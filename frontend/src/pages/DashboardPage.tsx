@@ -406,25 +406,27 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
           </div>}
         </div>
         {(!_r.items || _r.items.length === 0)
-          ? <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:2}}>
-              <div style={{fontSize:14,fontWeight:400,color:'var(--muted2)'}}>{t("dash.stock_ok")}</div>
+          ? <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:2,flexDirection:'column'}}>
+              <div style={{fontSize:12,fontWeight:400,color:'var(--muted2)'}}>{t("dash.stock_ok")}</div>
             </div>
           : <>
-              <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:4,paddingTop:12}}>
-                <div className="card-value" style={{fontSize:'clamp(18px,9cqi,30px)',fontWeight:700,lineHeight:1.1,color:'#ef4444'}}>{_r.total}</div>
-                <div className="card-sub" style={{marginTop:4}}>{t("dash.min_days")} {_r.items[0].days_to_empty} {t("dash.days_out")}</div>
-                {(riskCritical > 0 || riskWarning > 0 || _r.total > riskCritical + riskWarning) && <div style={{fontSize:10,display:'flex',gap:4,marginTop:3,flexWrap:'wrap'}}>
+              <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:4,paddingTop:10,minHeight:0}}>
+                <div className="card-value" style={{fontSize:'clamp(16px,7.5cqi,26px)',fontWeight:700,lineHeight:1.15,color:'#ef4444',marginBottom:6}}>{_r.total}</div>
+                <div className="card-sub" style={{marginTop:2}}>{t("dash.min_days")} {_r.items[0].days_to_empty} {t("dash.days_out")}</div>
+                {(riskCritical > 0 || riskWarning > 0 || _r.total > riskCritical + riskWarning) && <div style={{fontSize:10,display:'flex',gap:4,marginTop:2,flexWrap:'wrap'}}>
                   {riskCritical > 0 && <span style={{color:'#ef4444'}}>● {riskCritical} {t("dash.critical")}</span>}
                   {riskWarning > 0 && <span style={{color:'var(--warning)'}}>● {riskWarning} {t("dash.warning")}</span>}
                   {_r.total > riskCritical + riskWarning && <span style={{color:'var(--muted2)'}}>● {_r.total - riskCritical - riskWarning} 观察</span>}
                 </div>}
               </div>
+              <div style={{flexShrink:0}}>
               {_r.items.slice(0,3).map((x,i) => (
-                <div key={i} style={{fontSize:10,color:'var(--muted2)',lineHeight:1.9,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:i===0?8:2,paddingLeft:2}}>
-                  <span style={{color:'var(--muted)'}}>{i+1}.</span> {x.product_name || x.sku} <span style={{fontSize:9,color:'var(--muted)',background:'var(--bg)',padding:'1px 5px',borderRadius:4,verticalAlign:'1px'}}>{_replMode === 'bbcc' ? 'BC' : (x.warehouse ? x.warehouse : (x.type === 'B' ? 'B' : 'C仓'))}</span>
+                <div key={i} style={{fontSize:9,color:'var(--muted2)',lineHeight:1.55,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:i===0?6:1,paddingLeft:2}}>
+                  <span style={{color:'var(--muted)'}}>{i+1}.</span> {x.product_name || x.sku} <span style={{fontSize:8,color:'var(--muted)',background:'var(--bg)',padding:'0 4px',borderRadius:4,verticalAlign:'1px'}}>{_replMode === 'bbcc' ? 'BC' : (x.warehouse ? x.warehouse : (x.type === 'B' ? 'B' : 'C仓'))}</span>
                 </div>
               ))}
-              {_r.total > 3 && <button onClick={()=>{loadFullRisk();setShowAllRisk(true)}} className="clickable" style={{width:'100%',padding:'4px 0',border:'none',borderRadius:0,background:'transparent',fontSize:10,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>还有 {_r.total - 3} 条...</button>}
+              </div>
+              {_r.total > 3 && <button onClick={()=>{loadFullRisk();setShowAllRisk(true)}} className="clickable" style={{width:'100%',padding:'3px 0',border:'none',borderRadius:0,background:'transparent',fontSize:10,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit',textAlign:'left',flexShrink:0}}>还有 {_r.total - 3} 条...</button>}
             </>}
       </div>
     </div>

@@ -91,6 +91,7 @@ export default function InsightsPage() {
   const [replenLimit, setReplenLimit] = useState(100)
   const [replenTotal, setReplenTotal] = useState(0)
   const [replenPage, setReplenPage] = useState(1)
+  const replenPageRef = useRef(1)
   const [replenLoadingMore, setReplenLoadingMore] = useState(false)
   const [purchaseLimit, setPurchaseLimit] = useState(50)
   const [slowLimit, setSlowLimit] = useState(50)
@@ -175,6 +176,7 @@ export default function InsightsPage() {
       setReplen(prev => page === 1 ? items : [...prev, ...items])
       setReplenTotal(total)
       setReplenPage(page)
+      replenPageRef.current = page
       setReplenLoading(false); setReplenLoadingMore(false)
     } catch(e) {
       console.error('loadReplen:', e)
@@ -402,7 +404,13 @@ export default function InsightsPage() {
                 <div className="text-center mt-8" ref={function(el) {
                   if (el && !el._observer) {
                     el._observer = new IntersectionObserver(function(entries) {
-                      if (entries[0].isIntersecting && !replenLoadingMore) loadReplen(replenMode, globalChannel, replenPage + 1)
+                      // 闭包旧replenPage bug: observer只创建一次, 回调捕获创建时旧值→反复加载同页
+                      // 修复: 用 ref 实时读最新 page, 避免重复加载同一页(数据重复致'滚到3100条还是那批在途0')
+                      if (entries[0].isIntersecting && !replenLoadingMore) {
+                        var next = replenPageRef.current + 1
+                        replenPageRef.current = next
+                        loadReplen(replenMode, globalChannel, next)
+                      }
                     }, {rootMargin: '200px'})
                     el._observer.observe(el)
                   }

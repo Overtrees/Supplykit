@@ -402,7 +402,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
       {/* 4. 濒临断货预警 — 全量计数, 弹窗看完整 */}
       <div className="card" style={{borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16,overflow:'hidden'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-          <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>濒临断货预警{_replMode === 'bbcc' ? '（BC）' : '（C仓+自有）'}</div>
+          <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>濒临断货预警{_replMode === 'bbcc' ? '（BC）' : ''}</div>
           {_replMode === 'traditional' && <span className="small muted" style={{fontSize:10}}>C仓+自有</span>}
         </div>
         {(!_r.items || _r.items.length === 0)
@@ -410,9 +410,9 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
               <div style={{fontSize:12,fontWeight:400,color:'var(--muted2)'}}>{t("dash.stock_ok")}</div>
             </div>
           : <>
-              <div style={{marginBottom:4,paddingTop:8,minHeight:0}}>
-                <div className="card-value" style={{fontSize:'clamp(15px,6.5cqi,24px)',fontWeight:700,lineHeight:1.2,color:'#ef4444',marginBottom:4,whiteSpace:'nowrap'}}>{_r.total}</div>
-                <div className="card-sub" style={{marginTop:1}}>{t("dash.min_days")} {_r.items[0].days_to_empty} {t("dash.days_out")}</div>
+              <div style={{marginBottom:3,paddingTop:2,minHeight:0}}>
+                <div className="card-value" style={{fontSize:'clamp(16px,7cqi,26px)',fontWeight:700,lineHeight:1.15,color:'#ef4444',marginBottom:1,whiteSpace:'nowrap'}}>{_r.total}</div>
+                <div className="card-sub" style={{marginTop:0,fontSize:11,lineHeight:1.4}}>{t("dash.min_days")} {_r.items[0].days_to_empty} {t("dash.days_out")}</div>
                 {(riskCritical > 0 || riskWarning > 0 || _r.total > riskCritical + riskWarning) && <div style={{fontSize:10,display:'flex',gap:4,marginTop:1,flexWrap:'wrap',lineHeight:1.3}}>
                   {riskCritical > 0 && <span style={{color:'#ef4444'}}>● {riskCritical} {t("dash.critical")}</span>}
                   {riskWarning > 0 && <span style={{color:'var(--warning)'}}>● {riskWarning} {t("dash.warning")}</span>}
@@ -423,12 +423,12 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
               {_r.items.slice(0,3).map((x,i) => {
                 var whLabel = x.warehouse || (x.type === 'C' ? 'C仓' : (x.type === 'OWN' ? '集货仓' : (x.type === 'B' ? 'B仓' : (_replMode === 'bbcc' ? 'BC' : 'C仓'))))
                 return (
-                <div key={i} style={{fontSize:9,color:'var(--muted2)',lineHeight:1.6,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:i===0?5:1,paddingLeft:2}}>
+                <div key={i} style={{fontSize:9,color:'var(--muted2)',lineHeight:1.5,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:i===0?4:2,paddingLeft:2}}>
                   <span style={{color:'var(--muted)'}}>{i+1}.</span> {x.product_name || x.sku} <span style={{fontSize:8,color:'var(--muted)',background:'var(--bg)',padding:'0 4px',borderRadius:4,verticalAlign:'1px'}}>{whLabel}</span>
                 </div>)
               })}
               </div>
-              {_r.total > 3 && <button onClick={()=>{loadFullRisk();setShowAllRisk(true)}} className="clickable" style={{width:'100%',padding:'3px 0',border:'none',borderRadius:0,background:'transparent',fontSize:10,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit',textAlign:'left',flexShrink:0}}>还有 {_r.total - 3} 条...</button>}
+              {_r.total > 3 && <button onClick={()=>{loadFullRisk();setShowAllRisk(true)}} className="clickable" style={{width:'100%',padding:'5px 0 2px',border:'none',borderRadius:0,background:'transparent',fontSize:10,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit',textAlign:'left',flexShrink:0}}>还有 {_r.total - 3} 条...</button>}
             </>}
       </div>
     </div>
@@ -525,7 +525,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
       {showAllRisk && <div onClick={function(){setShowAllRisk(false)}} style={{position:'fixed',inset:0,zIndex:9998,background:'transparent'}} />}
       {showAllRisk && <div style={{position:'fixed',left:0,right:0,bottom:'calc(env(safe-area-inset-bottom) + 14px)',zIndex:9999,display:'flex',justifyContent:'center',padding:'0 14px',pointerEvents:'none'}}>
         <div onClick={function(e){e.stopPropagation()}} className="material-regular" style={{width:"100%",maxWidth:600,borderRadius:32,padding:"18px 14px calc(14px + env(safe-area-inset-bottom))",boxShadow:"var(--shadow-sheet), inset 0 1px 0 rgba(255,255,255,0.25)",pointerEvents:"auto",maxHeight:"70vh",overflowY:"auto"}}>
-          <div style={{fontSize:18,fontWeight:700,marginBottom:12,textAlign:'center',color:'var(--text)'}}>濒临断货预警{_replMode === 'bbcc' ? '（BC）' : '（C仓+自有）'} · 共 {_r.total} 条</div>
+          <div style={{fontSize:18,fontWeight:700,marginBottom:12,textAlign:'center',color:'var(--text)'}}>濒临断货预警{_replMode === 'bbcc' ? '（BC）' : ''} · 共 {_r.total} 条</div>
           {(fullRisk || _r._full || _r.items || []).map(function(x, i) {
             var whLabel = x.warehouse || (x.type === 'C' ? 'C仓' : (x.type === 'OWN' ? '集货仓' : (x.type === 'B' ? 'B仓' : (_replMode === 'bbcc' ? 'BC' : 'C仓'))))
             return <div key={i} onClick={function(){onAlert && onAlert(x.sku, _showOwn ? 'own' : 'platform')}} className="clickable" style={{padding:'8px 12px',background:'var(--card)',borderRadius:16,marginBottom:6,display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}}>

@@ -390,6 +390,8 @@ def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 
         return 1 if (s.get('suggested_qty') or 0) > 0 or (s.get('b_suggested') or 0) > 0 else 0
     suggestions.sort(key=lambda s: (
         -_needs(s),
+        # 在途>0 优先(需补货但已有在途的先看到, 避免前1000条全在途0误判为bug)
+        -(_needs(s) * (int(s.get('in_transit_qty') or 0) > 0) * 2),
         -(s.get('suggested_qty') or 0),
         -(s.get('b_suggested') or 0),
         -(s.get('daily_sales') or 0),

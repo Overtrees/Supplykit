@@ -91,6 +91,27 @@ def health():
         from app.core.db_maintenance import get_db_size_mb, VACUUM_THRESHOLD_MB
         _sz = get_db_size_mb()
         checks["db_size_mb"] = round(_sz, 1)
+        # 配额监控(9-2 事故沉淀): PA 512MB 硬配额, db+wal+备份 接近上限会导致 SQLite 写失败→malformed
+        # 提前预警(>=80% degraded, >=90% degraded), 治本防再次写满
+        try:
+            import glob as _gq, os as _oq
+            from app.core.database import DB_PATH as _DBQ
+            _pq = _sz
+            for _x in ([_DBQ + '-wal'] + sorted(_gq.glob(_DBQ + '.bak.*.gz'), key=_oq.path.getmtime, reverse=True)[:2]):
+                if _oq.path.exists(_x): _pq += _oq.path.getsize(_x) / 1024 / 1024
+            _QUOTA_MB = 512
+            checks["db_quota_used_mb"] = round(_pq, 1)
+            checks["db_quota_pct"] = round(_pq / _QUOTA_MB * 100, 0)
+            if _pq > _QUOTA_MB * 0.9:
+                checks["quota"] = f"danger: db+wal+备份 {_pq:.0f}MB ≥ {int(_QUOTA_MB*0.9)}MB(90%), 接近配额上限, 请归档/清理"
+                status = "degraded"
+            elif _pq > _QUOTA_MB * 0.8:
+                checks["quota"] = f"warning: db+wal+备份 {_pq:.0f}MB ≥ {int(_QUOTA_MB*0.8)}MB(80%), 建议归档订单"
+                status = "degraded"
+            else:
+                checks["quota"] = "ok"
+        except Exception:
+            pass
         # 临时诊断：orders 索引
         try:
             from app.core.database import get_conn
@@ -244,6 +265,42 @@ def health():
 @router.get("/api/diag-orders")
 def diag_orders(action: str = ''):
     # 运维操作: rebuild_rules=重建规则引擎告警, rule_stat=规则匹配统计
+    if action == 'restore_db':
+        # 灾难恢复: 从最近备份解压覆盖主库(修复 database disk image is malformed)
+        # 可安全重复执行: 每次先写 .new 校验 integrity 再原子替换, 坏库备份为 .corrupt.<ts>
+        try:
+            import gzip, shutil, glob as _glob
+            from app.core.database import DB_PATH, get_conn
+            import sqlite3 as _s
+            _backup_base = DB_PATH + '.bak.'
+            _baks = sorted(_glob.glob(_backup_base + '*.gz'), key=os.path.getmtime, reverse=True)
+            if not _baks:
+                return {"ok": False, "error": "未找到备份文件"}
+            _src = _baks[0]
+            _new = DB_PATH + '.restore.new'
+            with gzip.open(_src, 'rb') as _f_in, open(_new, 'wb') as _f_out:
+                shutil.copyfileobj(_f_in, _f_out)
+            # 校验新库完整性
+            _c = _s.connect(_new); _qc = _c.execute("PRAGMA integrity_check").fetchone(); _c.close()
+            if not _qc or _qc[0] != 'ok':
+                if os.path.exists(_new): os.remove(_new)
+                return {"ok": False, "error": f"备份 {os.path.basename(_src)} 校验失败: {_qc}"}
+            # 原子替换: 坏库保留为 .corrupt.<ts>, 移除可能冲突的 WAL/SHM
+            for _ext in ('.corrupt.' + datetime.now(UTC).strftime('%Y%m%d%H%M%S'),):
+                pass
+            _corrupt = DB_PATH + '.corrupt.' + datetime.now(UTC).strftime('%Y%m%d%H%M%S')
+            try:
+                _g = get_conn(); _g.close()
+            except Exception: pass
+            for _f in (DB_PATH, DB_PATH + '-wal', DB_PATH + '-shm'):
+                if os.path.exists(_f):
+                    if _f == DB_PATH: os.rename(_f, _corrupt)
+                    else: os.remove(_f)
+            os.rename(_new, DB_PATH)
+            return {"ok": True, "restored_from": os.path.basename(_src), "corrupt_backup": os.path.basename(_corrupt), "size": os.path.getsize(DB_PATH)}
+        except Exception as e:
+            import traceback
+            return {"ok": False, "error": str(e)[:200], "tb": traceback.format_exc()[-300:]}
     if action == 'rebuild_snapshot':
         try:
             from app.core.database import get_db

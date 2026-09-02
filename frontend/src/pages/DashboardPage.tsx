@@ -420,8 +420,8 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
                 </div>}
               </div>
               {_r.items.slice(0,3).map((x,i) => (
-                <div key={i} style={{fontSize:9,color:'var(--muted2)',lineHeight:1.5,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:i===0?6:0}}>
-                  {i+1}. {x.product_name || x.sku} <span style={{fontSize:8,color:'var(--muted)',background:'var(--bg)',padding:'0 4px',borderRadius:4}}>{_replMode === 'bbcc' ? 'BC' : (x.warehouse ? x.warehouse : (x.type === 'B' ? 'B' : 'C仓'))}</span>
+                <div key={i} style={{fontSize:10,color:'var(--muted2)',lineHeight:1.9,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:i===0?8:2,paddingLeft:2}}>
+                  <span style={{color:'var(--muted)'}}>{i+1}.</span> {x.product_name || x.sku} <span style={{fontSize:9,color:'var(--muted)',background:'var(--bg)',padding:'1px 5px',borderRadius:4,verticalAlign:'1px'}}>{_replMode === 'bbcc' ? 'BC' : (x.warehouse ? x.warehouse : (x.type === 'B' ? 'B' : 'C仓'))}</span>
                 </div>
               ))}
               {_r.total > 3 && <button onClick={()=>{loadFullRisk();setShowAllRisk(true)}} className="clickable" style={{width:'100%',padding:'4px 0',border:'none',borderRadius:0,background:'transparent',fontSize:10,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>还有 {_r.total - 3} 条...</button>}

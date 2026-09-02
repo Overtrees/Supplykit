@@ -397,7 +397,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
       </div>
 
       {/* 4. 濒临断货预警 — 全量计数, 弹窗看完整 */}
-      <div className="card" style={{borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16,overflow:'hidden'}}>
+      <div className="card" style={{borderRadius:26,containerType:'inline-size',minHeight:'clamp(300px, 88cqi, 420px)',display:'flex',flexDirection:'column',padding:16,overflow:'hidden'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
           <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>濒临断货预警{_replMode === 'bbcc' ? '（BC）' : (_showOwn ? '（自有三方仓）' : '（C仓）')}</div>
           {_replMode === 'traditional' && <div style={{display:'flex',gap:2,background:'var(--bg)',borderRadius:99,padding:2}}>

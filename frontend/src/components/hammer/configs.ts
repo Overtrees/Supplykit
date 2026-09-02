@@ -73,5 +73,5 @@ export const INS_SLOW_COLS = [
 
 export const insColKey = (m, ch) => 'c_cols_insights_' + ch + '_' + m
 export const getInsVis = (m, ch) => { try { return JSON.parse(localStorage.getItem(insColKey(m, ch)) || 'null') } catch{return null} }
-export function insDefVis(cols) { return cols.map(c=>c.id).filter((_,i)=>[0,1,2,3,4,6,7,11,18].includes(i)) }
+export function insDefVis(cols) { return cols.map(c=>c.id).filter((_,i)=>[0,1,2,3,4,5,6,7,10,11,14,15,18].includes(i)) }
 export function insDefVisTrad(cols) { return cols.map(c=>c.id).filter((_,i)=>[0,1,2,3,4,5,6,10,11].includes(i)) }

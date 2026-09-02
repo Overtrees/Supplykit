@@ -71,7 +71,7 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', channel: str = 
         s = i['sku']
         if s not in stock_by_sku:
             stock_by_sku[s] = {'available':0,'transit':0,'safety':0,'safety_days':0,
-                               'own_avail':0,'own_transit':0,'plat_avail':0,'plat_transit':0,'own_warehouse':''}
+                               'own_avail':0,'own_transit':0,'plat_avail':0,'plat_transit':0,'b_transit':0,'own_warehouse':''}
             b_avail[s] = 0
         qty = int(i.get('available_qty',0) or 0); tty = int(i.get('in_transit_qty',0) or 0)
         wt = i.get('warehouse_type','platform')
@@ -83,7 +83,9 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', channel: str = 
         stock_by_sku[s]['safety'] += int(i.get('safety_qty',0) or 0)
         sd = float(i.get('safety_days',0) or 0)
         if sd > stock_by_sku[s]['safety_days']: stock_by_sku[s]['safety_days'] = sd
-        if wt == 'platform_b': b_avail[s] += qty
+        if wt == 'platform_b':
+            b_avail[s] += qty
+            stock_by_sku[s]['b_transit'] += tty  # 供应商→B仓在途(bbcc口径, 前端在途列明细显示)
         elif wt == 'own':
             stock_by_sku[s]['own_avail'] += qty; stock_by_sku[s]['own_transit'] += tty
             if not stock_by_sku[s]['own_warehouse']: stock_by_sku[s]['own_warehouse'] = i.get('warehouse','')
@@ -134,7 +136,7 @@ def get_purchase_suggestions(days: int = 28, mode: str = 'bbcc', channel: str = 
             'sku': sku, 'barcode': sku_barcode_map.get(sku, ''), 'product_name': prod.get('product_name', ''), 'brand': prod.get('brand', ''),
             'store': prod.get('store', ''), 'warehouse': st['own_warehouse'], 'category': prod.get('category', ''),
             'sys_available': st['available'], 'sys_transit': st['transit'], 'sys_total': sys_total,
-            'own_available': st['own_avail'], 'own_transit': st['own_transit'],
+            'own_available': st['own_avail'], 'own_transit': st['own_transit'], 'b_transit': st['b_transit'],
             'plat_available': st['plat_avail'], 'plat_transit': st['plat_transit'],
             'b_available': b_avail.get(sku, 0),
             'safety_qty': st['safety'], 'daily_sales': ds,

@@ -361,7 +361,7 @@ export default function InsightsPage() {
                         // C仓总和可用
                         if (col.id === 'c_stock') return <td key={col.id} style={{fontWeight:600}}>{x.c_stock ?? x.available_qty}</td>
                         // 在途
-                        if (col.id === 'transit') return <td key={col.id}>{x.c_transit ?? '-'}</td>
+                        if (col.id === 'transit') return <td key={col.id}>{replenMode === 'bbcc' ? (x.c_transit ?? '-') : (x.in_transit_qty ?? '-')}</td>
                         // 日销
                         if (col.id === 'sales') return <td key={col.id} style={{fontSize:11,fontWeight:600,whiteSpace:'nowrap'}}>{x.daily_sales}<span style={{fontSize:10,fontWeight:400,color:'var(--muted2)'}}>
                           /{(x.daily_sales_7||0) > (x.daily_sales_14||0)*1.15 ? <IconTrendUp size={12} style={{display:'inline',verticalAlign:'middle',color:'#22c55e'}} /> : (x.daily_sales_7||0) < (x.daily_sales_14||0)*0.85 ? <IconTrendDown size={12} style={{display:'inline',verticalAlign:'middle',color:'#ef4444'}} /> : <IconTrendFlat size={12} style={{display:'inline',verticalAlign:'middle',color:'#64748b'}} />}{(x.daily_sales_7||0).toFixed(1)}
@@ -471,7 +471,7 @@ export default function InsightsPage() {
                         if (col.id === 'warehouse') return <td key={col.id} className="col-store">{x.warehouse || x.store || '-'}</td>
                         // 系统可用 / 系统在途(与进销存对应仓维度同源: inventory in_transit_qty)
                         if (col.id === 'sys_available') return <td key={col.id} style={{fontSize:12,fontWeight:600,whiteSpace:'nowrap'}}>{x.sys_available ?? '-'}<span style={{fontSize:10,fontWeight:400,color:'var(--muted2)'}}> (自有{x.own_available || 0}{replenMode === 'bbcc' ? `+B${x.b_available || 0}` : ''}+C{x.plat_available || 0})</span></td>
-                        if (col.id === 'sys_transit') return <td key={col.id} style={{fontSize:12,color:'var(--muted)',fontWeight:400,whiteSpace:'nowrap'}}>{x.sys_transit ?? '-'}<span style={{fontSize:10,color:'var(--muted2)'}}> (自有在途{x.own_transit || 0}+C在途{x.plat_transit || 0})</span></td>
+                        if (col.id === 'sys_transit') return <td key={col.id} style={{fontSize:12,color:'var(--muted)',fontWeight:400,whiteSpace:'nowrap'}}>{x.sys_transit ?? '-'}<span style={{fontSize:10,color:'var(--muted2)'}}> (自有在途{x.own_transit || 0}{replenMode === 'bbcc' ? `+B在途${x.b_transit || 0}` : ''}+C在途{x.plat_transit || 0})</span></td>
                         if (col.id === 'daily_sales') return <td key={col.id} style={{fontSize:12,fontWeight:600,whiteSpace:'nowrap'}}>{x.daily_sales}<span style={{fontSize:10,fontWeight:400,color:'var(--muted2)'}}>
                           {tab === 'purchase'
                             ? <>/{((x.daily_sales_14||0) > (x.daily_sales_28||0)*1.15) ? <IconTrendUp size={12} style={{display:'inline',verticalAlign:'middle',color:'#22c55e'}} /> : ((x.daily_sales_14||0) < (x.daily_sales_28||0)*0.85) ? <IconTrendDown size={12} style={{display:'inline',verticalAlign:'middle',color:'#ef4444'}} /> : <IconTrendFlat size={12} style={{display:'inline',verticalAlign:'middle',color:'#64748b'}} />}{(x.daily_sales_14||0).toFixed(1)}/{(x.daily_sales_28||0).toFixed(1)}</>

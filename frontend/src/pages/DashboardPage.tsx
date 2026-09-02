@@ -230,11 +230,14 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
     _sr0.ownWarning = _sr0.ownWarning != null ? _sr0.ownWarning : (_sr0.ownItems.filter(x => x.days_to_empty >= 3 && x.days_to_empty < 7).length)
   }
   const _sr = _sr0
+  // 传统多仓: C 仓 + 自有/三方仓 混合显示(同一列表, 标签区分)——曾用 C仓/自有三方 tab 分开
   const _srOwn = { items: _sr0.ownItems || [], total: _sr0.ownTotal || 0, critical: _sr0.ownCritical || 0, warning: _sr0.ownWarning || 0 }
-  const _showOwn = _replMode === 'traditional' && _riskTab === 'own'
-  const _r = _showOwn ? _srOwn : _sr
+  const _showOwn = false
+  const _r = _replMode === 'traditional'
+    ? (function(){ var _merged = [].concat(_sr.items||[], _srOwn.items||[]).sort(function(a,b){return (a.days_to_empty||999)-(b.days_to_empty||999)}); var _tot = ( _sr.total||0 ) + ( _srOwn.total||0 ); var _c = ( _sr.critical||0 ) + ( _srOwn.critical||0 ); var _w = ( _sr.warning||0 ) + ( _srOwn.warning||0 ); var _full = [].concat(_sr.items||[], _srOwn.items||[]).sort(function(a,b){return (a.days_to_empty||999)-(b.days_to_empty||999)}); return {items: _merged.slice(0,10), total: _tot, critical: _c, warning: _w, _full: _full} })()
+    : _sr
   const riskCritical = _r.critical != null ? _r.critical : (_r.items||[]).filter(x => x.days_to_empty < 3).length
-  const riskWarning = _sr.warning != null ? _sr.warning : (_sr.items||[]).filter(x => x.days_to_empty >= 3 && x.days_to_empty < 7).length
+  const riskWarning = _r.warning != null ? _r.warning : (_r.items||[]).filter(x => x.days_to_empty >= 3 && x.days_to_empty < 7).length
     // 缺货列表 = stockOverview.items(本身就是 avail<=0 的缺货SKU, 含warehouse_type)
   // 缺货列表 = 当前视图维度全量(oosList, 随 healthTab 拉取); 未加载时回退旧逻辑
   var _oosSrc = oosList || (healthTab === 'bc' ? (bcOutOfStock || []) : (healthTab === 'own' ? (inventory||[]).filter(x => x.warehouse_type === 'own') : (inventory||[]).filter(x => x.warehouse_type === 'platform')))
@@ -346,7 +349,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
                 <span onClick={function(){setHealthWithSave('own')}}
                   className="clickable"
                   style={{fontSize:9,padding:'2px 6px',borderRadius:99,cursor:'pointer',fontWeight:healthTab==='own'?600:400,background:healthTab==='own'?'var(--card)':'transparent',color:healthTab==='own'?'var(--text)':'var(--muted2)',whiteSpace:'nowrap'}}>自有</span>
-                {isJd && <span onClick={function(){
+                {isJd && _replMode === 'bbcc' && <span onClick={function(){
               if (healthTab === 'bc' || healthTab === 'platform') {
                 setBcMenuOpen(!bcMenuOpen)
               } else {
@@ -357,7 +360,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
               style={{fontSize:9,padding:'2px 6px',borderRadius:99,cursor:'pointer',fontWeight:bcActive?600:400,background:bcActive?'var(--card)':'transparent',color:bcActive?'var(--text)':'var(--muted2)',display:'flex',alignItems:'center',gap:1,whiteSpace:'nowrap'}}>
               {bcLabel}{bcActive && <svg width="6" height="6" viewBox="0 0 8 8" fill="none" style={{transform:'rotate('+(bcMenuOpen?'180':'0')+'deg)',transition:'transform 0.15s'}}><path d="M2 3l2 2 2-2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>}
             </span>}
-                {!isJd && <span onClick={function(){setHealthWithSave('platform')}}
+                {(!isJd || _replMode !== 'bbcc') && <span onClick={function(){setHealthWithSave('platform')}}
                   className="clickable"
                   style={{fontSize:10,padding:'2px 8px',borderRadius:99,cursor:'pointer',fontWeight:healthTab==='platform'?600:400,background:healthTab==='platform'?'var(--card)':'transparent',color:healthTab==='platform'?'var(--text)':'var(--muted2)'}}>平台</span>}
                 {bcMenuOpen && <div onClick={function(){setBcMenuOpen(false)}} style={{position:'fixed',inset:0,zIndex:9}} />}
@@ -397,21 +400,18 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
       </div>
 
       {/* 4. 濒临断货预警 — 全量计数, 弹窗看完整 */}
-      <div className="card" style={{borderRadius:26,containerType:'inline-size',minHeight:'clamp(300px, 88cqi, 420px)',display:'flex',flexDirection:'column',padding:16,overflow:'hidden'}}>
+      <div className="card" style={{borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16,overflow:'hidden'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-          <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>濒临断货预警{_replMode === 'bbcc' ? '（BC）' : (_showOwn ? '（自有三方仓）' : '（C仓）')}</div>
-          {_replMode === 'traditional' && <div style={{display:'flex',gap:2,background:'var(--bg)',borderRadius:99,padding:2}}>
-            <span onClick={function(){setRiskTab('c')}} className="clickable" style={{fontSize:9,padding:'2px 6px',borderRadius:99,cursor:'pointer',fontWeight:!_showOwn?600:400,background:!_showOwn?'var(--card)':'transparent',color:!_showOwn?'var(--text)':'var(--muted2)',whiteSpace:'nowrap'}}>C仓</span>
-            <span onClick={function(){setRiskTab('own')}} className="clickable" style={{fontSize:9,padding:'2px 6px',borderRadius:99,cursor:'pointer',fontWeight:_showOwn?600:400,background:_showOwn?'var(--card)':'transparent',color:_showOwn?'var(--text)':'var(--muted2)',whiteSpace:'nowrap'}}>自有三方</span>
-          </div>}
+          <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>濒临断货预警{_replMode === 'bbcc' ? '（BC）' : '（C仓+自有）'}</div>
+          {_replMode === 'traditional' && <span className="small muted" style={{fontSize:10}}>C仓+自有</span>}
         </div>
         {(!_r.items || _r.items.length === 0)
           ? <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:2,flexDirection:'column'}}>
               <div style={{fontSize:12,fontWeight:400,color:'var(--muted2)'}}>{t("dash.stock_ok")}</div>
             </div>
           : <>
-              <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:4,paddingTop:12,minHeight:0}}>
-                <div className="card-value" style={{fontSize:'clamp(15px,6.5cqi,24px)',fontWeight:700,lineHeight:1.2,color:'#ef4444',marginBottom:5,whiteSpace:'nowrap'}}>{_r.total}</div>
+              <div style={{marginBottom:4,paddingTop:8,minHeight:0}}>
+                <div className="card-value" style={{fontSize:'clamp(15px,6.5cqi,24px)',fontWeight:700,lineHeight:1.2,color:'#ef4444',marginBottom:4,whiteSpace:'nowrap'}}>{_r.total}</div>
                 <div className="card-sub" style={{marginTop:1}}>{t("dash.min_days")} {_r.items[0].days_to_empty} {t("dash.days_out")}</div>
                 {(riskCritical > 0 || riskWarning > 0 || _r.total > riskCritical + riskWarning) && <div style={{fontSize:10,display:'flex',gap:4,marginTop:1,flexWrap:'wrap',lineHeight:1.3}}>
                   {riskCritical > 0 && <span style={{color:'#ef4444'}}>● {riskCritical} {t("dash.critical")}</span>}
@@ -420,11 +420,13 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
                 </div>}
               </div>
               <div style={{flexShrink:0}}>
-              {_r.items.slice(0,3).map((x,i) => (
-                <div key={i} style={{fontSize:9,color:'var(--muted2)',lineHeight:1.55,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:i===0?6:1,paddingLeft:2}}>
-                  <span style={{color:'var(--muted)'}}>{i+1}.</span> {x.product_name || x.sku} <span style={{fontSize:8,color:'var(--muted)',background:'var(--bg)',padding:'0 4px',borderRadius:4,verticalAlign:'1px'}}>{_replMode === 'bbcc' ? 'BC' : (x.warehouse ? x.warehouse : (x.type === 'B' ? 'B' : 'C仓'))}</span>
-                </div>
-              ))}
+              {_r.items.slice(0,3).map((x,i) => {
+                var whLabel = x.warehouse || (x.type === 'C' ? 'C仓' : (x.type === 'OWN' ? '集货仓' : (x.type === 'B' ? 'B仓' : (_replMode === 'bbcc' ? 'BC' : 'C仓'))))
+                return (
+                <div key={i} style={{fontSize:9,color:'var(--muted2)',lineHeight:1.6,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:i===0?5:1,paddingLeft:2}}>
+                  <span style={{color:'var(--muted)'}}>{i+1}.</span> {x.product_name || x.sku} <span style={{fontSize:8,color:'var(--muted)',background:'var(--bg)',padding:'0 4px',borderRadius:4,verticalAlign:'1px'}}>{whLabel}</span>
+                </div>)
+              })}
               </div>
               {_r.total > 3 && <button onClick={()=>{loadFullRisk();setShowAllRisk(true)}} className="clickable" style={{width:'100%',padding:'3px 0',border:'none',borderRadius:0,background:'transparent',fontSize:10,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit',textAlign:'left',flexShrink:0}}>还有 {_r.total - 3} 条...</button>}
             </>}
@@ -523,14 +525,16 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
       {showAllRisk && <div onClick={function(){setShowAllRisk(false)}} style={{position:'fixed',inset:0,zIndex:9998,background:'transparent'}} />}
       {showAllRisk && <div style={{position:'fixed',left:0,right:0,bottom:'calc(env(safe-area-inset-bottom) + 14px)',zIndex:9999,display:'flex',justifyContent:'center',padding:'0 14px',pointerEvents:'none'}}>
         <div onClick={function(e){e.stopPropagation()}} className="material-regular" style={{width:"100%",maxWidth:600,borderRadius:32,padding:"18px 14px calc(14px + env(safe-area-inset-bottom))",boxShadow:"var(--shadow-sheet), inset 0 1px 0 rgba(255,255,255,0.25)",pointerEvents:"auto",maxHeight:"70vh",overflowY:"auto"}}>
-          <div style={{fontSize:18,fontWeight:700,marginBottom:12,textAlign:'center',color:'var(--text)'}}>濒临断货预警{_replMode === 'bbcc' ? '（BC）' : (_showOwn ? '（自有三方仓）' : '（C仓）')} · 共 {_r.total} 条</div>
-          {(fullRisk || _r.items || []).map(function(x, i) {
+          <div style={{fontSize:18,fontWeight:700,marginBottom:12,textAlign:'center',color:'var(--text)'}}>濒临断货预警{_replMode === 'bbcc' ? '（BC）' : '（C仓+自有）'} · 共 {_r.total} 条</div>
+          {(fullRisk || _r._full || _r.items || []).map(function(x, i) {
+            var whLabel = x.warehouse || (x.type === 'C' ? 'C仓' : (x.type === 'OWN' ? '集货仓' : (x.type === 'B' ? 'B仓' : (_replMode === 'bbcc' ? 'BC' : 'C仓'))))
             return <div key={i} onClick={function(){onAlert && onAlert(x.sku, _showOwn ? 'own' : 'platform')}} className="clickable" style={{padding:'8px 12px',background:'var(--card)',borderRadius:16,marginBottom:6,display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}}>
-              <div style={{minWidth:0}}>
+              <div style={{minWidth:0,flex:1}}>
                 <div style={{fontWeight:600,fontSize:12,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{x.product_name || x.sku}</div>
                 <div className="small muted" style={{fontSize:10}}>日销 {x.daily_sales} · 可用 {x.available_qty}</div>
               </div>
-              <span style={{fontSize:11,fontWeight:600,color:'#ef4444',flexShrink:0}}>{x.days_to_empty} 天</span>
+              <span style={{fontSize:9,padding:'1px 5px',borderRadius:4,background:'var(--bg)',color:'var(--muted)',flexShrink:0}}>{whLabel}</span>
+              <span style={{fontSize:11,fontWeight:600,color:'#ef4444',flexShrink:0,minWidth:38,textAlign:'right'}}>{x.days_to_empty} 天</span>
             </div>
           })}
           <div onClick={function(){setShowAllRisk(false)}} className="clickable" style={{borderRadius:22,padding:12,marginTop:8,background:'var(--primary)',textAlign:'center',cursor:'pointer'}}>

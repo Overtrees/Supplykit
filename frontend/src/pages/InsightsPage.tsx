@@ -469,10 +469,6 @@ export default function InsightsPage() {
                         if (col.id === 'sku') return <td key={col.id} className="mono" style={{fontSize:12}}>{x.sku}</td>
                         if (col.id === 'name') return <td key={col.id} className="col-name">{x.product_name}</td>
                         if (col.id === 'warehouse') return <td key={col.id} className="col-store">{x.warehouse || x.store || '-'}</td>
-                        if (col.id === 'sys_total') return <td key={col.id} style={{fontSize:12}}>
-                          <span style={{fontWeight:600}}>{x.sys_total}</span>
-                          <span className="small muted" style={{fontWeight:400}}> 自有{x.own_available}+{x.own_transit ? `在途${x.own_transit}`:''} 平台{x.plat_available}+{x.plat_transit ? `在途${x.plat_transit}`:''}{globalChannel === 'jd' ? ` B仓${x.b_available||0}` : ''}</span>
-                        </td>
                         // 系统可用 / 系统在途(与进销存对应仓维度同源: inventory in_transit_qty)
                         if (col.id === 'sys_available') return <td key={col.id} style={{fontSize:12,fontWeight:600}}>{x.sys_available ?? '-'}</td>
                         if (col.id === 'sys_transit') return <td key={col.id} style={{fontSize:12,color:'var(--muted)',fontWeight:400}}>{x.sys_transit ?? '-'}</td>

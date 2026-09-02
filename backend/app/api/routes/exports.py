@@ -30,13 +30,13 @@ def create_export_task(type: str = 'purchase', mode: str = 'bbcc', days: int = 2
             if type == 'purchase_suggestions':
                 data = get_purchase_suggestions(days=days, channel=channel, db=get_db())
                 items = data.get("data") if isinstance(data, dict) else data
-                ws.append(["序号","SKU","69码","商品名称","仓库","系统总库存","系统可用","系统在途",
+                ws.append(["序号","品牌","SKU","69码","商品名称","仓库","系统可用","系统在途",
                            "自有可用","自有在途","平台可用","平台在途","B仓可用",
                            "日销(融合)","日销14","日销28","建议采购量","箱规","实购数量(含箱规取整)","补后周转","目标周转","可撑天数","采购时机","备注"])
                 for i, r in enumerate((items or []), 1):
                     timing = '建议' if r.get('purchase_qty',0) > 0 else '充足'
-                    ws.append([i, r.get('sku',''), r.get('barcode','-'), r.get('product_name',''), r.get('warehouse',''),
-                        r.get('sys_total',0), r.get('sys_available',0), r.get('sys_transit',0),
+                    ws.append([i, r.get('brand',''), r.get('sku',''), r.get('barcode','-'), r.get('product_name',''), r.get('warehouse',''),
+                        r.get('sys_available',0), r.get('sys_transit',0),
                         r.get('own_available',0), r.get('own_transit',0), r.get('plat_available',0), r.get('plat_transit',0), r.get('b_available',0),
                         r.get('daily_sales',0), r.get('daily_sales_14',0), r.get('daily_sales_28',0),
                         r.get('purchase_qty',0), r.get('box_qty',1), r.get('actual_purchase',0), r.get('after_turnover',0), r.get('target_turnover',15),
@@ -44,13 +44,13 @@ def create_export_task(type: str = 'purchase', mode: str = 'bbcc', days: int = 2
             elif type == 'purchase':
                 data = get_purchase_suggestions(days=days, mode=mode, channel=channel, db=get_db())
                 items = data.get("data") if isinstance(data, dict) else data
-                ws.append(["序号","SKU","69码","商品名称","仓库","系统总库存","系统可用","系统在途",
+                ws.append(["序号","品牌","SKU","69码","商品名称","仓库","系统可用","系统在途",
                            "自有可用","自有在途","平台可用","平台在途","B仓可用",
                            "日销(融合)","日销14","日销28","建议采购量","箱规","实购数量(含箱规取整)","补后周转","目标周转","可撑天数","采购时机","备注"])
                 for i, r in enumerate((items or []), 1):
                     timing = '建议' if r.get('suggested_qty',0) > 0 else '充足'
-                    ws.append([i, r.get('sku',''), r.get('barcode','-'), r.get('product_name',''), r.get('warehouse',''),
-                        r.get('sys_total',0), r.get('sys_available',0), r.get('sys_transit',0),
+                    ws.append([i, r.get('brand',''), r.get('sku',''), r.get('barcode','-'), r.get('product_name',''), r.get('warehouse',''),
+                        r.get('sys_available',0), r.get('sys_transit',0),
                         r.get('own_available',0), r.get('own_transit',0), r.get('plat_available',0), r.get('plat_transit',0), r.get('b_available',0),
                         r.get('daily_sales',0), r.get('daily_sales_14',0), r.get('daily_sales_28',0),
                         r.get('suggested_qty',0), r.get('box_qty',1), r.get('actual_purchase',0), r.get('after_turnover',0), r.get('target_turnover',15),

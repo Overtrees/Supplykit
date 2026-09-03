@@ -102,17 +102,28 @@ def health():
             _QUOTA_MB = 512
             checks["db_quota_used_mb"] = round(_pq, 1)
             checks["db_quota_pct"] = round(_pq / _QUOTA_MB * 100, 0)
-            # 自动 WAL checkpoint 防膨胀(每health都做: WAL小时TRUNCATE极快, 曾等80%时WAL已暴涨89MB撑满配额)
-            # 3次事故共性: 补货/采购计算大量写WAL→膨胀→SQLite写失败→malformed
+            # WAL 按需 checkpoint: 仅当 WAL 实际大小 >15MB 才触发(阈值防事故, 但避免高频TRUNCATE阻塞写)
+            # 3次事故: 6h间隔内WAL可暴涨89MB撑满配额; 但health高频调用时小WAL TRUNCATE也浪费+可能锁竞争
             try:
-                import sqlite3 as _sqlq
-                _cq = _sqlq.connect(_DBQ)
-                _cq.execute("PRAGMA busy_timeout=15000")
-                _cq.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-                _cq.close()
-                checks["quota_auto_checkpoint"] = "done"
+                _wal_path = _DBQ + '-wal'
+                if _oq.path.exists(_wal_path) and _oq.path.getsize(_wal_path) / 1024 / 1024 > 15:
+                    import sqlite3 as _sqlq
+                    import threading as _thq
+                    # 与 scheduler 的定时 checkpoint 互斥(防并发 TRUNCATE 互相等待超时)
+                    from app.core.scheduler import _checkpoint_lock
+                    if _checkpoint_lock.acquire(blocking=False):
+                        try:
+                            _cq = _sqlq.connect(_DBQ, timeout=20)
+                            _cq.execute("PRAGMA busy_timeout=20000")
+                            _cq.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+                            _cq.close()
+                            checks["quota_auto_checkpoint"] = "done"
+                        finally:
+                            _checkpoint_lock.release()
+                else:
+                    checks["quota_auto_checkpoint"] = "skip"
             except Exception:
-                pass
+                checks["quota_auto_checkpoint"] = "err"
             if _pq > _QUOTA_MB * 0.8:
                 if _pq > _QUOTA_MB * 0.9:
                     checks["quota"] = f"danger: db+wal+备份 {_pq:.0f}MB ≥ {int(_QUOTA_MB*0.9)}MB(90%), 已自动checkpoint, 接近上限请归档"

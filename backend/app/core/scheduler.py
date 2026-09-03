@@ -295,20 +295,39 @@ def _task_disk_cleanup():
     except Exception as e:
         logger.info(f"Disk cleanup error: {e}")
 
+# WAL checkpoint 全局互斥锁(与 health/seed 按需 checkpoint 共享, 防并发 TRUNCATE 互相等待超时)
+_checkpoint_lock = None
+def _get_checkpoint_lock():
+    global _checkpoint_lock
+    if _checkpoint_lock is None:
+        import threading
+        _checkpoint_lock = threading.Lock()
+    return _checkpoint_lock
+
 def _task_wal_checkpoint_periodic():
-    """每 6 小时 WAL checkpoint 防膨胀(大量写时每天一次不够)"""
+    """定时 WAL checkpoint 防膨胀: 仅当 WAL>15MB 才 TRUNCATE(小WAL跳过零阻塞;
+    曾6h间隔内WAL暴涨89MB撑满配额3次事故, 但高频阻塞式TRUNCATE会与写请求争锁)"""
     try:
         from app.core.database import DB_PATH
-        import sqlite3
-        conn = sqlite3.connect(DB_PATH)
-        conn.execute("PRAGMA busy_timeout=30000")
-        conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-        conn.close()
+        import sqlite3, os, threading
+        assert os.path.exists(DB_PATH + '-wal')
+        if os.path.getsize(DB_PATH + '-wal') / 1024 / 1024 <= 15:
+            return  # WAL 小, 跳过(避免无谓阻塞)
+        lock = _get_checkpoint_lock()
+        if not lock.acquire(blocking=False):
+            return  # 已有 checkpoint 在跑(health/seed), 跳过避免并发
         try:
-            _c = sqlite3.connect(DB_PATH); _c.execute("PRAGMA busy_timeout=5000")
-            _c.execute("INSERT INTO quality_logs(log_type,level,message,source) VALUES('wal_checkpoint','info',?, 'scheduler')", ("每6h WAL checkpoint 完成",))
-            _c.commit(); _c.close()
-        except Exception: pass
+            conn = sqlite3.connect(DB_PATH, timeout=20)
+            conn.execute("PRAGMA busy_timeout=20000")
+            conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            conn.close()
+            try:
+                _c = sqlite3.connect(DB_PATH); _c.execute("PRAGMA busy_timeout=5000")
+                _c.execute("INSERT INTO quality_logs(log_type,level,message,source) VALUES('wal_checkpoint','info',?, 'scheduler')", ("定时WAL checkpoint 完成",))
+                _c.commit(); _c.close()
+            except Exception: pass
+        finally:
+            lock.release()
     except Exception as e:
         logger.info(f"periodic WAL checkpoint error: {e}")
 

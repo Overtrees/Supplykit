@@ -577,3 +577,9 @@ feat: 新功能 | fix: Bug | refactor: 重构 | docs: 文档 | test: 测试 | st
 - **断货卡模式化**：传统= C+own 混合显示(不 split tab, 标签用真实仓名 x.warehouse), bbcc= BC 维度; 标题传统不带后缀; 弹窗与卡同步; 布局用 aspectRatio:1 正方形防拉长
 - **WAL 配额事故**：PA 512MB 配额 + SQLite 高频写 → WAL 膨胀 → 写失败 → malformed(3次)。治本: health 每次自动 `wal_checkpoint(TRUNCATE)` 但**按需**(仅 WAL>15MB, 小WAL跳过零阻塞)+ threading.Lock 防并发; scheduler 15min; db 损坏自愈钩子必须在 `init_db()` 前(曾 init_db 连损坏库即崩全500)
 - **PA reload 409**：PA 免费版 reload 返回 409/slow_startup 但实际已软重载——CI 部署只认 2xx 即可, 以 health 兜底验证(曾连续4commit误标失败)
+
+### 15.16 seed 数据合规基线（2026-09-03）
+- **种子数据必须全虚构**：品牌池(禾味/山泉/净洁等)/供应商(云味食品(演示)等)/联系人(王小明等)/电话(010-8000000x)/店铺名(自营旗舰店等)均不与真实商家关联——曾含真实品牌(海天/太太乐等)与真实公司名，存在数据纠纷风险
+- 渠道名"京东/天猫"保留（系统主体渠道标签，非第三方商家）；B仓名中性化(京东B仓→B仓)
+- 改 seed 后必须 reset+fill 生效；验证方法：products 全量扫描真实品牌名集合应 0 残留
+- 前端展示的品牌/供应商/店铺均来自 seed，虚拟化后全链路无真实商家信息

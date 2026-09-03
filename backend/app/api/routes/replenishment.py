@@ -12,7 +12,7 @@ logger = logging.getLogger("replenishment")
 
 
 @router.get('/replenishment')
-def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 'bbcc', channel: str = 'jd', page: int = 0, page_size: int = 0, db = get_db()):
+def get_replenishment_suggestions(days: int = 28, source: str = '', mode: str = 'bbcc', channel: str = 'jd', page: int = 0, page_size: int = 0, search: str = '', db = get_db()):
     """补货建议，支持 days=7/14/28 切换，mode=bbcc/traditional 切换模型"""
     # 尝试读取缓存
     from app.core.replenishment_cache import get_cached, set_cache

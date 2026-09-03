@@ -183,8 +183,10 @@ def _seed_fill_async():
     conn = get_conn()
     steps = []
 
-    # 提高写入速度：加大页缓存 + 临时表存内存，写入由 batch 5000 控制 fsync 频率
+    # 提高写入速度：synchronous=OFF 跳过 fsync(PA慢磁盘4000次commit被放大→曾355s) + 页缓存 + 内存临时表
+    # 注: 连接级设置仅影响本线程, 请求线程保持 NORMAL 安全; 填充结束恢复 NORMAL
     try:
+        conn.execute("PRAGMA synchronous=OFF")
         conn.execute("PRAGMA cache_size=-64000")
         conn.execute("PRAGMA temp_store=MEMORY")
     except Exception:
@@ -297,6 +299,7 @@ def _seed_fill_async():
              "seed_engine"))
         # checkpoint 防膨胀（填充产生大量写入，合并 WAL 到主库释放空间）
         try:
+            conn.execute("PRAGMA synchronous=NORMAL")  # 恢复正常模式保证请求线程安全
             conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
         except Exception:
             pass
@@ -342,6 +345,8 @@ def _update_steps(steps):
 
 def _seed_products_suppliers(db, skus_data):
     sup_brands = _get_sup_brands(10)
+    conn = get_conn()
+    _prod_rows = []
     for skus,ch in [(skus_data['jd'],'jd'),(skus_data['other'],'other')]:
         for i, p in enumerate(skus):
             # 按顺序分配供应商（10 家供应商轮流覆盖 SKU）
@@ -355,15 +360,27 @@ def _seed_products_suppliers(db, skus_data):
                 _brand = _matched[(i // 10) % len(_matched)]
             else:
                 _brand = _pick_brand(p.get('cat',''))
-            _prow = {'sku':p['sku'],'product_name':p['name'],'store':p['store'],'category':p['cat'],'price':p['price'],'box_qty':p['box'],'barcode':p['barcode'],'weight':p['weight'],'volume':p['volume'],'status':p['status'],'channel':ch,'supplier_code':_sup_code,'brand':_brand}
-            db.table('products').upsert(_prow, conflict_col='sku')
+            _prod_rows.append({'sku':p['sku'],'product_name':p['name'],'store':p['store'],'category':p['cat'],'price':p['price'],'box_qty':p['box'],'barcode':p['barcode'],'weight':p['weight'],'volume':p['volume'],'status':p['status'],'channel':ch,'supplier_code':_sup_code,'brand':_brand})
+    # 批量 INSERT OR REPLACE(替代逐条 upsert 4000次commit——PA慢磁盘 fsync 放大致 355s)
+    if _prod_rows:
+        _cols = list(_prod_rows[0].keys())
+        conn.executemany(
+            f"INSERT OR REPLACE INTO products({','.join('"'+c+'"' for c in _cols)}) VALUES({','.join(['?']*len(_cols))})",
+            [[r.get(c) for c in _cols] for r in _prod_rows])
+        conn.commit()
+    _sup_rows = []
     for s_idx, s in enumerate(SUP):
         _blist = sup_brands[s_idx % 10]
         for ch in ['jd','other']:
             _sc = f"{s['code']}-{ch.upper()}"
             _brands = '，'.join(_blist)
-            # supplier_code 加渠道后缀，避免两渠道共用同一 code 导致 upsert 互相覆盖
-            db.table("suppliers").upsert({'supplier_code':_sc,'supplier_name':s['name'],'contact_person':s['contact'],'contact_phone':s['phone'],'score':s['score'],'channel':ch,'brand':_brands}, conflict_col='supplier_code')
+            _sup_rows.append({'supplier_code':_sc,'supplier_name':s['name'],'contact_person':s['contact'],'contact_phone':s['phone'],'score':s['score'],'channel':ch,'brand':_brands})
+    if _sup_rows:
+        _scols = list(_sup_rows[0].keys())
+        conn.executemany(
+            f"INSERT OR REPLACE INTO suppliers({','.join('"'+c+'"' for c in _scols)}) VALUES({','.join(['?']*len(_scols))})",
+            [[r.get(c) for c in _scols] for r in _sup_rows])
+        conn.commit()
 
 def _seed_orders(db, today, skus_data):
     jd_s, ot_s = skus_data['jd'], skus_data['other']

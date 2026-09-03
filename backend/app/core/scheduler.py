@@ -509,7 +509,7 @@ def start():
     scheduler.add_job(_task_cleanup_recycle, CronTrigger(hour=4, minute=30), id='recycle_cleanup')
     scheduler.add_job(_task_push_alerts, IntervalTrigger(minutes=30), id='push_alerts')
     scheduler.add_job(_task_disk_cleanup, CronTrigger(hour=3, minute=20), id='disk_cleanup')
-    scheduler.add_job(_task_wal_checkpoint_periodic, IntervalTrigger(minutes=60), id='wal_checkpoint_periodic')  # 60min(曾360min, 高频写下WAL可暴涨撑爆配额→3次事故)
+    scheduler.add_job(_task_wal_checkpoint_periodic, IntervalTrigger(minutes=15), id='wal_checkpoint_periodic')  # 15min(曾60/360min, 高频写下WAL暴涨撑爆配额→3次事故)
     # 每小时 WAL checkpoint（防 WAL 无限增长导致的慢/锁/配额问题）
     # 延迟预热 dashboard 缓存（reload 后 10s 执行，避开 CI health 探测窗口；修复预热线程饿死请求）
     scheduler.add_job(_task_warmup_dashboard, trigger='date', run_date=datetime.now(UTC) + timedelta(seconds=10), id='dash_warmup')

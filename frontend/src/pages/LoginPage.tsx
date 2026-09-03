@@ -58,6 +58,9 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
           <div style={{marginTop:16,padding:'10px 14px',background:'var(--bg)',borderRadius:16,fontSize:12,color:'var(--muted2)',textAlign:'center'}}>
             访客模式：<b>demo</b> / <b>demo123</b>（仅可查看，无需注册）
           </div>
+          <div style={{marginTop:10,padding:'8px 12px',fontSize:10,color:'var(--muted2)',textAlign:'center',lineHeight:1.5,borderTop:'1px solid var(--border)'}}>
+            ⚖️ 演示系统：所有品牌、商品、供应商及数据均为虚构示例，与任何真实企业或个人无关
+          </div>
         </div>
       </div>
     </div>

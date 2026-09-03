@@ -570,3 +570,10 @@ feat: 新功能 | fix: Bug | refactor: 重构 | docs: 文档 | test: 测试 | st
 - **导出**：exports.py 必须按类型分发（补货页曾因缺 replen 类型被错误指向采购导出）；订单导出去 LIMIT 2000 保全量；进销存导出补 c_transit 列
 - **任务自愈**：get_task 与列表接口都加陈旧检测（running/pending 超15min无更新 → 自动标记 error）——PA 重启线程被杀后任务曾无限"进行中"
 - **PC 端**：使用组件必须先 import（建议页 ErrorRetry 未导入致整页崩溃）；tsc 可查出未定义标识符
+
+### 15.15 搜索后端化 / 闭包门闩 / 断货卡 / 配额治本（2026-09-02~03）
+- **分页搜索必须后端化**：补货/采购/滞销接口加 `search` 参数(SKU/商品名/69码过滤), 前端搜索变更重拉第1页——曾纯前端过滤已加载前100条致 SKU 搜不到; 无分页页(订单/商品/进销存/供应商)后端已有 search 或全量加载无此问题
+- **IntersectionObserver 闭包旧 state 陷阱**：`el._observer` 判断只创建一次, 回调捕获创建时旧值(如 page=1)→每次触底反复请求同页→列表重复填充(用户滚3100条还在途0假象)。修复统一用 `xxxRef.current` 实时读最新值(函数式 `setX(prev=>prev+1)` 亦可)。排查过 InventoryPage/ProductPage/InsightsPage 三处
+- **断货卡模式化**：传统= C+own 混合显示(不 split tab, 标签用真实仓名 x.warehouse), bbcc= BC 维度; 标题传统不带后缀; 弹窗与卡同步; 布局用 aspectRatio:1 正方形防拉长
+- **WAL 配额事故**：PA 512MB 配额 + SQLite 高频写 → WAL 膨胀 → 写失败 → malformed(3次)。治本: health 每次自动 `wal_checkpoint(TRUNCATE)` 但**按需**(仅 WAL>15MB, 小WAL跳过零阻塞)+ threading.Lock 防并发; scheduler 15min; db 损坏自愈钩子必须在 `init_db()` 前(曾 init_db 连损坏库即崩全500)
+- **PA reload 409**：PA 免费版 reload 返回 409/slow_startup 但实际已软重载——CI 部署只认 2xx 即可, 以 health 兜底验证(曾连续4commit误标失败)

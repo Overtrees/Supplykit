@@ -1,3 +1,18 @@
+## 2026-09-02~09-03 搜索全页修复 + 闭包bug排查 + 看板UI对齐 + 配额事故治本
+| 模块 | 改动 |
+|------|------|
+| **搜索功能全页修复** | 补货/采购/滞销接口加 search 参数+前端搜索重拉(曾只前端过滤前100条致SKU搜不到); 订单/商品/进销存/供应商确认无同类问题(后端search或全量加载) |
+| **闭包bug全网排查** | IntersectionObserver 捕获旧 page 反复加载同页(滚3100条还在途0真因)——补货/InventoryPage/ProductPage 均中招, 改 ref 门闩实时读最新 page; purchase/slow 原用函数式 prev+50 正确 |
+| **补货排序微调** | 需补货内按在途>0优先(曾需补货SKU全在途0排前, 用户滚动误判bug) |
+| **看板断货卡** | 去 C仓/自有三方 tab 改 C+own 混合显示(标签用真实仓名); 弹窗同步混合+仓标签放天数左侧; 传统标题去(C仓+自有)后缀; 恢复 aspectRatio 正方形防拉长; 数字区紧凑紧跟标题; SKU行距统一 lineHeight1.25 |
+| **健康卡 tab 跟随** | bbcc→自有+BC, 传统→自有+平台; 缺货行距统一1.25 |
+| **iOS 天气卡风格** | 四卡加极淡阴影; 断货主值7→8cqi对齐节奏 |
+| **采购列模式口径化** | 删除'系统总库存'列改独立'可用/在途'(传统不含B/BBCC含B+自有, 自有两模式共用); 在途列加 B仓维度 b_transit; 缓存key purchase_<mode> 前缀隔离补货建议; 导出同步+补品牌列全量覆盖 |
+| **配额事故治本(3次malformed)** | DB损坏自动恢复前置到init_db前(曾init_db连损坏库即崩全500); 配额监控db_quota_used_mb/pct; health每次自动WAL checkpoint→按需(仅WAL>15MB)+互斥锁; scheduler 360→60→15min |
+| **CI 部署修复** | deploy-backend reload步骤放宽——PA免费版reload常409但实际软重载成功, 2xx即视为成功由health兜底(曾连续4commit误标失败) |
+| **TiDB 迁移白皮书** | docs/TIDB_MIGRATION.md: SQLite+PA配额组合根因、审计(214 ORM+322原生+172专有)、四维评估、20-40人日 |
+| **测试** | 117 passed 全绿 |
+
 ## 2026-09-01 性能修复 + BBCC链路/导出/任务自愈 + PC验证
 | 模块 | 改动 |
 |------|------|

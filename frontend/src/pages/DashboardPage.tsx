@@ -403,14 +403,14 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
       <div className="card" style={{borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16,overflow:'hidden'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
           <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>濒临断货预警{_replMode === 'bbcc' ? '（BC）' : ''}</div>
-          {_replMode === 'traditional' && <span className="small muted" style={{fontSize:10}}>C仓+自有</span>}
+
         </div>
         {(!_r.items || _r.items.length === 0)
           ? <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:2,flexDirection:'column'}}>
               <div style={{fontSize:12,fontWeight:400,color:'var(--muted2)'}}>{t("dash.stock_ok")}</div>
             </div>
           : <>
-              <div style={{marginBottom:3,paddingTop:2,minHeight:0}}>
+              <div style={{marginBottom:4,paddingTop:6,minHeight:0}}>
                 <div className="card-value" style={{fontSize:'clamp(16px,7cqi,26px)',fontWeight:700,lineHeight:1.15,color:'#ef4444',marginBottom:1,whiteSpace:'nowrap'}}>{_r.total}</div>
                 <div className="card-sub" style={{marginTop:0,fontSize:11,lineHeight:1.4}}>{t("dash.min_days")} {_r.items[0].days_to_empty} {t("dash.days_out")}</div>
                 {(riskCritical > 0 || riskWarning > 0 || _r.total > riskCritical + riskWarning) && <div style={{fontSize:10,display:'flex',gap:4,marginTop:1,flexWrap:'wrap',lineHeight:1.3}}>
@@ -423,7 +423,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
               {_r.items.slice(0,3).map((x,i) => {
                 var whLabel = x.warehouse || (x.type === 'C' ? 'C仓' : (x.type === 'OWN' ? '集货仓' : (x.type === 'B' ? 'B仓' : (_replMode === 'bbcc' ? 'BC' : 'C仓'))))
                 return (
-                <div key={i} style={{fontSize:9,color:'var(--muted2)',lineHeight:1.5,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:i===0?4:2,paddingLeft:2}}>
+                <div key={i} style={{fontSize:9,color:'var(--muted2)',lineHeight:1.5,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
                   <span style={{color:'var(--muted)'}}>{i+1}.</span> {x.product_name || x.sku} <span style={{fontSize:8,color:'var(--muted)',background:'var(--bg)',padding:'0 4px',borderRadius:4,verticalAlign:'1px'}}>{whLabel}</span>
                 </div>)
               })}

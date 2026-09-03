@@ -267,7 +267,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
   return <>
     <div className="card-grid" style={{marginBottom:16}}>
       {/* 1. GMV 卡 — 加环比微趋势线 + 日均 */}
-      <div className="card" style={{borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16,overflow:'hidden'}}>
+      <div className="card" style={{borderRadius:26,boxShadow:'0 1px 6px rgba(0,0,0,0.04)',containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16,overflow:'hidden'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
           <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>{periodTab === 'custom' ? '自定义' : periodLabel[periodTab]} GMV</div>
           {/* GMV 视角切换(总/净/回款), 样式对齐健康小卡 tab: 紧凑segmented pill + 短标签 */}
@@ -308,7 +308,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
       </div>
 
       {/* 2. {t("dash.pending")}卡 — 按仓库维度拆分 */}
-      <div className="card" style={{borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16}}>
+      <div className="card" style={{borderRadius:26,boxShadow:'0 1px 6px rgba(0,0,0,0.04)',containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16}}>
         <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>待处理</div>
         <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',marginBottom:4}}>
           <div className="card-value" style={{fontSize:'clamp(18px,9cqi,30px)',fontWeight:700,lineHeight:1.1,color:errCount+(dashboard?.summary?.active_alerts||0) > 10 ? '#ef4444' : (errCount+(dashboard?.summary?.active_alerts||0) > 5 ? '#f59e0b' : 'var(--text)')}}>
@@ -336,7 +336,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
       </div>
 
       {/* 3. {t("dash.health")} — 加总 {t("dash.sku")} 数 */}
-      <div className="card" style={{borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16}}>
+      <div className="card" style={{borderRadius:26,boxShadow:'0 1px 6px rgba(0,0,0,0.04)',containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16}}>
         {(()=>{
           var healthData = dashboard?.health_index?.[healthTab]||{}
           var isJd = channel === 'jd'
@@ -389,7 +389,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
             </div>
             {healthData.out_of_stock > 0 && outOfStockItems.length > 0 && <div style={{marginTop:4}}>
               {outOfStockItems.map((x,i) => (
-                <div key={i} style={{fontSize:9,color:'var(--muted2)',lineHeight:1.5,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                <div key={i} style={{fontSize:9,color:'var(--muted2)',lineHeight:1.25,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:i===0?2:0}}>
                   <span style={{color:'var(--muted)'}}>{i+1}.</span> {x.product_name || x.sku} <span style={{fontSize:8,color:'var(--muted)',background:'var(--bg)',padding:'0 4px',borderRadius:4}}>{healthTab === 'own' ? '自有' : channel === 'jd' ? (healthTab === 'bc' ? 'BC' : 'C仓') : '平台'}</span>
                 </div>
               ))}
@@ -400,7 +400,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
       </div>
 
       {/* 4. 濒临断货预警 — 全量计数, 弹窗看完整 */}
-      <div className="card" style={{borderRadius:26,containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16,overflow:'hidden'}}>
+      <div className="card" style={{borderRadius:26,boxShadow:'0 1px 6px rgba(0,0,0,0.04)',containerType:'inline-size',aspectRatio:'1',display:'flex',flexDirection:'column',padding:16,overflow:'hidden'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
           <div className="small muted" style={{fontSize:12,lineHeight:1.2}}>濒临断货预警{_replMode === 'bbcc' ? '（BC）' : ''}</div>
 
@@ -411,7 +411,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
             </div>
           : <>
               <div style={{marginBottom:4,paddingTop:6,minHeight:0}}>
-                <div className="card-value" style={{fontSize:'clamp(16px,7cqi,26px)',fontWeight:700,lineHeight:1.15,color:'#ef4444',marginBottom:1,whiteSpace:'nowrap'}}>{_r.total}</div>
+                <div className="card-value" style={{fontSize:'clamp(17px,8cqi,28px)',fontWeight:700,lineHeight:1.15,color:'#ef4444',marginBottom:1,whiteSpace:'nowrap'}}>{_r.total}</div>
                 <div className="card-sub" style={{marginTop:0,fontSize:11,lineHeight:1.4}}>{t("dash.min_days")} {_r.items[0].days_to_empty} {t("dash.days_out")}</div>
                 {(riskCritical > 0 || riskWarning > 0 || _r.total > riskCritical + riskWarning) && <div style={{fontSize:10,display:'flex',gap:4,marginTop:1,flexWrap:'wrap',lineHeight:1.3}}>
                   {riskCritical > 0 && <span style={{color:'#ef4444'}}>● {riskCritical} {t("dash.critical")}</span>}
@@ -423,7 +423,7 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
               {_r.items.slice(0,3).map((x,i) => {
                 var whLabel = x.warehouse || (x.type === 'C' ? 'C仓' : (x.type === 'OWN' ? '集货仓' : (x.type === 'B' ? 'B仓' : (_replMode === 'bbcc' ? 'BC' : 'C仓'))))
                 return (
-                <div key={i} style={{fontSize:9,color:'var(--muted2)',lineHeight:1.5,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                <div key={i} style={{fontSize:9,color:'var(--muted2)',lineHeight:1.25,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:i===0?2:0}}>
                   <span style={{color:'var(--muted)'}}>{i+1}.</span> {x.product_name || x.sku} <span style={{fontSize:8,color:'var(--muted)',background:'var(--bg)',padding:'0 4px',borderRadius:4,verticalAlign:'1px'}}>{whLabel}</span>
                 </div>)
               })}

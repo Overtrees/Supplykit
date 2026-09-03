@@ -13,9 +13,10 @@ _DEMO_SLOW = set()
 _DEMO_LOW = set()
 
 # 品牌池（真实品牌, 按品类; 调味多为区域老字号, 零食/日化头部品牌）
-BRANDS_FOOD = ['海天','李锦记','厨邦','太太乐','千禾','欣和','鲁花','东古','致美斋','味事达','加加','恒顺','千岛源']
-BRANDS_SNACK = ['乐事','旺旺','三只松鼠','良品铺子','百草味','奥利奥','格力高','趣多多','可可满分','好丽友']
-BRANDS_HOME = ['蓝月亮','立白','威露士','超能','洁柔','维达','清风','舒肤佳','奥妙','滴露','白猫','兔之力']
+# 品牌池(虚构演示品牌, 与真实品牌无关联——合规: 避免真实商家信息)
+BRANDS_FOOD = ['禾味','山泉','椒香','酱乡','醋乡','味源','禾田','青禾','禾风','谷香','醇味','鲜禾','禾记']
+BRANDS_SNACK = ['薯乐','果脆','禾果','咔脆','香脆','谷脆','果乐','脆脆','禾零','脆香']
+BRANDS_HOME = ['净洁','柔白','净香','洁舒','柔洁','净白','舒洁','洁净','净舒','白净','净柔','净力']
 def _cat_group(cat):
     if any(k in cat for k in ['薯片','虾条','爆米花','坚果','瓜子','花生','饼干','威化','巧克力','糖果']):
         return 'snack'
@@ -53,20 +54,20 @@ cat_names = ['酱油','酱料','调味汁' ,'食用油','醋','料酒','蚝油',
              '鸡精','味精','白糖','冰糖','红糖','麦芽糖','蜂蜜','料酒','黄酒','米酒',
              '薯片','虾条','爆米花','坚果','瓜子','花生','饼干','威化','巧克力','糖果',
              '洗衣液','洗洁精','洗手液','消毒液','纸巾','湿巾','垃圾袋','保鲜膜','保鲜袋','收纳盒']
-store_names = ['京东自营','京东旗舰店','广州调味食材专营店','华南食品旗舰店','上海调味品专营店']
-WH = [('北京仓','platform'),('上海仓','platform'),('集货仓','own'),('成都仓','platform'),('武汉仓','platform'),('沈阳仓','platform'),('西安仓','platform'),('郑州仓','platform'),('三方仓','own'),('京东B仓','platform_b')]
+store_names = ['自营旗舰店','直营店','调味品专营店','食品旗舰店','综合食品店']
+WH = [('北京仓','platform'),('上海仓','platform'),('集货仓','own'),('成都仓','platform'),('武汉仓','platform'),('沈阳仓','platform'),('西安仓','platform'),('郑州仓','platform'),('三方仓','own'),('B仓','platform_b')]
 # 销售仓子集: 订单(销售)只发生在 C 仓(platform), B仓(调拨)/自有仓(集货)不产生零售订单
 SUP = [
-    {'code':'SUP-001','name':'广州海天调味品有限公司','contact':'张伟','phone':'13800138001','score':5},
-    {'code':'SUP-002','name':'上海太太乐食品有限公司','contact':'李娜','phone':'13800138002','score':4},
-    {'code':'SUP-003','name':'佛山海天味业有限公司','contact':'王强','phone':'13800138003','score':5},
-    {'code':'SUP-004','name':'成都红九九食品有限公司','contact':'赵敏','phone':'13800138004','score':3},
-    {'code':'SUP-005','name':'北京王致和食品有限公司','contact':'孙丽','phone':'13800138005','score':4},
-    {'code':'SUP-006','name':'广东美味鲜调味食品有限公司','contact':'周杰','phone':'13800138006','score':5},
-    {'code':'SUP-007','name':'山东欣和调味品有限公司','contact':'吴磊','phone':'13800138007','score':4},
-    {'code':'SUP-008','name':'湖南加加食品有限公司','contact':'郑爽','phone':'13800138008','score':3},
-    {'code':'SUP-009','name':'福建安记食品有限公司','contact':'陈静','phone':'13800138009','score':4},
-    {'code':'SUP-010','name':'重庆涪陵榨菜集团','contact':'林峰','phone':'13800138010','score':5},
+    {'code':'SUP-001','name':'云味食品(演示)','contact':'王小明','phone':'010-80000001','score':5},
+    {'code':'SUP-002','name':'谷香调味(演示)','contact':'李小红','phone':'010-80000002','score':4},
+    {'code':'SUP-003','name':'椒香园食品(演示)','contact':'赵大勇','phone':'010-80000003','score':5},
+    {'code':'SUP-004','name':'青禾食品(演示)','contact':'孙晓梅','phone':'010-80000004','score':3},
+    {'code':'SUP-005','name':'禾味坊调味(演示)','contact':'周建华','phone':'010-80000005','score':4},
+    {'code':'SUP-006','name':'鲜禾食品(演示)','contact':'吴丽华','phone':'010-80000006','score':5},
+    {'code':'SUP-007','name':'醇味调味(演示)','contact':'郑国栋','phone':'010-80000007','score':4},
+    {'code':'SUP-008','name':'禾田食品(演示)','contact':'陈志强','phone':'010-80000008','score':3},
+    {'code':'SUP-009','name':'山泉食品(演示)','contact':'林秀英','phone':'010-80000009','score':4},
+    {'code':'SUP-010','name':'净洁日化(演示)','contact':'黄文博','phone':'010-80000010','score':5},
 ]
 
 def make_skus(sfx, count=1000, shared=None):
@@ -444,7 +445,7 @@ def _seed_inventory(db, skus_data):
             seen_own = False
             for wn,wt in WH:
                 if wt == 'platform_b' and skus is not jd_s:
-                    # B 仓（京东B仓）是京东主体 BBCC 专属，其他渠道不生成 B 仓库存
+                    # B 仓是京东主体 BBCC 专属，其他渠道不生成 B 仓库存
                     continue
                 if wt == 'own':
                     # WH 里有两个 own 仓（集货仓/三方仓），只保留一个避免重复行
@@ -653,7 +654,7 @@ def _seed_records(db, skus_data):
                         _b = random.choice(_pool)
                         _bp = _b['pd']; _be = _b['ed']; _wh = _b['wh']
                     conn.execute("INSERT OR IGNORE INTO outbound_records(sku,product_name,quantity,target_warehouse,outbound_date,channel,prod_date,exp_date,warehouse) VALUES(?,?,?,?,?,?,?,?,?)",
-                        (sk['sku'], sk['name'], random.randint(10, 100), "京东备货仓",
+                        (sk['sku'], sk['name'], random.randint(10, 100), "B仓",
                          (today - timedelta(days=days_back)).strftime('%Y-%m-%d'), ch, _bp, _be, _wh))
                 except Exception: pass
     conn.commit()

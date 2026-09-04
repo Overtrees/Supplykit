@@ -102,6 +102,25 @@ def health():
             _QUOTA_MB = 512
             checks["db_quota_used_mb"] = round(_pq, 1)
             checks["db_quota_pct"] = round(_pq / _QUOTA_MB * 100, 0)
+            # 碎片监控(只读 PRAGMA, 零阻塞): freelist 页>阈值提示手动 VACUUM——不做定时回收
+            # 定时常 VACUUM 会独占写锁数分钟阻塞所有请求(8-28 教训), 改为健康检查提示 + 手动一次性执行
+            try:
+                import sqlite3 as _sqlf
+                _cf = _sqlf.connect(_DBQ)
+                _cf.execute("PRAGMA busy_timeout=5000")
+                _pc = _cf.execute("PRAGMA page_count").fetchone()[0]
+                _fl = _cf.execute("PRAGMA freelist_count").fetchone()[0]
+                _cf.close()
+                checks["db_pages"] = _pc
+                checks["db_freelist_pages"] = _fl
+                _frag_mb = round(_fl * _cf.page_size / 1024 / 1024, 1) if False else round(_fl * 4096 / 1024 / 1024, 1)
+                checks["db_freelist_mb"] = _frag_mb
+                if _fl > 2000:
+                    checks["fragmentation"] = f"warning: 碎片 {_frag_mb}MB({_fl}页), 建议手动 VACUUM 回收(一次性, 需避峰值)"
+                else:
+                    checks["fragmentation"] = "ok"
+            except Exception:
+                checks["fragmentation"] = "n/a"""
             # WAL 按需 checkpoint: 仅当 WAL 实际大小 >15MB 才触发(阈值防事故, 但避免高频TRUNCATE阻塞写)
             # 3次事故: 6h间隔内WAL可暴涨89MB撑满配额; 但health高频调用时小WAL TRUNCATE也浪费+可能锁竞争
             try:

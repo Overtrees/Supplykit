@@ -284,13 +284,13 @@ export default function DashboardPage({ onAlert }: DashboardPageProps) {
           </div>
           <div className="card-sub" style={{marginTop:6,display:'flex',alignItems:'center',gap:6}}>
             <span>{periodMeta.orders} 单</span>
-            {periodTrend.length >= 2 && (() => {
-              const vals = periodTrend.map(i => Number(i['GMV'])||0)
-              const last = vals[vals.length-1], prev = vals[vals.length-2]
+            {(() => {
+              const last = Number(periodMeta.gmv||0), prev = Number(periodMeta.prev_gmv||0)
               if (!prev) return null
               const pct = ((last - prev) / prev * 100)
+              const _cmpLabel = periodTab === 'today' ? '较昨日' : (periodTab === 'week' ? '较上周' : '较上月')
               return <span style={{fontSize:11,fontWeight:600,color:pct >= 0 ? 'var(--success)' : '#ef4444'}}>
-                {pct >= 0 ? '↑' : '↓'} {Math.abs(pct).toFixed(1)}% <span style={{fontSize:9,fontWeight:400,color:'var(--muted2)'}}>较昨日</span>
+                {pct >= 0 ? '↑' : '↓'} {Math.abs(pct).toFixed(1)}% <span style={{fontSize:9,fontWeight:400,color:'var(--muted2)'}}>{_cmpLabel}</span>
               </span>
             })()}
             <span style={{color:'var(--muted2)',fontSize:10}}>· 日均 ¥{(() => { const _g = gmvView === 'net' ? (periodMeta.net_gmv != null ? periodMeta.net_gmv : ((periodMeta.gmv||0) - (dashboard?.summary?.refund_amount||0))) : (gmvView === 'payout' ? (periodMeta.payout != null ? periodMeta.payout : ((periodMeta.gmv||0) - (dashboard?.summary?.refund_amount||0) - (dashboard?.summary?.subsidy_amount||0))) : periodMeta.gmv); return Math.round((_g||0)/periodDays).toLocaleString() })()}</span>

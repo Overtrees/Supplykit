@@ -40,9 +40,14 @@ def _compute_period_trends(conn, ch, today):
     """
     from datetime import timedelta, UTC
     periods = {}
-    for pname, pdays in [('today', 1), ('week', 7), ('month', 30)]:
+    # 各维度同时计算上一周期(环比基准): today→昨日, week→上周同7天, month→上月同30天
+    for pname, pdays, prev_span in [('today', 1, 1), ('week', 7, 7), ('month', 30, 30)]:
         cutoff = (today - timedelta(days=pdays - 1)).isoformat()
+        prev_cutoff = (today - timedelta(days=pdays + prev_span - 1)).isoformat()
+        prev_end = (today - timedelta(days=pdays)).isoformat()  # 上一周期截止(不含本周期)
         rows = conn.execute("SELECT ordered_at, SUM(total_amount - COALESCE(discount_amount,0) + COALESCE(freight_amount,0) + COALESCE(tax_amount,0)) as g, SUM(CASE WHEN order_status='申请退款' THEN total_amount - COALESCE(discount_amount,0) + COALESCE(freight_amount,0) + COALESCE(tax_amount,0) ELSE 0 END) as rf, SUM(COALESCE(subsidy_amount,0)) as sub, COUNT(*) as cnt FROM orders WHERE channel=? AND ordered_at>=? AND order_status IN ('待发货','已发货','已完成','申请退款') AND (deleted_at='') GROUP BY ordered_at", (ch, cutoff)).fetchall()
+        # 上一周期(仅gmv/orders, 供环比)
+        prev_rows = conn.execute("SELECT SUM(total_amount - COALESCE(discount_amount,0) + COALESCE(freight_amount,0) + COALESCE(tax_amount,0)) as g, COUNT(*) as cnt FROM orders WHERE channel=? AND ordered_at>=? AND ordered_at<=? AND order_status IN ('待发货','已发货','已完成','申请退款') AND (deleted_at='')", (ch, prev_cutoff, prev_end)).fetchall()
         daily = {}
         for r in rows:
             date_str = r[0][5:] if r[0] else '未知'
@@ -51,10 +56,13 @@ def _compute_period_trends(conn, ch, today):
             daily[date_str]["refund"] += r[2]
             daily[date_str]["subsidy"] += r[3]
             daily[date_str]["orders"] += r[4]
+        _pg = prev_rows[0][0] if prev_rows and prev_rows[0][0] else 0
+        _po = prev_rows[0][1] if prev_rows and prev_rows[0][1] else 0
         periods[pname] = {"gmv": sum(v["gmv"] for v in daily.values()), "orders": sum(v["orders"] for v in daily.values()),
                           "net_gmv": round(sum(v["gmv"] for v in daily.values()) - sum(v["refund"] for v in daily.values()), 2),
                           "subsidy_amount": round(sum(v["subsidy"] for v in daily.values()), 2),
-                          "payout": round(sum(v["gmv"] for v in daily.values()) - sum(v["refund"] for v in daily.values()) - sum(v["subsidy"] for v in daily.values()), 2)}
+                          "payout": round(sum(v["gmv"] for v in daily.values()) - sum(v["refund"] for v in daily.values()) - sum(v["subsidy"] for v in daily.values()), 2),
+                          "prev_gmv": round(_pg, 2), "prev_orders": _po}
         periods[pname + "_trend"] = [{"日期": k, "GMV": round(v["gmv"], 2), "订单数": v["orders"]} for k, v in sorted(daily.items())]
     return periods
 

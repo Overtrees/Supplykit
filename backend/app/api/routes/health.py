@@ -265,8 +265,15 @@ def health():
         _ordmax = get_conn().execute("SELECT COALESCE(MAX(substr(ordered_at,1,10)),'') FROM orders WHERE deleted_at=''").fetchone()[0]
         checks["snapshot_max"] = _sn
         checks["orders_max"] = _ordmax
-        # 快照新鲜度 = 对比订单最新日(而非当前日期——无新订单时快照停留是正常的, 曾误报陈旧致degraded)
-        checks["snapshot_stale"] = (not _sn) or (bool(_ordmax) and _sn < _ordmax)
+        # 快照新鲜度 = 对比订单最新日前一天(快照只到昨天, 今天订单走实时补足——曾误报陈旧致degraded)
+        _expect = _ordmax[:10]
+        from datetime import timedelta as _td2
+        try:
+            _y = (datetime.now(UTC) - timedelta(days=1)).strftime('%Y-%m-%d')
+            _expect_min = _y  # 快照至少应覆盖到昨天
+        except Exception:
+            _expect_min = _ordmax[:10]
+        checks["snapshot_stale"] = (not _sn) or (bool(_ordmax) and _sn < _expect_min)
         if checks["snapshot_stale"]:
             checks["snapshot"] = "warning: 日销快照陈旧, 需重建"
             status = "degraded"

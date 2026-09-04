@@ -583,3 +583,16 @@ feat: 新功能 | fix: Bug | refactor: 重构 | docs: 文档 | test: 测试 | st
 - 渠道名"京东/天猫"保留（系统主体渠道标签，非第三方商家）；B仓名中性化(京东B仓→B仓)
 - 改 seed 后必须 reset+fill 生效；验证方法：products 全量扫描真实品牌名集合应 0 残留
 - 前端展示的品牌/供应商/店铺均来自 seed，虚拟化后全链路无真实商家信息
+
+### 15.17 生产环境定位 + DB 事故防绕圈铁律（2026-09-04）
+- **项目定位**：生产环境（最后阶段测试，seed 占位）。切真实数据前必须执行 docs/PRODUCTION_CHECKLIST.md
+- **本次事故链**：seed.py f-string 嵌套引号（3.12 合法/PA 3.11 SyntaxError）→ app 全 500 → 误删库 → JWT 失效 → init_db 静默 0 表
+- **防绕圈铁律（知识沉淀）**：
+  1. **语法错 > DB 损坏**：先查 `wsgi_probe` 确认 import 是否成功；SyntaxError 是 500 第一嫌疑
+  2. **本地 3.12 会漏检 3.11**：部署前 `python3.11 -m py_compile` 全项目（或 CI 门禁）
+  3. **勿删库**：PA 文件下载截断（196MB→12MB）是假象，勿据此判损坏；误删 = 数据风险
+  4. **token 401 = JWT_SECRET 回退**：直接读 db `replenishment_config.jwt_secret` 签发，勿绕登录
+  5. **自愈覆盖三态**：db 缺失 / db 过小 / db 损坏，都要走备份恢复
+  6. **init_db 静默失败**：必须落盘日志，否则 0 表 + setup 500 无痕
+  7. **快照判定容差**：快照到昨天即新鲜（今天订单实时补足），勿用当前日期对比
+  8. **WAL 配额**：checkpoint 按需（>15MB）+ 互斥锁；删 WAL 是最后手段

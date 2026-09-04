@@ -7,6 +7,10 @@ on:
       - 'backend/**'
   workflow_dispatch:
 
+env:
+  # 后端运行目标 Python 版本(语法门禁用)——迁移平台/升级版本时改此处即可
+  BACKEND_PY_VERSION: "3.11"
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -17,22 +21,22 @@ jobs:
       - name: Python 3.11 语法门禁 (PA 运行版本)
         run: |
           set -e
-          # setup-python 3.11 验证全项目语法兼容——本地 3.12 会漏检(2026-09-04 事故根因: f-string嵌套引号3.12合法/3.11崩)
-          sudo apt-get update -qq && sudo apt-get install -y -qq python3.11 >/dev/null 2>&1 || true
-          if command -v python3.11 >/dev/null; then
-            PY=python3.11
+          # 语法门禁: 以 BACKEND_PY_VERSION 为目标版本验证全项目兼容——防止新代码用更高版本语法(2026-09-04 事故根因: f-string嵌套引号3.12合法/3.11崩)
+          PY="python${BACKEND_PY_VERSION}"
+          if command -v "$PY" >/dev/null 2>&1; then
+            TARGET_PY="$PY"
           elif command -v python3.12 >/dev/null; then
-            # 兜底: 有 3.12 也做基本检查(不能完全替代 3.11, 但能拦语法错)
-            PY=python3.12
-            echo "⚠️ 未找到 python3.11, 用 3.12 兜底(风险: 3.12 合法/3.11 不合法语法无法拦截)"
+            TARGET_PY=python3.12
+            echo "⚠️ 未找到 $PY(目标${BACKEND_PY_VERSION}), 用 3.12 兜底(风险: 3.12 合法/目标版本不合法语法无法拦截)"
           else
             echo "无合适 Python, 跳过门禁(风险接受)"
             exit 0
           fi
+          echo "语法门禁目标版本: ${BACKEND_PY_VERSION} (> ${TARGET_PY})"
           find backend/app -name '*.py' | while read f; do
-            $PY -m py_compile "$f" || { echo "❌ 3.11 语法失败: $f"; exit 1; }
+            "$TARGET_PY" -m py_compile "$f" || { echo "❌ ${BACKEND_PY_VERSION} 语法失败: $f"; exit 1; }
           done
-          echo "✅ Python 3.11 语法检查通过"
+          echo "✅ Python ${BACKEND_PY_VERSION} 语法检查通过"
 
       - name: Upload backend files to PythonAnywhere
         env:

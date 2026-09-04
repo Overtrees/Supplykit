@@ -18,33 +18,20 @@ jobs:
           PA_BASE: https://www.pythonanywhere.com/api/v0/user/Overtrees/files/path/home/Overtrees/Supplykit/backend/app
         run: |
           set -e
-          # 1. 列出备份文件，取最新 .bak.*.gz
-          ls_json=$(curl -sS -H "Authorization: Token $PA_TOKEN" "$PA_BASE/" -o /tmp/palist.json -w "%{http_code}")
-          echo "list http=$ls_json"
-          # 2. 解析最新文件
-          BAK=$(python3 - <<'PL'
-import json
-d=json.load(open('/tmp/palist.json'))
-baks=[]
-for k,v in d.items():
-    if k.startswith('supplykit.db.bak.') and k.endswith('.gz') and isinstance(v,dict):
-        baks.append((k, v.get('size',0)))
-baks.sort(key=lambda x:x[1], reverse=True)  # 同一名字会被覆盖，取存在的
-if not baks:
-    print('NO_BACKUP'); raise SystemExit(2)
-baks.sort(key=lambda x:x[0])  # 按文件名(日期)排序取最新
-print(baks[-1][0])
-PL
-)
+          # 1. 列目录(PA files API JSON), 用 grep 提取 .bak.*.gz 文件名
+          curl -sS -H "Authorization: Token $PA_TOKEN" "$PA_BASE/" -o /tmp/palist.json
+          BAK=$(grep -oE '"supplykit\.db\.bak\.[0-9]{8}\.gz"' /tmp/palist.json | sort -u | tail -1 | tr -d '"')
+          if [ -z "$BAK" ]; then
+            echo "❌ 未找到任何备份文件"
+            exit 1
+          fi
           echo "backup_file=$BAK"
-          # 3. 下载
+          # 2. 下载
           code=$(curl -sS -H "Authorization: Token $PA_TOKEN" "$PA_BASE/$BAK" -o backup.gz -w "%{http_code}")
-          echo "download http=$code size=$(stat -c%s backup.gz)"
+          echo "download http=$code size=$(stat -c%s backup.gz 2>/dev/null || echo ?)"
           test "$code" = "200" || { echo "下载失败"; exit 1; }
-          # 4. 校验 gzip
+          # 3. 校验 gzip 完整
           gzip -t backup.gz && echo "gzip OK"
-          # 输出给 Release 步骤
-          echo "backup_file=$BAK" >> "$GITHUB_OUTPUT"
           DATE=$(echo "$BAK" | grep -oE '[0-9]{8}')
           echo "backup_date=$DATE" >> "$GITHUB_OUTPUT"
 
@@ -53,31 +40,30 @@ PL
           GH_TOKEN: ${{ github.token }}
         run: |
           set -e
-          TAG="backup-${{ steps.fetch.outputs.backup_date }}"
+          DATE=$(grep -oE '[0-9]{8}' <<< "${{ steps.fetch.outputs.backup_date }}")
+          TAG="backup-$DATE"
           echo "release tag: $TAG"
-          # 创建/更新 release（幂等：已存在则复用)
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "release 已存在，更新资产"
             gh release upload "$TAG" backup.gz --clobber
           else
             gh release create "$TAG" backup.gz \
-              --title "DB 备份 ${{ steps.fetch.outputs.backup_date }}" \
-              --notes "PA 数据库异地备份（自动生成）" || \
-            { echo "create fail, try upload to latest"; gh release upload "backup-${{ steps.fetch.outputs.backup_date }}" backup.gz --clobber 2>/dev/null || true; }
+              --title "DB 备份 $DATE" \
+              --notes "PA 数据库异地备份（自动生成）" || echo "创建失败(可能已存在), 忽略"
           fi
-          echo "✅ 异地备份完成: $TAG"
+          echo "异地备份完成: $TAG"
 
       - name: 清理旧 Release（保留最近 7 份）
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -e
-          # 列出 backup-* releases 按创建时间倒序，删除超过 7 个的
-          gh release list --limit 100 --json tagName,createdAt --jq '.[] | select(.tagName|startswith("backup-")) | [.tagName,.createdAt] | @tsv' 2>/dev/null |
-          sort -k2 -r |
-          awk 'NR>7 {print $1}' |
-          while read t; do
-            echo "删除旧备份 release: $t"
-            gh release delete "$t" --yes 2>/dev/null || true
-          done
-          echo "✅ 清理完成"
+          gh release list --limit 100 --json tagName,createdAt \
+            --jq '.[] | select(.tagName|startswith("backup-")) | [.tagName,.createdAt] | @tsv' 2>/dev/null |
+            sort -k2 -r |
+            awk 'NR>7 {print $1}' |
+            while read t; do
+              echo "删除旧备份 release: $t"
+              gh release delete "$t" --yes 2>/dev/null || true
+            done
+          echo "清理完成"

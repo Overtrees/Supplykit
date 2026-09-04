@@ -3,6 +3,10 @@ name: Backup Offsite (异地备份)
 on:
   schedule:
     - cron: '30 2 * * *'   # 每日 02:30 UTC = 10:30 北京时间（PA 凌晨2点备份后拉取）
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'        # 后端变更即备份（与 deploy 互补）
   workflow_dispatch:
 
 jobs:

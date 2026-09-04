@@ -84,6 +84,26 @@ from app.api.routes.seed import router as seed_router
 from app.api.routes.purchase import router as purchase_router
 from app.api.routes.replenishment import router as replenishment_router
 from app.api.routes.records import router as records_router
+# 启动前置: 先加载 JWT_SECRET(env 优先, 否则从 db 读/生成)——必须在 import auth 前,
+# 否则 auth.SECRET 为空导致所有 token 401(自愈重启后每次复现)
+if not os.getenv("JWT_SECRET"):
+    try:
+        import sqlite3 as _sj
+        from app.core.database import DB_PATH as _DBJ
+        _cj = _sj.connect(_DBJ); _cj.execute("PRAGMA busy_timeout=3000")
+        _rj = _cj.execute("SELECT value FROM replenishment_config WHERE key='jwt_secret'").fetchone()
+        if _rj and _rj[0]:
+            os.environ["JWT_SECRET"] = _rj[0]
+        else:
+            import hashlib as _hl
+            _sec = _hl.sha256(os.urandom(64)).hexdigest()[:48]
+            _cj.execute("INSERT OR REPLACE INTO replenishment_config(key,value,channel) VALUES('jwt_secret',?,'jd')", (_sec,))
+            _cj.commit()
+            os.environ["JWT_SECRET"] = _sec
+        _cj.close()
+    except Exception:
+        pass
+
 from app.api.routes.auth import router as auth_router
 from app.api.routes.monitor import router as monitor_router
 from app.api.routes.exports import router as exports_router
@@ -159,7 +179,18 @@ try:
 except Exception:
     pass
 
-init_db()
+try:
+    init_db()
+except Exception as _ide:
+    try:
+        import logging as _idl
+        _idl.error(f"[db] init_db 失败: {_ide}", exc_info=True)
+        _hf = open(os.path.join(os.path.dirname(DB_PATH), '.initdb_error.log'), 'a')
+        _hf.write(f"init_db FAIL: {_ide}\n")
+        _hf.close()
+    except Exception:
+        pass
+    raise
 
 
 # 启动时清理卡死的后台任务（running 超过 10 分钟视为线程已死，标记 error 释放线程池）

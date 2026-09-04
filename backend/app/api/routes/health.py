@@ -262,8 +262,11 @@ def health():
     try:
         from app.core.database import get_conn
         _sn = get_conn().execute("SELECT COALESCE(MAX(date),'') FROM daily_sales_snapshot").fetchone()[0]
+        _ordmax = get_conn().execute("SELECT COALESCE(MAX(substr(ordered_at,1,10)),'') FROM orders WHERE deleted_at=''").fetchone()[0]
         checks["snapshot_max"] = _sn
-        checks["snapshot_stale"] = (not _sn) or _sn < (datetime.now(UTC) - timedelta(days=2)).strftime('%Y-%m-%d')
+        checks["orders_max"] = _ordmax
+        # 快照新鲜度 = 对比订单最新日(而非当前日期——无新订单时快照停留是正常的, 曾误报陈旧致degraded)
+        checks["snapshot_stale"] = (not _sn) or (bool(_ordmax) and _sn < _ordmax)
         if checks["snapshot_stale"]:
             checks["snapshot"] = "warning: 日销快照陈旧, 需重建"
             status = "degraded"

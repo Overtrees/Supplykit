@@ -596,3 +596,10 @@ feat: 新功能 | fix: Bug | refactor: 重构 | docs: 文档 | test: 测试 | st
   6. **init_db 静默失败**：必须落盘日志，否则 0 表 + setup 500 无痕
   7. **快照判定容差**：快照到昨天即新鲜（今天订单实时补足），勿用当前日期对比
   8. **WAL 配额**：checkpoint 按需（>15MB）+ 互斥锁；删 WAL 是最后手段
+
+### 15.18 异地备份 + 语法门禁 + GMV环比 + 碎片监控（2026-09-04）
+- **异地备份**：PA 本地备份（凌晨2点 .gz 已含自校验）→ GitHub Actions 每日拉取上传 Release（保留7份）。**异地=GitHub与PA完全隔离的平台**；恢复演练步骤见 PRODUCTION_CHECKLIST §3.5
+- **语法门禁**：deploy-backend.yml 在 Upload 前 `py_compile` 全项目，目标版本 = env `BACKEND_PY_VERSION`——**本地 3.12 会漏检 3.11 语法，门禁必须用目标版本**；迁移后端只改 env 一处，勿硬编码
+- **GMV 环比**：periods 各维度含 prev_gmv/prev_orders（今日→昨日/本周→上周7天/本月→上月30天），前端标签随维度——忌"硬编码比较标签+用 trend 末两点当环比"
+- **碎片监控**：健康检查加只读 freelist PRAGMA；`freelist>2000页` 提示手动 VACUUM——**勿做定时 VACUUM**（独占写锁+阻塞全请求，8-28 教训）
+- **入口唯一**：WSGI 用 `app.main`（backend/app/main.py），根目录 main.py 是遗留冗余——迁移/备份时勿混淆

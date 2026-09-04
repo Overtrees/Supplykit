@@ -16,7 +16,7 @@
 - [x] **部署门禁**：CI `deploy-backend.yml` 已加 Python 语法门禁——目标版本参数化
   - `env.BACKEND_PY_VERSION: "3.11"`（PA 运行版本），上传前 `py_compile` 全项目
   - **防"本地 3.12 测试通过/线上 3.11 崩"**（本次 root cause 若早期拦截可免全 500）
-- [ ] **异地备份**：当前 .bak 在 PA 同磁盘——若 PA 配额/环境故障则备份同毁。需 `github actions 每日拉取 db 到仓库/外部存储`（至少每周）
+- [x] **异地备份**：`.github/workflows/backup-offsite.yml` 每日 02:30 UTC 拉取 PA 最新 `.bak.gz` → GitHub Release（保留 7 份，幂等 + gzip 校验 + 自动清理）——**GitHub 与 PA 完全异地**，线上链路已验证（下载 25.9MB OK）
 - [ ] **误删防护**：移除任何"直接删 supplykit.db"的运维操作；新增 `diag-orders?action=backup_now` 手动备份入口
 - [ ] **真实数据演练**：切数据前用真实数据副本做 1 次全链路回归（12 接口 + 前端页面）
 
@@ -24,6 +24,12 @@
 - [ ] quota ≥70% 预警（已有 80/90 阈值，建议调低）
 - [x] health 自动 checkpoint 已生效（每请求检查 WAL>15MB 才触发）
 - [ ] 告警：scheduler 每 6h 快照新鲜度自检（已有）+ 每日备份成功日志
+
+## 3.5 备份恢复演练（每月，正式上线前必做 1 次）
+- [ ] **下载**：从 GitHub Release 下载最新 `backup-YYYYMMDD` 资产（`gh release download backup-<date>`）
+- [ ] **校验**：`gzip -t backup.gz` + 解压后 `PRAGMA integrity_check` + 抽样核对 orders 总数（对照 CHANGELOG 记录值）
+- [ ] **重建**：停 PA app → 上传解压的 db 至 `supplykit.db` → 重启 → 验证 health ok + 关键业务（orders/summary/补货/采购）全 200
+- [ ] **记录**：演练日期/耗时/结果记录到 CHANGELOG，异常则排查备份链路（PA 本地备份 → 拉取 → Release）
 
 ## 4. 后端迁移 Checklist（Python 版本/平台变更时）
 

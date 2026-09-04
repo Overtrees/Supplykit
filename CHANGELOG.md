@@ -18,6 +18,14 @@
 - reset+fill 线上生效：1000 商品 0 真实品牌残留，orders 17.4万/快照 13.1万正常
 
 
+### 09-04 补充分支持（异地备份 + 门禁 + GMV环比 + 碎片监控）
+- **异地备份**（backup-offsite.yml）：每日 02:30 UTC 拉 PA 最新 .bak.gz → GitHub Release（保留 7 份），幂等 + gzip 校验 + 自动清理；触发=定时/push(backend/**)/手动；恢复演练见 PRODUCTION_CHECKLIST §3.5
+- **CI 语法门禁**：deploy 前 `BACKEND_PY_VERSION`（env 参数化）py_compile 全项目——防"本地 3.12 过/线上 3.11 崩"；迁移后端只改 env 一处
+- **GMV 卡环比维度化**：periods 增 prev_gmv/prev_orders，前端较昨日/较上周/较上月（曾硬编码较昨日且今日无环比）
+- **碎片监控**（健康检查只读 PRAGMA）：freelist>2000 页提示手动 VACUUM，不做定时回收（防止阻塞请求/线程卡死）
+- **清理**：冗余 backend/main.py 已删（唯一入口 backend/app/main.py）
+
+
 ## 2026-09-04 事故根治（生产定位明确 + 全链路验证）
 > **定位修正**：本项目为**生产环境**（最后阶段测试，seed 数据占位，即将切真实数据）。非演示系统。
 > 事故链：seed.py 提速引入 f-string 嵌套引号 → 本地 3.12 合法/PA 3.11 SyntaxError → app 全 500 → 误判 DB 损坏删真库（备份恢复）→ JWT 失效 → init_db 静默 0 表。

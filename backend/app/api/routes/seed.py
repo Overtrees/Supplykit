@@ -365,7 +365,7 @@ def _seed_products_suppliers(db, skus_data):
     if _prod_rows:
         _cols = list(_prod_rows[0].keys())
         conn.executemany(
-            f"INSERT OR REPLACE INTO products({','.join('"'+c+'"' for c in _cols)}) VALUES({','.join(['?']*len(_cols))})",
+            "INSERT OR REPLACE INTO products(" + ', '.join('"%s"' % c for c in _cols) + ") VALUES(" + ', '.join('?' for _ in _cols) + ")",
             [[r.get(c) for c in _cols] for r in _prod_rows])
         conn.commit()
     _sup_rows = []
@@ -378,7 +378,7 @@ def _seed_products_suppliers(db, skus_data):
     if _sup_rows:
         _scols = list(_sup_rows[0].keys())
         conn.executemany(
-            f"INSERT OR REPLACE INTO suppliers({','.join('"'+c+'"' for c in _scols)}) VALUES({','.join(['?']*len(_scols))})",
+            "INSERT OR REPLACE INTO suppliers(" + ', '.join('"%s"' % c for c in _scols) + ") VALUES(" + ', '.join('?' for _ in _scols) + ")",
             [[r.get(c) for c in _scols] for r in _sup_rows])
         conn.commit()
 

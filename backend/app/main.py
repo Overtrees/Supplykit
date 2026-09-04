@@ -99,23 +99,51 @@ from app.core.monitor import record as monitor_record
 try:
     import sqlite3 as _sqlite3, gzip as _gzip, shutil as _shutil, glob as _sglob, os as _os, time as _time
     from app.core.database import DB_PATH as _DB_PATH
+    try:
+        _hl = _os.path.join(_os.path.dirname(_DB_PATH), '.selfheal.log')
+        with open(_hl, 'a') as _hf:
+            import time as _htt
+            _hf.write('selfheal-enter ' + _htt.strftime('%Y%m%d%H%M%S') + ' db=' + str(_os.path.exists(_DB_PATH)) + ' sz=' + str(_os.path.getsize(_DB_PATH) if _os.path.exists(_DB_PATH) else 0) + '\n')
+    except Exception:
+        pass
     _ok = False
     try:
-        _tc = _sqlite3.connect(_DB_PATH)
-        _tc.execute("PRAGMA busy_timeout=3000")
-        _q = _tc.execute("PRAGMA quick_check").fetchone()
-        _tc.close()
-        _ok = bool(_q and _q[0] == 'ok')
+        # db 缺失/过小也视为需恢复(connect缺失文件会建空库→quick_check误报ok→空白库上线数据全丢)
+        _ex = _os.path.exists(_DB_PATH)
+        _sz = _os.path.getsize(_DB_PATH) if _ex else 0
+        if not _ex or _sz < 100 * 1024:
+            _ok = False
+        else:
+            _tc = _sqlite3.connect(_DB_PATH)
+            _tc.execute("PRAGMA busy_timeout=3000")
+            _q = _tc.execute("PRAGMA quick_check").fetchone()
+            _tc.close()
+            _ok = bool(_q and _q[0] == 'ok')
     except Exception:
         _ok = False
     if not _ok:
-        _baks = sorted(_sglob.glob(_DB_PATH + '.bak.*.gz'), key=_os.path.getmtime, reverse=True)
+        try:
+            _hl2 = _os.path.join(_os.path.dirname(_DB_PATH), '.selfheal.log')
+            with open(_hl2, 'a') as _hf2:
+                _hf2.write('selfheal-restore-enter\n')
+        except Exception:
+            pass
+        _baks = sorted(_sglob.glob(_DB_PATH + '.bak.*.gz') + _sglob.glob(_DB_PATH + '.recover.gz'), key=_os.path.getmtime, reverse=True)
         if _baks:
             _src = _baks[0]
             _new = _DB_PATH + '.recover.new'
-            for _f in (_DB_PATH + '-wal', _DB_PATH + '-shm'):
+            for _f in (_DB_PATH + '-wal', _DB_PATH + '-shm', _DB_PATH + '.recover.new'):
                 if _os.path.exists(_f): _os.remove(_f)
             try:
+                # 9-02 记忆: 先删损坏db释放配额(曾保留corrupt需349MB超配额必失败), 再解压
+                if _os.path.exists(_DB_PATH):
+                    _os.remove(_DB_PATH)
+                try:
+                    _hl3 = _os.path.join(_os.path.dirname(_DB_PATH), '.selfheal.log')
+                    with open(_hl3, 'a') as _hf3:
+                        _hf3.write('removed-db freeing space\n')
+                except Exception:
+                    pass
                 with _gzip.open(_src, 'rb') as _fi, open(_new, 'wb') as _fo:
                     _shutil.copyfileobj(_fi, _fo, 1024*1024)
                 _tt = _sqlite3.connect(_new); _qq = _tt.execute("PRAGMA integrity_check").fetchone(); _tt.close()
